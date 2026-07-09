@@ -72,14 +72,14 @@ $heroImage = !empty($sliders) ? ltrim($sliders[0]['image_path'], '/') : 'https:/
 
             <!-- Desktop Nav -->
             <nav class="hidden md:flex items-center gap-8">
-                <a href="set-swim-system/public/" class="text-sm font-bold tracking-wider uppercase hover:text-blue-400 transition-colors">🏊 Sistem Renang</a>
-                <a href="set-roll-system/" class="text-sm font-bold tracking-wider uppercase hover:text-blue-400 transition-colors">🛼 Sistem Sepatu Roda</a>
+                <a href="set-swim-system/public/" class="text-sm font-bold tracking-wider uppercase hover:text-blue-400 transition-colors">SET Swim Systtem</a>
+                <a href="set-roll-system/" class="text-sm font-bold tracking-wider uppercase hover:text-blue-400 transition-colors"> SET Roll System</a>
             </nav>
 
             <!-- Actions -->
             <div class="flex items-center gap-4">
                 <a href="login.php" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-full font-black text-xs uppercase tracking-widest shadow-xl transition transform hover:scale-105">
-                    🔑 Login Super Admin
+                    Login 
                 </a>
             </div>
         </div>
@@ -99,7 +99,10 @@ $heroImage = !empty($sliders) ? ltrim($sliders[0]['image_path'], '/') : 'https:/
 
             <div class="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start pt-4">
                 <a href="set-swim-system/public/" class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors bg-slate-900 text-white hover:bg-slate-900/90 h-11 px-8">
-                    Akses Sistem Renang
+                    SET Swim System 
+                </a>
+                <a href="set-roll-system/" class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors bg-slate-900 text-white hover:bg-slate-900/90 h-11 px-8">
+                    SET Roll System
                 </a>
                 <a href="#events" class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors border border-slate-200 hover:bg-slate-100 h-11 px-8">
                     Jelajahi Lomba
@@ -204,7 +207,7 @@ $heroImage = !empty($sliders) ? ltrim($sliders[0]['image_path'], '/') : 'https:/
                 </div>
             </div>
         </div>
-        <div class="border-t border-slate-800 pt-10 text-center"><p class="text-slate-600 text-[10px] font-black tracking-[0.3em] uppercase">&copy; <?= date('Y') ?> UNIVERSAL SET SYSTEM. All Rights Reserved.</p></div>
+        <div class="border-t border-slate-800 pt-10 text-center"><p class="text-slate-600 text-[10px] font-black tracking-[0.3em] uppercase">&copy; <?= date('Y') ?>  SET SYSTEM. All Rights Reserved.</p></div>
     </footer>
 
 </body>
