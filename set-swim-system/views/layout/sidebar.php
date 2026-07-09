@@ -6,7 +6,7 @@ if (session_status() === PHP_SESSION_NONE) session_start();
 if (!defined('BASE_URL')) {
     $is_localhost = ($_SERVER['SERVER_NAME'] == 'localhost' || $_SERVER['SERVER_NAME'] == '127.0.0.1' || strpos($_SERVER['SERVER_NAME'], 'ngrok') !== false);
     // Ganti 'https://domainkamu.com' dengan domain asli Anda saat web sudah siap hosting.
-    define('BASE_URL', $is_localhost ? 'http://localhost/swim-meet' : 'https://domainkamu.com'); 
+    define('BASE_URL', $is_localhost ? 'http://localhost/set-system/set-swim-system' : 'https://domainkamu.com'); 
 }
 
 $role = $_SESSION['role'] ?? 'guest'; 

@@ -37,7 +37,7 @@ if ($is_local) {
     $password = $env['DB_PASS'] ?? '';
     
     // Base URL untuk environment lokal
-    define('BASE_URL', '/swim-meet');
+    define('BASE_URL', '/set-system/set-swim-system');
 } else {
 // ==========================================
     // KONDISI HOSTING (Production)
