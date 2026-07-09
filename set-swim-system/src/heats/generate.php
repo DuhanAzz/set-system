@@ -23,16 +23,16 @@ function getSpearheadOrder($totalLanes) {
     // Contoh 8 lintasan: [4, 5, 3, 6, 2, 7, 1, 8]
     // Contoh 6 lintasan: [3, 4, 2, 5, 1, 6]
     $order = [];
-    $center = ceil($totalLanes / 2);
+    $center = (int)ceil($totalLanes / 2) - 1;
     
     $order[] = $center; // Tercepat di tengah
     for ($i = 1; $i < $totalLanes; $i++) {
         if ($i % 2 != 0) { // Ganjil: Kanan
             $val = $center + ceil($i/2);
-            if($val <= $totalLanes) $order[] = $val;
+            if($val < $totalLanes) $order[] = $val;
         } else { // Genap: Kiri
             $val = $center - ($i/2);
-            if($val > 0) $order[] = $val;
+            if($val >= 0) $order[] = $val;
         }
     }
     return $order;

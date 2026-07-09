@@ -28,8 +28,8 @@ if (!$event) {
 $totalLanes = $event['lane_count'] ?? 8; 
 
 // Hitung lintasan tengah untuk highlight (Spearhead color)
-$centerLane1 = floor($totalLanes / 2);     // Untuk 8 lintasan = 4
-$centerLane2 = floor($totalLanes / 2) + 1; // Untuk 8 lintasan = 5
+$centerLane1 = (int)ceil($totalLanes / 2) - 1; // Untuk 10 lintasan = 4
+$centerLane2 = (int)ceil($totalLanes / 2);     // Untuk 10 lintasan = 5
 
 // Ambil Data Heat
 $stmtHeats = $pdo->prepare("SELECT * FROM heats WHERE event_id = ? ORDER BY heat_number ASC");
@@ -100,7 +100,7 @@ include __DIR__ . '/../../views/layout/sidebar.php';
                         </tr>
                     </thead>
                     <tbody>
-                        <?php for($lane=1; $lane <= $totalLanes; $lane++): ?>
+                        <?php for($lane=0; $lane < $totalLanes; $lane++): ?>
                             <?php 
                                 $atlet = null;
                                 foreach($entries as $e) { if($e['lane_number'] == $lane) $atlet = $e; }
