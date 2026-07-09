@@ -1,7 +1,10 @@
 <?php
 // FILE: src/config/database.php
 ob_start();
-if (session_status() === PHP_SESSION_NONE) { session_start(); }
+if (session_status() === PHP_SESSION_NONE) { 
+    session_name('SET_ROLL_SESS');
+    session_start(); 
+}
 date_default_timezone_set('Asia/Jakarta');
 
 $is_local = false;

@@ -1,6 +1,5 @@
 <?php
 // FILE: src/admin/dashboard.php
-if (session_status() === PHP_SESSION_NONE) session_start();
 require_once __DIR__ . '/../config/database.php';
 
 // 1. STATISTIK (4 QUERY COUNT TUNGGAL)
@@ -12,24 +11,10 @@ $totalEntries = $pdo->query("SELECT COUNT(*) FROM roll_entries")->fetchColumn();
 // 2. DATA TERBARU
 $latestEvents = $pdo->query("SELECT * FROM roll_events ORDER BY id DESC LIMIT 5")->fetchAll();
 
+include __DIR__ . '/../../views/layout/topbar.php';
+include __DIR__ . '/../../views/layout/sidebar.php';
 ?>
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - SET Roll System</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Inter', sans-serif; }
-    </style>
-</head>
-<body class="bg-slate-50 text-slate-800">
-
-    <?php include __DIR__ . '/../../views/layout/sidebar.php'; ?>
-
-    <div class="ml-64 p-8 min-h-screen">
+<div class="p-6 sm:ml-64 pt-24 bg-slate-50 min-h-screen font-sans">
         <div class="mb-10">
             <h2 class="text-3xl font-black text-slate-900 tracking-tight">Executive Dashboard</h2>
             <p class="text-slate-500 mt-1 font-medium">Ringkasan operasional SET Roll System.</p>

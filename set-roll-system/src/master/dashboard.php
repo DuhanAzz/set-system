@@ -1,6 +1,5 @@
 <?php
 // FILE: src/master/dashboard.php
-if (session_status() === PHP_SESSION_NONE) session_start();
 require_once __DIR__ . '/../config/database.php';
 
 // Proteksi Master Ketat
@@ -13,22 +12,10 @@ if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'master') {
 $totalAdmins = $pdo->query("SELECT COUNT(*) FROM roll_users WHERE role = 'admin'")->fetchColumn();
 $totalUsers = $pdo->query("SELECT COUNT(*) FROM roll_users WHERE role = 'user'")->fetchColumn();
 $totalMasters = $pdo->query("SELECT COUNT(*) FROM roll_users WHERE role = 'master'")->fetchColumn();
+include __DIR__ . '/../../views/layout/topbar.php';
+include __DIR__ . '/../../views/layout/sidebar.php';
 ?>
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Master - SET Roll System</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-    <style> body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #f8fafc; } </style>
-</head>
-<body>
-
-    <?php include __DIR__ . '/../../views/layout/sidebar_master.php'; ?>
-
-    <div class="ml-64 p-8 min-h-screen">
+<div class="p-6 sm:ml-64 pt-24 bg-slate-50 min-h-screen font-sans">
         <div class="mb-12">
             <div class="inline-block px-4 py-1.5 bg-red-500/20 text-red-400 font-bold text-xs uppercase tracking-widest rounded-full border border-red-500/30 mb-4">Level Akses Tertinggi</div>
             <h2 class="text-4xl font-black text-white tracking-tight">Ruang Komando Utama</h2>
