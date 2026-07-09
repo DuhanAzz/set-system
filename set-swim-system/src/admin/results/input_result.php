@@ -70,7 +70,7 @@ function getBase64Image($urlPath) {
     if (empty($urlPath)) return null;
     $baseDir = dirname(dirname(dirname(__DIR__)));
     $cleanPath = ltrim(preg_replace('/^(\.\.\/)+/', '', $urlPath), '/');
-    if (strpos($cleanPath, 'swim-meet/') === 0) $cleanPath = substr($cleanPath, 10);
+    if (strpos($cleanPath, 'set-system/set-swim-system/') === 0) $cleanPath = substr($cleanPath, 28);
     if (strpos($cleanPath, 'public/') !== 0) $cleanPath = "public/" . $cleanPath;
     
     $fullPath = $baseDir . "/" . $cleanPath;

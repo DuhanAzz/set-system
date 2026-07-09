@@ -55,9 +55,9 @@ if (isset($_GET['del_sponsor']) && $eventId > 0) {
     $img = $stmt->fetch();
     
     if ($img) {
-        // Bersihkan path untuk menghapus file fisik
+        // Bersihkan path untuk menghapus logo lama jika diganti
         $cleanPath = ltrim(preg_replace('/^(\.\.\/)+/', '', $img['image_path']), '/');
-        if (strpos($cleanPath, 'swim-meet/') === 0) $cleanPath = substr($cleanPath, 10);
+        if (strpos($cleanPath, 'set-system/set-swim-system/') === 0) $cleanPath = substr($cleanPath, 28);
         $fullPath = __DIR__ . "/../../../" . $cleanPath;
         
         if (file_exists($fullPath)) unlink($fullPath); 
@@ -82,7 +82,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'delete_image' && isset($_GET['
         if ($rowImg && !empty($rowImg[$type])) {
             $dbPath = $rowImg[$type];
             $cleanPath = ltrim(preg_replace('/^(\.\.\/)+/', '', $dbPath), '/');
-            if (strpos($cleanPath, 'swim-meet/') === 0) $cleanPath = substr($cleanPath, 10);
+            if (strpos($cleanPath, 'set-system/set-swim-system/') === 0) $cleanPath = substr($cleanPath, 28);
             $fullPath = __DIR__ . "/../../../public/" . $cleanPath;
             
             if (file_exists($fullPath)) unlink($fullPath);
@@ -306,7 +306,7 @@ function getUrlPreview($dbPath) {
     if (empty($dbPath)) return '';
     if (strpos($dbPath, 'http') === 0) return $dbPath;
     $cleanPath = ltrim(preg_replace('/^(\.\.\/)+/', '', $dbPath), '/');
-    if (strpos($cleanPath, 'swim-meet/') === 0) $cleanPath = substr($cleanPath, 10);
+    if (strpos($cleanPath, 'set-system/set-swim-system/') === 0) $cleanPath = substr($cleanPath, 28);
     return '../../../public/' . $cleanPath;
 }
 

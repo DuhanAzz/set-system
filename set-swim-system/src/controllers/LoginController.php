@@ -27,11 +27,11 @@ class LoginController {
 
                 // 3. Redirect Sesuai Role
                 if ($user['role'] === 'master') {
-                    header("Location: ../src/master/dashboard.php");
+                    header("Location: " . BASE_URL . "/src/master/dashboard.php");
                 } elseif ($user['role'] === 'admin') {
-                    header("Location: ../src/admin/dashboard.php");
+                    header("Location: " . BASE_URL . "/src/admin/dashboard.php");
                 } elseif ($user['role'] === 'user') {
-                    header("Location: ../src/user/dashboard.php");
+                    header("Location: " . BASE_URL . "/src/user/dashboard.php");
                 } else {
                     echo "Role tidak dikenali.";
                 }
