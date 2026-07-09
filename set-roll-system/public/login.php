@@ -30,7 +30,7 @@ require_once __DIR__ . '/../src/config/database.php';
             <p class="text-slate-400 font-medium">Sistem Manajemen Eksekutif Sepatu Roda</p>
         </div>
 
-        <div class="bg-slate-800/80 backdrop-blur-xl border border-slate-700 p-8 rounded-3xl shadow-2xl">
+        <div class="bg-slate-800/80 backdrop-blur-xl border border-slate-700 p-8 rounded-[2.5rem] shadow-2xl">
             
             <?php if(isset($_SESSION['error'])): ?>
                 <div class="bg-red-500/20 border border-red-500 text-red-400 text-sm font-bold px-4 py-3 rounded-xl mb-6 text-center">
@@ -41,15 +41,15 @@ require_once __DIR__ . '/../src/config/database.php';
             <form action="<?= BASE_URL ?>/src/controllers/LoginController.php" method="POST">
                 <div class="mb-5">
                     <label class="block text-sm font-bold text-slate-400 mb-2">Username</label>
-                    <input type="text" name="username" required class="w-full bg-slate-900/50 border border-slate-700 text-white rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500 transition placeholder-slate-600" placeholder="Masukkan username">
+                    <input type="text" name="username" required class="w-full bg-slate-900/50 border border-slate-300 text-white rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500 transition placeholder-slate-600" placeholder="Masukkan username">
                 </div>
                 
                 <div class="mb-8">
                     <label class="block text-sm font-bold text-slate-400 mb-2">Password</label>
-                    <input type="password" name="password" required class="w-full bg-slate-900/50 border border-slate-700 text-white rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500 transition placeholder-slate-600" placeholder="••••••••">
+                    <input type="password" name="password" required class="w-full bg-slate-900/50 border border-slate-300 text-white rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500 transition placeholder-slate-600" placeholder="••••••••">
                 </div>
 
-                <button type="submit" class="w-full bg-orange-500 hover:bg-orange-600 text-white py-3.5 rounded-xl font-bold shadow-lg shadow-orange-500/30 transition-all transform hover:-translate-y-1">
+                <button type="submit" class="w-full bg-orange-600 hover:bg-orange-700 text-white py-3.5 rounded-xl uppercase tracking-widest font-black text-sm shadow-[0_0_20px_rgba(234,88,12,0.4)] transition-all transform hover:-translate-y-1">
                     Masuk ke Sistem
                 </button>
             </form>

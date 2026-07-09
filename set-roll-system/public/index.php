@@ -38,10 +38,11 @@ function formatMsToTime($ms) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SET Roll System - Portal Resmi</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=Roboto+Mono:wght@700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=Roboto+Mono:wght@700&family=Teko:wght@700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; }
         .font-mono { font-family: 'Roboto Mono', monospace; }
+        .font-teko { font-family: 'Teko', sans-serif; }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800">
@@ -50,7 +51,7 @@ function formatMsToTime($ms) {
     <nav class="bg-slate-900 text-white p-6 shadow-xl relative z-50">
         <div class="max-w-6xl mx-auto flex justify-between items-center">
             <h1 class="text-2xl font-black tracking-tighter">SET<span class="text-orange-500">ROLL</span></h1>
-            <a href="login.php" class="bg-orange-500 hover:bg-orange-600 px-6 py-2 rounded-full font-bold text-sm shadow-lg shadow-orange-500/30 transition-transform transform hover:scale-105">
+            <a href="login.php" class="bg-orange-600 hover:bg-orange-700 text-white px-8 py-3 rounded-xl font-bold text-xs uppercase tracking-widest shadow-lg transition-transform transform active:scale-95">
                 Masuk / Login Klub
             </a>
         </div>
@@ -61,14 +62,14 @@ function formatMsToTime($ms) {
         <div class="absolute inset-0 bg-gradient-to-b from-orange-500/10 to-transparent"></div>
         <div class="max-w-6xl mx-auto px-6 relative z-10 text-center">
             <span class="bg-orange-500/20 text-orange-400 font-bold px-4 py-1.5 rounded-full text-sm tracking-wider uppercase mb-6 inline-block border border-orange-500/30">Official Portal</span>
-            <h2 class="text-5xl md:text-7xl font-black text-white mb-6 tracking-tight leading-tight">Kejuaraan Sepatu Roda<br>Tingkat Nasional</h2>
+            <h2 class="font-teko font-black italic uppercase text-5xl md:text-7xl text-white mb-6 tracking-tight leading-tight">Kejuaraan Sepatu Roda<br>Tingkat Nasional</h2>
             <p class="text-slate-400 text-lg md:text-xl max-w-2xl mx-auto font-medium">Platform sistem manajemen lomba terpadu untuk pengaturan grid start, peloton, dan hasil catatan waktu (Live Timing).</p>
         </div>
     </div>
 
     <!-- Live Results Section -->
     <div class="max-w-6xl mx-auto px-6 -mt-16 relative z-20 mb-20">
-        <div class="bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden">
+        <div class="bg-white rounded-[2rem] shadow-sm hover:shadow-lg transition-all duration-300 border border-slate-200 p-2 overflow-hidden">
             <div class="p-8 border-b border-slate-100 flex items-center gap-4">
                 <div class="w-3 h-3 bg-red-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.8)]"></div>
                 <h3 class="text-2xl font-black text-slate-900">Live Results (Sorotan)</h3>

@@ -99,7 +99,7 @@ $heroImage = !empty($sliders) ? ltrim($sliders[0]['image_path'], '/') : 'https:/
                 <div class="hidden lg:flex items-center space-x-10">
                     <a href="set-swim-system/public/index.php
                     " class="nav-link">Sistem Renang</a>
-                    <a href="set-roll-system/" class="nav-link">Sistem Sepatu Roda</a>
+                    <a href="set-roll-system/public/index.php" class="nav-link">Sistem Sepatu Roda</a>
                     <a href="#events" class="nav-link">Jadwal Event</a>
                 </div>
                 <div class="flex items-center lg:border-l lg:border-white/20 lg:pl-10">
@@ -179,7 +179,7 @@ $heroImage = !empty($sliders) ? ltrim($sliders[0]['image_path'], '/') : 'https:/
                     <div class="p-8 text-center bg-white border-t-4 border-[#1e293b]">
                         <h3 class="font-teko text-4xl font-black text-slate-900 uppercase mb-2">SET ROLL SYSTEM</h3>
                         <p class="text-slate-500 font-medium text-sm mb-6 max-w-sm mx-auto">Manajemen terpadu perlombaan sepatu roda, klasemen poin, dan lap counter.</p>
-                        <a href="set-roll-system/" class="inline-block bg-[#1e293b] text-white font-bold uppercase tracking-widest text-xs px-8 py-3 hover:bg-[#f25822] transition-colors">
+                        <a href="set-roll-system/public/index.php" class="inline-block bg-[#1e293b] text-white font-bold uppercase tracking-widest text-xs px-8 py-3 hover:bg-[#f25822] transition-colors">
                             Buka Sistem
                         </a>
                     </div>
