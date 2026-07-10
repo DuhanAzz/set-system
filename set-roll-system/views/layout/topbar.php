@@ -39,7 +39,7 @@ if ($uid > 0 && $role == 'user') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SET Roll System</title>
-    <link rel="icon" type="image/png" href="<?= BASE_URL ?>/public/favicon.png?v=2">
+    <link rel="icon" type="image/png" href="<?= BASE_URL ?>/public/img/logo.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.2.0/flowbite.min.css" rel="stylesheet" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.2.0/flowbite.min.js"></script>
@@ -90,8 +90,8 @@ if ($uid > 0 && $role == 'user') {
                   <p class="text-xs font-medium text-gray-500 truncate"><?= htmlspecialchars($_SESSION['username'] ?? '') ?></p>
                 </div>
                 <ul class="py-2" role="none">
-                  <li><a href="<?= BASE_URL ?>/public/profile_edit.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600 font-medium flex items-center gap-2"><span>👤</span> Edit Profil</a></li>
-                  <li><a href="<?= BASE_URL ?>/public/change_password.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600 font-medium flex items-center gap-2"><span>🔒</span> Ubah Password</a></li>
+                  <?php $profileLink = ($role === 'user') ? BASE_URL . '/src/user/profile.php' : BASE_URL . '/src/admin/profile.php'; ?>
+                  <li><a href="<?= $profileLink ?>" class="block px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600 font-medium flex items-center gap-2"><span>👤</span> Profil & Keamanan</a></li>
                   <div class="border-t border-gray-100 my-1"></div>
                   <li><a href="<?= BASE_URL ?>/public/logout.php" class="block px-4 py-2 text-sm text-red-600 hover:bg-red-50 font-bold flex items-center gap-2"><span>🚪</span> Logout</a></li>
                 </ul>

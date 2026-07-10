@@ -97,8 +97,7 @@ if ($uid > 0) {
                   <p class="text-xs font-medium text-gray-500 truncate"><?= $_SESSION['email'] ?? '' ?></p>
                 </div>
                 <ul class="py-2" role="none">
-                  <li><a href="<?= BASE_URL ?>/public/profile_edit.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 font-medium flex items-center gap-2"><span>👤</span> Edit Profil</a></li>
-                  <li><a href="<?= BASE_URL ?>/public/change_password.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 font-medium flex items-center gap-2"><span>🔒</span> Ubah Password</a></li>
+                  <li><a href="<?= BASE_URL ?>/public/profile_edit.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 font-medium flex items-center gap-2"><span>👤</span> Profil & Keamanan</a></li>
                   <div class="border-t border-gray-100 my-1"></div>
                   <li><a href="<?= BASE_URL ?>/public/logout.php" class="block px-4 py-2 text-sm text-red-600 hover:bg-red-50 font-bold flex items-center gap-2"><span>🚪</span> Logout</a></li>
                 </ul>
