@@ -173,9 +173,11 @@ if ($action === 'delete_slider' && isset($_GET['id'])) {
     $img = $stmt->fetch();
     
     if ($img) {
-        $filePath = __DIR__ . '/../../../public/' . $img['image_path'];
-        if (file_exists($filePath)) {
-            unlink($filePath);
+        if (strpos($img['image_path'], 'http') !== 0) {
+            $filePath = __DIR__ . '/../../../public/' . $img['image_path'];
+            if (file_exists($filePath)) {
+                unlink($filePath);
+            }
         }
         $pdo->prepare("DELETE FROM roll_hero_images WHERE id = ?")->execute([$id]);
         $_SESSION['flash_message'] = "Gambar slider berhasil dihapus!";

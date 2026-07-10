@@ -68,14 +68,7 @@ $eventFallbackImg = !empty($s['event_fallback_image']) ? rtrim(BASE_URL, '/') . 
 $sliders = []; 
 try { $sliders = $pdo->query("SELECT * FROM roll_hero_images ORDER BY id DESC")->fetchAll(); } 
 catch (Exception $e) {}
-if (empty($sliders)) {
-    $sliders = [
-        ['image_path' => 'https://images.unsplash.com/photo-1583832292200-18885b424a7f?q=80&w=2000&auto=format&fit=crop'],
-        ['image_path' => 'https://images.unsplash.com/photo-1609773335024-be4301497ea9?q=80&w=2000&auto=format&fit=crop'],
-        ['image_path' => 'https://images.unsplash.com/photo-1664352957776-db31192974f1?q=80&w=2000&auto=format&fit=crop'],
-        ['image_path' => 'https://images.unsplash.com/photo-1583832291892-0d27a522c676?q=80&w=2000&auto=format&fit=crop']
-    ];
-}
+// Fallback logic removed as DB is now seeded
 
 // PREVIEW JADWAL (4 Event TERBARU)
 $sql = "SELECT e.id, e.event_name, e.location, e.event_city, e.event_date_start, e.status, e.poster_image, e.logo_left, e.is_result_published 

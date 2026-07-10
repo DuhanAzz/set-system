@@ -14,14 +14,7 @@ if (isset($_SESSION['user_id']) || isset($_SESSION['role'])) {
 $sliders = []; 
 try { $sliders = $pdo->query("SELECT * FROM roll_hero_images ORDER BY id DESC")->fetchAll(); } 
 catch (Exception $e) {}
-if (empty($sliders)) {
-    $sliders = [
-        ['image_path' => 'https://images.unsplash.com/photo-1583832292200-18885b424a7f?auto=format&fit=crop&w=1600&q=80'],
-        ['image_path' => 'https://images.unsplash.com/photo-1609773335024-be4301497ea9?auto=format&fit=crop&w=1600&q=80'],
-        ['image_path' => 'https://images.unsplash.com/photo-1664352957776-db31192974f1?auto=format&fit=crop&w=1600&q=80'],
-        ['image_path' => 'https://images.unsplash.com/photo-1583832291892-0d27a522c676?auto=format&fit=crop&w=1600&q=80']
-    ];
-}
+// Fallback logic removed as DB is now seeded
 ?>
 <!DOCTYPE html>
 <html lang="id">

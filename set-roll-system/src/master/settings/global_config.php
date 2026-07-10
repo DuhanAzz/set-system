@@ -75,7 +75,7 @@ include __DIR__ . '/../../../views/layout/sidebar.php';
                             <label class="block text-sm font-bold text-slate-700 mb-1">WhatsApp Pusat</label>
                             <div class="relative">
                                 <div class="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-slate-400">📞</div>
-                                <input type="text" name="contact_wa" value="<?= htmlspecialchars($settings['contact_wa']) ?>" 
+                                <input type="text" name="contact_wa" value="<?= htmlspecialchars($settings['contact_wa'] ?? '') ?>" 
                                     class="w-full rounded-xl border-slate-200 bg-slate-50 focus:bg-white focus:border-red-500 focus:ring-red-500 transition pl-11 pr-4 py-3 font-medium text-slate-800">
                             </div>
                             <p class="text-[10px] text-slate-400 mt-1">Format: 628xxx (tanpa + atau 0)</p>
@@ -85,7 +85,7 @@ include __DIR__ . '/../../../views/layout/sidebar.php';
                             <label class="block text-sm font-bold text-slate-700 mb-1">Email Pusat</label>
                             <div class="relative">
                                 <div class="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-slate-400">✉️</div>
-                                <input type="email" name="contact_email" value="<?= htmlspecialchars($settings['contact_email']) ?>" 
+                                <input type="email" name="contact_email" value="<?= htmlspecialchars($settings['contact_email'] ?? '') ?>" 
                                     class="w-full rounded-xl border-slate-200 bg-slate-50 focus:bg-white focus:border-red-500 focus:ring-red-500 transition pl-11 pr-4 py-3 font-medium text-slate-800">
                             </div>
                         </div>
@@ -94,7 +94,7 @@ include __DIR__ . '/../../../views/layout/sidebar.php';
                             <label class="block text-sm font-bold text-slate-700 mb-1">Link Instagram</label>
                             <div class="relative">
                                 <div class="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-slate-400">📸</div>
-                                <input type="text" name="link_instagram" value="<?= htmlspecialchars($settings['link_instagram']) ?>" 
+                                <input type="text" name="link_instagram" value="<?= htmlspecialchars($settings['link_instagram'] ?? '') ?>" 
                                     class="w-full rounded-xl border-slate-200 bg-slate-50 focus:bg-white focus:border-red-500 focus:ring-red-500 transition pl-11 pr-4 py-3 font-medium text-slate-800">
                             </div>
                         </div>
@@ -103,7 +103,7 @@ include __DIR__ . '/../../../views/layout/sidebar.php';
                             <label class="block text-sm font-bold text-slate-700 mb-1">Link Facebook</label>
                             <div class="relative">
                                 <div class="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-slate-400">📘</div>
-                                <input type="text" name="link_facebook" value="<?= htmlspecialchars($settings['link_facebook']) ?>" 
+                                <input type="text" name="link_facebook" value="<?= htmlspecialchars($settings['link_facebook'] ?? '') ?>" 
                                     class="w-full rounded-xl border-slate-200 bg-slate-50 focus:bg-white focus:border-red-500 focus:ring-red-500 transition pl-11 pr-4 py-3 font-medium text-slate-800">
                             </div>
                         </div>
@@ -111,7 +111,7 @@ include __DIR__ . '/../../../views/layout/sidebar.php';
                 </div>
 
                 <div class="bg-slate-50 p-6 border-t border-slate-200 flex justify-end">
-                    <button type="submit" name="update_global_config" onclick="return confirmAction(event, 'Simpan pengaturan global ini?', 'global-config-form')" 
+                    <button type="submit" name="update_global_config" onclick="return confirmAction(event, 'Simpan pengaturan global ini?', 'global-config-form', 'form')" 
                         class="px-8 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow-lg shadow-red-500/30 transition transform hover:-translate-y-0.5">
                         💾 Simpan Pengaturan
                     </button>

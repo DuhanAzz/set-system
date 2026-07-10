@@ -33,7 +33,7 @@ include __DIR__ . '/../../../views/layout/sidebar.php';
             </div>
         </div>
 
-        <form action="process_cms.php" method="POST" enctype="multipart/form-data" class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+        <form id="landing-form" action="process_cms.php" method="POST" enctype="multipart/form-data" class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
             <input type="hidden" name="action" value="update_landing">
             <div class="p-8 space-y-8">
                 
@@ -44,13 +44,13 @@ include __DIR__ . '/../../../views/layout/sidebar.php';
                     <div class="space-y-5">
                         <div>
                             <label class="block text-sm font-bold text-slate-700 mb-1">Judul Utama (Hero Title)</label>
-                            <input type="text" name="hero_title" value="<?= htmlspecialchars($settings['hero_title']) ?>" required 
+                            <input type="text" name="hero_title" value="<?= htmlspecialchars($settings['hero_title'] ?? '') ?>" required 
                                 class="w-full rounded-xl border-slate-200 bg-slate-50 focus:bg-white focus:border-red-500 focus:ring-red-500 transition px-4 py-3 font-medium text-slate-800">
                             <p class="text-[10px] text-slate-400 mt-1">Muncul besar di tengah layar pertama kali web dibuka.</p>
                         </div>
                         <div>
                             <label class="block text-sm font-bold text-slate-700 mb-1">Sub-Judul (Hero Subtitle)</label>
-                            <input type="text" name="hero_subtitle" value="<?= htmlspecialchars($settings['hero_subtitle']) ?>" required 
+                            <input type="text" name="hero_subtitle" value="<?= htmlspecialchars($settings['hero_subtitle'] ?? '') ?>" required 
                                 class="w-full rounded-xl border-slate-200 bg-slate-50 focus:bg-white focus:border-red-500 focus:ring-red-500 transition px-4 py-3 font-medium text-slate-800">
                         </div>
                     </div>
@@ -62,7 +62,7 @@ include __DIR__ . '/../../../views/layout/sidebar.php';
                     
                     <div>
                         <label class="block text-sm font-bold text-slate-700 mb-1">Konten Running Text</label>
-                        <input type="text" name="running_text" value="<?= htmlspecialchars($settings['running_text']) ?>" required 
+                        <input type="text" name="running_text" value="<?= htmlspecialchars($settings['running_text'] ?? '') ?>" required 
                             class="w-full rounded-xl border-slate-200 bg-slate-50 focus:bg-white focus:border-red-500 focus:ring-red-500 transition px-4 py-3 font-medium text-slate-800">
                         <p class="text-[10px] text-slate-400 mt-1">Gunakan karakter pemisah seperti | untuk membedakan kalimat.</p>
                     </div>
@@ -75,13 +75,13 @@ include __DIR__ . '/../../../views/layout/sidebar.php';
                     <div class="space-y-5">
                         <div>
                             <label class="block text-sm font-bold text-slate-700 mb-1">Judul Kotak Panduan</label>
-                            <input type="text" name="info_title" value="<?= htmlspecialchars($settings['info_title']) ?>" required 
+                            <input type="text" name="info_title" value="<?= htmlspecialchars($settings['info_title'] ?? '') ?>" required 
                                 class="w-full rounded-xl border-slate-200 bg-slate-50 focus:bg-white focus:border-red-500 focus:ring-red-500 transition px-4 py-3 font-medium text-slate-800">
                         </div>
                         <div>
                             <label class="block text-sm font-bold text-slate-700 mb-1">Isi Panduan</label>
                             <textarea name="info_text" rows="4" required 
-                                class="w-full rounded-xl border-slate-200 bg-slate-50 focus:bg-white focus:border-red-500 focus:ring-red-500 transition px-4 py-3 font-medium text-slate-800"><?= htmlspecialchars($settings['info_text']) ?></textarea>
+                                class="w-full rounded-xl border-slate-200 bg-slate-50 focus:bg-white focus:border-red-500 focus:ring-red-500 transition px-4 py-3 font-medium text-slate-800"><?= htmlspecialchars($settings['info_text'] ?? '') ?></textarea>
                             <p class="text-[10px] text-slate-400 mt-1">Gunakan tag HTML sederhana (seperti &lt;br&gt; atau &lt;b&gt;) jika diperlukan.</p>
                         </div>
                     </div>
@@ -119,7 +119,7 @@ include __DIR__ . '/../../../views/layout/sidebar.php';
             </div>
             
             <div class="bg-slate-50 p-6 border-t border-slate-200 flex justify-end">
-                <button type="submit" name="update_public_page" onclick="return confirmAction(event, 'Simpan perubahan konfigurasi Landing Page?', 'form')" 
+                <button type="submit" name="update_public_page" onclick="return confirmAction(event, 'Simpan perubahan konfigurasi Landing Page?', 'landing-form', 'form')" 
                     class="px-8 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow-lg shadow-red-500/30 transition transform hover:-translate-y-0.5">
                     💾 Simpan Perubahan
                 </button>

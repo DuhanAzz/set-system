@@ -18,16 +18,7 @@ if (!is_dir($uploadDir)) {
 $stmt = $pdo->query("SELECT * FROM roll_hero_images ORDER BY id DESC");
 $images = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// FALLBACK LOGIC: Jika kosong, sediakan aset default bernuansa Sepatu Roda (Speed Skating)
-if (empty($images)) {
-    $images = [
-        ['id' => 'Default-1', 'image_path' => 'https://images.unsplash.com/photo-1583832292200-18885b424a7f?q=80&w=2000&auto=format&fit=crop'],
-        ['id' => 'Default-2', 'image_path' => 'https://images.unsplash.com/photo-1609773335024-be4301497ea9?q=80&w=2000&auto=format&fit=crop'],
-        ['id' => 'Default-3', 'image_path' => 'https://images.unsplash.com/photo-1664352957776-db31192974f1?q=80&w=2000&auto=format&fit=crop'],
-        ['id' => 'Default-4', 'image_path' => 'https://images.unsplash.com/photo-1583832291892-0d27a522c676?q=80&w=2000&auto=format&fit=crop']
-    ];
-}
-
+// Aset diambil murni dari database. Jika kosong, biarkan kosong.
 // Layout
 include __DIR__ . '/../../../views/layout/topbar.php'; 
 include __DIR__ . '/../../../views/layout/sidebar.php'; 
