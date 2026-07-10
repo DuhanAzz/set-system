@@ -15,60 +15,6 @@ if (!is_dir($uploadDir)) {
     mkdir($uploadDir, 0777, true);
 }
 
-// 1. Proses Upload Gambar
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['hero_image'])) {
-    $file = $_FILES['hero_image'];
-    
-    // Validasi Ekstensi dan Mime
-    $allowedExt = ['jpg', 'jpeg', 'png', 'webp'];
-    $allowedMime = ['image/jpeg', 'image/png', 'image/webp'];
-    
-    $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-    $mime = mime_content_type($file['tmp_name']);
-    
-    if (in_array($ext, $allowedExt) && in_array($mime, $allowedMime)) {
-        // Buat nama file unik
-        $newFilename = 'slider_' . time() . '_' . uniqid() . '.' . $ext;
-        $targetFile = $uploadDir . $newFilename;
-        
-        if (move_uploaded_file($file['tmp_name'], $targetFile)) {
-            // Simpan path ke DB
-            $dbPath = 'uploads/sliders/' . $newFilename;
-            $stmt = $pdo->prepare("INSERT INTO roll_hero_images (image_path) VALUES (?)");
-            $stmt->execute([$dbPath]);
-            
-            $_SESSION['flash_message'] = "Gambar slider berhasil diunggah!";
-            $_SESSION['flash_type'] = "success";
-        } else {
-            $_SESSION['flash_message'] = "Gagal memindahkan file yang diunggah.";
-            $_SESSION['flash_type'] = "error";
-        }
-    } else {
-        $_SESSION['flash_message'] = "Format file tidak didukung! Hanya JPG, PNG, WEBP.";
-        $_SESSION['flash_type'] = "error";
-    }
-    header("Location: hero_images.php"); exit;
-}
-
-// 2. Proses Hapus Gambar
-if (isset($_GET['delete'])) {
-    $id = (int)$_GET['delete'];
-    $stmt = $pdo->prepare("SELECT image_path FROM roll_hero_images WHERE id = ?");
-    $stmt->execute([$id]);
-    $img = $stmt->fetch();
-    
-    if ($img) {
-        $filePath = __DIR__ . '/../../../public/' . $img['image_path'];
-        if (file_exists($filePath)) {
-            unlink($filePath);
-        }
-        $pdo->prepare("DELETE FROM roll_hero_images WHERE id = ?")->execute([$id]);
-        $_SESSION['flash_message'] = "Gambar slider berhasil dihapus!";
-        $_SESSION['flash_type'] = "success";
-    }
-    header("Location: hero_images.php"); exit;
-}
-
 // Ambil Data Gambar Saat Ini
 $stmt = $pdo->query("SELECT * FROM roll_hero_images ORDER BY id DESC");
 $images = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -102,7 +48,8 @@ include __DIR__ . '/../../../views/layout/sidebar.php';
         </div>
 
         <!-- Form Upload -->
-        <form action="" method="POST" enctype="multipart/form-data" class="bg-slate-900 rounded-3xl shadow-lg border border-slate-800 overflow-hidden mb-8">
+        <form action="process_cms.php" method="POST" enctype="multipart/form-data" class="bg-slate-900 rounded-3xl shadow-lg border border-slate-800 overflow-hidden mb-8">
+            <input type="hidden" name="action" value="upload_slider">
             <div class="p-8">
                 <label class="block text-sm font-bold text-slate-400 mb-2">Unggah Gambar Baru</label>
                 <div class="flex flex-col sm:flex-row gap-4 items-center">
@@ -143,7 +90,7 @@ include __DIR__ . '/../../../views/layout/sidebar.php';
                             ID: <?= $img['id'] ?>
                         </span>
                         <?php if(is_numeric($img['id'])): ?>
-                        <a href="?delete=<?= $img['id'] ?>" onclick="return confirmAction(event, 'Hapus gambar ini secara permanen?', this.href)" 
+                        <a href="process_cms.php?action=delete_slider&id=<?= $img['id'] ?>" onclick="return confirmAction(event, 'Hapus gambar ini secara permanen?', this.href)" 
                             class="px-4 py-2 bg-red-600/90 hover:bg-red-500 text-white text-xs font-bold rounded-lg shadow transition">
                             Hapus
                         </a>

@@ -8,33 +8,6 @@ if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'master') {
     header("Location: " . BASE_URL . "/public/login.php"); exit;
 }
 
-// Proses Form Update (PDO Prepared Statement)
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_public_page'])) {
-    $hero_title = trim($_POST['hero_title']);
-    $hero_subtitle = trim($_POST['hero_subtitle']);
-    $running_text = trim($_POST['running_text']);
-    $info_title = trim($_POST['info_title']);
-    $info_text = trim($_POST['info_text']);
-
-    try {
-        $stmt = $pdo->prepare("UPDATE roll_site_settings SET 
-            hero_title = ?, 
-            hero_subtitle = ?, 
-            running_text = ?, 
-            info_title = ?, 
-            info_text = ? 
-            ORDER BY id ASC LIMIT 1");
-        $stmt->execute([$hero_title, $hero_subtitle, $running_text, $info_title, $info_text]);
-        
-        $_SESSION['flash_message'] = "Pengaturan Halaman Utama berhasil diperbarui!";
-        $_SESSION['flash_type'] = "success";
-        header("Location: public_page.php"); exit;
-    } catch (PDOException $e) {
-        $_SESSION['flash_message'] = "Gagal memperbarui data: " . $e->getMessage();
-        $_SESSION['flash_type'] = "error";
-    }
-}
-
 // Ambil Data Saat Ini
 $stmt = $pdo->query("SELECT * FROM roll_site_settings ORDER BY id ASC LIMIT 1");
 $settings = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -61,7 +34,8 @@ include __DIR__ . '/../../../views/layout/sidebar.php';
             </div>
         </div>
 
-        <form action="" method="POST" class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+        <form action="process_cms.php" method="POST" enctype="multipart/form-data" class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+            <input type="hidden" name="action" value="update_landing">
             <div class="p-8 space-y-8">
                 
                 <!-- Section: Hero Utama -->
@@ -110,6 +84,35 @@ include __DIR__ . '/../../../views/layout/sidebar.php';
                             <textarea name="info_text" rows="4" required 
                                 class="w-full rounded-xl border-slate-200 bg-slate-50 focus:bg-white focus:border-red-500 focus:ring-red-500 transition px-4 py-3 font-medium text-slate-800"><?= htmlspecialchars($settings['info_text']) ?></textarea>
                             <p class="text-[10px] text-slate-400 mt-1">Gunakan tag HTML sederhana (seperti &lt;br&gt; atau &lt;b&gt;) jika diperlukan.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section: Gambar Lainnya -->
+                <div>
+                    <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 border-b border-slate-100 pb-2">Bagian 4: Gambar Pendukung Publik</h3>
+                    
+                    <div class="space-y-5">
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-1">Gambar Section About (Pattern)</label>
+                            <input type="file" name="about_image" accept=".jpg,.jpeg,.png,.webp" class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 bg-slate-50 rounded-xl border border-slate-200">
+                            <?php if(!empty($settings['about_image'])): ?>
+                                <p class="text-xs text-emerald-600 mt-2 font-bold">✓ Sudah ada gambar. Kosongkan jika tidak ingin mengubah.</p>
+                            <?php endif; ?>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-1">Gambar Background Footer</label>
+                            <input type="file" name="footer_image" accept=".jpg,.jpeg,.png,.webp" class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 bg-slate-50 rounded-xl border border-slate-200">
+                            <?php if(!empty($settings['footer_image'])): ?>
+                                <p class="text-xs text-emerald-600 mt-2 font-bold">✓ Sudah ada gambar. Kosongkan jika tidak ingin mengubah.</p>
+                            <?php endif; ?>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-1">Gambar Poster Placeholder Event</label>
+                            <input type="file" name="event_fallback_image" accept=".jpg,.jpeg,.png,.webp" class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 bg-slate-50 rounded-xl border border-slate-200">
+                            <?php if(!empty($settings['event_fallback_image'])): ?>
+                                <p class="text-xs text-emerald-600 mt-2 font-bold">✓ Sudah ada gambar. Kosongkan jika tidak ingin mengubah.</p>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>

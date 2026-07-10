@@ -8,38 +8,6 @@ if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'master') {
     header("Location: " . BASE_URL . "/public/login.php"); exit;
 }
 
-// Proses Form Update (PDO Prepared Statement)
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_global_config'])) {
-    $contact_email = trim($_POST['contact_email']);
-    $contact_wa = trim($_POST['contact_wa']);
-    $link_instagram = trim($_POST['link_instagram']);
-    $link_facebook = trim($_POST['link_facebook']);
-    $maintenance_mode = isset($_POST['maintenance_mode']) ? 1 : 0;
-
-    try {
-        $stmt = $pdo->prepare("UPDATE roll_site_settings SET 
-            contact_email = ?, 
-            contact_wa = ?, 
-            link_instagram = ?, 
-            link_facebook = ?, 
-            maintenance_mode = ? 
-            ORDER BY id ASC LIMIT 1");
-        $stmt->execute([$contact_email, $contact_wa, $link_instagram, $link_facebook, $maintenance_mode]);
-        
-        $_SESSION['flash_message'] = "Pengaturan Global berhasil diperbarui!";
-        $_SESSION['flash_type'] = "success";
-        
-        if ($maintenance_mode) {
-            $_SESSION['flash_message'] .= " Sistem saat ini dalam MODE PERBAIKAN!";
-        }
-        
-        header("Location: global_config.php"); exit;
-    } catch (PDOException $e) {
-        $_SESSION['flash_message'] = "Gagal memperbarui data: " . $e->getMessage();
-        $_SESSION['flash_type'] = "error";
-    }
-}
-
 // Ambil Data Saat Ini
 $stmt = $pdo->query("SELECT * FROM roll_site_settings ORDER BY id ASC LIMIT 1");
 $settings = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -66,7 +34,8 @@ include __DIR__ . '/../../../views/layout/sidebar.php';
             </div>
         </div>
 
-        <form action="" method="POST" id="global-config-form" class="space-y-6">
+        <form action="process_cms.php" method="POST" id="global-config-form" class="space-y-6">
+            <input type="hidden" name="action" value="update_global">
             
             <!-- SECTION 1: SYSTEM CONTROLS (CRITICAL) -->
             <div class="bg-white rounded-3xl shadow-sm border <?= $settings['maintenance_mode'] ? 'border-red-500' : 'border-slate-200' ?> overflow-hidden relative">

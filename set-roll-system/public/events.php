@@ -25,6 +25,8 @@ $contactEmail = $s['contact_email'] ?? 'info@setroll.id';
 $contactWA    = $s['contact_wa'] ?? '#';
 $linkIG       = $s['link_instagram'] ?? '#';
 
+$eventFallbackImg = !empty($s['event_fallback_image']) ? rtrim(BASE_URL, '/') . '/public/' . ltrim($s['event_fallback_image'], '/') : 'https://images.unsplash.com/photo-1664352957776-db31192974f1?q=80&w=800&auto=format&fit=crop';
+
 // 2. LOGIC PENCARIAN & FILTER DATA EVENT
 $search = $_GET['q'] ?? '';
 
@@ -236,7 +238,8 @@ try {
                     
                     $raceFormat = $e['race_format'] ?? 'SPEED SKATING';
 
-                    $imgSrc = 'https://images.unsplash.com/photo-1664352957776-db31192974f1?q=80&w=800&auto=format&fit=crop';
+                    // PATH RESOLVER
+                    $imgSrc = $eventFallbackImg;
                     if (!empty($e['poster_image'])) {
                         $imgSrc = (strpos($e['poster_image'], 'http') === 0) ? $e['poster_image'] : rtrim(BASE_URL, '/') . '/public/' . ltrim($e['poster_image'], '/');
                     } elseif (!empty($e['logo_left'])) {

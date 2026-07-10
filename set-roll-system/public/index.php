@@ -59,6 +59,11 @@ $contactWA    = $s['contact_wa'] ?? '#';
 $linkIG       = $s['link_instagram'] ?? '#';
 $linkFB       = $s['link_facebook'] ?? '#';
 
+// Gambar Tambahan
+$aboutImg = !empty($s['about_image']) ? rtrim(BASE_URL, '/') . '/public/' . ltrim($s['about_image'], '/') : 'https://images.unsplash.com/photo-1517649763962-0c623066013b?q=80&w=1000&auto=format&fit=crop';
+$footerImg = !empty($s['footer_image']) ? rtrim(BASE_URL, '/') . '/public/' . ltrim($s['footer_image'], '/') : 'https://images.unsplash.com/photo-1572016335905-1a890473a216?q=80&w=2000&auto=format&fit=crop';
+$eventFallbackImg = !empty($s['event_fallback_image']) ? rtrim(BASE_URL, '/') . '/public/' . ltrim($s['event_fallback_image'], '/') : 'https://images.unsplash.com/photo-1664352957776-db31192974f1?q=80&w=800&auto=format&fit=crop';
+
 // SLIDER GAMBAR (FALLBACK SPEED SKATING)
 $sliders = []; 
 try { $sliders = $pdo->query("SELECT * FROM roll_hero_images ORDER BY id DESC")->fetchAll(); } 
@@ -242,7 +247,7 @@ $upcoming_preview = $pdo->query($sql)->fetchAll();
                 $badge = ($status == 'Published') ? "bg-emerald-500 animate-pulse" : (($status == 'Completed') ? "bg-slate-600" : "bg-orange-500");
                 
                 // PATH RESOLVER UNTUK POSTER LOMBA
-                $imgSrc = 'https://images.unsplash.com/photo-1664352957776-db31192974f1?q=80&w=800&auto=format&fit=crop';
+                $imgSrc = $eventFallbackImg;
                 if (!empty($e['poster_image'])) {
                     $imgSrc = (strpos($e['poster_image'], 'http') === 0) ? $e['poster_image'] : rtrim(BASE_URL, '/') . '/public/' . ltrim($e['poster_image'], '/');
                 } elseif (!empty($e['logo_left'])) {
