@@ -86,8 +86,7 @@ catch (Exception $e) {}
             </form>
 
             <div class="mt-8 pt-6 border-t border-slate-100 text-center">
-                <!-- A placeholder if you add registration in the future -->
-                <p class="text-slate-500 text-xs uppercase tracking-widest font-bold">Internal System Only</p>
+                <a href="register.php" class="inline-block border-2 border-slate-200 text-slate-700 hover:border-orange-600 font-bold py-2.5 px-6 rounded-lg transition text-sm">Buat Akun Baru</a>
             </div>
 
         </div>

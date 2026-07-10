@@ -1,7 +1,6 @@
 <?php
 // Cek jika session belum dimulai
 if (session_status() === PHP_SESSION_NONE) {
-    session_start();
 }
 
 if (isset($_SESSION['flash_message'])):

@@ -1,6 +1,5 @@
 <?php
 // 1. Cek session agar tidak bentrok
-if (session_status() === PHP_SESSION_NONE) { session_start(); }
 
 // 2. Perbaiki jalur pemanggilan database
 require_once __DIR__ . '/../../src/config/database.php';

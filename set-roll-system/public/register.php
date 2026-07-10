@@ -5,32 +5,33 @@ $error = '';
 $success = '';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $username = trim($_POST['username'] ?? '');
-    $nama_klub = trim($_POST['nama_klub'] ?? '');
-    $pass = $_POST['password'] ?? '';
+    $nama = $_POST['nama'];
+    $nama_klub = $_POST['nama_klub'];
+    $phone = $_POST['phone'];
+    $email = $_POST['email'];
+    $pass = $_POST['password'];
     $userType = 'user'; // Default daftar sebagai user klub
 
-    // Cek Username
-    $stmt = $pdo->prepare("SELECT id FROM roll_users WHERE username = ?");
-    $stmt->execute([$username]);
+    // Cek Email
+    $stmt = $pdo->prepare("SELECT id FROM roll_users WHERE email = ?");
+    $stmt->execute([$email]);
     if ($stmt->rowCount() > 0) {
-        $error = "Username sudah terdaftar. Silakan pilih username lain.";
+        $error = "Email sudah terdaftar.";
     } else {
         $hash = password_hash($pass, PASSWORD_DEFAULT);
+        // Buat username simple dari nama
+        $username = strtolower(str_replace(' ', '', $nama)) . rand(100,999);
         
         try {
             $pdo->beginTransaction();
-            
-            // Insert Club first
             $insClub = $pdo->prepare("INSERT INTO roll_clubs (club_name) VALUES (?)");
-            $insClub->execute([$nama_klub]);
-            $newClubId = $pdo->lastInsertId();
-            
-            // Insert User
-            $ins = $pdo->prepare("INSERT INTO roll_users (username, password, role, club_id) VALUES (?, ?, ?, ?)");
-            if($ins->execute([$username, $hash, $userType, $newClubId])) {
+            if($insClub->execute([$nama_klub])) {
+                $newClubId = $pdo->lastInsertId();
+                $ins = $pdo->prepare("INSERT INTO roll_users (username, nama_lengkap, email, phone, password, role, account_status, club_id) VALUES (?, ?, ?, ?, ?, ?, 'pending', ?)");
+                $ins->execute([$username, $nama, $email, $phone, $hash, $userType, $newClubId]);
                 $pdo->commit();
-                $waNumber = '6281234567890';
+                
+                $waNumber = $pdo->query("SELECT contact_wa FROM roll_site_settings WHERE id=1")->fetchColumn() ?: '628123456789';
                 $success = true;
             } else {
                 $pdo->rollBack();
@@ -38,7 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             }
         } catch (Exception $e) {
             $pdo->rollBack();
-            $error = "Terjadi kesalahan sistem: " . $e->getMessage();
+            $error = "Terjadi kesalahan sistem.";
         }
     }
 }
@@ -46,54 +47,64 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <!DOCTYPE html>
 <html lang="id">
 <head>
+    <link rel="icon" type="image/png" href="<?= BASE_URL ?>/public/favicon.png?v=2">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Daftar Klub - SET Roll System</title>
+    <title>Daftar - SET Roll System</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
 </head>
 <body class="bg-slate-50 h-screen flex items-center justify-center font-[Inter]">
 
-    <div class="w-full max-w-md bg-white p-8 rounded-3xl shadow-2xl border border-slate-200">
+    <div class="w-full max-w-md bg-white p-8 rounded-2xl shadow-xl border border-slate-200">
         <div class="text-center mb-8">
-            <h1 class="text-3xl font-black text-slate-900 tracking-tighter">SET<span class="text-orange-500">ROLL</span></h1>
-            <p class="text-slate-500 text-sm mt-2 font-bold uppercase tracking-widest">Registrasi Klub Baru</p>
+            <h1 class="text-3xl font-black text-slate-900 uppercase">Buat Akun</h1>
+            <p class="text-slate-500 text-sm mt-1">Daftarkan klub sepatu roda Anda sekarang.</p>
         </div>
 
         <?php if($error): ?>
-            <div class="bg-red-100 text-red-700 p-4 rounded-xl mb-6 text-sm font-bold text-center border border-red-200"><?= $error ?></div>
+            <div class="bg-red-100 text-red-700 p-3 rounded mb-4 text-sm font-bold text-center"><?= $error ?></div>
         <?php endif; ?>
-        
         <?php if($success): ?>
-            <div class="bg-orange-50 text-orange-800 p-6 rounded-2xl mb-6 text-center shadow-md border border-orange-200">
+            <div class="bg-green-100 text-green-800 p-6 rounded-2xl mb-6 text-center shadow-md border border-green-200">
                 <div class="text-4xl mb-3">✅</div>
                 <h3 class="font-black text-xl mb-1 uppercase tracking-tight">Pendaftaran Berhasil!</h3>
-                <p class="text-sm font-medium mb-5 text-slate-600">Akun Anda telah dibuat. Silakan hubungi Super Admin jika memerlukan verifikasi lanjutan, atau langsung masuk ke Dashboard.</p>
-                <a href="login.php" class="block w-full bg-slate-900 hover:bg-orange-600 text-white font-black py-4 px-4 rounded-xl transition shadow-lg mb-3 uppercase tracking-widest text-xs">
-                    Masuk ke Sistem
+                <p class="text-sm font-medium mb-5">Akun Anda sedang dalam status <strong>PENDING</strong>. Silakan hubungi Admin via WhatsApp untuk proses verifikasi dan aktivasi.</p>
+                <a href="https://wa.me/<?= htmlspecialchars($waNumber) ?>?text=Halo%20Admin,%20saya%20baru%20saja%20mendaftar%20akun%20di%20Set%20Roll%20System%20dengan%20email:%20<?= urlencode($email) ?>.%20Mohon%20untuk%20di-approve." target="_blank" class="block w-full bg-[#25D366] hover:bg-[#128C7E] text-white font-black py-3 px-4 rounded-xl transition shadow-lg mb-3">
+                    HUBUNGI ADMIN VIA WA
                 </a>
+                <a href="login.php" class="inline-block text-xs font-bold text-slate-500 hover:text-slate-800 underline">Kembali ke halaman Login</a>
             </div>
             <style> form { display: none; } </style>
         <?php endif; ?>
 
-        <form method="POST" class="space-y-5">
+        <form method="POST" class="space-y-4">
             <div>
-                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Nama Klub Sepatu Roda</label>
-                <input type="text" name="nama_klub" class="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-orange-600 outline-none font-semibold text-slate-800" required placeholder="Contoh: Garuda Speed Club">
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Nama Lengkap (Admin Klub)</label>
+                <input type="text" name="nama" class="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-600 outline-none" required>
             </div>
             <div>
-                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Username Login</label>
-                <input type="text" name="username" class="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-orange-600 outline-none font-semibold text-slate-800" required placeholder="Gunakan format tanpa spasi">
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Nama Klub Sepatu Roda</label>
+                <input type="text" name="nama_klub" class="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-600 outline-none" required placeholder="Contoh: Sangkuriang Roller Club">
             </div>
             <div>
-                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Password</label>
-                <input type="password" name="password" class="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-orange-600 outline-none font-semibold text-slate-800" required placeholder="••••••••">
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">No. WhatsApp</label>
+                <input type="text" name="phone" class="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-600 outline-none" required placeholder="08...">
             </div>
-            <button type="submit" class="w-full bg-orange-600 text-white font-black py-4 rounded-xl hover:bg-orange-700 transition transform hover:-translate-y-0.5 shadow-[0_0_20px_rgba(234,88,12,0.4)] mt-4 uppercase tracking-widest text-xs">Daftar Sekarang</button>
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Email</label>
+                <input type="email" name="email" class="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-600 outline-none" required>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Password</label>
+                <input type="password" name="password" class="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-600 outline-none" required>
+            </div>
+            <button type="submit" class="w-full bg-orange-600 text-white font-bold py-3 rounded-lg hover:bg-orange-700 transition shadow-lg mt-2">DAFTAR SEKARANG</button>
         </form>
 
-        <p class="mt-8 text-center text-sm font-bold text-slate-500">
-            Sudah memiliki akun? <a href="login.php" class="text-orange-600 hover:underline uppercase tracking-widest">Login</a>
+        <p class="mt-6 text-center text-sm text-slate-500">
+            Sudah punya akun? <a href="login.php" class="text-orange-600 font-bold hover:underline">Login</a>
+
         </p>
     </div>
 

@@ -1,7 +1,6 @@
 <?php
 // FILE: public/index.php
 require_once __DIR__ . '/../src/config/database.php';
-if (session_status() === PHP_SESSION_NONE) session_start();
 
 // 1. AMBIL PENGATURAN DARI DATABASE
 $stmt = $pdo->query("SELECT * FROM roll_site_settings WHERE id=1");

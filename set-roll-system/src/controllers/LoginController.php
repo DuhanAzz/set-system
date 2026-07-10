@@ -8,11 +8,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (!empty($username) && !empty($password)) {
         try {
-            $stmt = $pdo->prepare("SELECT * FROM roll_users WHERE username = ?");
-            $stmt->execute([$username]);
+            $stmt = $pdo->prepare("SELECT * FROM roll_users WHERE username = ? OR email = ?");
+            $stmt->execute([$username, $username]);
             $user = $stmt->fetch();
 
             if ($user && password_verify($password, $user['password'])) {
+                if ($user['account_status'] === 'pending') {
+                    $waNumber = $pdo->query("SELECT contact_wa FROM roll_site_settings WHERE id=1")->fetchColumn() ?: '628123456789';
+                    $_SESSION['error'] = "Akun Anda masih PENDING. Silakan Hubungi Admin via WA ($waNumber).";
+                    header("Location: " . BASE_URL . "/public/login.php");
+                    exit;
+                } elseif ($user['account_status'] === 'suspended') {
+                    $_SESSION['error'] = "Akun Anda telah ditangguhkan oleh Sistem Pusat.";
+                    header("Location: " . BASE_URL . "/public/login.php");
+                    exit;
+                }
                 
                 // Mencegah Session Hijacking
                 session_regenerate_id(true);
@@ -20,11 +30,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['user_id'] = $user['id'];
                 $_SESSION['role'] = $user['role'];
                 $_SESSION['club_id'] = $user['club_id'];
+                $_SESSION['nama_lengkap'] = $user['nama_lengkap'];
 
                 // Pengalihan berdasarkan role
                 if ($user['role'] === 'master') {
-                    header("Location: " . BASE_URL . "/src/admin/dashboard.php"); 
-                    // Asumsi: admin dan master berbagi dashboard admin untuk tahap ini
+                    header("Location: " . BASE_URL . "/src/master/dashboard.php"); 
                 } elseif ($user['role'] === 'admin') {
                     header("Location: " . BASE_URL . "/src/admin/dashboard.php");
                 } else {
@@ -32,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 exit;
             } else {
-                $_SESSION['error'] = "Username atau Password salah!";
+                $_SESSION['error'] = "Username/Email atau Password salah!";
                 header("Location: " . BASE_URL . "/public/login.php");
                 exit;
             }
