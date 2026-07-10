@@ -7,8 +7,6 @@ if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'master') {
     exit;
 }
 
-$msg = '';
-
 // --- LOGIKA TAMBAH AKUN ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] == 'add_user') {
     $username = trim($_POST['username'] ?? '');
@@ -25,9 +23,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             $hashed = password_hash($password, PASSWORD_DEFAULT);
             $stmt = $pdo->prepare("INSERT INTO roll_users (username, password, role, club_id) VALUES (?, ?, ?, ?)");
             $stmt->execute([$username, $hashed, $role, $club_id]);
-            $msg = "<div class='bg-green-900/40 text-green-400 p-4 rounded-xl mb-6 font-semibold border border-green-800/50'>✅ Akun pengguna berhasil diciptakan.</div>";
+            $_SESSION['flash_message'] = '✅ Akun pengguna berhasil diciptakan.';
+                $_SESSION['flash_type'] = 'success';
         } catch (PDOException $e) {
-            $msg = "<div class='bg-red-900/40 text-red-400 p-4 rounded-xl mb-6 font-semibold border border-red-800/50'>❌ Gagal: Username mungkin sudah digunakan.</div>";
+            $_SESSION['flash_message'] = "❌ Gagal: Username mungkin sudah digunakan.";
+                $_SESSION['flash_type'] = 'error';
         }
     }
 }
@@ -55,8 +55,6 @@ include __DIR__ . '/../../views/layout/sidebar.php';
                 + Ciptakan Akun Baru
             </button>
         </div>
-
-        <?= $msg ?>
 
         <div class="bg-slate-900 rounded-2xl shadow-2xl border border-slate-800 overflow-hidden">
             <table class="w-full text-left border-collapse">

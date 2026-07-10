@@ -2,7 +2,6 @@
 // FILE: src/admin/clubs.php
 require_once __DIR__ . '/../config/database.php';
 
-$msg = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['action']) && $_POST['action'] == 'add') {
         $name = trim($_POST['club_name'] ?? '');
@@ -12,12 +11,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             try {
                 $stmt = $pdo->prepare("INSERT INTO roll_clubs (club_name, city_province) VALUES (?, ?)");
                 $stmt->execute([$name, $city]);
-                $msg = "<div class='bg-green-100 text-green-700 p-4 rounded-xl mb-6 font-semibold shadow-sm border border-green-200'>✅ Klub/Tim berhasil ditambahkan!</div>";
+                $_SESSION['flash_message'] = '✅ Klub/Tim berhasil ditambahkan!';
+                $_SESSION['flash_type'] = 'success';
             } catch (PDOException $e) {
-                $msg = "<div class='bg-red-100 text-red-700 p-4 rounded-xl mb-6 font-semibold shadow-sm border border-red-200'>❌ Error: " . $e->getMessage() . "</div>";
+                $_SESSION['flash_message'] = "❌ Error: \" . $e->getMessage() . \"";
+                $_SESSION['flash_type'] = 'error';
             }
         } else {
-            $msg = "<div class='bg-red-100 text-red-700 p-4 rounded-xl mb-6 font-semibold shadow-sm border border-red-200'>❌ Error: Nama Klub tidak boleh kosong!</div>";
+            $_SESSION['flash_message'] = "❌ Error: Nama Klub tidak boleh kosong!";
+                $_SESSION['flash_type'] = 'error';
         }
     }
 }
@@ -42,8 +44,6 @@ include __DIR__ . '/../../views/layout/sidebar.php';
                 </button>
             </div>
         </div>
-
-        <?= $msg ?>
 
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
             <table class="w-full text-left border-collapse">

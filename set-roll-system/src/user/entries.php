@@ -9,8 +9,6 @@ if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'user') {
 }
 
 $club_id = $_SESSION['club_id'];
-$msg = '';
-
 // --- LOGIKA DAFTAR LOMBA (ISOLASI) ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] == 'add') {
     $event_id = $_POST['event_id'] ?? 0;
@@ -26,12 +24,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         try {
             $stmt = $pdo->prepare("INSERT INTO roll_entries (event_id, skater_id, race_distance) VALUES (?, ?, ?)");
             $stmt->execute([$event_id, $skater_id, $race_distance]);
-            $msg = "<div class='bg-green-100 text-green-700 p-4 rounded-xl mb-6 font-semibold shadow-sm border border-green-200'>✅ Atlet berhasil didaftarkan ke perlombaan!</div>";
+            $_SESSION['flash_message'] = '✅ Atlet berhasil didaftarkan ke perlombaan!';
+                $_SESSION['flash_type'] = 'success';
         } catch (PDOException $e) {
-            $msg = "<div class='bg-red-100 text-red-700 p-4 rounded-xl mb-6 font-semibold shadow-sm border border-red-200'>❌ Error: Data sudah ada atau bermasalah.</div>";
+            $_SESSION['flash_message'] = "❌ Error: Data sudah ada atau bermasalah.";
+                $_SESSION['flash_type'] = 'error';
         }
     } else {
-        $msg = "<div class='bg-red-100 text-red-700 p-4 rounded-xl mb-6 font-semibold shadow-sm border border-red-200'>❌ Error: Akses Ditolak atau Form Tidak Lengkap. Dilarang mendaftarkan atlet klub lain!</div>";
+        $_SESSION['flash_message'] = "❌ Error: Akses Ditolak atau Form Tidak Lengkap. Dilarang mendaftarkan atlet klub lain!";
+                $_SESSION['flash_type'] = 'error';
     }
 }
 
@@ -71,8 +72,6 @@ include __DIR__ . '/../../views/layout/sidebar.php';
                 + Daftarkan ke Kejuaraan
             </button>
         </div>
-
-        <?= $msg ?>
 
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
             <table class="w-full text-left border-collapse">

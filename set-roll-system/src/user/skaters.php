@@ -9,8 +9,6 @@ if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'user') {
 }
 
 $club_id = $_SESSION['club_id'];
-$msg = '';
-
 // --- LOGIKA INSERT ATLET (ISOLASI) ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] == 'add') {
     $skater_name = trim($_POST['skater_name'] ?? '');
@@ -23,9 +21,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             // club_id HARUS dari SESSION! (Mencegah manipulasi HTML DOM)
             $stmt = $pdo->prepare("INSERT INTO roll_skaters (club_id, skater_name, gender, birth_date, age_group) VALUES (?, ?, ?, ?, ?)");
             $stmt->execute([$club_id, $skater_name, $gender, $birth_date, $age_group]);
-            $msg = "<div class='bg-green-100 text-green-700 p-4 rounded-xl mb-6 font-semibold shadow-sm border border-green-200'>✅ Data Atlet berhasil ditambahkan ke tim Anda.</div>";
+            $_SESSION['flash_message'] = '✅ Data Atlet berhasil ditambahkan ke tim Anda.';
+                $_SESSION['flash_type'] = 'success';
         } catch (PDOException $e) {
-            $msg = "<div class='bg-red-100 text-red-700 p-4 rounded-xl mb-6 font-semibold shadow-sm border border-red-200'>❌ Error: " . $e->getMessage() . "</div>";
+            $_SESSION['flash_message'] = "❌ Error: \" . $e->getMessage() . \"";
+                $_SESSION['flash_type'] = 'error';
         }
     }
 }
@@ -36,9 +36,11 @@ if (isset($_GET['delete'])) {
     try {
         $stmtDel = $pdo->prepare("DELETE FROM roll_skaters WHERE id = ? AND club_id = ?");
         $stmtDel->execute([$del_id, $club_id]);
-        $msg = "<div class='bg-orange-100 text-orange-700 p-4 rounded-xl mb-6 font-semibold shadow-sm border border-orange-200'>🗑️ Atlet berhasil dihapus dari tim.</div>";
+        $_SESSION['flash_message'] = '🗑️ Atlet berhasil dihapus dari tim.';
+                $_SESSION['flash_type'] = 'warning';
     } catch (PDOException $e) {
-        $msg = "<div class='bg-red-100 text-red-700 p-4 rounded-xl mb-6 font-semibold shadow-sm border border-red-200'>❌ Gagal menghapus: Mungkin atlet sudah terdaftar di sebuah nomor lomba.</div>";
+        $_SESSION['flash_message'] = "❌ Gagal menghapus: Mungkin atlet sudah terdaftar di sebuah nomor lomba.";
+                $_SESSION['flash_type'] = 'error';
     }
 }
 
@@ -59,8 +61,6 @@ include __DIR__ . '/../../views/layout/sidebar.php';
                 + Daftarkan Atlet Baru
             </button>
         </div>
-
-        <?= $msg ?>
 
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
             <table class="w-full text-left border-collapse">

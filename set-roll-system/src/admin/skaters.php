@@ -7,7 +7,6 @@ $stmtClubs = $pdo->query("SELECT id, club_name FROM roll_clubs ORDER BY club_nam
 $clubsList = $stmtClubs->fetchAll();
 
 // --- LOGIKA INSERT/UPDATE/DELETE ---
-$msg = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['action']) && $_POST['action'] == 'add') {
         $club_id = $_POST['club_id'] ?? 0;
@@ -20,12 +19,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             try {
                 $stmt = $pdo->prepare("INSERT INTO roll_skaters (club_id, skater_name, gender, birth_date, age_group) VALUES (?, ?, ?, ?, ?)");
                 $stmt->execute([$club_id, $name, $gender, $dob, $age_group]);
-                $msg = "<div class='bg-green-100 text-green-700 p-4 rounded-xl mb-6 font-semibold shadow-sm border border-green-200'>✅ Atlet berhasil ditambahkan!</div>";
+                $_SESSION['flash_message'] = '✅ Atlet berhasil ditambahkan!';
+                $_SESSION['flash_type'] = 'success';
             } catch (PDOException $e) {
-                $msg = "<div class='bg-red-100 text-red-700 p-4 rounded-xl mb-6 font-semibold shadow-sm border border-red-200'>❌ Error: " . $e->getMessage() . "</div>";
+                $_SESSION['flash_message'] = "❌ Error: \" . $e->getMessage() . \"";
+                $_SESSION['flash_type'] = 'error';
             }
         } else {
-            $msg = "<div class='bg-red-100 text-red-700 p-4 rounded-xl mb-6 font-semibold shadow-sm border border-red-200'>❌ Error: Lengkapi semua form wajib!</div>";
+            $_SESSION['flash_message'] = "❌ Error: Lengkapi semua form wajib!";
+                $_SESSION['flash_type'] = 'error';
         }
     }
 }
@@ -52,8 +54,6 @@ include __DIR__ . '/../../views/layout/sidebar.php';
                 + Tambah Atlet Baru
             </button>
         </div>
-
-        <?= $msg ?>
 
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
             <table class="w-full text-left border-collapse">

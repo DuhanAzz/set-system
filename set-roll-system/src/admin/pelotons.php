@@ -2,8 +2,6 @@
 // FILE: src/admin/pelotons.php
 require_once __DIR__ . '/../config/database.php';
 
-$msg = '';
-
 // --- LOGIKA SIMPAN GANDA (TRANSACTION) ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] == 'save_pelotons') {
     $event_id = $_POST['event_id'] ?? 0;
@@ -37,10 +35,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             }
             
             $pdo->commit();
-            $msg = "<div class='bg-green-100 text-green-700 p-4 rounded-xl mb-6 font-semibold shadow-sm border border-green-200'>✅ Berhasil menyimpan {$count} susunan peloton dan mem-booking slot hasil!</div>";
+            $_SESSION['flash_message'] = '✅ Berhasil menyimpan {$count} susunan peloton dan mem-booking slot hasil!';
+                $_SESSION['flash_type'] = 'success';
         } catch (Exception $e) {
             $pdo->rollBack();
-            $msg = "<div class='bg-red-100 text-red-700 p-4 rounded-xl mb-6 font-semibold shadow-sm border border-red-200'>❌ Terjadi Kesalahan (Rollback dijalankan): " . $e->getMessage() . "</div>";
+            $_SESSION['flash_message'] = "❌ Terjadi Kesalahan (Rollback dijalankan): \" . $e->getMessage() . \"";
+                $_SESSION['flash_type'] = 'error';
         }
     }
 }
@@ -77,8 +77,6 @@ include __DIR__ . '/../../views/layout/sidebar.php';
             <h2 class="text-3xl font-black text-slate-900 tracking-tight">Manajemen Peloton & Start Grid</h2>
             <p class="text-slate-500 mt-1 font-medium">Atur grup keberangkatan (Heat) secara dinamis tanpa batasan lintasan.</p>
         </div>
-
-        <?= $msg ?>
 
         <!-- FILTER FORM -->
         <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 mb-8">

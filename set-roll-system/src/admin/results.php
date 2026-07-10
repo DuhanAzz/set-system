@@ -2,8 +2,6 @@
 // FILE: src/admin/results.php
 require_once __DIR__ . '/../config/database.php';
 
-$msg = '';
-
 // --- LOGIKA BULK UPDATE (POST) ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] == 'save_results') {
     $result_ids = $_POST['result_id'] ?? [];
@@ -44,10 +42,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             }
             
             $pdo->commit();
-            $msg = "<div class='bg-green-100 text-green-700 p-4 rounded-xl mb-6 font-semibold shadow-sm border border-green-200'>✅ Berhasil menyimpan {$count} data hasil lomba secara serentak!</div>";
+            $_SESSION['flash_message'] = '✅ Berhasil menyimpan {$count} data hasil lomba secara serentak!';
+                $_SESSION['flash_type'] = 'success';
         } catch (Exception $e) {
             $pdo->rollBack();
-            $msg = "<div class='bg-red-100 text-red-700 p-4 rounded-xl mb-6 font-semibold shadow-sm border border-red-200'>❌ Terjadi Kesalahan (Rollback): " . $e->getMessage() . "</div>";
+            $_SESSION['flash_message'] = "❌ Terjadi Kesalahan (Rollback): \" . $e->getMessage() . \"";
+                $_SESSION['flash_type'] = 'error';
         }
     }
 }
@@ -105,8 +105,6 @@ include __DIR__ . '/../../views/layout/sidebar.php';
             </div>
             <?php endif; ?>
         </div>
-
-        <?= $msg ?>
 
         <!-- FILTER FORM -->
         <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 mb-6">
