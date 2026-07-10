@@ -20,15 +20,24 @@ $displayRole = strtoupper($role);
 $displayImage = "https://ui-avatars.com/api/?name=" . urlencode($displayName) . "&background=f97316&color=fff&size=128";
 
 // Logic Foto Profil (Menggunakan BASE_URL)
-if ($uid > 0 && $role == 'user') {
-    // Tarik nama klub dari database
-    $stmtC = $pdo->prepare("SELECT club_name FROM roll_clubs WHERE id = (SELECT club_id FROM roll_users WHERE id = ?)");
-    $stmtC->execute([$uid]);
-    $clubData = $stmtC->fetch();
-    if ($clubData) {
-        $displayName = $clubData['club_name'];
-        $displayRole = "CLUB ADMIN";
-        $displayImage = "https://ui-avatars.com/api/?name=" . urlencode($displayName) . "&background=f97316&color=fff&size=128";
+if ($uid > 0) {
+    // Ambil photo dari tabel roll_users
+    $stmtU = $pdo->prepare("SELECT photo FROM roll_users WHERE id = ?");
+    $stmtU->execute([$uid]);
+    $userData = $stmtU->fetch();
+
+    if ($userData && !empty($userData['photo'])) {
+        $displayImage = BASE_URL . "/public/" . $userData['photo'] . "?t=" . time();
+    } elseif ($role == 'user') {
+        // Tarik nama klub dari database jika tidak ada foto
+        $stmtC = $pdo->prepare("SELECT club_name FROM roll_clubs WHERE id = (SELECT club_id FROM roll_users WHERE id = ?)");
+        $stmtC->execute([$uid]);
+        $clubData = $stmtC->fetch();
+        if ($clubData) {
+            $displayName = $clubData['club_name'];
+            $displayRole = "CLUB ADMIN";
+            $displayImage = "https://ui-avatars.com/api/?name=" . urlencode($displayName) . "&background=f97316&color=fff&size=128";
+        }
     }
 }
 ?>
