@@ -39,7 +39,7 @@ if ($uid > 0 && $role == 'user') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SET Roll System</title>
-    <link rel="icon" type="image/png" href="<?= BASE_URL ?>/public/img/logo.png">
+    <link rel="icon" type="image/png" href="<?= BASE_URL ?>/public/favicon.png?v=2">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.2.0/flowbite.min.css" rel="stylesheet" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.2.0/flowbite.min.js"></script>
