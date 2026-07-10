@@ -1,6 +1,5 @@
 <?php
 // FILE: src/master/settings/process_cms.php
-session_start();
 require_once __DIR__ . '/../../../src/config/database.php';
 
 // 1. Pengawal Sesi & Hak Akses (Security First)

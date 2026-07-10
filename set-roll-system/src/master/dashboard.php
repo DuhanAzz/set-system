@@ -51,13 +51,27 @@ include __DIR__ . '/../../views/layout/sidebar.php';
             </div>
         </div>
 
-        <div class="mt-12 bg-slate-900/50 border border-slate-800 p-8 rounded-3xl">
-            <h3 class="text-xl font-bold text-white mb-4">Protokol Keamanan</h3>
-            <ul class="list-disc pl-5 text-slate-400 space-y-2">
-                <li>Harap berhati-hati saat memberikan hak akses <strong>Admin</strong>. Admin dapat mengubah seluruh data kejuaraan dan mencetak hasil.</li>
-                <li>Hak akses <strong>User</strong> (Manajer Klub) telah terisolasi secara ketat dan hanya dapat melihat data internal klub mereka.</li>
-                <li>Kata sandi dienkripsi menggunakan protokol <code class="text-red-400">bcrypt</code> modern dan tidak dapat dilihat oleh siapapun, termasuk Master.</li>
-            </ul>
+        <div class="mt-12 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-slate-900/50 border border-slate-800 p-8 rounded-3xl">
+                <h3 class="text-xl font-bold text-white mb-4">Protokol Keamanan</h3>
+                <ul class="list-disc pl-5 text-slate-400 space-y-2">
+                    <li>Harap berhati-hati saat memberikan hak akses <strong>Admin</strong>. Admin dapat mengubah seluruh data kejuaraan dan mencetak hasil.</li>
+                    <li>Hak akses <strong>User</strong> (Manajer Klub) telah terisolasi secara ketat dan hanya dapat melihat data internal klub mereka.</li>
+                    <li>Kata sandi dienkripsi menggunakan protokol <code class="text-red-400">bcrypt</code> modern.</li>
+                </ul>
+            </div>
+            
+            <div class="bg-gradient-to-br from-orange-600 to-red-700 border border-red-500/50 p-8 rounded-3xl relative overflow-hidden group">
+                <div class="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1517649763962-0c623066013b?q=80&w=1000')] opacity-10 bg-cover mix-blend-overlay group-hover:scale-105 transition duration-500"></div>
+                <div class="relative z-10">
+                    <h3 class="text-2xl font-black text-white mb-2">Konfigurasi Web</h3>
+                    <p class="text-white/80 mb-6 font-medium">Atur tampilan Landing Page, Slider Gambar, dan Pengaturan Global (Kontak & Maintenance).</p>
+                    <div class="flex flex-wrap gap-3">
+                        <a href="<?= BASE_URL ?>/src/master/settings/public_page.php" class="px-5 py-2.5 bg-white text-red-600 hover:bg-slate-50 font-bold rounded-xl text-sm transition shadow-lg">Landing Page</a>
+                        <a href="<?= BASE_URL ?>/src/master/settings/hero_images.php" class="px-5 py-2.5 bg-white text-red-600 hover:bg-slate-50 font-bold rounded-xl text-sm transition shadow-lg">Gambar Slider</a>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 

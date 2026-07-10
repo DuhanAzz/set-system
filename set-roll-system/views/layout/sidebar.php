@@ -54,7 +54,7 @@ function isGroupActive($req, $keywords) {
          <div class="px-8 mt-8 mb-2 text-[10px] font-black text-slate-600 uppercase tracking-widest">Main Control</div>
          
          <?php $g1Active = isGroupActive($req, ['users.php']); ?>
-         <button onclick="toggleSidebarDropdown('dd-pengguna')" class="<?= $g1Active ? $dropdownBtnActive : $dropdownBtnBase ?>">
+         <button data-collapse-toggle="dd-pengguna" aria-controls="dd-pengguna" type="button" class="<?= $g1Active ? $dropdownBtnActive : $dropdownBtnBase ?>">
             <div class="flex items-center">
                <span class="w-6 text-center mr-3 text-lg opacity-80">👥</span>
                <span class="font-bold text-[11px] tracking-widest uppercase">Pengguna & Akses</span>
@@ -67,7 +67,7 @@ function isGroupActive($req, $keywords) {
 
          <!-- GROUP 2: Konfigurasi Web (MASTER ONLY) -->
          <?php $g2Active = isGroupActive($req, ['public_page.php', 'global_config.php', 'hero_images.php']); ?>
-         <button onclick="toggleSidebarDropdown('dd-web')" class="<?= $g2Active ? $dropdownBtnActive : $dropdownBtnBase ?>">
+         <button data-collapse-toggle="dd-web" aria-controls="dd-web" type="button" class="<?= $g2Active ? $dropdownBtnActive : $dropdownBtnBase ?>">
             <div class="flex items-center">
                <span class="w-6 text-center mr-3 text-lg opacity-80">🌍</span>
                <span class="font-bold text-[11px] tracking-widest uppercase text-red-400">Konfigurasi Web</span>
@@ -85,7 +85,7 @@ function isGroupActive($req, $keywords) {
          
          <!-- GROUP 1: Setup Kejuaraan -->
          <?php $a1Active = isGroupActive($req, ['events.php', 'clubs.php']); ?>
-         <button onclick="toggleSidebarDropdown('dd-setup')" class="<?= $a1Active ? $dropdownBtnActive : $dropdownBtnBase ?>">
+         <button data-collapse-toggle="dd-setup" aria-controls="dd-setup" type="button" class="<?= $a1Active ? $dropdownBtnActive : $dropdownBtnBase ?>">
             <div class="flex items-center">
                <span class="w-6 text-xl mr-3 text-center opacity-80">⚙️</span>
                <span class="font-bold text-[11px] tracking-widest uppercase">Setup Kejuaraan</span>
@@ -99,7 +99,7 @@ function isGroupActive($req, $keywords) {
 
          <!-- GROUP 2: Operasional Lomba -->
          <?php $a2Active = isGroupActive($req, ['entries.php', 'pelotons.php']); ?>
-         <button onclick="toggleSidebarDropdown('dd-ops')" class="<?= $a2Active ? $dropdownBtnActive : $dropdownBtnBase ?>">
+         <button data-collapse-toggle="dd-ops" aria-controls="dd-ops" type="button" class="<?= $a2Active ? $dropdownBtnActive : $dropdownBtnBase ?>">
             <div class="flex items-center">
                <span class="w-6 text-xl mr-3 text-center opacity-80">🏃</span>
                <span class="font-bold text-[11px] tracking-widest uppercase">Operasional Lomba</span>
@@ -113,7 +113,7 @@ function isGroupActive($req, $keywords) {
 
          <!-- GROUP 3: Hasil & Awards -->
          <?php $a3Active = isGroupActive($req, ['results.php']); ?>
-         <button onclick="toggleSidebarDropdown('dd-hasil')" class="<?= $a3Active ? $dropdownBtnActive : $dropdownBtnBase ?>">
+         <button data-collapse-toggle="dd-hasil" aria-controls="dd-hasil" type="button" class="<?= $a3Active ? $dropdownBtnActive : $dropdownBtnBase ?>">
             <div class="flex items-center">
                <span class="w-6 text-xl mr-3 text-center opacity-80">🏆</span>
                <span class="font-bold text-[11px] tracking-widest uppercase">Hasil & Awards</span>

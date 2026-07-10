@@ -1,6 +1,5 @@
 <?php
 // FILE: src/master/settings/hero_images.php
-session_start();
 require_once __DIR__ . '/../../../src/config/database.php';
 
 // Proteksi Khusus Master

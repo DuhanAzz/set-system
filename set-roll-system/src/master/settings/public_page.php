@@ -1,6 +1,5 @@
 <?php
 // FILE: src/master/settings/public_page.php
-session_start();
 require_once __DIR__ . '/../../../src/config/database.php';
 
 // Proteksi Khusus Master
