@@ -53,41 +53,62 @@ function isGroupActive($req, $keywords) {
       <?php if($role == 'master'): ?>
          <div class="px-8 mt-8 mb-2 text-[10px] font-black text-slate-600 uppercase tracking-widest">Main Control</div>
          
-         <a href="<?= BASE_URL ?>/src/master/users.php" class="<?= (strpos($req,"users.php")!==false) ? $activeLink : $baseLink ?>">
-            <span class="w-6 text-center mr-3 text-lg opacity-80">👥</span>
-            <span class="font-bold text-[11px] tracking-widest uppercase">Manajemen Akun</span>
-         </a>
+         <?php $g1Active = isGroupActive($req, ['users.php']); ?>
+         <button onclick="toggleSidebarDropdown('dd-pengguna')" class="<?= $g1Active ? $dropdownBtnActive : $dropdownBtnBase ?>">
+            <div class="flex items-center">
+               <span class="w-6 text-center mr-3 text-lg opacity-80">👥</span>
+               <span class="font-bold text-[11px] tracking-widest uppercase">Pengguna & Akses</span>
+            </div>
+            <span id="icon-dd-pengguna" class="transform transition-transform text-xs <?= $g1Active ? 'rotate-180' : '' ?>">▼</span>
+         </button>
+         <div id="dd-pengguna" class="bg-[#0b1120] py-2 <?= $g1Active ? '' : 'hidden' ?>">
+             <a href="<?= BASE_URL ?>/src/master/users.php" class="<?= (strpos($req,"users.php")!==false) ? $childActiveLink : $childBaseLink ?>">Manajemen Akun</a>
+         </div>
       <?php endif; ?>
 
       <?php if($role == 'admin'): ?>
-         <div class="px-8 mt-8 mb-2 text-[10px] font-black text-slate-600 uppercase tracking-widest">Setup Kejuaraan</div>
+         
+         <!-- GROUP 1: Setup Kejuaraan -->
+         <?php $a1Active = isGroupActive($req, ['events.php', 'clubs.php']); ?>
+         <button onclick="toggleSidebarDropdown('dd-setup')" class="<?= $a1Active ? $dropdownBtnActive : $dropdownBtnBase ?>">
+            <div class="flex items-center">
+               <span class="w-6 text-xl mr-3 text-center opacity-80">⚙️</span>
+               <span class="font-bold text-[11px] tracking-widest uppercase">Setup Kejuaraan</span>
+            </div>
+            <span id="icon-dd-setup" class="transform transition-transform text-xs <?= $a1Active ? 'rotate-180' : '' ?>">▼</span>
+         </button>
+         <div id="dd-setup" class="bg-[#0b1120] py-2 <?= $a1Active ? '' : 'hidden' ?>">
+             <a href="<?= BASE_URL ?>/src/admin/events.php" class="<?= (strpos($req,"events.php")!==false) ? $childActiveLink : $childBaseLink ?>">Kelola Kejuaraan</a>
+             <a href="<?= BASE_URL ?>/src/admin/clubs.php" class="<?= (strpos($req,"clubs.php")!==false) ? $childActiveLink : $childBaseLink ?>">Klub & Atlet</a>
+         </div>
 
-         <a href="<?= BASE_URL ?>/src/admin/events.php" class="<?= (strpos($req,"events.php")!==false) ? $activeLink : $baseLink ?>">
-            <span class="text-lg w-6 mr-3 opacity-70 text-center">🏆</span>
-            <span class="font-bold text-[11px] tracking-widest uppercase">Kelola Kejuaraan</span>
-         </a>
-         <a href="<?= BASE_URL ?>/src/admin/clubs.php" class="<?= (strpos($req,"clubs.php")!==false) ? $activeLink : $baseLink ?>">
-            <span class="text-lg w-6 mr-3 opacity-70 text-center">👥</span>
-            <span class="font-bold text-[11px] tracking-widest uppercase">Klub & Atlet</span>
-         </a>
-         
-         <div class="px-8 mt-8 mb-2 text-[10px] font-black text-slate-600 uppercase tracking-widest">Operasional</div>
+         <!-- GROUP 2: Operasional Lomba -->
+         <?php $a2Active = isGroupActive($req, ['entries.php', 'pelotons.php']); ?>
+         <button onclick="toggleSidebarDropdown('dd-ops')" class="<?= $a2Active ? $dropdownBtnActive : $dropdownBtnBase ?>">
+            <div class="flex items-center">
+               <span class="w-6 text-xl mr-3 text-center opacity-80">🏃</span>
+               <span class="font-bold text-[11px] tracking-widest uppercase">Operasional Lomba</span>
+            </div>
+            <span id="icon-dd-ops" class="transform transition-transform text-xs <?= $a2Active ? 'rotate-180' : '' ?>">▼</span>
+         </button>
+         <div id="dd-ops" class="bg-[#0b1120] py-2 <?= $a2Active ? '' : 'hidden' ?>">
+             <a href="<?= BASE_URL ?>/src/admin/entries.php" class="<?= (strpos($req,"entries.php")!==false) ? $childActiveLink : $childBaseLink ?>">Pendaftaran</a>
+             <a href="<?= BASE_URL ?>/src/admin/pelotons.php" class="<?= (strpos($req,"pelotons.php")!==false) ? $childActiveLink : $childBaseLink ?>">Manajemen Peloton</a>
+         </div>
 
-         <a href="<?= BASE_URL ?>/src/admin/entries.php" class="<?= (strpos($req,"entries.php")!==false) ? $activeLink : $baseLink ?>">
-            <span class="text-lg w-6 mr-3 opacity-70 text-center">📝</span>
-            <span class="font-bold text-[11px] tracking-widest uppercase">Pendaftaran</span>
-         </a>
-         <a href="<?= BASE_URL ?>/src/admin/pelotons.php" class="<?= (strpos($req,"pelotons.php")!==false) ? $activeLink : $baseLink ?>">
-            <span class="text-lg w-6 mr-3 opacity-70 text-center">🚴</span>
-            <span class="font-bold text-[11px] tracking-widest uppercase">Manajemen Peloton</span>
-         </a>
-         
-         <div class="px-8 mt-8 mb-2 text-[10px] font-black text-slate-600 uppercase tracking-widest">Hasil & Awards</div>
-         
-         <a href="<?= BASE_URL ?>/src/admin/results.php" class="<?= (strpos($req,"results.php")!==false) ? $activeLink : $baseLink ?>">
-            <span class="text-lg w-6 mr-3 opacity-70 text-center">⏱️</span>
-            <span class="font-bold text-[11px] tracking-widest uppercase">Input Hasil</span>
-         </a>
+         <!-- GROUP 3: Hasil & Awards -->
+         <?php $a3Active = isGroupActive($req, ['results.php']); ?>
+         <button onclick="toggleSidebarDropdown('dd-hasil')" class="<?= $a3Active ? $dropdownBtnActive : $dropdownBtnBase ?>">
+            <div class="flex items-center">
+               <span class="w-6 text-xl mr-3 text-center opacity-80">🏆</span>
+               <span class="font-bold text-[11px] tracking-widest uppercase">Hasil & Awards</span>
+            </div>
+            <span id="icon-dd-hasil" class="transform transition-transform text-xs <?= $a3Active ? 'rotate-180' : '' ?>">▼</span>
+         </button>
+         <div id="dd-hasil" class="bg-[#0b1120] py-2 <?= $a3Active ? '' : 'hidden' ?>">
+             <a href="<?= BASE_URL ?>/src/admin/results.php" class="<?= (strpos($req,"results.php")!==false) ? $childActiveLink : $childBaseLink ?>">Input Hasil</a>
+         </div>
+
       <?php endif; ?>
 
       <?php if($role == 'user'): ?>
@@ -106,10 +127,9 @@ function isGroupActive($req, $keywords) {
 
    </div>
 
-   <div class="p-6 border-t border-slate-800 bg-[#0F172A] shrink-0">
-      <a href="<?= BASE_URL ?>/public/logout.php" class="flex items-center justify-center w-full px-4 py-3 text-[10px] uppercase tracking-widest font-black text-red-400 bg-red-400/10 hover:bg-red-500 hover:text-white rounded-xl transition-all shadow-sm">
-         🚪 Keluar Sistem
-      </a>
+   <!-- Footer Sidebar Identik dgn Swim System -->
+   <div class="p-6 border-t border-slate-800 bg-[#0F172A] shrink-0 text-center">
+      <p class="text-[9px] text-slate-600 font-bold uppercase tracking-widest">&copy; <?= date('Y') ?> SET Roll System</p>
    </div>
 
 </aside>
