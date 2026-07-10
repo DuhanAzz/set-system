@@ -1,6 +1,5 @@
 <?php
 // FILE: src/master/users.php
-session_start();
 require_once __DIR__ . '/../config/database.php';
 
 // 1. PROTEKSI HALAMAN (HANYA MASTER)
