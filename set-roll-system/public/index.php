@@ -356,7 +356,7 @@ $upcoming_preview = $pdo->query($sql)->fetchAll();
             const textPerc = document.getElementById('load-perc');
             const preloader = document.getElementById('preloader');
             let progress = 0;
-            const duration = 1500; // 1.5 detik
+            const duration = 1000; // 1.5 detik
             const intervalTime = 30; // update setiap 30ms
             const step = 100 / (duration / intervalTime);
             
