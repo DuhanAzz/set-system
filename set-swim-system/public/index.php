@@ -315,7 +315,7 @@ $upcoming_preview = $pdo->query($sql)->fetchAll();
                 if (progress >= 100) { 
                     progress = 100; 
                     clearInterval(interval); 
-                    setTimeout(() => { preloader.classList.add('loader-finish'); }, 500); 
+                    setTimeout(() => { preloader.classList.add('loader-finish'); }, 1000); 
                 }
                 if(liquid) liquid.style.top = (100 - progress) + '%'; 
                 if(textPerc) textPerc.innerText = progress + '%';
