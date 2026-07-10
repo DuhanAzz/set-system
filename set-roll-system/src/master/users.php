@@ -1,319 +1,597 @@
 <?php
 // FILE: src/master/users.php
+session_start();
 require_once __DIR__ . '/../config/database.php';
 
+// 1. PROTEKSI HALAMAN (HANYA MASTER)
 if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'master') {
-    header("Location: " . BASE_URL . "/public/login.php");
-    exit;
+    header("Location: " . BASE_URL . "/public/login.php"); exit;
 }
 
-// --- LOGIKA FORM ---
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+// 2. SETUP VARIABEL
+$targetRole = $_GET['role'] ?? 'admin'; // 'admin' = Panitia Kejuaraan, 'user' = Manajer Klub
+$search     = $_GET['q'] ?? '';
+
+// ==================================================================================
+// HANDLE ACTION: UBAH STATUS (APPROVE/SUSPEND)
+// ==================================================================================
+if (isset($_GET['action']) && isset($_GET['uid']) && isset($_GET['status'])) {
+    $uid = $_GET['uid'];
+    $newStatus = $_GET['status'];
     
-    // 1. TAMBAH AKUN BARU
-    if ($_POST['action'] == 'add_user') {
-        $username = trim($_POST['username'] ?? '');
-        $password = $_POST['password'] ?? '';
-        $role = $_POST['role'] ?? 'user';
-        $club_id = !empty($_POST['club_id']) ? $_POST['club_id'] : null;
-
-        if ($role === 'admin' || $role === 'master') {
-            $club_id = null; 
-        }
-
-        if (!empty($username) && !empty($password)) {
-            // Validasi Duplikat
-            $chk = $pdo->prepare("SELECT COUNT(*) FROM roll_users WHERE username = ?");
-            $chk->execute([$username]);
-            if($chk->fetchColumn() > 0) {
-                $_SESSION['flash_message'] = "❌ Gagal: Username sudah digunakan.";
-                $_SESSION['flash_type'] = 'error';
-            } else {
-                try {
-                    $hashed = password_hash($password, PASSWORD_DEFAULT);
-                    $stmt = $pdo->prepare("INSERT INTO roll_users (username, password, role, club_id) VALUES (?, ?, ?, ?)");
-                    $stmt->execute([$username, $hashed, $role, $club_id]);
-                    $_SESSION['flash_message'] = '✅ Akun pengguna berhasil diciptakan.';
-                    $_SESSION['flash_type'] = 'success';
-                } catch (PDOException $e) {
-                    $_SESSION['flash_message'] = "❌ Terjadi Kesalahan Sistem.";
-                    $_SESSION['flash_type'] = 'error';
-                }
+    if (in_array($newStatus, ['active', 'pending', 'suspended'])) {
+        if ($uid == $_SESSION['user_id']) {
+            $_SESSION['swal_type'] = 'error';
+            $_SESSION['swal_msg'] = 'Tidak bisa memblokir akun sendiri!';
+        } else {
+            try {
+                $pdo->prepare("UPDATE roll_users SET account_status = ? WHERE id = ?")->execute([$newStatus, $uid]);
+                $_SESSION['swal_type'] = 'success';
+                $_SESSION['swal_msg'] = 'Status akun berhasil diperbarui';
+            } catch (Exception $e) {
+                $_SESSION['swal_type'] = 'error';
+                $_SESSION['swal_msg'] = 'Gagal update: ' . $e->getMessage();
             }
         }
+        header("Location: users.php?role=$targetRole"); exit;
     }
-
-    // 2. UBAH STATUS (SUSPEND/ACTIVE)
-    if ($_POST['action'] == 'change_status') {
-        $id = $_POST['user_id'];
-        $status = $_POST['status'];
-        if(in_array($status, ['active', 'suspended'])) {
-            $stmt = $pdo->prepare("UPDATE roll_users SET account_status = ? WHERE id = ?");
-            $stmt->execute([$status, $id]);
-            $_SESSION['flash_message'] = '✅ Status akun berhasil diubah.';
-            $_SESSION['flash_type'] = 'success';
-        }
-    }
-
-    // 3. RESET SANDI BYPASS
-    if ($_POST['action'] == 'reset_password') {
-        $id = $_POST['user_id'];
-        $new_pass = $_POST['new_password'];
-        if(!empty($new_pass)){
-            $hashed = password_hash($new_pass, PASSWORD_DEFAULT);
-            $stmt = $pdo->prepare("UPDATE roll_users SET password = ? WHERE id = ?");
-            $stmt->execute([$hashed, $id]);
-            $_SESSION['flash_message'] = '✅ Password berhasil di-reset.';
-            $_SESSION['flash_type'] = 'success';
-        }
-    }
-    
-    // 4. EDIT PROFIL OLEH MASTER
-    if ($_POST['action'] == 'edit_profile') {
-        $id = $_POST['user_id'];
-        $nama_lengkap = $_POST['nama_lengkap'];
-        $email = $_POST['email'];
-        $phone = $_POST['phone'];
-        $stmt = $pdo->prepare("UPDATE roll_users SET nama_lengkap = ?, email = ?, phone = ? WHERE id = ?");
-        $stmt->execute([$nama_lengkap, $email, $phone, $id]);
-        $_SESSION['flash_message'] = '✅ Profil akun berhasil diperbarui.';
-        $_SESSION['flash_type'] = 'success';
-    }
-
-    header("Location: users.php");
-    exit;
 }
 
-$clubs = $pdo->query("SELECT id, club_name FROM roll_clubs ORDER BY club_name ASC")->fetchAll();
+// ==================================================================================
+// HANDLE ACTION: SIMPAN (TAMBAH / EDIT)
+// ==================================================================================
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_user'])) {
+    try {
+        $pdo->beginTransaction();
 
-$users = $pdo->query("
-    SELECT u.*, c.club_name 
-    FROM roll_users u
-    LEFT JOIN roll_clubs c ON u.club_id = c.id
-    ORDER BY u.role ASC, u.username ASC
-")->fetchAll();
+        // 1. Ambil Data Form
+        $userId   = $_POST['user_id'] ?? ''; 
+        $role     = $_POST['role_type'];
+        
+        // Data Akun (Tabel Users)
+        $namaAkun = trim($_POST['nama_lengkap']); 
+        $email    = trim($_POST['email']);
+        $phone    = trim($_POST['phone']); 
+        $username = trim($_POST['username']); 
+        $pass     = $_POST['password'];
 
-include __DIR__ . '/../../views/layout/topbar.php';
-include __DIR__ . '/../../views/layout/sidebar.php';
+        // Data Detail (Tabel Clubs / Events)
+        $namaEntitas = trim($_POST['nama_detail']); 
+
+        if ($role == 'admin') {
+            // Data Events
+            $raceFormat = $_POST['race_format'] ?? 'SPRINT';
+            $location   = $_POST['event_location'] ?? null;
+            $city       = $_POST['event_city'] ?? null;
+            $eventDate  = !empty($_POST['event_date_start']) ? $_POST['event_date_start'] : date('Y-m-d');
+        } else {
+            // Data Clubs
+            $kota       = $_POST['kota'] ?? null;
+        }
+
+        // 3. PROSES UPDATE / INSERT
+        if ($userId) {
+            // === UPDATE ===
+            
+            // A. Update roll_users
+            if (!empty($pass)) {
+                $pdo->prepare("UPDATE roll_users SET nama_lengkap=?, email=?, phone=?, username=?, password=? WHERE id=?")
+                    ->execute([$namaAkun, $email, $phone, $username, password_hash($pass, PASSWORD_DEFAULT), $userId]);
+            } else {
+                $pdo->prepare("UPDATE roll_users SET nama_lengkap=?, email=?, phone=?, username=? WHERE id=?")
+                    ->execute([$namaAkun, $email, $phone, $username, $userId]);
+            }
+
+            // B. Update Detail
+            if ($role == 'admin') {
+                $check = $pdo->prepare("SELECT id FROM roll_events WHERE user_id = ?");
+                $check->execute([$userId]);
+                if ($check->rowCount() > 0) {
+                    $pdo->prepare("UPDATE roll_events SET event_name=?, race_format=?, event_location=?, event_city=?, event_date_start=? WHERE user_id=?")
+                        ->execute([$namaEntitas, $raceFormat, $location, $city, $eventDate, $userId]);
+                } else {
+                    $pdo->prepare("INSERT INTO roll_events (user_id, event_name, race_format, event_location, event_city, event_date_start, status) VALUES (?, ?, ?, ?, ?, ?, 'Draft')")
+                        ->execute([$userId, $namaEntitas, $raceFormat, $location, $city, $eventDate]);
+                }
+            } elseif ($role == 'user') {
+                // Cari club_id dari user
+                $chkClub = $pdo->prepare("SELECT club_id FROM roll_users WHERE id = ?");
+                $chkClub->execute([$userId]);
+                $club_id = $chkClub->fetchColumn();
+                
+                if ($club_id) {
+                    $pdo->prepare("UPDATE roll_clubs SET club_name=?, city_province=? WHERE id=?")
+                        ->execute([$namaEntitas, $kota, $club_id]);
+                } else {
+                    $pdo->prepare("INSERT INTO roll_clubs (club_name, city_province) VALUES (?, ?)")
+                        ->execute([$namaEntitas, $kota]);
+                    $newClubId = $pdo->lastInsertId();
+                    $pdo->prepare("UPDATE roll_users SET club_id=? WHERE id=?")->execute([$newClubId, $userId]);
+                }
+            }
+            $msg = 'Data berhasil diperbarui!';
+
+        } else {
+            // === INSERT BARU ===
+            $cekMail = $pdo->prepare("SELECT id FROM roll_users WHERE username = ?");
+            $cekMail->execute([$username]);
+            if($cekMail->rowCount() > 0) throw new Exception("Username $username sudah terdaftar!");
+
+            if ($role == 'admin') {
+                // Admin tidak butuh club_id saat insert users
+                $pdo->prepare("INSERT INTO roll_users (nama_lengkap, email, phone, username, password, role, account_status) VALUES (?, ?, ?, ?, ?, ?, 'active')")
+                    ->execute([$namaAkun, $email, $phone, $username, password_hash($pass, PASSWORD_DEFAULT), $role]);
+                $newUserId = $pdo->lastInsertId();
+
+                $pdo->prepare("INSERT INTO roll_events (user_id, event_name, race_format, event_location, event_city, event_date_start, status) VALUES (?, ?, ?, ?, ?, ?, 'Draft')")
+                    ->execute([$newUserId, $namaEntitas, $raceFormat, $location, $city, $eventDate]);
+                    
+            } elseif ($role == 'user') {
+                // 1. Insert Klub
+                $pdo->prepare("INSERT INTO roll_clubs (club_name, city_province) VALUES (?, ?)")
+                    ->execute([$namaEntitas, $kota]);
+                $newClubId = $pdo->lastInsertId();
+
+                // 2. Insert User (User role = Klub)
+                $pdo->prepare("INSERT INTO roll_users (nama_lengkap, email, phone, username, password, role, account_status, club_id) VALUES (?, ?, ?, ?, ?, ?, 'active', ?)")
+                    ->execute([$namaAkun, $email, $phone, $username, password_hash($pass, PASSWORD_DEFAULT), $role, $newClubId]);
+            }
+            $msg = 'Data berhasil ditambahkan!';
+        }
+
+        $pdo->commit();
+        $_SESSION['swal_type'] = 'success'; $_SESSION['swal_msg'] = $msg;
+        header("Location: users.php?role=" . $role); exit;
+
+    } catch (Exception $e) { 
+        $pdo->rollBack();
+        $_SESSION['swal_type'] = 'error'; $_SESSION['swal_msg'] = 'Error: ' . $e->getMessage();
+        header("Location: users.php?role=" . $role); exit;
+    }
+}
+
+// ==================================================================================
+// HANDLE ACTION: HAPUS
+// ==================================================================================
+if (isset($_GET['delete'])) {
+    $id = $_GET['delete'];
+    if ($id == $_SESSION['user_id']) {
+        $_SESSION['swal_type'] = 'error';
+        $_SESSION['swal_msg'] = 'Tidak bisa menghapus akun sendiri';
+    } else {
+        try {
+            $pdo->beginTransaction();
+            if ($targetRole == 'admin') {
+                $pdo->prepare("DELETE FROM roll_events WHERE user_id = ?")->execute([$id]); 
+                $pdo->prepare("DELETE FROM roll_users WHERE id = ?")->execute([$id]); 
+            } else {
+                // Untuk user, cek club_id
+                $chkClub = $pdo->prepare("SELECT club_id FROM roll_users WHERE id = ?");
+                $chkClub->execute([$id]);
+                $club_id = $chkClub->fetchColumn();
+                
+                if ($club_id) {
+                    $pdo->prepare("DELETE FROM roll_skaters WHERE club_id = ?")->execute([$club_id]);
+                    $pdo->prepare("DELETE FROM roll_users WHERE id = ?")->execute([$id]); 
+                    $pdo->prepare("DELETE FROM roll_clubs WHERE id = ?")->execute([$club_id]);
+                } else {
+                    $pdo->prepare("DELETE FROM roll_users WHERE id = ?")->execute([$id]); 
+                }
+            }
+            $pdo->commit();
+            $_SESSION['swal_type'] = 'success'; $_SESSION['swal_msg'] = 'Data berhasil dihapus permanen';
+        } catch (Exception $e) {
+            $pdo->rollBack();
+            $_SESSION['swal_type'] = 'error'; $_SESSION['swal_msg'] = 'Gagal menghapus: ' . $e->getMessage();
+        }
+    }
+    header("Location: users.php?role=" . $targetRole); exit;
+}
+
+// ==================================================================================
+// QUERY GET DATA
+// ==================================================================================
+$params = ['role' => $targetRole];
+$searchSql = "";
+if (!empty($search)) {
+    $searchSql = " AND (u.nama_lengkap LIKE :s OR u.email LIKE :s OR u.username LIKE :s) ";
+    $params['s'] = "%$search%";
+}
+
+if ($targetRole == 'admin') {
+    $sql = "SELECT u.*, 
+                   e.race_format, e.event_name, e.event_location, e.event_city, e.event_date_start, e.status as event_status 
+            FROM roll_users u 
+            LEFT JOIN roll_events e ON u.id = e.user_id 
+            WHERE u.role = :role $searchSql ORDER BY u.created_at DESC";
+} else {
+    $sql = "SELECT u.*, 
+                   c.club_name, c.city_province as kota,
+                   (SELECT COUNT(*) FROM roll_skaters s WHERE s.club_id = u.club_id) as total_atlet 
+            FROM roll_users u 
+            LEFT JOIN roll_clubs c ON u.club_id = c.id 
+            WHERE u.role = :role $searchSql ORDER BY u.created_at DESC";
+}
+
+$stmt = $pdo->prepare($sql);
+$stmt->execute($params);
+$users = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+include __DIR__ . '/../../views/layout/topbar.php'; 
+include __DIR__ . '/../../views/layout/sidebar.php'; 
 ?>
-<div class="p-6 sm:ml-64 pt-24 bg-slate-950 min-h-screen font-sans">
-    
-    <?php if(isset($_SESSION['flash_message'])): ?>
-        <div class="mb-6 px-6 py-4 rounded-xl font-bold text-sm shadow-lg animate-pulse 
-            <?= $_SESSION['flash_type'] === 'error' ? 'bg-red-500/10 text-red-500 border border-red-500/20' : 'bg-green-500/10 text-green-500 border border-green-500/20' ?>">
-            <?= $_SESSION['flash_message']; unset($_SESSION['flash_message'], $_SESSION['flash_type']); ?>
-        </div>
-    <?php endif; ?>
 
-    <div class="flex justify-between items-center mb-8">
+<div class="p-6 sm:ml-64 pt-24 bg-slate-50 min-h-screen font-sans">
+    
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
         <div>
-            <h2 class="text-3xl font-black text-white tracking-tight">Registrasi & Hak Akses</h2>
-            <p class="text-slate-400 mt-1 font-medium">Lifecycle Management, Isolasi Akun, & Kontrol Master.</p>
+            <nav class="text-slate-400 text-[10px] font-bold uppercase tracking-widest mb-2">
+                <a href="dashboard.php" class="hover:text-red-600">← Executive Dashboard</a>
+            </nav>
+            <h1 class="text-3xl font-black text-slate-900 uppercase tracking-tighter italic leading-none">
+                Manajemen <?= $targetRole == 'admin' ? 'Panitia Kejuaraan' : 'Manajer Klub' ?>
+            </h1>
+            <p class="text-slate-500 text-xs font-medium mt-2">Total Data: <?= count($users) ?></p>
         </div>
-        <button onclick="document.getElementById('modalAdd').classList.remove('hidden')" class="bg-red-600 hover:bg-red-500 text-white px-6 py-2.5 rounded-xl font-bold shadow-lg shadow-red-600/30 transition-all transform hover:-translate-y-0.5">
-            + Ciptakan Akun Baru
+        
+        <div class="flex flex-col md:flex-row gap-3 w-full md:w-auto">
+            <form method="GET" class="relative">
+                <input type="hidden" name="role" value="<?= $targetRole ?>">
+                <input type="text" name="q" value="<?= htmlspecialchars($search) ?>" placeholder="Cari username / email..." 
+                       class="pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold w-full md:w-64 focus:outline-none focus:border-red-500 shadow-sm">
+                <span class="absolute left-3 top-2.5 text-slate-400">🔍</span>
+            </form>
+
+            <div class="flex gap-1 bg-white p-1 rounded-xl shadow-sm border border-slate-200">
+                <a href="users.php?role=user" class="px-4 py-2 rounded-lg text-[10px] font-black uppercase transition <?= $targetRole == 'user' ? 'bg-slate-900 text-white shadow-md' : 'text-slate-400 hover:bg-slate-50' ?>">Klub</a>
+                <a href="users.php?role=admin" class="px-4 py-2 rounded-lg text-[10px] font-black uppercase transition <?= $targetRole == 'admin' ? 'bg-red-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-50' ?>">EO / Event</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="flex justify-end mb-6">
+        <button onclick="openModal()" class="bg-slate-900 text-white px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-[0.1em] shadow-xl hover:bg-red-600 transition flex items-center gap-2 hover:-translate-y-1 transform duration-200">
+            <span>+</span> Tambah <?= strtoupper($targetRole) ?>
         </button>
     </div>
 
-    <div class="bg-slate-900 rounded-2xl shadow-2xl border border-slate-800 overflow-hidden">
-        <table class="w-full text-left border-collapse">
-            <thead>
-                <tr class="bg-slate-950 text-slate-500 text-xs uppercase tracking-widest border-b border-slate-800">
-                    <th class="px-6 py-4 font-bold">Username Login</th>
-                    <th class="px-6 py-4 font-bold text-center">Tingkat Akses</th>
-                    <th class="px-6 py-4 font-bold">Status</th>
-                    <th class="px-6 py-4 font-bold">Afiliasi Klub</th>
-                    <th class="px-6 py-4 font-bold text-right">Otoritas Master</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-800/50">
-                <?php foreach($users as $u): ?>
-                <tr class="hover:bg-slate-800/50 transition-colors">
-                    <td class="px-6 py-4 font-bold text-white">
-                        <?= htmlspecialchars($u['username']) ?>
-                        <div class="text-[10px] text-slate-500 font-normal mt-1"><?= htmlspecialchars($u['email'] ?? '-') ?></div>
-                    </td>
-                    <td class="px-6 py-4 text-center">
-                        <?php 
-                            $badgeClass = 'bg-slate-800 text-slate-400';
-                            if($u['role'] === 'master') $badgeClass = 'bg-red-900/50 text-red-400 border border-red-800/50';
-                            if($u['role'] === 'admin') $badgeClass = 'bg-orange-900/50 text-orange-400 border border-orange-800/50';
-                            if($u['role'] === 'user') $badgeClass = 'bg-blue-900/50 text-blue-400 border border-blue-800/50';
-                        ?>
-                        <span class="<?= $badgeClass ?> px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider">
-                            <?= htmlspecialchars($u['role']) ?>
-                        </span>
-                    </td>
-                    <td class="px-6 py-4 font-bold">
-                        <?php if($u['account_status'] == 'active'): ?>
-                            <span class="text-green-500 text-xs uppercase tracking-widest">Active</span>
-                        <?php elseif($u['account_status'] == 'pending'): ?>
-                            <span class="text-yellow-500 text-xs uppercase tracking-widest">Pending</span>
-                        <?php else: ?>
-                            <span class="text-red-500 text-xs uppercase tracking-widest">Suspended</span>
+    <div class="bg-white rounded-[2rem] shadow-xl border border-slate-200 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+                <thead class="bg-slate-50/50 border-b border-slate-100">
+                    <tr>
+                        <th class="px-6 py-5 font-black uppercase text-[9px] text-slate-400 tracking-widest w-1/4">User Account</th>
+                        <th class="px-6 py-5 font-black uppercase text-[9px] text-slate-400 tracking-widest">Kontak</th>
+                        <th class="px-6 py-5 font-black uppercase text-[9px] text-slate-400 tracking-widest w-1/3">
+                            <?= $targetRole == 'admin' ? 'Detail Kejuaraan' : 'Detail Klub' ?>
+                        </th>
+                        <?php if($targetRole == 'user'): ?>
+                            <th class="px-6 py-5 font-black uppercase text-[9px] text-slate-400 tracking-widest text-center">Atlet</th>
                         <?php endif; ?>
-                    </td>
-                    <td class="px-6 py-4 font-medium text-slate-400 text-sm">
-                        <?= ($u['role'] === 'user') ? htmlspecialchars($u['club_name'] ?? 'Klub Dihapus/Tidak Ada') : '<em>Sistem Pusat</em>' ?>
-                    </td>
-                    <td class="px-6 py-4 text-right flex justify-end gap-2">
-                        <?php if($u['role'] !== 'master'): ?>
-                            <!-- Edit Profil -->
-                            <button onclick="openEditModal(<?= $u['id'] ?>, '<?= htmlspecialchars($u['nama_lengkap']) ?>', '<?= htmlspecialchars($u['email']) ?>', '<?= htmlspecialchars($u['phone']) ?>')" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-xs font-bold transition">Edit Profil</button>
-                            
-                            <!-- Reset Password -->
-                            <button onclick="openResetModal(<?= $u['id'] ?>, '<?= htmlspecialchars($u['username']) ?>')" class="px-3 py-1 bg-yellow-900/50 hover:bg-yellow-800 text-yellow-500 rounded text-xs font-bold transition border border-yellow-700/50">Reset Sandi</button>
-                            
-                            <!-- Status Toggle -->
-                            <form action="" method="POST" class="inline">
-                                <input type="hidden" name="action" value="change_status">
-                                <input type="hidden" name="user_id" value="<?= $u['id'] ?>">
-                                <?php if(in_array($u['account_status'], ['pending', 'suspended'])): ?>
-                                    <input type="hidden" name="status" value="active">
-                                    <button type="submit" class="px-3 py-1 bg-green-900/50 hover:bg-green-800 text-green-500 rounded text-xs font-bold transition border border-green-700/50">Aktifkan</button>
+                        <th class="px-6 py-5 font-black uppercase text-[9px] text-slate-400 tracking-widest text-center">Status</th>
+                        <th class="px-6 py-5 font-black uppercase text-[9px] text-slate-400 tracking-widest text-right">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-50">
+                    <?php if(empty($users)): ?>
+                        <tr><td colspan="6" class="px-8 py-20 text-center text-slate-300 font-bold italic uppercase text-xs">Belum ada data.</td></tr>
+                    <?php else: foreach($users as $u): ?>
+                    <tr class="hover:bg-red-50/30 transition group">
+                        
+                        <td class="px-6 py-5 align-top">
+                            <div class="flex items-center gap-3">
+                                <div class="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 font-black text-xs border border-slate-200 shadow-sm shrink-0">
+                                    <?= strtoupper(substr($u['nama_lengkap'] ?? $u['username'], 0, 1)) ?>
+                                </div>
+                                <div>
+                                    <div class="font-black text-slate-800 uppercase italic leading-tight text-xs"><?= htmlspecialchars($u['nama_lengkap'] ?? '-') ?></div>
+                                    <div class="text-[10px] font-mono text-slate-400 mt-0.5">@<?= htmlspecialchars($u['username']) ?></div>
+                                </div>
+                            </div>
+                        </td>
+
+                        <td class="px-6 py-5 align-top">
+                            <div class="flex flex-col gap-1.5">
+                                <?php if(!empty($u['email'])): ?>
+                                <a href="mailto:<?= htmlspecialchars($u['email']) ?>" class="text-[10px] font-bold text-blue-500 hover:underline flex items-center gap-1">
+                                    📧 <?= htmlspecialchars($u['email']) ?>
+                                </a>
                                 <?php else: ?>
-                                    <input type="hidden" name="status" value="suspended">
-                                    <button type="submit" onclick="return confirm('Suspend akun ini?')" class="px-3 py-1 bg-red-900/50 hover:bg-red-800 text-red-500 rounded text-xs font-bold transition border border-red-700/50">Suspend</button>
+                                <span class="text-[10px] font-bold text-slate-400">📧 -</span>
                                 <?php endif; ?>
-                            </form>
+
+                                <?php if(!empty($u['phone'])): 
+                                    $waNum = preg_replace('/[^0-9]/', '', $u['phone']);
+                                    if(substr($waNum, 0, 1) == '0') $waNum = '62' . substr($waNum, 1);
+                                ?>
+                                    <a href="https://wa.me/<?= $waNum ?>" target="_blank" class="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded w-fit hover:bg-emerald-100 transition flex items-center gap-1">
+                                        📱 WhatsApp
+                                    </a>
+                                <?php endif; ?>
+                            </div>
+                        </td>
+                        
+                        <td class="px-6 py-5 align-top">
+                            <?php if($targetRole == 'admin'): ?>
+                                <div class="space-y-1">
+                                    <div class="text-xs font-black text-slate-700 uppercase">
+                                        <?= htmlspecialchars($u['event_name'] ?? '-') ?>
+                                    </div>
+                                    <div class="flex flex-wrap gap-1 items-center">
+                                        <span class="bg-slate-100 px-1.5 py-0.5 rounded text-[9px] font-bold text-slate-500 border border-slate-200">
+                                            📍 <?= htmlspecialchars($u['event_location'] ?? '-') ?> <?= !empty($u['event_city']) ? ' - ' . htmlspecialchars($u['event_city']) : '' ?>
+                                        </span>
+                                        <span class="text-[9px] text-slate-400 font-medium">
+                                            📅 <?= !empty($u['event_date_start']) ? date('d M Y', strtotime($u['event_date_start'])) : '-' ?>
+                                        </span>
+                                    </div>
+                                    <span class="text-[9px] italic text-slate-400"><?= htmlspecialchars($u['race_format'] ?? '-') ?></span>
+                                </div>
+                            <?php else: ?>
+                                <div class="space-y-1">
+                                    <div class="text-xs font-black text-slate-700 uppercase">
+                                        <?= htmlspecialchars($u['club_name'] ?? '-') ?>
+                                    </div>
+                                    <span class="bg-slate-100 px-1.5 py-0.5 rounded text-[9px] font-bold text-slate-500 border border-slate-200 inline-block">
+                                        🏠 <?= htmlspecialchars($u['kota'] ?? '-') ?>
+                                    </span>
+                                </div>
+                            <?php endif; ?>
+                        </td>
+
+                        <?php if($targetRole == 'user'): ?>
+                            <td class="px-6 py-5 align-top text-center">
+                                <a href="swimmers/index.php?search=<?= urlencode($u['club_name'] ?? '') ?>" class="inline-block bg-slate-50 border border-slate-200 rounded-lg px-3 py-1 hover:bg-red-50 hover:border-red-200 hover:scale-105 transition cursor-pointer group/card">
+                                    <span class="block text-lg font-black text-red-600 leading-none group-hover/card:text-red-700"><?= $u['total_atlet'] ?? 0 ?></span>
+                                    <span class="text-[8px] uppercase font-bold text-slate-400">Atlet &rarr;</span>
+                                </a>
+                            </td>
                         <?php endif; ?>
-                    </td>
-                </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
+
+                        <td class="px-6 py-5 align-top text-center">
+                            <?php 
+                                $status = $u['account_status'] ?? 'pending';
+                                $statusClass = match($status) {
+                                    'active' => 'bg-emerald-100 text-emerald-700 border-emerald-200',
+                                    'pending' => 'bg-amber-100 text-amber-700 border-amber-200',
+                                    'suspended' => 'bg-red-100 text-red-700 border-red-200',
+                                    default => 'bg-slate-100 text-slate-500'
+                                };
+                            ?>
+                            <div class="flex flex-col items-center gap-2">
+                                <span class="px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-wider border <?= $statusClass ?>">
+                                    <?= $status ?>
+                                </span>
+                                <div class="flex gap-1 opacity-100 lg:opacity-30 lg:group-hover:opacity-100 transition">
+                                    <?php if($status != 'active'): ?>
+                                        <a href="?action=status&uid=<?= $u['id'] ?>&status=active&role=<?= $targetRole ?>" 
+                                           class="w-5 h-5 rounded bg-emerald-500 text-white flex items-center justify-center hover:bg-emerald-600 shadow-sm text-[10px]" title="Aktifkan">✓</a>
+                                    <?php endif; ?>
+                                    <?php if($status != 'suspended'): ?>
+                                        <a href="?action=status&uid=<?= $u['id'] ?>&status=suspended&role=<?= $targetRole ?>" 
+                                           class="w-5 h-5 rounded bg-red-500 text-white flex items-center justify-center hover:bg-red-600 shadow-sm text-[10px]" title="Blokir" onclick="return confirm('Blokir user ini?')">✕</a>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        </td>
+
+                        <td class="px-6 py-5 align-top text-right">
+                            <div class="flex justify-end gap-2">
+                                <?php if($status === 'pending'): ?>
+                                    <a href="#" class="flex items-center justify-center bg-amber-500 hover:bg-amber-600 text-white px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition shadow-sm">
+                                        Verifikasi Akun
+                                    </a>
+                                <?php else: ?>
+                                    <button 
+                                        type="button"
+                                        data-user='<?= htmlspecialchars(json_encode($u), ENT_QUOTES, 'UTF-8') ?>'
+                                        onclick="editAdmin(this)"
+                                        class="w-8 h-8 flex items-center justify-center bg-white border border-slate-200 rounded-lg hover:border-red-500 hover:text-red-600 transition text-slate-400 shadow-sm">
+                                        ✏️
+                                    </button>
+                                <?php endif; ?>
+                                
+                                <a href="?delete=<?= $u['id'] ?>&role=<?= $targetRole ?>" onclick="return confirm('Hapus permanen? Data terkait (event/klub/atlet) akan hilang permanen.')" class="w-8 h-8 flex items-center justify-center bg-white border border-slate-200 rounded-lg hover:border-red-500 hover:text-red-600 transition text-slate-400 shadow-sm">🗑️</a>
+                            </div>
+                        </td>
+                    </tr>
+                    <?php endforeach; endif; ?>
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 
-<!-- MODALS -->
-<!-- 1. ADD USER MODAL -->
-<div id="modalAdd" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center hidden">
-    <div class="bg-slate-900 w-full max-w-lg rounded-[2rem] shadow-2xl border border-slate-700 overflow-hidden">
-        <div class="bg-slate-950 p-6 flex justify-between items-center border-b border-slate-800">
-            <h3 class="text-xl font-black text-white">Suntikkan Akun Baru</h3>
-            <button onclick="document.getElementById('modalAdd').classList.add('hidden')" class="text-slate-500 hover:text-white text-2xl font-bold">&times;</button>
+<div id="modal-admin" class="fixed inset-0 z-[100] hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-lg rounded-[2rem] shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto">
+        <div class="bg-slate-900 p-6 text-white flex justify-between items-center sticky top-0 z-10">
+            <div><h3 id="modal-title" class="font-black uppercase tracking-widest italic text-lg leading-none">Tambah Akun</h3></div>
+            <button type="button" onclick="closeModal()" class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-red-500 transition">✕</button>
         </div>
-        <form action="" method="POST" class="p-8">
-            <input type="hidden" name="action" value="add_user">
-            <div class="grid gap-5 mb-5">
+        <form method="POST" class="p-8 space-y-6">
+            <input type="hidden" name="save_user" value="1">
+            <input type="hidden" name="user_id" id="form-id">
+            <input type="hidden" name="role_type" value="<?= $targetRole ?>">
+            
+            <div class="space-y-3">
+                <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-1">Info Login (Akun)</h4>
+                
                 <div>
-                    <label class="block text-sm font-bold text-slate-400 mb-2">Username</label>
-                    <input type="text" name="username" required class="w-full bg-slate-950 border border-slate-800 text-white rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-red-500 font-semibold" placeholder="Bebas spasi">
+                    <label class="text-[10px] font-bold text-slate-500 uppercase">Username Login</label>
+                    <input type="text" name="username" id="form-username" class="w-full px-4 py-3 border border-slate-200 bg-slate-50 rounded-xl text-sm font-bold focus:bg-white focus:border-red-500 outline-none" required placeholder="Cth: manager_klub">
                 </div>
-                <div>
-                    <label class="block text-sm font-bold text-slate-400 mb-2">Password</label>
-                    <input type="password" name="password" required class="w-full bg-slate-950 border border-slate-800 text-white rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-red-500 font-semibold" placeholder="Kata sandi rahasia">
-                </div>
-                <div>
-                    <label class="block text-sm font-bold text-slate-400 mb-2">Hak Akses (Role)</label>
-                    <select id="roleSelect" name="role" required class="w-full bg-slate-950 border border-slate-800 text-white rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-red-500 font-semibold cursor-pointer">
-                        <option value="user">Manajer Klub (User)</option>
-                        <option value="admin">Panitia Kejuaraan (Admin)</option>
-                    </select>
-                </div>
-                <div id="clubWrapper">
-                    <label class="block text-sm font-bold text-slate-400 mb-2">Afiliasi Klub</label>
-                    <select id="clubSelect" name="club_id" required class="w-full bg-slate-950 border border-slate-800 text-white rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-red-500 font-semibold cursor-pointer">
-                        <option value="">-- Pilih Klub Milik Manajer --</option>
-                        <?php foreach($clubs as $c): ?>
-                            <option value="<?= $c['id'] ?>"><?= htmlspecialchars($c['club_name']) ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-            </div>
-            <div class="flex justify-end gap-3 pt-6 border-t border-slate-800 mt-4">
-                <button type="button" onclick="document.getElementById('modalAdd').classList.add('hidden')" class="px-6 py-2.5 text-slate-400 font-bold hover:bg-slate-800 rounded-xl transition">Batal</button>
-                <button type="submit" class="bg-red-600 hover:bg-red-500 text-white px-8 py-2.5 rounded-xl font-bold shadow-lg shadow-red-600/30 transition-all">Ciptakan Akun</button>
-            </div>
-        </form>
-    </div>
-</div>
 
-<!-- 2. EDIT PROFILE MODAL -->
-<div id="modalEdit" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center hidden">
-    <div class="bg-slate-900 w-full max-w-lg rounded-[2rem] shadow-2xl border border-slate-700 overflow-hidden">
-        <div class="bg-slate-950 p-6 flex justify-between items-center border-b border-slate-800">
-            <h3 class="text-xl font-black text-white">Edit Profil Akun</h3>
-            <button onclick="document.getElementById('modalEdit').classList.add('hidden')" class="text-slate-500 hover:text-white text-2xl font-bold">&times;</button>
-        </div>
-        <form action="" method="POST" class="p-8">
-            <input type="hidden" name="action" value="edit_profile">
-            <input type="hidden" name="user_id" id="edit_user_id">
-            <div class="grid gap-5 mb-5">
                 <div>
-                    <label class="block text-sm font-bold text-slate-400 mb-2">Nama Lengkap</label>
-                    <input type="text" name="nama_lengkap" id="edit_nama" class="w-full bg-slate-950 border border-slate-800 text-white rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-red-500 font-semibold">
+                    <label class="text-[10px] font-bold text-slate-500 uppercase">Nama Penanggung Jawab</label>
+                    <input type="text" name="nama_lengkap" id="form-nama" class="w-full px-4 py-3 border border-slate-200 bg-slate-50 rounded-xl text-sm font-bold focus:bg-white focus:border-red-500 outline-none" required placeholder="Nama Lengkap Manajer/Ketua">
                 </div>
-                <div>
-                    <label class="block text-sm font-bold text-slate-400 mb-2">Email</label>
-                    <input type="email" name="email" id="edit_email" class="w-full bg-slate-950 border border-slate-800 text-white rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-red-500 font-semibold">
-                </div>
-                <div>
-                    <label class="block text-sm font-bold text-slate-400 mb-2">No. WhatsApp</label>
-                    <input type="text" name="phone" id="edit_phone" class="w-full bg-slate-950 border border-slate-800 text-white rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-red-500 font-semibold">
-                </div>
-            </div>
-            <div class="flex justify-end gap-3 pt-6 border-t border-slate-800 mt-4">
-                <button type="button" onclick="document.getElementById('modalEdit').classList.add('hidden')" class="px-6 py-2.5 text-slate-400 font-bold hover:bg-slate-800 rounded-xl transition">Batal</button>
-                <button type="submit" class="bg-red-600 hover:bg-red-500 text-white px-8 py-2.5 rounded-xl font-bold shadow-lg shadow-red-600/30 transition-all">Simpan Perubahan</button>
-            </div>
-        </form>
-    </div>
-</div>
 
-<!-- 3. RESET PASSWORD MODAL -->
-<div id="modalReset" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center hidden">
-    <div class="bg-slate-900 w-full max-w-lg rounded-[2rem] shadow-2xl border border-slate-700 overflow-hidden">
-        <div class="bg-slate-950 p-6 flex justify-between items-center border-b border-slate-800">
-            <h3 class="text-xl font-black text-white">Reset Sandi Paksa</h3>
-            <button onclick="document.getElementById('modalReset').classList.add('hidden')" class="text-slate-500 hover:text-white text-2xl font-bold">&times;</button>
-        </div>
-        <form action="" method="POST" class="p-8">
-            <input type="hidden" name="action" value="reset_password">
-            <input type="hidden" name="user_id" id="reset_user_id">
-            <div class="mb-5">
-                <p class="text-slate-400 text-sm mb-4">Reset sandi untuk: <strong id="reset_username" class="text-white"></strong></p>
-                <label class="block text-sm font-bold text-slate-400 mb-2">Sandi Baru</label>
-                <input type="password" name="new_password" required class="w-full bg-slate-950 border border-slate-800 text-white rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-red-500 font-semibold" placeholder="Masukkan sandi baru">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-500 uppercase">Email (Opsional)</label>
+                        <input type="email" name="email" id="form-email" class="w-full px-4 py-3 border border-slate-200 bg-slate-50 rounded-xl text-sm font-bold focus:bg-white focus:border-red-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-500 uppercase">No. WhatsApp</label>
+                        <input type="text" name="phone" id="form-phone" class="w-full px-4 py-3 border border-slate-200 bg-slate-50 rounded-xl text-sm font-bold focus:bg-white focus:border-red-500 outline-none" placeholder="08...">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="text-[10px] font-bold text-slate-500 uppercase">Password</label>
+                    <input type="password" name="password" id="form-pass" class="w-full px-4 py-3 border border-slate-200 bg-slate-50 rounded-xl text-sm font-bold focus:bg-white focus:border-red-500 outline-none" placeholder="Kosongi jika edit user (tidak ubah pass)">
+                </div>
             </div>
-            <div class="flex justify-end gap-3 pt-6 border-t border-slate-800 mt-4">
-                <button type="button" onclick="document.getElementById('modalReset').classList.add('hidden')" class="px-6 py-2.5 text-slate-400 font-bold hover:bg-slate-800 rounded-xl transition">Batal</button>
-                <button type="submit" class="bg-yellow-600 hover:bg-yellow-500 text-white px-8 py-2.5 rounded-xl font-bold shadow-lg shadow-yellow-600/30 transition-all">Terapkan Sandi Baru</button>
+
+            <div class="space-y-3 pt-2">
+                <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-1">
+                    <?= $targetRole == 'admin' ? 'Detail Kejuaraan' : 'Detail Klub Sepatu Roda' ?>
+                </h4>
+                
+                <div>
+                    <label class="text-[10px] font-bold text-slate-500 uppercase">
+                        <?= $targetRole == 'admin' ? 'Nama Kejuaraan' : 'Nama Klub' ?>
+                    </label>
+                    <input type="text" name="nama_detail" id="form-nama-detail" class="w-full px-4 py-3 border border-slate-200 bg-slate-50 rounded-xl text-sm font-bold focus:bg-white focus:border-red-500 outline-none" required placeholder="<?= $targetRole == 'admin' ? 'Contoh: Kejurnas 2026' : 'Contoh: Pari Sakti Speed' ?>">
+                </div>
+
+                <?php if($targetRole == 'admin'): ?>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-500 uppercase">Format Balapan Utama</label>
+                            <select name="race_format" id="form-mode" class="w-full px-4 py-3 border border-slate-200 bg-slate-50 rounded-xl text-xs font-bold uppercase outline-none">
+                                <option value="SPRINT">Sprint</option>
+                                <option value="DTT">DTT (Dual Time Trial)</option>
+                                <option value="PTP">PTP (Point to Point)</option>
+                                <option value="ELIMINATION">Elimination</option>
+                                <option value="TIME_TRIAL">Time Trial</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-500 uppercase">Tanggal Mulai</label>
+                            <input type="date" name="event_date_start" id="form-date" class="w-full px-4 py-3 border border-slate-200 bg-slate-50 rounded-xl text-sm font-bold focus:bg-white focus:border-red-500 outline-none">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-500 uppercase">Lokasi (Sirkuit/Jalan)</label>
+                            <input type="text" name="event_location" id="form-location" class="w-full px-4 py-3 border border-slate-200 bg-slate-50 rounded-xl text-sm font-bold focus:bg-white focus:border-red-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-500 uppercase">Kab/Kota</label>
+                            <input type="text" name="event_city" id="form-city" class="w-full px-4 py-3 border border-slate-200 bg-slate-50 rounded-xl text-sm font-bold focus:bg-white focus:border-red-500 outline-none">
+                        </div>
+                    </div>
+                <?php else: ?>
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-500 uppercase">Kota Asal Klub</label>
+                        <input type="text" name="kota" id="form-kota" class="w-full px-4 py-3 border border-slate-200 bg-slate-50 rounded-xl text-sm font-bold focus:bg-white focus:border-red-500 outline-none" placeholder="Cth: Yogyakarta (Boleh Kosong)">
+                    </div>
+                <?php endif; ?>
             </div>
+
+            <button type="submit" class="w-full bg-slate-900 hover:bg-red-600 text-white font-black py-4 rounded-xl shadow-lg transition uppercase tracking-widest text-xs mt-4">
+                Simpan Data
+            </button>
         </form>
     </div>
 </div>
 
 <script>
-    // Add logic
-    const roleSelect = document.getElementById('roleSelect');
-    const clubWrapper = document.getElementById('clubWrapper');
-    const clubSelect = document.getElementById('clubSelect');
-    roleSelect.addEventListener('change', function() {
-        if (this.value === 'admin' || this.value === 'master') {
-            clubWrapper.style.display = 'none';
-            clubSelect.required = false;
-            clubSelect.value = '';
-        } else {
-            clubWrapper.style.display = 'block';
-            clubSelect.required = true;
+const modal = document.getElementById('modal-admin');
+
+function openModal() {
+    document.getElementById('modal-title').innerText = "Tambah <?= strtoupper($targetRole) ?> Baru";
+    document.getElementById('form-id').value = ""; 
+    
+    document.getElementById('form-username').value = "";
+    document.getElementById('form-username').readOnly = false;
+    document.getElementById('form-nama').value = "";
+    document.getElementById('form-email').value = "";
+    document.getElementById('form-phone').value = "";
+    document.getElementById('form-pass').required = true;
+    document.getElementById('form-pass').value = "";
+    
+    document.getElementById('form-nama-detail').value = "";
+    
+    if(document.getElementById('form-location')) document.getElementById('form-location').value = "";
+    if(document.getElementById('form-city')) document.getElementById('form-city').value = "";
+    if(document.getElementById('form-date')) document.getElementById('form-date').value = ""; 
+    if(document.getElementById('form-mode')) document.getElementById('form-mode').selectedIndex = 0;
+    if(document.getElementById('form-kota')) document.getElementById('form-kota').value = "";
+    
+    modal.classList.remove('hidden');
+}
+
+function editAdmin(buttonElement) {
+    try {
+        const jsonString = buttonElement.getAttribute('data-user');
+        const data = JSON.parse(jsonString);
+
+        document.getElementById('modal-title').innerText = "Edit <?= strtoupper($targetRole) ?>";
+        
+        document.getElementById('form-id').value = data.id; 
+        document.getElementById('form-username').value = data.username; 
+        document.getElementById('form-username').readOnly = true; // username tidak boleh diedit
+        document.getElementById('form-nama').value = data.nama_lengkap || ''; 
+        document.getElementById('form-email').value = data.email || '';
+        document.getElementById('form-phone').value = data.phone || '';
+        document.getElementById('form-pass').required = false; 
+        document.getElementById('form-pass').value = ""; 
+
+        const detailName = data.club_name || data.event_name || '';
+        document.getElementById('form-nama-detail').value = detailName;
+
+        if(document.getElementById('form-mode')) {
+            document.getElementById('form-mode').value = data.race_format || 'SPRINT';
         }
-    });
+        if(document.getElementById('form-location')) {
+            document.getElementById('form-location').value = data.event_location || '';
+        }
+        if(document.getElementById('form-city')) {
+            document.getElementById('form-city').value = data.event_city || '';
+        }
+        if(document.getElementById('form-date')) {
+            document.getElementById('form-date').value = data.event_date_start || ''; 
+        }
+        
+        if(document.getElementById('form-kota')) {
+            document.getElementById('form-kota').value = data.kota || '';
+        }
 
-    // Edit logic
-    function openEditModal(id, nama, email, phone) {
-        document.getElementById('edit_user_id').value = id;
-        document.getElementById('edit_nama').value = nama;
-        document.getElementById('edit_email').value = email;
-        document.getElementById('edit_phone').value = phone;
-        document.getElementById('modalEdit').classList.remove('hidden');
+        modal.classList.remove('hidden');
+    } catch (e) {
+        console.error("Gagal parse data user:", e);
+        alert("Terjadi kesalahan saat mengambil data. Cek console.");
     }
+}
 
-    // Reset logic
-    function openResetModal(id, username) {
-        document.getElementById('reset_user_id').value = id;
-        document.getElementById('reset_username').innerText = username;
-        document.getElementById('modalReset').classList.remove('hidden');
-    }
+function closeModal() { 
+    modal.classList.add('hidden'); 
+}
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    <?php if(isset($_SESSION['swal_type'])): ?>
+        const Toast = Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false, 
+            timer: 3000,
+            timerProgressBar: true,
+            didOpen: (toast) => {
+                toast.addEventListener('mouseenter', Swal.stopTimer)
+                toast.addEventListener('mouseleave', Swal.resumeTimer)
+            }
+        });
+
+        Toast.fire({
+            icon: '<?= $_SESSION['swal_type'] ?>',
+            title: '<?= $_SESSION['swal_msg'] ?>'
+        });
+
+        <?php unset($_SESSION['swal_type']); unset($_SESSION['swal_msg']); ?>
+    <?php endif; ?>
 </script>
 <?php include __DIR__ . '/../../views/layout/footer.php'; ?>
