@@ -11,9 +11,17 @@ if (isset($_SESSION['user_id']) || isset($_SESSION['role'])) {
     exit;
 }
 
-$sliders = [
-    ['image_path' => 'https://images.unsplash.com/photo-1515281239448-2abe32974d46?auto=format&fit=crop&w=1600&q=80']
-];
+$sliders = []; 
+try { $sliders = $pdo->query("SELECT * FROM roll_hero_images ORDER BY id DESC")->fetchAll(); } 
+catch (Exception $e) {}
+if (empty($sliders)) {
+    $sliders = [
+        ['image_path' => 'https://images.unsplash.com/photo-1583832292200-18885b424a7f?auto=format&fit=crop&w=1600&q=80'],
+        ['image_path' => 'https://images.unsplash.com/photo-1609773335024-be4301497ea9?auto=format&fit=crop&w=1600&q=80'],
+        ['image_path' => 'https://images.unsplash.com/photo-1664352957776-db31192974f1?auto=format&fit=crop&w=1600&q=80'],
+        ['image_path' => 'https://images.unsplash.com/photo-1583832291892-0d27a522c676?auto=format&fit=crop&w=1600&q=80']
+    ];
+}
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -35,8 +43,10 @@ $sliders = [
     
     <div class="hidden lg:flex w-1/2 relative bg-slate-900 items-center justify-center overflow-hidden">
         <div id="login-slider-container" class="absolute inset-0 w-full h-full">
-            <?php foreach($sliders as $index => $slide): ?>
-                <div class="bg-slide <?= $index === 0 ? 'active' : '' ?>" style="background-image: url('<?= htmlspecialchars($slide['image_path']) ?>');"></div>
+            <?php foreach($sliders as $index => $slide): 
+                $slideImg = (strpos($slide['image_path'], 'http') === 0) ? $slide['image_path'] : rtrim(BASE_URL, '/') . '/public/' . ltrim($slide['image_path'], '/');
+            ?>
+                <div class="bg-slide <?= $index === 0 ? 'active' : '' ?>" style="background-image: url('<?= htmlspecialchars($slideImg) ?>');"></div>
             <?php endforeach; ?>
         </div>
         <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-[2px]"></div>

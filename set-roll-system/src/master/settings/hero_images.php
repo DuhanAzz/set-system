@@ -76,8 +76,10 @@ $images = $stmt->fetchAll(PDO::FETCH_ASSOC);
 // FALLBACK LOGIC: Jika kosong, sediakan aset default bernuansa Sepatu Roda (Speed Skating)
 if (empty($images)) {
     $images = [
-        ['id' => 'Default-1', 'image_path' => 'https://images.unsplash.com/photo-1572016335905-1a890473a216?q=80&w=2000&auto=format&fit=crop'],
-        ['id' => 'Default-2', 'image_path' => 'https://images.unsplash.com/photo-1517649763962-0c623066013b?q=80&w=2000&auto=format&fit=crop']
+        ['id' => 'Default-1', 'image_path' => 'https://images.unsplash.com/photo-1583832292200-18885b424a7f?q=80&w=2000&auto=format&fit=crop'],
+        ['id' => 'Default-2', 'image_path' => 'https://images.unsplash.com/photo-1609773335024-be4301497ea9?q=80&w=2000&auto=format&fit=crop'],
+        ['id' => 'Default-3', 'image_path' => 'https://images.unsplash.com/photo-1664352957776-db31192974f1?q=80&w=2000&auto=format&fit=crop'],
+        ['id' => 'Default-4', 'image_path' => 'https://images.unsplash.com/photo-1583832291892-0d27a522c676?q=80&w=2000&auto=format&fit=crop']
     ];
 }
 

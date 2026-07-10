@@ -65,8 +65,10 @@ try { $sliders = $pdo->query("SELECT * FROM roll_hero_images ORDER BY id DESC")-
 catch (Exception $e) {}
 if (empty($sliders)) {
     $sliders = [
-        ['image_path' => 'https://images.unsplash.com/photo-1572016335905-1a890473a216?q=80&w=2000&auto=format&fit=crop'],
-        ['image_path' => 'https://images.unsplash.com/photo-1517649763962-0c623066013b?q=80&w=2000&auto=format&fit=crop']
+        ['image_path' => 'https://images.unsplash.com/photo-1583832292200-18885b424a7f?q=80&w=2000&auto=format&fit=crop'],
+        ['image_path' => 'https://images.unsplash.com/photo-1609773335024-be4301497ea9?q=80&w=2000&auto=format&fit=crop'],
+        ['image_path' => 'https://images.unsplash.com/photo-1664352957776-db31192974f1?q=80&w=2000&auto=format&fit=crop'],
+        ['image_path' => 'https://images.unsplash.com/photo-1583832291892-0d27a522c676?q=80&w=2000&auto=format&fit=crop']
     ];
 }
 
@@ -200,7 +202,7 @@ $upcoming_preview = $pdo->query($sql)->fetchAll();
         <div class="max-w-screen-xl mx-auto px-6 w-full pt-48 relative z-10 text-white">
             <div class="max-w-5xl">
                 <div class="inline-flex items-center gap-2 mb-6 text-orange-400">
-                    <div class="h-1 w-12 bg-orange-500"></div><span class="font-bold tracking-[0.3em] uppercase text-xs md:text-sm">Professional Timing System</span>
+                    <div class="h-1 w-12 bg-orange-500"></div><span class="font-bold tracking-[0.3em] uppercase text-xs md:text-sm">Professional Event Organizer</span>
                 </div>
                 <h1 class="text-7xl md:text-9xl font-black uppercase tracking-tighter leading-none mb-10 drop-shadow-2xl"><?= htmlspecialchars($heroTitle) ?></h1>
                 
@@ -240,7 +242,7 @@ $upcoming_preview = $pdo->query($sql)->fetchAll();
                 $badge = ($status == 'Published') ? "bg-emerald-500 animate-pulse" : (($status == 'Completed') ? "bg-slate-600" : "bg-orange-500");
                 
                 // PATH RESOLVER UNTUK POSTER LOMBA
-                $imgSrc = 'https://images.unsplash.com/photo-1517649763962-0c623066013b?q=80&w=800&auto=format&fit=crop';
+                $imgSrc = 'https://images.unsplash.com/photo-1664352957776-db31192974f1?q=80&w=800&auto=format&fit=crop';
                 if (!empty($e['poster_image'])) {
                     $imgSrc = (strpos($e['poster_image'], 'http') === 0) ? $e['poster_image'] : rtrim(BASE_URL, '/') . '/public/' . ltrim($e['poster_image'], '/');
                 } elseif (!empty($e['logo_left'])) {
@@ -356,7 +358,7 @@ $upcoming_preview = $pdo->query($sql)->fetchAll();
             const textPerc = document.getElementById('load-perc');
             const preloader = document.getElementById('preloader');
             let progress = 0;
-            const duration = 2000; // 1.5 detik
+            const duration = 1500; // 1.5 detik
             const intervalTime = 30; // update setiap 30ms
             const step = 100 / (duration / intervalTime);
             
