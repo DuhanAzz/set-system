@@ -1,82 +1,110 @@
 <?php
 // FILE: public/index.php
 require_once __DIR__ . '/../src/config/database.php';
+if (session_status() === PHP_SESSION_NONE) session_start();
 
-// DATA HALAMAN UTAMA (Sesuai Swim System)
-$heroTitle    = 'SET ROLL CHAMPIONSHIP'; 
-$runningText  = 'SELAMAT DATANG DI SISTEM MANAJEMEN KEJUARAAN SEPATU RODA. PENDAFTARAN EVENT NASIONAL TELAH DIBUKA!'; 
-$infoTitle    = 'How to Join'; 
-$infoText     = 'Platform manajemen lomba sepatu roda modern terpadu.';
-$siteDesc     = 'Platform manajemen lomba sepatu roda modern.';
-$contactEmail = 'info@setroll.id';
-$contactWA    = '6281234567890';
-$linkIG       = '#';
-$linkFB       = '#';
+// 1. AMBIL PENGATURAN DARI DATABASE
+$stmt = $pdo->query("SELECT * FROM roll_site_settings WHERE id=1");
+$s = $stmt->fetch();
+if (!$s) $s = [];
 
-$sliders = [
-    ['image_path' => 'https://images.unsplash.com/photo-1520662241630-36e6c2a1edee?auto=format&fit=crop&w=1600&q=80'] // Speed skating image
-]; 
+// ============================================================
+// 🚧 LOGIKA MAINTENANCE MODE (SATPAM)
+// ============================================================
+$isMaintenance = isset($s['maintenance_mode']) && $s['maintenance_mode'] == 1;
+$isMaster      = isset($_SESSION['role']) && $_SESSION['role'] === 'master';
 
-// PREVIEW JADWAL (Competition Preview)
-$sql = "SELECT e.id, e.event_name, e.location as event_location, e.status as event_status, e.race_format 
+if ($isMaintenance && !$isMaster) {
+    ?>
+    <!DOCTYPE html>
+    <html lang="id">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Sedang Dalam Perbaikan</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;900&display=swap" rel="stylesheet">
+        <link rel="icon" type="image/png" href="<?= BASE_URL ?>/public/favicon.png?v=2">
+    </head>
+    <body class="bg-slate-950 h-screen flex flex-col items-center justify-center text-center p-6 font-['Inter']">
+        <div class="bg-slate-900 p-10 rounded-3xl shadow-2xl border border-red-900 max-w-lg w-full relative overflow-hidden">
+            <div class="absolute inset-0 bg-red-600/5 animate-pulse"></div>
+            <div class="text-6xl mb-6 relative z-10">🚧</div>
+            <h1 class="text-3xl font-black text-white uppercase tracking-tighter mb-4 relative z-10">Under Maintenance</h1>
+            <p class="text-slate-400 text-sm leading-relaxed mb-8 relative z-10">
+                Sistem <b><?= htmlspecialchars($s['app_name'] ?? 'SET ROLL SYSTEM') ?></b> sedang dalam perbaikan besar. 
+                Silakan kembali lagi nanti.
+            </p>
+            <div class="mt-8 pt-8 border-t border-slate-800 relative z-10">
+                <a href="login.php" class="text-red-500 hover:text-red-400 text-xs font-bold uppercase tracking-widest hover:underline">Login Master</a>
+            </div>
+        </div>
+    </body>
+    </html>
+    <?php
+    exit; 
+}
+// ============================================================
+
+// DATA HALAMAN UTAMA
+$heroTitle    = $s['hero_title'] ?? 'SET ROLL CHAMPIONSHIP'; 
+$runningText  = $s['running_text'] ?? ''; 
+$infoTitle    = $s['info_title'] ?? 'Panduan Pendaftaran'; 
+$infoText     = $s['info_text'] ?? ''; 
+$siteDesc     = $s['site_description'] ?? 'Sistem Informasi dan Manajemen Perlombaan Sepatu Roda Terintegrasi.';
+
+// Kontak
+$contactEmail = $s['contact_email'] ?? 'info@setroll.id';
+$contactWA    = $s['contact_wa'] ?? '#';
+$linkIG       = $s['link_instagram'] ?? '#';
+$linkFB       = $s['link_facebook'] ?? '#';
+
+// SLIDER GAMBAR (FALLBACK SPEED SKATING)
+$sliders = []; 
+try { $sliders = $pdo->query("SELECT * FROM roll_hero_images ORDER BY id DESC")->fetchAll(); } 
+catch (Exception $e) {}
+if (empty($sliders)) {
+    $sliders = [
+        ['image_path' => 'https://images.unsplash.com/photo-1572016335905-1a890473a216?q=80&w=2000&auto=format&fit=crop'],
+        ['image_path' => 'https://images.unsplash.com/photo-1517649763962-0c623066013b?q=80&w=2000&auto=format&fit=crop']
+    ];
+}
+
+// PREVIEW JADWAL (4 Event TERBARU)
+$sql = "SELECT e.id, e.event_name, e.location, e.event_city, e.event_date_start, e.status, e.poster_image, e.logo_left, e.is_result_published 
         FROM roll_events e 
         WHERE e.status != 'Draft' 
         ORDER BY e.id DESC 
         LIMIT 4";
 $upcoming_preview = $pdo->query($sql)->fetchAll();
-
-// Ambil hasil perlombaan dari event yang 'Published'
-$query_results = "
-    SELECT r.finish_time_ms, r.total_points, r.finish_position, r.advancement_status, r.is_eliminated,
-           s.skater_name, s.age_group, c.club_name, e.event_name, e.race_format, r.heat_name
-    FROM roll_event_results r
-    JOIN roll_events e ON r.event_id = e.id
-    JOIN roll_skaters s ON r.skater_id = s.id
-    LEFT JOIN roll_clubs c ON s.club_id = c.id
-    WHERE e.status = 'Published'
-    ORDER BY r.event_id DESC, r.heat_name ASC, 
-        CASE 
-            WHEN e.race_format IN ('TIME_TRIAL', 'SPRINT', 'DTT') THEN r.finish_time_ms 
-            WHEN e.race_format = 'PTP' THEN -r.total_points 
-            ELSE r.is_eliminated
-        END ASC,
-        r.finish_position ASC
-    LIMIT 10
-";
-$results = $pdo->query($query_results)->fetchAll();
-
-function formatMsToTime($ms) {
-    if ($ms === null || $ms === '') return '-';
-    $ms = (int)$ms;
-    $minutes = floor($ms / 60000);
-    $seconds = floor(($ms % 60000) / 1000);
-    $milli = $ms % 1000;
-    return sprintf("%02d:%02d.%03d", $minutes, $seconds, $milli);
-}
 ?>
 <!DOCTYPE html>
 <html lang="id" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SET Roll System</title>
+    <title><?= htmlspecialchars($s['app_name'] ?? 'SET Roll System') ?></title>
     
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=Roboto+Mono:wght@700&family=Teko:wght@700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="<?= BASE_URL ?>/public/favicon.png?v=2">
     <style>
         body { font-family: 'Inter', sans-serif; }
-        .font-mono { font-family: 'Roboto Mono', monospace; }
-        .font-teko { font-family: 'Teko', sans-serif; }
         
-        /* --- LIQUID PRELOADER STYLE --- */
-        #preloader { position: fixed; inset: 0; z-index: 9999; background-color: #0F172A; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        .loader-container { position: relative; width: 150px; height: 150px; }
-        .circle-loader { position: relative; width: 100%; height: 100%; border: 6px solid #1e293b; border-radius: 50%; overflow: hidden; background: #161e31; box-shadow: 0 0 50px rgba(249, 115, 22, 0.2); }
-        .liquid { position: absolute; top: 100%; left: -50%; width: 200%; height: 200%; background-color: #f97316; border-radius: 40%; animation: wave 4s infinite linear; transition: top 0.3s ease; }
-        .liquid::after { content: ''; position: absolute; width: 100%; height: 100%; background-color: rgba(249, 115, 22, 0.6); border-radius: 35%; animation: wave 6s infinite linear; }
-        @keyframes wave { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .load-text { margin-top: 30px; color: white; font-weight: 900; letter-spacing: 0.4em; font-size: 12px; text-transform: uppercase; }
-        .loader-finish { opacity: 0; visibility: hidden; transition: opacity 0.5s ease, visibility 0.5s; }
+        /* --- SPEED INLINE SKATE PRELOADER --- */
+        #preloader { position: fixed; inset: 0; z-index: 9999; background-color: #0F172A; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s ease, visibility 0.5s ease; overflow: hidden; }
+        .skate-chassis { position: relative; padding-bottom: 12px; display: flex; gap: 6px; z-index: 2; }
+        .inline-wheel { width: 45px; height: 45px; border: 7px solid #ea580c; border-radius: 50%; border-top-color: #fb923c; border-right-color: #fb923c; animation: spin-fast 0.3s linear infinite; box-shadow: 0 0 20px rgba(234, 88, 12, 0.5); position: relative; }
+        .inline-wheel::before { content: ''; position: absolute; inset: 5px; background: #94a3b8; border-radius: 50%; border: 3px solid #0f172a; }
+        .speed-lines { position: absolute; bottom: -4px; left: -100%; width: 300%; height: 4px; background: repeating-linear-gradient(90deg, transparent, transparent 20px, #ea580c 20px, #ea580c 80px); animation: move-lines 0.3s linear infinite; opacity: 0.8; z-index: 3; }
+        @keyframes spin-fast { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes move-lines { 0% { transform: translateX(0); } 100% { transform: translateX(-100px); } }
+        
+        .load-text-container { margin-top: 35px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+        .load-text { color: white; font-weight: 900; letter-spacing: 0.3em; font-size: 14px; text-transform: uppercase; animation: pulse-text 1s infinite alternate; }
+        .load-perc { color: #ea580c; font-size: 32px; font-weight: 900; text-shadow: 0 0 15px rgba(234, 88, 12, 0.6); }
+        @keyframes pulse-text { from { opacity: 0.6; } to { opacity: 1; } }
+        .loader-finish { opacity: 0; visibility: hidden; pointer-events: none; }
 
         /* --- NAV & HEADER STYLE --- */
         #navbar { transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); height: 110px; display: flex; align-items: center; }
@@ -95,18 +123,24 @@ function formatMsToTime($ms) {
 <body class="bg-slate-50 text-slate-800">
 
     <div id="preloader">
-        <div class="loader-container"><div class="circle-loader"><div class="liquid" id="liquid-level"></div></div></div>
-        <div class="load-text">LOADING <span id="load-perc" class="text-orange-500">0%</span></div>
+        <div class="relative">
+            <div class="skate-chassis">
+                <div class="inline-wheel"></div>
+                <div class="inline-wheel"></div>
+                <div class="inline-wheel"></div>
+                <div class="inline-wheel"></div>
+            </div>
+            <div class="speed-lines"></div>
+        </div>
+        <div class="load-text-container">
+            <div class="load-text">LOADING TO START LINE</div>
+            <div id="load-perc" class="load-perc">0%</div>
+        </div>
     </div>
 
     <nav id="navbar" class="fixed w-full z-50 top-0 start-0 transparent px-10">
         <div class="max-w-screen-2xl flex items-center justify-between mx-auto w-full">
-            <a href="index.php">
-                <div id="nav-logo" class="flex items-center gap-2 transition-all duration-300">
-                    <img src="../public/favicon.png" alt="Logo" class="h-12 w-12 object-contain" onerror="this.style.display='none'">
-                    <h1 class="text-3xl font-black tracking-tighter text-white drop-shadow-lg">SET<span class="text-orange-500">ROLL</span></h1>
-                </div>
-            </a>
+            <a href="index.php"><img src="<?= BASE_URL ?>/public/img/logo.png" onerror="this.src='https://ui-avatars.com/api/?name=SET&background=f97316&color=fff'" class="h-24 w-auto object-contain transition-all duration-300" id="nav-logo"></a>
             
             <div class="flex items-center gap-12">
                 <div class="hidden lg:flex items-center space-x-10">
@@ -115,28 +149,51 @@ function formatMsToTime($ms) {
                     <a href="results.php" class="nav-link">Hasil Lomba</a> 
                     <a href="#instruction" class="nav-link text-yellow-400">Panduan</a>
                 </div>
-                <div class="flex items-center border-l border-white/20 pl-10">
-                    <?php if(isset($_SESSION['user_id']) || isset($_SESSION['role'])): 
+                <div class="hidden lg:flex items-center border-l border-white/20 pl-10">
+                    <?php if(isset($_SESSION['user_id'])): 
                         $dashLink = BASE_URL . '/src/user/dashboard.php';
-                        if(isset($_SESSION['role'])) {
-                            if($_SESSION['role'] == 'master') $dashLink = BASE_URL . '/src/master/dashboard.php';
-                            if($_SESSION['role'] == 'admin') $dashLink = BASE_URL . '/src/admin/dashboard.php';
-                        }
+                        if($_SESSION['role'] == 'master') $dashLink = BASE_URL . '/src/master/dashboard.php';
+                        if($_SESSION['role'] == 'admin') $dashLink = BASE_URL . '/src/admin/dashboard.php';
                     ?>
-                        <a href="<?= $dashLink ?>" class="bg-orange-600 hover:bg-orange-700 text-white px-10 py-3 rounded-full font-black text-xs uppercase tracking-widest shadow-xl transition transform hover:scale-105 shadow-orange-500/50">Dashboard</a>
+                        <a href="<?= $dashLink ?>" class="bg-orange-600 hover:bg-orange-700 text-white px-10 py-3 rounded-full font-black text-xs uppercase tracking-widest shadow-xl transition transform hover:scale-105">Dashboard</a>
                     <?php else: ?>
-                        <a href="login.php" class="bg-orange-600 hover:bg-orange-700 text-white px-10 py-3 rounded-full font-black text-xs uppercase tracking-widest shadow-xl transition transform hover:scale-105 shadow-orange-500/50">Login / Daftar</a>
+                        <a href="login.php" class="bg-orange-600 hover:bg-orange-700 text-white px-10 py-3 rounded-full font-black text-xs uppercase tracking-widest shadow-xl transition transform hover:scale-105">Login / Daftar</a>
                     <?php endif; ?>
                 </div>
+
+                <!-- Hamburger Button (Mobile Only) -->
+                <button id="mobile-menu-btn" class="lg:hidden text-white hover:text-orange-400 focus:outline-none ml-auto z-[60] relative">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                </button>
             </div>
         </div>
+
+        <!-- Mobile Menu Container -->
+        <div id="mobile-menu" class="fixed inset-0 bg-slate-900/95 backdrop-blur-sm z-[55] hidden flex-col pt-32 px-10 transition-all duration-300 transform translate-x-full">
+            <a href="#home" class="mobile-nav-link text-2xl font-black text-white uppercase tracking-widest mb-6 hover:text-orange-400 border-b border-slate-800 pb-4 block">Home</a>
+            <a href="events.php" class="mobile-nav-link text-2xl font-black text-white uppercase tracking-widest mb-6 hover:text-orange-400 border-b border-slate-800 pb-4 block">Jadwal Lomba</a>
+            <a href="results.php" class="mobile-nav-link text-2xl font-black text-white uppercase tracking-widest mb-6 hover:text-orange-400 border-b border-slate-800 pb-4 block">Hasil Lomba</a>
+            <a href="#instruction" class="mobile-nav-link text-2xl font-black text-white uppercase tracking-widest mb-8 hover:text-orange-400 border-b border-slate-800 pb-4 block">Panduan</a>
+            
+            <?php if(isset($_SESSION['user_id'])): 
+                $dashLink = BASE_URL . '/src/user/dashboard.php';
+                if($_SESSION['role'] == 'master') $dashLink = BASE_URL . '/src/master/dashboard.php';
+                if($_SESSION['role'] == 'admin') $dashLink = BASE_URL . '/src/admin/dashboard.php';
+            ?>
+                <a href="<?= $dashLink ?>" class="bg-orange-600 text-white text-center py-4 rounded-xl font-black uppercase tracking-widest shadow-xl hover:bg-orange-700 block w-full">Dashboard</a>
+            <?php else: ?>
+                <a href="login.php" class="bg-orange-600 text-white text-center py-4 rounded-xl font-black uppercase tracking-widest shadow-xl hover:bg-orange-700 block w-full">Login / Daftar</a>
+            <?php endif; ?>
+        </div>
+
     </nav>
 
     <section id="home" class="h-screen min-h-[850px] flex items-center relative overflow-hidden">
-        <div id="slider" class="absolute inset-0 bg-slate-900">
-            <div class="absolute inset-0 bg-gradient-to-br from-orange-600/20 to-slate-900/90 z-0"></div>
-            <?php foreach($sliders as $index => $slide): ?>
-                <div class="hero-slide <?= $index === 0 ? 'active' : '' ?>" style="background-image: url('<?= htmlspecialchars($slide['image_path']) ?>');"></div>
+        <div id="slider" class="absolute inset-0">
+            <?php foreach($sliders as $index => $slide): 
+                $slideImg = (strpos($slide['image_path'], 'http') === 0) ? $slide['image_path'] : rtrim(BASE_URL, '/') . '/public/' . ltrim($slide['image_path'], '/');
+            ?>
+                <div class="hero-slide <?= $index === 0 ? 'active' : '' ?>" style="background-image: url('<?= htmlspecialchars($slideImg) ?>');"></div>
             <?php endforeach; ?>
             <div class="absolute inset-0 hero-overlay"></div>
         </div>
@@ -159,14 +216,13 @@ function formatMsToTime($ms) {
                 <?php endif; ?>
 
                 <div class="flex gap-6 mt-10">
-                    <a href="register.php" class="bg-orange-600 px-12 py-5 rounded-2xl font-black uppercase shadow-2xl hover:bg-orange-700 transition tracking-widest text-sm">Mulai Daftar Klub</a>
-                    <a href="#schedule" class="bg-white/10 backdrop-blur-md border border-white/20 px-12 py-5 rounded-2xl font-black uppercase hover:bg-white hover:text-slate-900 transition tracking-widest text-sm">Lihat Kompetisi Terbaru</a>
+                    <a href="register.php" class="bg-orange-600 px-12 py-5 rounded-2xl font-black uppercase shadow-2xl hover:bg-orange-700 transition tracking-widest">Mulai Daftar Klub</a>
+                    <a href="#schedule" class="bg-white/10 backdrop-blur-md border border-white/20 px-12 py-5 rounded-2xl font-black uppercase hover:bg-white hover:text-slate-900 transition tracking-widest">Lihat Kompetisi Terbaru</a>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- COMPETITION PREVIEW -->
     <section id="schedule" class="py-32 px-6 max-w-screen-xl mx-auto section-scroll">
         <div class="flex flex-col md:flex-row md:justify-between md:items-end mb-16 gap-6">
             <div>
@@ -180,9 +236,16 @@ function formatMsToTime($ms) {
         
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <?php foreach($upcoming_preview as $e): 
-                $status = $e['event_status'] ?? 'Registration';
-                $badge = ($status == 'Published' || $status == 'Running') ? "bg-red-600 animate-pulse" : (($status == 'Finished') ? "bg-slate-600" : "bg-emerald-500");
-                $imgSrc = 'https://images.unsplash.com/photo-1520662241630-36e6c2a1edee?auto=format&fit=crop&w=800&q=80';
+                $status = $e['status'] ?? 'Draft';
+                $badge = ($status == 'Published') ? "bg-emerald-500 animate-pulse" : (($status == 'Completed') ? "bg-slate-600" : "bg-orange-500");
+                
+                // PATH RESOLVER UNTUK POSTER LOMBA
+                $imgSrc = 'https://images.unsplash.com/photo-1517649763962-0c623066013b?q=80&w=800&auto=format&fit=crop';
+                if (!empty($e['poster_image'])) {
+                    $imgSrc = (strpos($e['poster_image'], 'http') === 0) ? $e['poster_image'] : rtrim(BASE_URL, '/') . '/public/' . ltrim($e['poster_image'], '/');
+                } elseif (!empty($e['logo_left'])) {
+                    $imgSrc = (strpos($e['logo_left'], 'http') === 0) ? $e['logo_left'] : rtrim(BASE_URL, '/') . '/public/' . ltrim($e['logo_left'], '/');
+                }
             ?>
             <div class="bg-white rounded-3xl border border-slate-200 overflow-hidden hover:shadow-2xl transition-all duration-300 group flex flex-col sm:flex-row relative">
                 
@@ -202,17 +265,17 @@ function formatMsToTime($ms) {
                         </h3>
                         <div class="space-y-4 text-slate-500 text-xs font-bold uppercase tracking-wide">
                             <div class="flex items-start gap-3">
-                                <span class="bg-slate-50 border border-slate-100 p-2.5 rounded-xl text-lg shadow-sm">🏆</span> 
+                                <span class="bg-slate-50 border border-slate-100 p-2.5 rounded-xl text-lg shadow-sm">📅</span> 
                                 <div class="mt-1">
-                                    <span class="block text-[9px] text-slate-400 mb-0.5">Format Lomba</span>
-                                    <span class="text-slate-700 text-sm font-black text-orange-600"><?= htmlspecialchars($e['race_format']) ?></span>
+                                    <span class="block text-[9px] text-slate-400 mb-0.5">Tanggal Pelaksanaan</span>
+                                    <span class="text-slate-700 text-sm"><?= !empty($e['event_date_start']) ? date('d F Y', strtotime($e['event_date_start'])) : 'TBD' ?></span>
                                 </div>
                             </div>
                             <div class="flex items-start gap-3">
                                 <span class="bg-slate-50 border border-slate-100 p-2.5 rounded-xl text-lg shadow-sm">📍</span> 
                                 <div class="mt-1">
-                                    <span class="block text-[9px] text-slate-400 mb-0.5">Lokasi / Venue</span>
-                                    <span class="text-slate-700 text-sm line-clamp-2"><?= htmlspecialchars($e['event_location'] ?? 'Venue Belum Ditentukan') ?></span>
+                                    <span class="block text-[9px] text-slate-400 mb-0.5">Lokasi / Sirkuit</span>
+                                    <span class="text-slate-700 text-sm line-clamp-2"><?= htmlspecialchars($e['location']) ?><?= !empty($e['event_city']) ? ' - ' . htmlspecialchars($e['event_city']) : '' ?></span>
                                 </div>
                             </div>
                         </div>
@@ -223,7 +286,7 @@ function formatMsToTime($ms) {
                             <span>📖</span> Info Lomba
                         </a>
                         
-                        <?php if ($status == 'Published' || $status == 'Finished'): ?>
+                        <?php if ($e['is_result_published'] == 1): ?>
                             <a href="results.php?event_id=<?= $e['id'] ?>" class="py-3.5 px-2 rounded-xl flex items-center justify-center gap-2 bg-orange-50 border-2 border-orange-100 text-orange-600 hover:bg-orange-600 hover:text-white transition-all uppercase text-[10px] font-black tracking-widest">
                                 <span class="animate-bounce">🏆</span> Hasil
                             </a>
@@ -237,74 +300,6 @@ function formatMsToTime($ms) {
 
             </div>
             <?php endforeach; ?>
-        </div>
-    </section>
-
-    <!-- LIVE RESULTS -->
-    <section class="py-16 px-6 max-w-screen-xl mx-auto section-scroll">
-        <div class="bg-white rounded-[2rem] shadow-sm hover:shadow-lg transition-all duration-300 border border-slate-200 p-2 overflow-hidden">
-            <div class="p-8 border-b border-slate-100 flex items-center gap-4">
-                <div class="w-3 h-3 bg-red-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.8)]"></div>
-                <h3 class="text-2xl font-black text-slate-900">Live Results (Sorotan)</h3>
-            </div>
-            
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse">
-                    <thead>
-                        <tr class="bg-slate-50 text-slate-400 text-xs uppercase tracking-widest border-b border-slate-100">
-                            <th class="px-6 py-4 font-bold">Kejuaraan</th>
-                            <th class="px-6 py-4 font-bold">Atlet</th>
-                            <th class="px-6 py-4 font-bold">Klub</th>
-                            <th class="px-6 py-4 font-bold">Kategori / Heat</th>
-                            <th class="px-6 py-4 font-bold text-center">Waktu / Skor</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-50">
-                        <?php if(empty($results)): ?>
-                            <tr><td colspan="5" class="text-center py-16 text-slate-400 font-medium">Belum ada hasil perlombaan yang diterbitkan (Published).</td></tr>
-                        <?php endif; ?>
-                        <?php foreach($results as $r): ?>
-                        <tr class="hover:bg-orange-50/50 transition-colors">
-                            <td class="px-6 py-5 text-sm font-bold text-slate-700 leading-tight">
-                                <?= htmlspecialchars($r['event_name']) ?> <br>
-                                <span class="text-xs text-orange-500 font-black tracking-wider uppercase"><?= htmlspecialchars($r['race_format']) ?></span>
-                            </td>
-                            <td class="px-6 py-5 font-black text-slate-900 text-lg"><?= htmlspecialchars($r['skater_name']) ?></td>
-                            <td class="px-6 py-5 text-slate-600 font-medium"><?= htmlspecialchars($r['club_name'] ?? '-') ?></td>
-                            <td class="px-6 py-5">
-                                <span class="bg-slate-100 border border-slate-200 text-slate-700 px-3 py-1 rounded font-bold text-xs inline-block mb-1">
-                                    <?= htmlspecialchars($r['age_group']) ?>
-                                </span>
-                                <div class="text-xs text-slate-500 font-bold"><?= htmlspecialchars($r['heat_name']) ?></div>
-                            </td>
-                            <td class="px-6 py-5 text-center">
-                                <?php if(in_array($r['race_format'], ['TIME_TRIAL', 'SPRINT', 'DTT'])): ?>
-                                    <span class="font-mono font-bold text-lg text-slate-800 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200 shadow-inner">
-                                        <?= formatMsToTime($r['finish_time_ms']) ?>
-                                    </span>
-                                <?php elseif($r['race_format'] == 'PTP'): ?>
-                                    <span class="font-black text-lg text-orange-600">
-                                        <?= htmlspecialchars($r['total_points']) ?> pts
-                                    </span>
-                                <?php elseif($r['race_format'] == 'ELIMINATION'): ?>
-                                    <span class="font-bold text-sm <?= $r['is_eliminated'] ? 'text-red-500' : 'text-green-600' ?>">
-                                        <?= $r['is_eliminated'] ? 'Gugur' : 'Bertahan' ?>
-                                    </span>
-                                <?php endif; ?>
-                                
-                                <?php if($r['finish_position']): ?>
-                                    <div class="text-[10px] uppercase font-bold tracking-wider text-slate-400 mt-2">Finis #<?= htmlspecialchars($r['finish_position']) ?></div>
-                                <?php endif; ?>
-                            </td>
-                        </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
-            
-            <div class="p-6 border-t border-slate-100 text-center">
-                <a href="results.php" class="text-sm font-bold text-orange-600 hover:text-orange-700 hover:underline uppercase tracking-widest">Lihat Semua Hasil &rarr;</a>
-            </div>
         </div>
     </section>
 
@@ -322,7 +317,7 @@ function formatMsToTime($ms) {
             <div class="grid md:grid-cols-4 gap-12 mt-24">
                 <div class="group"><div class="w-24 h-24 mx-auto bg-orange-50 rounded-full flex items-center justify-center border-4 border-white group-hover:bg-orange-600 group-hover:text-white transition shadow-2xl mb-8 text-4xl">👤</div><h3 class="text-xl font-black text-slate-800 uppercase">1. Register</h3></div>
                 <div class="group"><div class="w-24 h-24 mx-auto bg-orange-50 rounded-full flex items-center justify-center border-4 border-white group-hover:bg-orange-600 group-hover:text-white transition shadow-2xl mb-8 text-4xl">🛼</div><h3 class="text-xl font-black text-slate-800 uppercase">2. Input Atlet</h3></div>
-                <div class="group"><div class="w-24 h-24 mx-auto bg-orange-50 rounded-full flex items-center justify-center border-4 border-white group-hover:bg-orange-600 group-hover:text-white transition shadow-2xl mb-8 text-4xl">📝</div><h3 class="text-xl font-black text-slate-800 uppercase">3. Daftar Lomba</h3></div>
+                <div class="group"><div class="w-24 h-24 mx-auto bg-orange-50 rounded-full flex items-center justify-center border-4 border-white group-hover:bg-orange-600 group-hover:text-white transition shadow-2xl mb-8 text-4xl">💳</div><h3 class="text-xl font-black text-slate-800 uppercase">3. Bayar</h3></div>
                 <div class="group"><div class="w-24 h-24 mx-auto bg-orange-50 rounded-full flex items-center justify-center border-4 border-white group-hover:bg-orange-600 group-hover:text-white transition shadow-2xl mb-8 text-4xl">🏆</div><h3 class="text-xl font-black text-slate-800 uppercase">4. Tanding</h3></div>
             </div>
         </div>
@@ -331,7 +326,7 @@ function formatMsToTime($ms) {
     <footer class="bg-[#0F172A] text-white pt-20 pb-10 border-t-4 border-orange-600">
         <div class="max-w-screen-xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-12 mb-16 text-center md:text-left">
             <div>
-                <h1 class="text-3xl font-black tracking-tighter text-white mb-6">SET<span class="text-orange-500">ROLL</span></h1>
+                <img src="<?= BASE_URL ?>/public/img/logo.png" onerror="this.src='https://ui-avatars.com/api/?name=SET&background=f97316&color=fff'" class="h-16 mx-auto md:mx-0 mb-6 grayscale brightness-200 opacity-80">
                 <p class="text-slate-400 text-sm leading-relaxed font-medium">
                     <?= nl2br(htmlspecialchars($siteDesc)) ?>
                 </p>
@@ -347,30 +342,39 @@ function formatMsToTime($ms) {
                 <h4 class="font-black text-sm uppercase tracking-widest text-orange-500 mb-6">Ikuti Update</h4>
                 <div class="flex justify-center md:justify-start gap-4">
                     <a href="<?= htmlspecialchars($linkIG) ?>" target="_blank" class="group relative w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center overflow-hidden transition hover:-translate-y-1 shadow-lg">
-                        <div class="absolute inset-0 bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-600 opacity-0 group-hover:opacity-100 transition"></div>
+                        <div class="absolute inset-0 bg-gradient-to-tr from-yellow-400 via-orange-500 to-purple-600 opacity-0 group-hover:opacity-100 transition"></div>
                         <svg class="w-5 h-5 text-white z-10" fill="currentColor" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M12.315 2c2.43 0 2.784.013 3.808.06 1.064.049 1.791.218 2.427.465a4.902 4.902 0 011.772 1.153 4.902 4.902 0 011.153 1.772c.247.636.416 1.363.465 2.427.048 1.067.06 1.407.06 4.123v.08c0 2.643-.012 2.987-.06 4.043-.049 1.064-.218 1.791-.465 2.427a4.902 4.902 0 01-1.153 1.772 4.902 4.902 0 01-1.772 1.153c-.636.247-1.363.416-2.427.465-1.067.048-1.407.06-4.123.06h-.08c-2.643 0-2.987-.012-4.043-.06-1.064-.049-1.791-.218-2.427-.465a4.902 4.902 0 01-1.772-1.153 4.902 4.902 0 01-1.153-1.772c-.247-.636-.416-1.363-.465-2.427-.047-1.024-.06-1.379-.06-3.808v-.63c0-2.43.013-2.784.06-3.808.049-1.064.218-1.791.465-2.427a4.902 4.902 0 011.153-1.772A4.902 4.902 0 014.43 3.014c.636-.247 1.363-.416 2.427-.465C8.901 2.013 9.256 2 11.685 2h.63zm-.081 1.802h-.468c-2.456 0-2.784.011-3.807.058-.975.045-1.504.207-1.857.344-.467.182-.8.398-1.15.748-.35.35-.566.683-.748 1.15-.137.353-.3.882-.344 1.857-.047 1.023-.058 1.351-.058 3.807v.468c0 2.456.011 2.784.058 3.807.045.975.207 1.504.344 1.857.182.466.399.8.748 1.15.35.35.683.566 1.15.748.353.137.882.3 1.857.344 1.054.048 1.37.058 4.041.058h.08c2.597 0 2.917-.01 3.96-.058.976-.045 1.505-.207 1.858-.344.466-.182.8-.398 1.15-.748.35-.35.566-.683.748-1.15.137-.353.3-.882.344-1.857.048-1.055.058-1.37.058-4.041v-.08c0-2.597-.01-2.917-.058-3.96-.045-.976-.207-1.505-.344-1.858a3.097 3.097 0 00-.748-1.15 3.098 3.098 0 00-1.15-.748c-.353-.137-.882-.3-1.857-.344-1.023-.047-1.351-.058-3.807-.058zM12 6.865a5.135 5.135 0 110 10.27 5.135 5.135 0 010-10.27zm0 1.802a3.333 3.333 0 100 6.666 3.333 3.333 0 000-6.666zm5.338-3.205a1.2 1.2 0 110 2.4 1.2 1.2 0 010-2.4z" clip-rule="evenodd" /></svg>
+                    </a>
                 </div>
             </div>
         </div>
-        <div class="border-t border-slate-800 pt-10 text-center"><p class="text-slate-600 text-[10px] font-black tracking-[0.3em] uppercase">&copy; 2026 SET ROLL SYSTEM. All Rights Reserved.</p></div>
+        <div class="border-t border-slate-800 pt-10 text-center"><p class="text-slate-600 text-[10px] font-black tracking-[0.3em] uppercase">&copy; 2026 SET SYSTEM. All Rights Reserved.</p></div>
     </footer>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const liquid = document.getElementById('liquid-level');
             const textPerc = document.getElementById('load-perc');
             const preloader = document.getElementById('preloader');
             let progress = 0;
+            const duration = 2000; // 1.5 detik
+            const intervalTime = 30; // update setiap 30ms
+            const step = 100 / (duration / intervalTime);
+            
             const interval = setInterval(() => {
-                progress += Math.floor(Math.random() * 15) + 5; 
-                if (progress >= 100) { 
-                    progress = 100; 
-                    clearInterval(interval); 
-                    setTimeout(() => { preloader.classList.add('loader-finish'); }, 500); 
+                progress += step;
+                if (progress >= 100) progress = 100;
+                if (textPerc) textPerc.innerText = Math.floor(progress) + '%';
+                
+                if (progress === 100) {
+                    clearInterval(interval);
+                    setTimeout(() => { 
+                        if(preloader) {
+                            preloader.classList.add('loader-finish'); 
+                            setTimeout(() => preloader.remove(), 600);
+                        }
+                    }, 200); 
                 }
-                if(liquid) liquid.style.top = (100 - progress) + '%'; 
-                if(textPerc) textPerc.innerText = progress + '%';
-            }, 80);
+            }, intervalTime);
         });
 
         // NAVBAR SCROLL
@@ -379,17 +383,51 @@ function formatMsToTime($ms) {
         window.addEventListener('scroll', () => { 
             if(window.scrollY > 50) { 
                 navbar.classList.add('scrolled'); 
-                if(logo) logo.classList.replace('scale-100', 'scale-90');
+                if(logo) logo.classList.replace('h-24', 'h-16'); 
             } 
             else { 
                 navbar.classList.remove('scrolled'); 
-                if(logo) logo.classList.replace('scale-90', 'scale-100');
+                if(logo) logo.classList.replace('h-16', 'h-24'); 
             }
         });
 
-        // SLIDER
-        let cur=0, s=document.querySelectorAll('.hero-slide');
-        if(s.length>1) setInterval(()=>{ s[cur].classList.remove('active'); cur=(cur+1)%s.length; s[cur].classList.add('active'); },6000);
+        // SLIDER LOGIC
+        let cur = 0;
+        const s = document.querySelectorAll('.hero-slide');
+        if(s.length > 1) {
+            setInterval(() => { 
+                s[cur].classList.remove('active'); 
+                cur = (cur + 1) % s.length; 
+                s[cur].classList.add('active'); 
+            }, 6000);
+        }
+
+        // MOBILE MENU TOGGLE
+        const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+        const mobileMenu = document.getElementById('mobile-menu');
+        const mobileNavLinks = document.querySelectorAll('.mobile-nav-link');
+        
+        if(mobileMenuBtn && mobileMenu) {
+            mobileMenuBtn.addEventListener('click', () => {
+                if (mobileMenu.classList.contains('hidden')) {
+                    mobileMenu.classList.remove('hidden');
+                    setTimeout(() => { mobileMenu.classList.remove('translate-x-full'); }, 10);
+                    mobileMenuBtn.innerHTML = '<svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>';
+                } else {
+                    mobileMenu.classList.add('translate-x-full');
+                    setTimeout(() => { mobileMenu.classList.add('hidden'); }, 300);
+                    mobileMenuBtn.innerHTML = '<svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>';
+                }
+            });
+
+            mobileNavLinks.forEach(link => {
+                link.addEventListener('click', () => {
+                    mobileMenu.classList.add('translate-x-full');
+                    setTimeout(() => { mobileMenu.classList.add('hidden'); }, 300);
+                    mobileMenuBtn.innerHTML = '<svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>';
+                });
+            });
+        }
     </script>
 </body>
 </html>

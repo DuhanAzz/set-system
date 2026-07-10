@@ -64,6 +64,21 @@ function isGroupActive($req, $keywords) {
          <div id="dd-pengguna" class="bg-[#0b1120] py-2 <?= $g1Active ? '' : 'hidden' ?>">
              <a href="<?= BASE_URL ?>/src/master/users.php" class="<?= (strpos($req,"users.php")!==false) ? $childActiveLink : $childBaseLink ?>">Manajemen Akun</a>
          </div>
+
+         <!-- GROUP 2: Konfigurasi Web (MASTER ONLY) -->
+         <?php $g2Active = isGroupActive($req, ['public_page.php', 'global_config.php', 'hero_images.php']); ?>
+         <button onclick="toggleSidebarDropdown('dd-web')" class="<?= $g2Active ? $dropdownBtnActive : $dropdownBtnBase ?>">
+            <div class="flex items-center">
+               <span class="w-6 text-center mr-3 text-lg opacity-80">🌍</span>
+               <span class="font-bold text-[11px] tracking-widest uppercase text-red-400">Konfigurasi Web</span>
+            </div>
+            <span id="icon-dd-web" class="transform transition-transform text-xs <?= $g2Active ? 'rotate-180' : '' ?>">▼</span>
+         </button>
+         <div id="dd-web" class="bg-[#0b1120] py-2 <?= $g2Active ? '' : 'hidden' ?>">
+             <a href="<?= BASE_URL ?>/src/master/settings/public_page.php" class="<?= (strpos($req,"public_page.php")!==false) ? $childActiveLink : $childBaseLink ?>">Landing Page</a>
+             <a href="<?= BASE_URL ?>/src/master/settings/hero_images.php" class="<?= (strpos($req,"hero_images.php")!==false) ? $childActiveLink : $childBaseLink ?>">Gambar Slider</a>
+             <a href="<?= BASE_URL ?>/src/master/settings/global_config.php" class="<?= (strpos($req,"global_config.php")!==false) ? $childActiveLink : $childBaseLink ?>">Pengaturan Global</a>
+         </div>
       <?php endif; ?>
 
       <?php if($role == 'admin'): ?>
