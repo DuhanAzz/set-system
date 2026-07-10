@@ -61,5 +61,4 @@ include __DIR__ . '/../../views/layout/sidebar.php';
         </div>
     </div>
 
-</body>
-</html>
+<?php include __DIR__ . '/../../views/layout/footer.php'; ?>

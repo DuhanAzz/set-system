@@ -54,6 +54,9 @@ if ($uid > 0 && $role == 'user') {
 <!-- Flash Message Global -->
 <?php include_once __DIR__ . '/../notifikasi.php'; ?>
 
+<!-- Modal Konfirmasi Universal -->
+<?php include_once __DIR__ . '/../konfirmasi.php'; ?>
+
 <nav class="fixed top-0 left-0 right-0 z-40 bg-white border-b border-gray-200 h-16 shadow-sm sm:ml-64 transition-all">
   <div class="px-3 py-3 lg:px-5 lg:pl-3 h-full">
     <div class="flex items-center justify-between h-full">

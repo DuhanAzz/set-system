@@ -245,5 +245,4 @@ include __DIR__ . '/../../views/layout/sidebar.php';
     <script>
         // Optional JS helper: auto-refresh the heat list when event is changed
     </script>
-</body>
-</html>
+<?php include __DIR__ . '/../../views/layout/footer.php'; ?>

@@ -169,5 +169,4 @@ include __DIR__ . '/../../views/layout/sidebar.php';
         <?php endif; ?>
 
     </div>
-</body>
-</html>
+<?php include __DIR__ . '/../../views/layout/footer.php'; ?>

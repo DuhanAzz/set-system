@@ -88,7 +88,7 @@ include __DIR__ . '/../../views/layout/sidebar.php';
                             </span>
                         </td>
                         <td class="px-6 py-4 text-center space-x-3 text-sm font-bold">
-                            <a href="?delete=<?= $s['id'] ?>" onclick="return confirm('Hapus atlet ini?')" class="text-red-500 hover:text-red-700 transition">Hapus</a>
+                            <a href="?delete=<?= $s['id'] ?>" onclick="return confirmAction(event, 'Apakah Anda yakin ingin menghapus atlet ini dari tim?', this.href)" class="text-red-500 hover:text-red-700 transition font-bold text-sm">Hapus</a>
                         </td>
                     </tr>
                     <?php endforeach; ?>
@@ -147,5 +147,4 @@ include __DIR__ . '/../../views/layout/sidebar.php';
         </div>
     </div>
 
-</body>
-</html>
+<?php include __DIR__ . '/../../views/layout/footer.php'; ?>

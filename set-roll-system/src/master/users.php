@@ -152,5 +152,4 @@ include __DIR__ . '/../../views/layout/sidebar.php';
             }
         });
     </script>
-</body>
-</html>
+<?php include __DIR__ . '/../../views/layout/footer.php'; ?>
