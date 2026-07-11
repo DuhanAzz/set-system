@@ -122,28 +122,37 @@ switch ($module) {
         break;
 
     case 'roll':
-        $controllerName = ucfirst($page) . 'Controller';
-        $controllerFile = '../app/Roll/Controllers/' . $controllerName . '.php';
+        // Autoloader akan otomatis mencari file di app/Roll/Controllers/
+        $controllerClass = "\\App\\Roll\\Controllers\\" . ucfirst($page) . "Controller";
         
-        if (file_exists($controllerFile)) {
-            require_once $controllerFile;
-            // Instansiasi class controller bisa ditambahkan di sini kedepannya
+        if (class_exists($controllerClass)) {
+            $controller = new $controllerClass();
+            if (method_exists($controller, $method)) {
+                $controller->$method();
+            } else {
+                $controller->index();
+            }
         } else {
             http_response_code(404);
-            echo "<h1>404 Not Found</h1><p>Halaman '{$page}' tidak ditemukan di modul Roll.</p>";
+            echo "<h1>404 Not Found</h1><p>Halaman Roll '{$page}' tidak ditemukan.</p>";
         }
         break;
 
     case 'swim':
-        $controllerName = ucfirst($page) . 'Controller';
-        $controllerFile = '../app/Swim/Controllers/' . $controllerName . '.php';
+        // Autoloader akan otomatis mencari file di app/Swim/Controllers/
+        $controllerClass = "\\App\\Swim\\Controllers\\" . ucfirst($page) . "Controller";
         
-        if (file_exists($controllerFile)) {
-            require_once $controllerFile;
-            // Instansiasi class controller bisa ditambahkan di sini kedepannya
+        if (class_exists($controllerClass)) {
+            $controller = new $controllerClass();
+            // Jika ada method yang dipanggil di URL indeks ke-2, eksekusi itu. Jika tidak, jalankan index()
+            if (method_exists($controller, $method)) {
+                $controller->$method();
+            } else {
+                $controller->index();
+            }
         } else {
             http_response_code(404);
-            echo "<h1>404 Not Found</h1><p>Halaman '{$page}' tidak ditemukan di modul Swim.</p>";
+            echo "<h1>404 Not Found</h1><p>Halaman Swim '{$page}' tidak ditemukan.</p>";
         }
         break;
 
