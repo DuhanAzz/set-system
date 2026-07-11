@@ -91,7 +91,7 @@ class AuthController extends Controller {
         session_destroy();
 
         // Redirect ke halaman utama / landing page
-        header('Location: /');
+        header('Location: ' . getenv('APP_URL') . '/');
         exit;
     }
 }

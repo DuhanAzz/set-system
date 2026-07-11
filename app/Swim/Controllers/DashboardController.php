@@ -14,8 +14,8 @@ class DashboardController extends Controller {
             session_start();
         }
 
-        // Cek Keamanan: Pastikan user login dan memiliki role admin
-        if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+        // Cek Keamanan: Pastikan user login dan memiliki role admin atau master
+        if (!isset($_SESSION['role']) || !in_array($_SESSION['role'], ['admin', 'master'])) {
             $loginUrl = getenv('APP_URL') ? rtrim(getenv('APP_URL'), '/') . '/login' : '/login';
             header("Location: " . $loginUrl);
             exit;
