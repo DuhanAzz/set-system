@@ -9,9 +9,8 @@ use PDO;
 class AuthController extends Controller {
 
     public function login() {
-        // Jika sudah login, redirect agar tidak bisa masuk halaman login lagi
         if (isset($_SESSION['user_id'])) {
-            header('Location: /');
+            header('Location: ' . getenv('APP_URL') . '/');
             exit;
         }
         return $this->view('auth/login');
