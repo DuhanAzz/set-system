@@ -70,7 +70,7 @@ if (!empty($url) && strtolower($url[0]) === 'public') {
 
 // Menentukan Modul (Indeks 0) dan Halaman/Controller (Indeks 1)
 $module = isset($url[0]) && $url[0] != '' ? strtolower($url[0]) : 'home';
-$page = isset($url[1]) && $url[1] != '' ? strtolower($url[1]) : 'index';
+$page = isset($url[1]) && $url[1] != '' ? strtolower($url[1]) : 'home';
 $method = isset($url[2]) && $url[2] != '' ? strtolower($url[2]) : 'index'; // Method opsional
 
 // Logika Front Controller (Router Dasar)

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Core\Controllers;
+namespace App\Roll\Controllers;
 
 use App\Core\Controller;
 use App\Core\Database;
@@ -22,7 +22,7 @@ class HomeController extends Controller {
             $stmt_sliders = $db->query("SELECT * FROM universal_hero_images ORDER BY id DESC");
             $sliders = $stmt_sliders->fetchAll(PDO::FETCH_ASSOC);
             
-            // 3. Tarik data event terbaru (swim_events) - Akan dijadikan global events nantinya
+            // 3. Tarik data event terbaru (swim_events)
             $sqlEvents = "SELECT id, event_name, event_city, event_date_start, poster_image 
                           FROM swim_events 
                           WHERE event_status != 'Draft' 
@@ -36,7 +36,7 @@ class HomeController extends Controller {
         }
         
         // Mengirim data ke view
-        return $this->view('core/portal', [
+        return $this->view('roll/home', [
             'settings' => $settings,
             'sliders' => $sliders,
             'events' => $events
