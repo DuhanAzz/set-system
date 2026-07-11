@@ -10,8 +10,21 @@ if (!defined('BASE_URL')) {
     define('BASE_URL', getenv('APP_URL')); 
 }
 
-// --- DATA USER ---
-$uid = $_SESSION['user_id'] ?? 0;
+// --- TENTUKAN SISTEM AKTIF BERDASARKAN URL ---
+$isRoll = strpos($_SERVER['REQUEST_URI'], '/roll/') !== false;
+$isMaster = strpos($_SERVER['REQUEST_URI'], '/core/') !== false;
+
+// --- DATA USER (SESUAIKAN DENGAN PREFIX SESSION) ---
+if ($isMaster && isset($_SESSION['admin_id'])) {
+    $uid = $_SESSION['admin_id'];
+    $sysTable = 'universal_admins';
+} elseif ($isRoll && isset($_SESSION['roll_user_id'])) {
+    $uid = $_SESSION['roll_user_id'];
+    $sysTable = 'roll_users';
+} else {
+    $uid = $_SESSION['swim_user_id'] ?? 0;
+    $sysTable = 'swim_users';
+}
 $role = $_SESSION['role'] ?? 'guest';
 $displayName = $_SESSION['nama_lengkap'] ?? 'User';
 $displayRole = strtoupper($role);
@@ -21,8 +34,14 @@ $displayImage = "https://ui-avatars.com/api/?name=" . urlencode($displayName) . 
 
 // Logic Foto Profil (Menggunakan BASE_URL)
 if ($uid > 0) {
-    $stmtU = $pdo->prepare("SELECT photo FROM swim_users WHERE id = ?");
-    $stmtU->execute([$uid]);
+    // Gunakan $sysTable secara dinamis (fallback sementara ke swim_users jika error)
+    try {
+        $stmtU = $pdo->prepare("SELECT photo FROM {$sysTable} WHERE id = ?");
+        $stmtU->execute([$uid]);
+    } catch(Exception $e) {
+        $stmtU = $pdo->prepare("SELECT photo FROM swim_users WHERE id = ?");
+        $stmtU->execute([$uid]);
+    }
     $userData = $stmtU->fetch();
 
     if ($userData && !empty($userData['photo'])) {
@@ -98,7 +117,19 @@ if ($uid > 0) {
                 <ul class="py-2" role="none">
                   <li><a href="<?= BASE_URL ?>/public/profile_edit.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 font-medium flex items-center gap-2"><span>👤</span> Profil & Keamanan</a></li>
                   <div class="border-t border-gray-100 my-1"></div>
-                  <li><a href="<?= BASE_URL ?>/public/logout.php" class="block px-4 py-2 text-sm text-red-600 hover:bg-red-50 font-bold flex items-center gap-2"><span>🚪</span> Logout</a></li>
+                  <li>
+                    <?php
+                    $role = $_SESSION['role'] ?? 'guest';
+                    if ($role === 'master') {
+                        $logoutUrl = getenv('APP_URL') . '/core/login/logout';
+                    } elseif (strpos($_SERVER['REQUEST_URI'], '/roll/') !== false) {
+                        $logoutUrl = getenv('APP_URL') . '/roll/login/logout';
+                    } else {
+                        $logoutUrl = getenv('APP_URL') . '/swim/login/logout';
+                    }
+                    ?>
+                    <a href="<?= $logoutUrl ?>" class="block px-4 py-2 text-sm text-red-600 hover:bg-red-50 font-bold flex items-center gap-2"><span>🚪</span> Logout</a>
+                  </li>
                 </ul>
               </div>
           </div>

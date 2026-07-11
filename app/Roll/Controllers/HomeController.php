@@ -13,33 +13,33 @@ class HomeController extends Controller {
         $db = Database::getInstance()->getConnection();
         
         try {
-            // 1. Tarik data pengaturan situs (universal_settings)
-            $stmt_settings = $db->query("SELECT * FROM universal_settings WHERE id = 1");
-            $settings = $stmt_settings->fetch(PDO::FETCH_ASSOC);
-            if (!$settings) $settings = [];
+            // 1. Tarik data pengaturan situs (roll_site_settings)
+            $stmt_settings = $db->query("SELECT * FROM roll_site_settings WHERE id = 1");
+            $s = $stmt_settings->fetch(PDO::FETCH_ASSOC);
+            if (!$s) $s = [];
             
-            // 2. Tarik data slider/hero images (universal_hero_images)
-            $stmt_sliders = $db->query("SELECT * FROM universal_hero_images ORDER BY id DESC");
+            // 2. Tarik data slider/hero images (roll_hero_images)
+            $stmt_sliders = $db->query("SELECT * FROM roll_hero_images ORDER BY id DESC");
             $sliders = $stmt_sliders->fetchAll(PDO::FETCH_ASSOC);
             
-            // 3. Tarik data event terbaru (swim_events)
-            $sqlEvents = "SELECT id, event_name, event_city, event_date_start, poster_image 
-                          FROM swim_events 
-                          WHERE event_status != 'Draft' 
-                          ORDER BY id DESC LIMIT 6";
+            // 3. Tarik data event terbaru (roll_events)
+            $sqlEvents = "SELECT id, event_name, location, event_city, event_date_start, status, poster_image, logo_left, is_result_published 
+                          FROM roll_events 
+                          WHERE status != 'Draft' 
+                          ORDER BY id DESC LIMIT 4";
             $stmt_events = $db->query($sqlEvents);
-            $events = $stmt_events->fetchAll(PDO::FETCH_ASSOC);
+            $upcoming_preview = $stmt_events->fetchAll(PDO::FETCH_ASSOC);
         } catch (\Exception $e) {
-            $settings = [];
+            $s = [];
             $sliders = [];
-            $events = [];
+            $upcoming_preview = [];
         }
         
         // Mengirim data ke view
         return $this->view('roll/home', [
-            'settings' => $settings,
+            's' => $s,
             'sliders' => $sliders,
-            'events' => $events
+            'upcoming_preview' => $upcoming_preview
         ]);
     }
 }

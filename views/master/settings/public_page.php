@@ -1,29 +1,3 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Public Page Config - Universal SET System</title>
-    <link rel="icon" type="image/png" href="<?= getenv('APP_URL') ?>/favicon.png?v=2">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <style> body { font-family: 'Inter', sans-serif; } </style>
-</head>
-<body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col">
-
-    <!-- NAVBAR MASTER -->
-    <header class="bg-slate-900 text-white shadow-xl sticky top-0 z-50">
-        <div class="container mx-auto px-6 h-16 flex items-center justify-between">
-            <div class="flex items-center gap-3">
-                <img src="<?= getenv('APP_URL') ?>/img/logo.png" alt="Logo" class="h-8 invert brightness-0">
-                <span class="text-lg font-black tracking-widest uppercase text-blue-400">Master Portal</span>
-            </div>
-            <div class="flex items-center gap-6">
-                <a href="<?= getenv('APP_URL') ?>/master/dashboard" class="text-sm font-semibold hover:text-blue-400 transition-colors">&larr; Kembali ke Dasbor</a>
-            </div>
-        </div>
-    </header>
-
     <main class="flex-grow container mx-auto px-6 py-12 max-w-5xl">
         
         <?php if (isset($_GET['status']) && $_GET['status'] === 'success'): ?>
@@ -129,5 +103,3 @@
             </form>
         </div>
     </main>
-</body>
-</html>

@@ -75,21 +75,7 @@ $method = isset($url[2]) && $url[2] != '' ? strtolower($url[2]) : 'index'; // Me
 
 // Logika Front Controller (Router Dasar)
 switch ($module) {
-    case 'login':
-        $controller = new \App\Core\Controllers\AuthController();
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $controller->processLogin();
-        } else {
-            $controller->login();
-        }
-        break;
-
-    case 'logout':
-        $controller = new \App\Core\Controllers\AuthController();
-        $controller->logout();
-        break;
-
-    case 'master':
+    case 'core':
         // Cek parameter kedua di URL (contoh: master/settings)
         $subpage = $url[2] ?? '';
         
@@ -113,11 +99,20 @@ switch ($module) {
                 http_response_code(404);
                 echo "<h1>404 Not Found</h1><p>Halaman Pengaturan '{$subpage}' belum tersedia.</p>";
             }
+        } elseif ($page === 'login') {
+            $controller = new \App\Core\Controllers\LoginController();
+            if ($subpage === 'process') {
+                $controller->process();
+            } elseif ($subpage === 'logout') {
+                $controller->logout();
+            } else {
+                $controller->index();
+            }
         } 
         else {
             // Placeholder untuk sub-halaman master lainnya
             http_response_code(404);
-            echo "<h1>404 Not Found</h1><p>Halaman Master '{$page}' belum tersedia.</p>";
+            echo "<h1>404 Not Found</h1><p>Halaman Core '{$page}' belum tersedia.</p>";
         }
         break;
 

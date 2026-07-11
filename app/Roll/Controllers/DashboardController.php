@@ -13,9 +13,9 @@ class DashboardController extends Controller {
             session_start();
         }
 
-        // Cek Keamanan: Pastikan user login dan memiliki role admin atau master
-        if (!isset($_SESSION['role']) || !in_array($_SESSION['role'], ['admin', 'master'])) {
-            $loginUrl = getenv('APP_URL') ? rtrim(getenv('APP_URL'), '/') . '/login' : '/login';
+        // Proteksi Akses (Hanya yang sudah login via Roll)
+        if (!isset($_SESSION['roll_user_id']) || !isset($_SESSION['role'])) {
+            $loginUrl = getenv('APP_URL') ? rtrim(getenv('APP_URL'), '/') . '/roll/login' : '/roll/login';
             header("Location: " . $loginUrl);
             exit;
         }

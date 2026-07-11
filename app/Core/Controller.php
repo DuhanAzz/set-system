@@ -11,15 +11,23 @@ class Controller {
      */
     protected function view($viewPath, $data = []) {
         // Ekstrak data agar key array menjadi nama variabel yang bisa langsung dipakai di view
-        // Contoh: $data['settings'] akan menjadi variabel $settings di dalam file view
         extract($data);
         
         $file = __DIR__ . '/../../views/' . $viewPath . '.php';
         
         if (file_exists($file)) {
-            require_once $file;
+            if (strpos($viewPath, 'master/') === 0) {
+                // Layout Engine untuk Master Role
+                ob_start();
+                require_once $file;
+                $content = ob_get_clean();
+                require_once __DIR__ . '/../../views/layout/master_layout.php';
+            } else {
+                // Render Normal
+                require_once $file;
+            }
         } else {
-            die("View file not found: " . $viewPath);
+            die("View {$viewPath} tidak ditemukan!");
         }
     }
 }

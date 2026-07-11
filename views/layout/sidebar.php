@@ -22,7 +22,7 @@ $childBaseLink = 'block px-8 py-2.5 text-[10px] text-slate-400 font-bold upperca
 $childActiveLink = 'block px-8 py-2.5 text-[10px] text-blue-400 font-black uppercase tracking-widest bg-slate-800/50 border-l-2 border-blue-500 ml-6 shadow-[inset_0px_1px_0px_0px_rgba(255,255,255,0.05)]';
 
 // Link Dashboard dinamis (MENGGUNAKAN APP_URL)
-if ($role == 'master') $dashLink = BASE_URL . '/master/dashboard';
+if ($role == 'master') $dashLink = BASE_URL . '/core/dashboard';
 elseif ($role == 'admin') $dashLink = BASE_URL . '/swim/dashboard'; // Atau Roll, nanti kita buat dinamis
 elseif ($role == 'user') $dashLink = BASE_URL . '/user/dashboard';
 else $dashLink = BASE_URL . '/login';
@@ -106,8 +106,8 @@ function isGroupActive($req, $keywords) {
             <span id="icon-dd-web" class="transform transition-transform text-xs <?= $g4Active ? 'rotate-180' : '' ?>">▼</span>
          </button>
          <div id="dd-web" class="bg-[#0b1120] py-2 <?= $g4Active ? '' : 'hidden' ?>">
-             <a href="<?= BASE_URL ?>/src/master/settings/public_page.php" class="<?= (strpos($req,"public_page")!==false) ? $childActiveLink : $childBaseLink ?>">Landing Page</a>
-             <a href="<?= BASE_URL ?>/src/master/settings/global_config.php" class="<?= (strpos($req,"global_config")!==false) ? $childActiveLink : $childBaseLink ?>">Global Config</a>
+             <a href="<?= BASE_URL ?>/core/settings/public" class="<?= (strpos($req,"public_page")!==false) ? $childActiveLink : $childBaseLink ?>">Landing Page</a>
+             <a href="<?= BASE_URL ?>/core/settings/global" class="<?= (strpos($req,"global_config")!==false) ? $childActiveLink : $childBaseLink ?>">Global Config</a>
          </div>
 
          <!-- GROUP 5: Data Referensi -->

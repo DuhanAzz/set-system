@@ -6,7 +6,7 @@
 $isMaintenance = isset($settings['maintenance_mode']) && $settings['maintenance_mode'] == 1;
 $isMaster      = isset($_SESSION['super_admin_id']);
 if ($isMaintenance && !$isMaster) {
-    echo "<!DOCTYPE html><html lang='id'><head><meta charset='UTF-8'><title>Sedang Dalam Perbaikan</title><script src='https://cdn.tailwindcss.com'></script></head><body class='bg-slate-900 h-screen flex flex-col items-center justify-center text-center p-6 text-white'><h1 class='text-4xl font-bold mb-4'>Under Maintenance</h1><p class='text-slate-400'>Sistem sedang dalam perbaikan. Silakan kembali lagi nanti.</p><a href='login.php' class='mt-6 text-blue-500 hover:underline'>Login Super Admin</a></body></html>";
+    echo "<!DOCTYPE html><html lang='id'><head><meta charset='UTF-8'><title>Sedang Dalam Perbaikan</title><script src='https://cdn.tailwindcss.com'></script></head><body class='bg-slate-900 h-screen flex flex-col items-center justify-center text-center p-6 text-white'><h1 class='text-4xl font-bold mb-4'>Under Maintenance</h1><p class='text-slate-400'>Sistem sedang dalam perbaikan. Silakan kembali lagi nanti.</p><a href='" . getenv('APP_URL') . "/core/login' class='mt-6 text-blue-500 hover:underline'>Login Super Admin</a></body></html>";
     exit;
 }
 
@@ -76,7 +76,7 @@ $heroImage = !empty($sliders) ? ltrim($sliders[0]['image_path'], '/') : 'https:/
                     <a href="#events" class="nav-link">Jadwal Event</a>
                 </div>
                 <div class="flex items-center lg:border-l lg:border-white/20 lg:pl-10">
-                    <a href="<?= getenv('APP_URL') ?>/login" class="bg-[#f25822] hover:bg-orange-600 text-white px-8 py-3 rounded font-black text-xs uppercase tracking-widest shadow-xl transition transform hover:-translate-y-1">Login Admin</a>
+                    <a href="<?= getenv('APP_URL') ?>/core/login" class="bg-[#f25822] hover:bg-orange-600 text-white px-8 py-3 rounded font-black text-xs uppercase tracking-widest shadow-xl transition transform hover:-translate-y-1">Login Admin</a>
                 </div>
             </div>
         </div>

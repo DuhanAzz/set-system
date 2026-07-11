@@ -1,105 +1,238 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Master Dashboard - Universal SET System</title>
-    <link rel="icon" type="image/png" href="<?= getenv('APP_URL') ?>/favicon.png?v=2">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <style> body { font-family: 'Inter', sans-serif; } </style>
-</head>
-<body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col">
-
-    <!-- NAVBAR MASTER -->
-    <header class="bg-slate-900 text-white shadow-xl sticky top-0 z-50">
-        <div class="container mx-auto px-6 h-16 flex items-center justify-between">
-            <div class="flex items-center gap-3">
-                <img src="<?= getenv('APP_URL') ?>/img/logo.png" alt="Logo" class="h-8 invert brightness-0">
-                <span class="text-lg font-black tracking-widest uppercase text-blue-400">Master Portal</span>
-            </div>
-            <div class="flex items-center gap-6">
-                <a href="<?= getenv('APP_URL') ?>/" target="_blank" class="text-sm font-semibold hover:text-blue-400 transition-colors">Lihat Web</a>
-                <a href="<?= getenv('APP_URL') ?>/master/settings/global" class="text-sm font-semibold hover:text-blue-400 transition-colors">⚙️ Pengaturan CMS</a>
-                <a href="<?= getenv('APP_URL') ?>/logout" class="text-sm font-bold bg-red-500 hover:bg-red-600 px-5 py-2 rounded-lg transition-all shadow-lg shadow-red-500/30 transform hover:-translate-y-0.5">Keluar</a>
-            </div>
+    
+    <div class="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-8 gap-6">
+        <div>
+            <h1 class="text-3xl font-black text-slate-800 uppercase italic tracking-tighter">
+                Master Dashboard
+            </h1>
+            <p class="text-sm text-slate-500 font-medium">
+                Selamat Datang, Super Admin! Berikut laporan sistem hari ini.
+            </p>
         </div>
-    </header>
-
-    <!-- KONTEN UTAMA -->
-    <main class="flex-grow container mx-auto px-6 py-12 max-w-6xl">
         
-        <div class="mb-10">
-            <h1 class="text-3xl font-black text-slate-900 mb-2">Selamat Datang, Master!</h1>
-            <p class="text-slate-500 font-medium">Ini adalah pusat komando utama untuk Universal SET System.</p>
+        <div class="flex gap-3">
+            <a href="maintenance/system_health.php" class="bg-white border border-slate-200 text-slate-600 px-4 py-2 rounded-xl font-bold text-xs uppercase hover:bg-slate-100 transition shadow-sm flex items-center gap-2">
+                <span>🛡️</span> System Health
+            </a>
+        </div>
+    </div>
+
+    <!-- ACTION REQUIRED ALERTS -->
+    <?php if($stats['pending_users'] > 0 || $stats['pending_uids'] > 0): ?>
+    <div class="mb-8 space-y-4">
+        <?php if($stats['pending_users'] > 0): ?>
+        <div class="bg-gradient-to-r from-amber-500 to-orange-500 rounded-2xl p-6 text-white shadow-lg flex items-center justify-between group">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center text-2xl">⚠️</div>
+                <div>
+                    <h3 class="font-black text-lg">Action Required: <?= $stats['pending_users'] ?> Akun Pending</h3>
+                    <p class="text-sm text-orange-100 font-medium mt-1">Ada pengguna (Klub/EO) baru yang menunggu persetujuan Anda untuk bisa login.</p>
+                </div>
+            </div>
+            <a href="users/index.php" class="bg-white text-orange-600 px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-orange-50 transition transform group-hover:scale-105 shadow-md">Tinjau Sekarang</a>
+        </div>
+        <?php endif; ?>
+
+        <?php if($stats['pending_uids'] > 0): ?>
+        <div class="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-6 text-white shadow-lg flex items-center justify-between group">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center text-2xl">🆔</div>
+                <div>
+                    <h3 class="font-black text-lg">System Alert: <?= $stats['pending_uids'] ?> Atlet Tanpa UID</h3>
+                    <p class="text-sm text-blue-100 font-medium mt-1">Ada atlet yang terdaftar namun belum memiliki UID (atau format UID masih lama/salah).</p>
+                </div>
+            </div>
+            <a href="swimmers/index.php" class="bg-white text-blue-700 px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-blue-50 transition transform group-hover:scale-105 shadow-md">Generate UID</a>
+        </div>
+        <?php endif; ?>
+    </div>
+    <?php endif; ?>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        
+        <div class="bg-gradient-to-br from-emerald-600 to-teal-800 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden group">
+            <div class="relative z-10">
+                <p class="text-emerald-100 text-[10px] font-black uppercase tracking-widest mb-1">Total Pendapatan</p>
+                <h2 class="text-2xl font-black">Rp <?= number_format($stats['revenue'], 0, ',', '.') ?></h2>
+                <div class="mt-4 text-[10px] font-bold bg-white/20 inline-block px-2 py-1 rounded">All Events</div>
+            </div>
+            <div class="absolute -right-4 -bottom-4 opacity-10 group-hover:scale-110 transition duration-500 text-white">
+                <svg class="w-24 h-24" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1.41 16.09V20h-2.67v-1.93c-1.71-.36-3.15-1.46-3.27-3.4h1.96c.1 1.05 1.18 1.91 2.53 1.91 1.29 0 2.13-.81 2.13-1.88 0-1.1-.68-1.57-1.75-2.25-1.55-.98-2.69-1.66-2.69-3.5 0-1.81 1.4-2.97 3.09-3.32V4h2.67v1.93c1.71.36 3.15 1.46 3.27 3.4h-1.96c-.1-1.05-1.18-1.91-2.53-1.91-1.29 0-2.13.81-2.13 1.88 0 1.1.68 1.57 1.75 2.25 1.55.98 2.69 1.66 2.69 3.5 0 1.81-1.4 2.97-3.09 3.32z"/></svg>
+            </div>
         </div>
 
-        <!-- STATISTIK KILAT -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-            <!-- Card 1 -->
-            <div class="bg-white p-8 rounded-3xl shadow-sm border border-slate-200 hover:shadow-xl transition-all group">
-                <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-slate-500 font-bold uppercase tracking-wider text-xs">Total Admin</h3>
-                    <div class="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center group-hover:scale-110 transition-transform">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-                    </div>
+        <div class="bg-gradient-to-br from-white to-slate-50 rounded-2xl p-6 border-b-4 border-blue-500 shadow-sm hover:shadow-lg transition-all duration-300 group">
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Database Atlet</p>
+                    <h2 class="text-3xl font-black text-slate-800 group-hover:text-blue-600 transition"><?= number_format($stats['athletes']) ?></h2>
+                    <p class="text-[10px] text-slate-400 mt-1">Total terdaftar di sistem</p>
                 </div>
-                <p class="text-5xl font-black text-slate-900"><?= $stats['total_admin'] ?? 0 ?></p>
-            </div>
-
-            <!-- Card 2 -->
-            <div class="bg-white p-8 rounded-3xl shadow-sm border border-slate-200 hover:shadow-xl transition-all group">
-                <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-slate-500 font-bold uppercase tracking-wider text-xs">Total Pengguna</h3>
-                    <div class="w-10 h-10 rounded-full bg-green-50 text-green-600 flex items-center justify-center group-hover:scale-110 transition-transform">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-                    </div>
-                </div>
-                <p class="text-5xl font-black text-slate-900"><?= $stats['total_user'] ?? 0 ?></p>
-            </div>
-
-            <!-- Card 3 -->
-            <div class="bg-white p-8 rounded-3xl shadow-sm border border-slate-200 hover:shadow-xl transition-all group">
-                <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-slate-500 font-bold uppercase tracking-wider text-xs">Total Lomba (Event)</h3>
-                    <div class="w-10 h-10 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center group-hover:scale-110 transition-transform">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                    </div>
-                </div>
-                <p class="text-5xl font-black text-slate-900"><?= $stats['total_lomba'] ?? 0 ?></p>
+                <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center text-2xl shadow-inner">🏊</div>
             </div>
         </div>
 
-        <!-- MENU SHORTCUTS -->
-        <h2 class="text-xl font-bold text-slate-900 mb-6">Akses Cepat Pengaturan (CMS)</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="bg-gradient-to-br from-white to-slate-50 rounded-2xl p-6 border-b-4 border-purple-500 shadow-sm hover:shadow-lg transition-all duration-300 group">
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Total User</p>
+                    <h2 class="text-3xl font-black text-slate-800 group-hover:text-purple-600 transition"><?= number_format($stats['eo'] + $stats['clubs']) ?></h2>
+                    <p class="text-[10px] text-slate-400 mt-1"><?= $stats['clubs'] ?> Klub / <?= $stats['eo'] ?> EO</p>
+                </div>
+                <div class="w-12 h-12 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center text-2xl shadow-inner">👥</div>
+            </div>
+        </div>
+
+        <div class="bg-gradient-to-br from-white to-slate-50 rounded-2xl p-6 border-b-4 border-slate-400 shadow-sm hover:shadow-lg transition-all duration-300 group">
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Status Server</p>
+                    <?php if($systemStatus == 0): ?>
+                        <h2 class="text-xl font-black text-emerald-600 flex items-center gap-2">
+                            <span class="w-3 h-3 bg-emerald-500 rounded-full animate-pulse"></span> ONLINE
+                        </h2>
+                        <p class="text-[10px] text-slate-400 mt-1">Publik dapat mengakses.</p>
+                    <?php else: ?>
+                        <h2 class="text-xl font-black text-red-600 flex items-center gap-2">
+                            <span class="w-3 h-3 bg-red-500 rounded-full animate-pulse"></span> MAINTENANCE
+                        </h2>
+                        <p class="text-[10px] text-slate-400 mt-1">Hanya Master akses.</p>
+                    <?php endif; ?>
+                </div>
+                <div class="w-10 h-10 bg-slate-100 text-slate-600 rounded-lg flex items-center justify-center text-xl">🖥️</div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        <div class="lg:col-span-2 space-y-8">
             
-            <a href="<?= getenv('APP_URL') ?>/master/settings/global" class="group block bg-slate-900 p-8 rounded-3xl relative overflow-hidden transition-all hover:-translate-y-2 hover:shadow-2xl shadow-slate-900/20">
-                <div class="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-10 -mt-10 transition-transform group-hover:scale-150"></div>
-                <div class="relative z-10">
-                    <h3 class="text-white font-bold text-lg mb-2">🌐 Global Config</h3>
-                    <p class="text-slate-400 text-sm font-medium">Ubah Nama Web, SEO, Teks Utama & Kontak.</p>
+            <div class="bg-white rounded-[2rem] shadow-sm border border-slate-200 p-8">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="font-black text-slate-800 uppercase italic text-sm tracking-widest">🗓️ Kompetisi Mendatang</h3>
+                    <a href="events/index.php" class="text-[10px] font-bold text-blue-600 hover:underline">Lihat Semua</a>
                 </div>
-            </a>
 
-            <a href="<?= getenv('APP_URL') ?>/master/settings/hero" class="group block bg-blue-600 p-8 rounded-3xl relative overflow-hidden transition-all hover:-translate-y-2 hover:shadow-2xl shadow-blue-600/30">
-                <div class="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-10 -mt-10 transition-transform group-hover:scale-150"></div>
-                <div class="relative z-10">
-                    <h3 class="text-white font-bold text-lg mb-2">🖼️ Hero Slider</h3>
-                    <p class="text-blue-200 text-sm font-medium">Upload & atur urutan gambar latar bergerak.</p>
+                <div class="space-y-4">
+                    <?php if(empty($liveEvents)): ?>
+                        <div class="text-center py-8 text-slate-400 text-xs italic bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                            Tidak ada event aktif/mendatang.
+                        </div>
+                    <?php else: ?>
+                        <?php foreach($liveEvents as $ev): ?>
+                        <div class="flex items-center justify-between p-4 bg-slate-50 border border-slate-100 rounded-2xl hover:bg-white hover:shadow-md transition group">
+                            <div class="flex items-center gap-4">
+                                <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex flex-col items-center justify-center font-bold text-[10px] leading-tight shadow-sm">
+                                    <span><?= date('M', strtotime($ev['event_date_start'])) ?></span>
+                                    <span class="text-lg"><?= date('d', strtotime($ev['event_date_start'])) ?></span>
+                                </div>
+                                <div>
+                                    <h4 class="font-black text-slate-800 text-sm uppercase group-hover:text-blue-600 transition"><?= htmlspecialchars($ev['event_name']) ?></h4>
+                                    <p class="text-[10px] text-slate-500 font-bold uppercase">
+                                        📍 <?= htmlspecialchars(substr($ev['event_location'], 0, 30)) ?>... 
+                                        <span class="text-slate-300 mx-1">|</span> 
+                                        EO: <?= htmlspecialchars($ev['eo_name'] ?? 'Unknown') ?>
+                                    </p>
+                                </div>
+                            </div>
+                            <?php 
+                                $statusClass = 'bg-slate-100 text-slate-600';
+                                if($ev['event_status'] == 'Registration') $statusClass = 'bg-emerald-100 text-emerald-700';
+                                if($ev['event_status'] == 'Draft') $statusClass = 'bg-yellow-100 text-yellow-700';
+                            ?>
+                            <span class="hidden sm:block px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wide <?= $statusClass ?>">
+                                <?= $ev['event_status'] ?>
+                            </span>
+                        </div>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
                 </div>
-            </a>
+            </div>
 
-            <a href="<?= getenv('APP_URL') ?>/master/settings/public" class="group block bg-[#f25822] p-8 rounded-3xl relative overflow-hidden transition-all hover:-translate-y-2 hover:shadow-2xl shadow-orange-500/30">
-                <div class="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-10 -mt-10 transition-transform group-hover:scale-150"></div>
-                <div class="relative z-10">
-                    <h3 class="text-white font-bold text-lg mb-2">📸 Public Page</h3>
-                    <p class="text-orange-200 text-sm font-medium">Atur Watermark Logo Event & Preview Sistem.</p>
+            <div class="bg-white rounded-[2rem] shadow-sm border border-slate-200 overflow-hidden">
+                <div class="bg-slate-50 px-8 py-4 border-b border-slate-100">
+                    <h3 class="font-black text-slate-800 uppercase italic text-sm tracking-widest">👤 Registrasi User Terbaru</h3>
                 </div>
-            </a>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <tbody class="divide-y divide-slate-50">
+                            <?php foreach($recentUsers as $u): ?>
+                            <tr class="hover:bg-blue-50/30 transition">
+                                <td class="px-8 py-4">
+                                    <div class="flex items-center gap-2">
+                                        <div class="font-bold text-slate-700"><?= htmlspecialchars($u['nama_lengkap']) ?></div>
+                                        <?php if(($u['account_status']??'') == 'pending'): ?>
+                                            <span class="w-2 h-2 rounded-full bg-orange-500 animate-pulse" title="Menunggu Verifikasi"></span>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="text-[10px] text-slate-400">@<?= htmlspecialchars($u['username']) ?></div>
+                                </td>
+                                <td class="px-8 py-4">
+                                    <div class="flex flex-col gap-1 items-start">
+                                        <span class="px-2 py-1 rounded text-[9px] font-black uppercase 
+                                            <?= $u['role']=='admin' ? 'bg-slate-800 text-white' : 'bg-blue-100 text-blue-600' ?>">
+                                            <?= $u['role'] == 'admin' ? 'Event Org' : 'Club' ?>
+                                        </span>
+                                        <?php if(($u['account_status']??'') == 'pending'): ?>
+                                            <span class="px-2 py-1 rounded text-[9px] font-black uppercase bg-orange-100 text-orange-600 border border-orange-200">
+                                                Pending
+                                            </span>
+                                        <?php else: ?>
+                                            <span class="px-2 py-1 rounded text-[9px] font-black uppercase bg-emerald-100 text-emerald-600">
+                                                Verified
+                                            </span>
+                                        <?php endif; ?>
+                                    </div>
+                                </td>
+                                <td class="px-8 py-4 text-right text-[10px] text-slate-400 font-mono">
+                                    <?= date('d/m/Y H:i', strtotime($u['created_at'])) ?>
+                                </td>
+                            </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
 
         </div>
 
-    </main>
-</body>
-</html>
+        <div class="space-y-8">
+            
+            <div class="bg-slate-800 rounded-[2rem] p-8 text-white shadow-xl">
+                <h3 class="font-black uppercase italic text-sm tracking-widest mb-6 text-slate-400">⚡ Akses Cepat</h3>
+                <div class="grid grid-cols-2 gap-4">
+                    <a href="users/index.php" class="bg-slate-700 hover:bg-blue-600 p-4 rounded-xl text-center transition group">
+                        <div class="text-2xl mb-2 group-hover:scale-110 transition">👥</div>
+                        <span class="text-[9px] font-bold uppercase tracking-wider">User Manager</span>
+                    </a>
+                    <a href="finance/revenue.php" class="bg-slate-700 hover:bg-emerald-600 p-4 rounded-xl text-center transition group">
+                        <div class="text-2xl mb-2 group-hover:scale-110 transition">💰</div>
+                        <span class="text-[9px] font-bold uppercase tracking-wider">Keuangan</span>
+                    </a>
+                    <a href="settings/public_page.php" class="bg-slate-700 hover:bg-indigo-600 p-4 rounded-xl text-center transition group">
+                        <div class="text-2xl mb-2 group-hover:scale-110 transition">🎨</div>
+                        <span class="text-[9px] font-bold uppercase tracking-wider">Editor Web</span>
+                    </a>
+                    <a href="maintenance/data_cleanup.php" class="bg-slate-700 hover:bg-red-600 p-4 rounded-xl text-center transition group">
+                        <div class="text-2xl mb-2 group-hover:scale-110 transition">🧹</div>
+                        <span class="text-[9px] font-bold uppercase tracking-wider">Bersihkan Data</span>
+                    </a>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-[2rem] border border-slate-200 p-8 text-center">
+                <div class="w-16 h-16 bg-slate-100 rounded-full mx-auto flex items-center justify-center text-3xl mb-4">
+                    🚀
+                </div>
+                <h4 class="font-black text-slate-800 uppercase tracking-tight"><?= htmlspecialchars($heroTitle) ?></h4>
+                <p class="text-xs text-slate-500 mt-2">Versi 1.0.0 (Beta)</p>
+                <div class="mt-6 pt-6 border-t border-slate-100">
+                    <p class="text-[10px] text-slate-400 uppercase font-bold">Waktu Server</p>
+                    <p class="text-lg font-mono font-bold text-slate-700"><?= date('H:i') ?> <span class="text-xs text-slate-400">WIB</span></p>
+                </div>
+            </div>
+
+        </div>
+
+    </div>

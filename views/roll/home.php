@@ -1,52 +1,4 @@
 <?php
-// FILE: public/index.php
-$pdo = \App\Core\Database::getInstance()->getConnection();
-if (session_status() === PHP_SESSION_NONE) session_start();
-if (!defined('BASE_URL')) define('BASE_URL', getenv('APP_URL'));
-
-// 1. AMBIL PENGATURAN DARI DATABASE
-$stmt = $pdo->query("SELECT * FROM roll_site_settings WHERE id=1");
-$s = $stmt->fetch();
-if (!$s) $s = [];
-
-// ============================================================
-// 🚧 LOGIKA MAINTENANCE MODE (SATPAM)
-// ============================================================
-$isMaintenance = isset($s['maintenance_mode']) && $s['maintenance_mode'] == 1;
-$isMaster      = isset($_SESSION['role']) && $_SESSION['role'] === 'master';
-
-if ($isMaintenance && !$isMaster) {
-    ?>
-    <!DOCTYPE html>
-    <html lang="id">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Sedang Dalam Perbaikan</title>
-        <script src="https://cdn.tailwindcss.com"></script>
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;900&display=swap" rel="stylesheet">
-        <link rel="icon" type="image/png" href="<?= BASE_URL ?>/public/favicon.png?v=2">
-    </head>
-    <body class="bg-slate-950 h-screen flex flex-col items-center justify-center text-center p-6 font-['Inter']">
-        <div class="bg-slate-900 p-10 rounded-3xl shadow-2xl border border-red-900 max-w-lg w-full relative overflow-hidden">
-            <div class="absolute inset-0 bg-red-600/5 animate-pulse"></div>
-            <div class="text-6xl mb-6 relative z-10">🚧</div>
-            <h1 class="text-3xl font-black text-white uppercase tracking-tighter mb-4 relative z-10">Under Maintenance</h1>
-            <p class="text-slate-400 text-sm leading-relaxed mb-8 relative z-10">
-                Sistem <b><?= htmlspecialchars($s['app_name'] ?? 'SET ROLL SYSTEM') ?></b> sedang dalam perbaikan besar. 
-                Silakan kembali lagi nanti.
-            </p>
-            <div class="mt-8 pt-8 border-t border-slate-800 relative z-10">
-                <a href="<?= BASE_URL ?>/login" class="text-red-500 hover:text-red-400 text-xs font-bold uppercase tracking-widest hover:underline">Login Master</a>
-            </div>
-        </div>
-    </body>
-    </html>
-    <?php
-    exit; 
-}
-// ============================================================
-
 // DATA HALAMAN UTAMA
 $heroTitle    = $s['hero_title'] ?? 'SET ROLL CHAMPIONSHIP'; 
 $runningText  = $s['running_text'] ?? ''; 
@@ -61,23 +13,9 @@ $linkIG       = $s['link_instagram'] ?? '#';
 $linkFB       = $s['link_facebook'] ?? '#';
 
 // Gambar Tambahan
-$aboutImg = !empty($s['about_image']) ? rtrim(BASE_URL, '/') . '/public/' . ltrim($s['about_image'], '/') : 'https://images.unsplash.com/photo-1517649763962-0c623066013b?q=80&w=1000&auto=format&fit=crop';
-$footerImg = !empty($s['footer_image']) ? rtrim(BASE_URL, '/') . '/public/' . ltrim($s['footer_image'], '/') : 'https://images.unsplash.com/photo-1572016335905-1a890473a216?q=80&w=2000&auto=format&fit=crop';
-$eventFallbackImg = !empty($s['event_fallback_image']) ? rtrim(BASE_URL, '/') . '/public/' . ltrim($s['event_fallback_image'], '/') : 'https://images.unsplash.com/photo-1664352957776-db31192974f1?q=80&w=800&auto=format&fit=crop';
-
-// SLIDER GAMBAR (FALLBACK SPEED SKATING)
-$sliders = []; 
-try { $sliders = $pdo->query("SELECT * FROM roll_hero_images ORDER BY id DESC")->fetchAll(); } 
-catch (Exception $e) {}
-// Fallback logic removed as DB is now seeded
-
-// PREVIEW JADWAL (4 Event TERBARU)
-$sql = "SELECT e.id, e.event_name, e.location, e.event_city, e.event_date_start, e.status, e.poster_image, e.logo_left, e.is_result_published 
-        FROM roll_events e 
-        WHERE e.status != 'Draft' 
-        ORDER BY e.id DESC 
-        LIMIT 4";
-$upcoming_preview = $pdo->query($sql)->fetchAll();
+$aboutImg = !empty($s['about_image']) ? rtrim(getenv('APP_URL'), '/') . '/public/' . ltrim($s['about_image'], '/') : 'https://images.unsplash.com/photo-1517649763962-0c623066013b?q=80&w=1000&auto=format&fit=crop';
+$footerImg = !empty($s['footer_image']) ? rtrim(getenv('APP_URL'), '/') . '/public/' . ltrim($s['footer_image'], '/') : 'https://images.unsplash.com/photo-1572016335905-1a890473a216?q=80&w=2000&auto=format&fit=crop';
+$eventFallbackImg = !empty($s['event_fallback_image']) ? rtrim(getenv('APP_URL'), '/') . '/public/' . ltrim($s['event_fallback_image'], '/') : 'https://images.unsplash.com/photo-1664352957776-db31192974f1?q=80&w=800&auto=format&fit=crop';
 ?>
 <!DOCTYPE html>
 <html lang="id" class="scroll-smooth">
@@ -88,7 +26,7 @@ $upcoming_preview = $pdo->query($sql)->fetchAll();
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-    <link rel="icon" type="image/png" href="<?= BASE_URL ?>/public/favicon.png?v=2">
+    <link rel="icon" type="image/png" href="<?= getenv('APP_URL') ?>/public/favicon.png?v=2">
     <style>
         body { font-family: 'Inter', sans-serif; }
         
@@ -141,7 +79,7 @@ $upcoming_preview = $pdo->query($sql)->fetchAll();
 
     <nav id="navbar" class="fixed w-full z-50 top-0 start-0 transparent px-10">
         <div class="max-w-screen-2xl flex items-center justify-between mx-auto w-full">
-            <a href="index.php"><img src="<?= BASE_URL ?>/public/img/logo.png" onerror="this.src='https://ui-avatars.com/api/?name=SET&background=f97316&color=fff'" class="h-24 w-auto object-contain transition-all duration-300" id="nav-logo"></a>
+            <a href="<?= getenv('APP_URL') ?>/roll"><img src="<?= getenv('APP_URL') ?>/public/img/logo.png" onerror="this.src='https://ui-avatars.com/api/?name=SET&background=f97316&color=fff'" class="h-24 w-auto object-contain transition-all duration-300" id="nav-logo"></a>
             
             <div class="flex items-center gap-12">
                 <div class="hidden lg:flex items-center space-x-10">
@@ -151,14 +89,12 @@ $upcoming_preview = $pdo->query($sql)->fetchAll();
                     <a href="#instruction" class="nav-link text-yellow-400">Panduan</a>
                 </div>
                 <div class="hidden lg:flex items-center border-l border-white/20 pl-10">
-                    <?php if(isset($_SESSION['user_id'])): 
-                        $dashLink = BASE_URL . '/src/user/dashboard.php';
-                        if($_SESSION['role'] == 'master') $dashLink = BASE_URL . '/src/master/dashboard.php';
-                        if($_SESSION['role'] == 'admin') $dashLink = BASE_URL . '/src/admin/dashboard.php';
+                    <?php if(isset($_SESSION['roll_user_id'])): 
+                        $dashLink = getenv('APP_URL') . '/roll/dashboard';
                     ?>
                         <a href="<?= $dashLink ?>" class="bg-orange-600 hover:bg-orange-700 text-white px-10 py-3 rounded-full font-black text-xs uppercase tracking-widest shadow-xl transition transform hover:scale-105">Dashboard</a>
                     <?php else: ?>
-                        <a href="<?= BASE_URL ?>/login" class="bg-orange-600 hover:bg-orange-700 text-white px-10 py-3 rounded-full font-black text-xs uppercase tracking-widest shadow-xl transition transform hover:scale-105">Login / Daftar</a>
+                        <a href="<?= getenv('APP_URL') ?>/roll/login" class="bg-orange-600 hover:bg-orange-700 text-white px-10 py-3 rounded-full font-black text-xs uppercase tracking-widest shadow-xl transition transform hover:scale-105">Login / Daftar</a>
                     <?php endif; ?>
                 </div>
 
@@ -176,14 +112,12 @@ $upcoming_preview = $pdo->query($sql)->fetchAll();
             <a href="results.php" class="mobile-nav-link text-2xl font-black text-white uppercase tracking-widest mb-6 hover:text-orange-400 border-b border-slate-800 pb-4 block">Hasil Lomba</a>
             <a href="#instruction" class="mobile-nav-link text-2xl font-black text-white uppercase tracking-widest mb-8 hover:text-orange-400 border-b border-slate-800 pb-4 block">Panduan</a>
             
-            <?php if(isset($_SESSION['user_id'])): 
-                $dashLink = BASE_URL . '/src/user/dashboard.php';
-                if($_SESSION['role'] == 'master') $dashLink = BASE_URL . '/src/master/dashboard.php';
-                if($_SESSION['role'] == 'admin') $dashLink = BASE_URL . '/src/admin/dashboard.php';
+            <?php if(isset($_SESSION['roll_user_id'])): 
+                $dashLink = getenv('APP_URL') . '/roll/dashboard';
             ?>
                 <a href="<?= $dashLink ?>" class="bg-orange-600 text-white text-center py-4 rounded-xl font-black uppercase tracking-widest shadow-xl hover:bg-orange-700 block w-full">Dashboard</a>
             <?php else: ?>
-                <a href="<?= BASE_URL ?>/login" class="bg-orange-600 text-white text-center py-4 rounded-xl font-black uppercase tracking-widest shadow-xl hover:bg-orange-700 block w-full">Login / Daftar</a>
+                <a href="<?= getenv('APP_URL') ?>/roll/login" class="bg-orange-600 text-white text-center py-4 rounded-xl font-black uppercase tracking-widest shadow-xl hover:bg-orange-700 block w-full">Login / Daftar</a>
             <?php endif; ?>
         </div>
 
@@ -192,7 +126,7 @@ $upcoming_preview = $pdo->query($sql)->fetchAll();
     <section id="home" class="h-screen min-h-[850px] flex items-center relative overflow-hidden">
         <div id="slider" class="absolute inset-0">
             <?php foreach($sliders as $index => $slide): 
-                $slideImg = (strpos($slide['image_path'], 'http') === 0) ? $slide['image_path'] : rtrim(BASE_URL, '/') . '/public/' . ltrim($slide['image_path'], '/');
+                $slideImg = (strpos($slide['image_path'], 'http') === 0) ? $slide['image_path'] : rtrim(getenv('APP_URL'), '/') . '/public/' . ltrim($slide['image_path'], '/');
             ?>
                 <div class="hero-slide <?= $index === 0 ? 'active' : '' ?>" style="background-image: url('<?= htmlspecialchars($slideImg) ?>');"></div>
             <?php endforeach; ?>
@@ -243,9 +177,9 @@ $upcoming_preview = $pdo->query($sql)->fetchAll();
                 // PATH RESOLVER UNTUK POSTER LOMBA
                 $imgSrc = $eventFallbackImg;
                 if (!empty($e['poster_image'])) {
-                    $imgSrc = (strpos($e['poster_image'], 'http') === 0) ? $e['poster_image'] : rtrim(BASE_URL, '/') . '/public/' . ltrim($e['poster_image'], '/');
+                    $imgSrc = (strpos($e['poster_image'], 'http') === 0) ? $e['poster_image'] : rtrim(getenv('APP_URL'), '/') . '/public/' . ltrim($e['poster_image'], '/');
                 } elseif (!empty($e['logo_left'])) {
-                    $imgSrc = (strpos($e['logo_left'], 'http') === 0) ? $e['logo_left'] : rtrim(BASE_URL, '/') . '/public/' . ltrim($e['logo_left'], '/');
+                    $imgSrc = (strpos($e['logo_left'], 'http') === 0) ? $e['logo_left'] : rtrim(getenv('APP_URL'), '/') . '/public/' . ltrim($e['logo_left'], '/');
                 }
             ?>
             <div class="bg-white rounded-3xl border border-slate-200 overflow-hidden hover:shadow-2xl transition-all duration-300 group flex flex-col sm:flex-row relative">
@@ -327,7 +261,7 @@ $upcoming_preview = $pdo->query($sql)->fetchAll();
     <footer class="bg-[#0F172A] text-white pt-20 pb-10 border-t-4 border-orange-600">
         <div class="max-w-screen-xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-12 mb-16 text-center md:text-left">
             <div>
-                <img src="<?= BASE_URL ?>/public/img/logo.png" onerror="this.src='https://ui-avatars.com/api/?name=SET&background=f97316&color=fff'" class="h-16 mx-auto md:mx-0 mb-6 grayscale brightness-200 opacity-80">
+                <img src="<?= getenv('APP_URL') ?>/public/img/logo.png" onerror="this.src='https://ui-avatars.com/api/?name=SET&background=f97316&color=fff'" class="h-16 mx-auto md:mx-0 mb-6 grayscale brightness-200 opacity-80">
                 <p class="text-slate-400 text-sm leading-relaxed font-medium">
                     <?= nl2br(htmlspecialchars($siteDesc)) ?>
                 </p>

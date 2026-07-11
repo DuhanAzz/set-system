@@ -16,8 +16,8 @@ class SettingsController extends Controller {
         }
 
         // Pastikan hanya role 'master' yang bisa mengakses kelas pengaturan ini
-        if (!isset($_SESSION['user_id']) || (isset($_SESSION['role']) && strtolower($_SESSION['role']) !== 'master')) {
-            $loginUrl = getenv('APP_URL') ? rtrim(getenv('APP_URL'), '/') . '/login' : '/login';
+        if (!isset($_SESSION['admin_id']) || (isset($_SESSION['role']) && strtolower($_SESSION['role']) !== 'master')) {
+            $loginUrl = getenv('APP_URL') ? rtrim(getenv('APP_URL'), '/') . '/core/login' : '/core/login';
             header('Location: ' . $loginUrl);
             exit;
         }
