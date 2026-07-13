@@ -12,7 +12,7 @@
         </div>
 
         <div class="bg-white rounded-3xl p-8 shadow-sm border border-slate-200">
-            <form action="<?= getenv('APP_URL') ?>/master/settings/process" method="POST" enctype="multipart/form-data" class="space-y-8">
+            <form action="<?= getenv('APP_URL') ?>/core/settings/process" method="POST" enctype="multipart/form-data" class="space-y-8">
                 <input type="hidden" name="action" value="update_landing">
                 
                 <h2 class="text-2xl font-bold mb-6 flex items-center gap-2">📸 Gambar Preview Sistem & Logo Event</h2>

@@ -11,7 +11,7 @@
         </div>
 
         <div class="bg-white rounded-3xl p-8 shadow-sm border border-slate-200">
-            <form action="<?= getenv('APP_URL') ?>/master/settings/process" method="POST" enctype="multipart/form-data" class="mb-8 flex gap-2">
+            <form action="<?= getenv('APP_URL') ?>/core/settings/process" method="POST" enctype="multipart/form-data" class="mb-8 flex gap-2">
                 <input type="hidden" name="action" value="upload_slider">
                 <input type="file" name="hero_image" accept="image/*" required class="flex-1 block w-full text-sm text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 border border-slate-200 rounded-xl cursor-pointer">
                 <button type="submit" class="bg-blue-600 text-white font-bold px-6 rounded-xl hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/30">Upload</button>
@@ -28,7 +28,7 @@
                         <div class="flex-1">
                             <p class="text-xs font-semibold text-slate-500">Dibuat: <br><span class="text-slate-700 font-bold"><?= isset($slide['created_at']) ? date('d M Y', strtotime($slide['created_at'])) : '-' ?></span></p>
                         </div>
-                        <form action="<?= getenv('APP_URL') ?>/master/settings/process" method="POST" class="inline">
+                        <form action="<?= getenv('APP_URL') ?>/core/settings/process" method="POST" class="inline">
                             <input type="hidden" name="action" value="delete_slider">
                             <input type="hidden" name="id" value="<?= $slide['id'] ?>">
                             <button type="submit" onclick="return confirm('Hapus gambar ini?')" class="text-red-500 bg-red-50 hover:bg-red-500 hover:text-white p-3 rounded-xl transition-colors shadow-sm">
@@ -59,7 +59,7 @@
                     <div class="w-40 h-24 bg-slate-100 rounded-xl border-2 border-dashed border-slate-300 flex items-center justify-center text-xs text-slate-400 font-bold">Belum Ada Gambar</div>
                 <?php endif; ?>
                 
-                <form action="<?= getenv('APP_URL') ?>/master/settings/process" method="POST" enctype="multipart/form-data" class="flex-1 flex gap-2">
+                <form action="<?= getenv('APP_URL') ?>/core/settings/process" method="POST" enctype="multipart/form-data" class="flex-1 flex gap-2">
                     <input type="hidden" name="action" value="upload_promo_image">
                     <input type="file" name="promo_image" accept="image/*" required class="flex-1 block w-full text-sm text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 border border-slate-200 rounded-xl cursor-pointer">
                     <button type="submit" class="bg-blue-600 text-white font-bold px-6 rounded-xl hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/30">Simpan Promo Latar</button>

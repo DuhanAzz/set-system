@@ -73,7 +73,7 @@ class SettingsController extends Controller {
                 $stmt = $db->prepare("UPDATE universal_settings SET app_name=?, hero_title=?, site_description=?, contact_email=?, contact_wa=?, link_instagram=? WHERE id=1");
                 $stmt->execute([$appName, $heroTitle, $siteDesc, $contactEmail, $contactWa, $linkIg]);
 
-                header('Location: ' . getenv('APP_URL') . '/master/settings/global?status=success');
+                header('Location: ' . getenv('APP_URL') . '/core/settings/global?status=success');
                 exit;
             } 
             elseif ($action === 'update_landing') {
@@ -104,7 +104,7 @@ class SettingsController extends Controller {
                     }
                 }
 
-                header('Location: ' . getenv('APP_URL') . '/master/settings/public?status=success');
+                header('Location: ' . getenv('APP_URL') . '/core/settings/public?status=success');
                 exit;
             }
             elseif ($action === 'upload_slider') {
@@ -122,7 +122,7 @@ class SettingsController extends Controller {
                         }
                     }
                 }
-                header('Location: ' . getenv('APP_URL') . '/master/settings/hero?status=success');
+                header('Location: ' . getenv('APP_URL') . '/core/settings/hero?status=success');
                 exit;
             }
             elseif ($action === 'delete_slider') {
@@ -137,7 +137,7 @@ class SettingsController extends Controller {
                     }
                     $db->prepare("DELETE FROM universal_hero_images WHERE id=?")->execute([$id]);
                 }
-                header('Location: ' . getenv('APP_URL') . '/master/settings/hero?status=success');
+                header('Location: ' . getenv('APP_URL') . '/core/settings/hero?status=success');
                 exit;
             }
             elseif ($action === 'upload_promo_image') {
@@ -156,7 +156,7 @@ class SettingsController extends Controller {
                                 } catch (\Exception $e) { /* Kolom mungkin sudah ada, abaikan */ }
                                 
                                 $db->prepare("UPDATE universal_settings SET promo_image=? WHERE id=1")->execute([$dbPath]);
-                                header('Location: ' . getenv('APP_URL') . '/master/settings/hero?status=success');
+                                header('Location: ' . getenv('APP_URL') . '/core/settings/hero?status=success');
                                 exit;
                             } else {
                                 die("Gagal memindahkan file yang diunggah ke folder public/uploads.");
@@ -171,7 +171,7 @@ class SettingsController extends Controller {
                     }
                 }
                 // Jika tidak ada file yang dikirim
-                header('Location: ' . getenv('APP_URL') . '/master/settings/hero');
+                header('Location: ' . getenv('APP_URL') . '/core/settings/hero');
                 exit;
             }
 
@@ -179,7 +179,7 @@ class SettingsController extends Controller {
             die("Terjadi kesalahan saat memproses data: " . $e->getMessage());
         }
         
-        header('Location: ' . getenv('APP_URL') . '/master/dashboard');
+        header('Location: ' . getenv('APP_URL') . '/core/dashboard');
         exit;
     }
 }

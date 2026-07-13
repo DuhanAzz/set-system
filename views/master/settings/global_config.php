@@ -11,7 +11,7 @@
         </div>
 
         <div class="bg-white rounded-3xl p-8 shadow-sm border border-slate-200">
-            <form action="<?= getenv('APP_URL') ?>/master/settings/process" method="POST" class="space-y-5">
+            <form action="<?= getenv('APP_URL') ?>/core/settings/process" method="POST" class="space-y-5">
                 <input type="hidden" name="action" value="update_global">
                 
                 <div>

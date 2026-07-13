@@ -60,17 +60,17 @@ function isGroupActive($req, $keywords) {
          
          <div class="px-8 mt-8 mb-2 text-[10px] font-black text-slate-600 uppercase tracking-widest">Konfigurasi Sistem</div>
 
-         <a href="<?= BASE_URL ?>/master/settings/global" class="<?= (strpos($req,"settings/global")!==false) ? $activeLink : $baseLink ?>">
+         <a href="<?= BASE_URL ?>/core/settings/global" class="<?= (strpos($req,"settings/global")!==false) ? $activeLink : $baseLink ?>">
             <span class="w-6 text-xl mr-3 text-center opacity-80">📝</span>
             <span class="font-bold text-[11px] tracking-widest uppercase">Pengaturan Global</span>
          </a>
          
-         <a href="<?= BASE_URL ?>/master/settings/hero" class="<?= (strpos($req,"settings/hero")!==false) ? $activeLink : $baseLink ?>">
+         <a href="<?= BASE_URL ?>/core/settings/hero" class="<?= (strpos($req,"settings/hero")!==false) ? $activeLink : $baseLink ?>">
             <span class="w-6 text-xl mr-3 text-center opacity-80">🖼️</span>
             <span class="font-bold text-[11px] tracking-widest uppercase">Slider Utama (Hero)</span>
          </a>
          
-         <a href="<?= BASE_URL ?>/master/settings/public" class="<?= (strpos($req,"settings/public")!==false) ? $activeLink : $baseLink ?>">
+         <a href="<?= BASE_URL ?>/core/settings/public" class="<?= (strpos($req,"settings/public")!==false) ? $activeLink : $baseLink ?>">
             <span class="w-6 text-xl mr-3 text-center opacity-80">📢</span>
             <span class="font-bold text-[11px] tracking-widest uppercase">Gambar & Fitur Promo</span>
          </a>
