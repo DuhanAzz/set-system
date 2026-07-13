@@ -81,7 +81,11 @@ if ($uid > 0) {
 <!-- Flash Message Global -->
 <?php // include_once __DIR__ . '/../notifikasi.php'; ?>
 
-<nav class="fixed top-0 left-0 right-0 z-40 bg-white border-b border-gray-200 h-16 shadow-sm sm:ml-64 transition-all">
+<?php
+$topbarBg = $isMaster ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-gray-200 text-slate-800';
+$logoText = $isMaster ? 'Universal CMS' : 'SET System';
+?>
+<nav class="fixed top-0 left-0 right-0 z-40 <?= $topbarBg ?> border-b h-16 shadow-sm sm:ml-64 transition-all">
   <div class="px-3 py-3 lg:px-5 lg:pl-3 h-full">
     <div class="flex items-center justify-between h-full">
       
@@ -91,15 +95,15 @@ if ($uid > 0) {
             <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path clip-rule="evenodd" fill-rule="evenodd" d="M2 4.75A.75.75 0 012.75 4h14.5a.75.75 0 010 1.5H2.75A.75.75 0 012 4.75zm0 10.5a.75.75 0 01.75-.75h7.5a.75.75 0 010 1.5h-7.5a.75.75 0 01-.75-.75zM2 10a.75.75 0 01.75-.75h14.5a.75.75 0 010 1.5H2.75A.75.75 0 012 10z"></path></svg>
          </button>
          
-         <span class="self-center text-lg font-extrabold whitespace-nowrap text-slate-800 tracking-tight sm:hidden">
-            SET System
+         <span class="self-center text-lg font-extrabold whitespace-nowrap tracking-tight sm:hidden">
+            <?= $logoText ?>
          </span>
          </div>
 
       <div class="flex items-center gap-3">
           
           <div class="text-right hidden md:block leading-tight">
-              <p class="text-sm font-bold text-slate-800 truncate max-w-[150px]"><?= htmlspecialchars($displayName) ?></p>
+              <p class="text-sm font-bold truncate max-w-[150px] <?= $isMaster ? 'text-white' : 'text-slate-800' ?>"><?= htmlspecialchars($displayName) ?></p>
               <p class="text-[10px] text-blue-600 font-bold uppercase tracking-widest bg-blue-50 px-2 py-0.5 rounded inline-block mt-0.5"><?= $displayRole ?></p>
           </div>
 
