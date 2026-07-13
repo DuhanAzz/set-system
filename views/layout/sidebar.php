@@ -53,77 +53,27 @@ function isGroupActive($req, $keywords) {
       <?php if($role == 'master'): ?>
          <div class="px-8 mt-8 mb-2 text-[10px] font-black text-slate-600 uppercase tracking-widest">Main Control</div>
          
-         <!-- GROUP 1: Pengguna & Akses -->
-         <?php $g1Active = isGroupActive($req, ['users/index.php?role=admin', 'users/index.php?role=user']); ?>
-         <button onclick="toggleSidebarDropdown('dd-pengguna')" class="<?= $g1Active ? $dropdownBtnActive : $dropdownBtnBase ?>">
-            <div class="flex items-center">
-               <span class="w-6 text-center mr-3 text-lg opacity-80">👥</span>
-               <span class="font-bold text-[11px] tracking-widest uppercase">Pengguna & Akses</span>
-            </div>
-            <span id="icon-dd-pengguna" class="transform transition-transform text-xs <?= $g1Active ? 'rotate-180' : '' ?>">▼</span>
-         </button>
-         <div id="dd-pengguna" class="bg-[#0b1120] py-2 <?= $g1Active ? '' : 'hidden' ?>">
-             <a href="<?= BASE_URL ?>/src/master/users/index.php?role=admin" class="<?= (strpos($req,"role=admin")!==false) ? $childActiveLink : $childBaseLink ?>">Admin EO</a>
-             <a href="<?= BASE_URL ?>/src/master/users/index.php?role=user" class="<?= (strpos($req,"role=user")!==false) ? $childActiveLink : $childBaseLink ?>">Akun Klub</a>
-         </div>
+         <a href="<?= BASE_URL ?>/core/dashboard" class="<?= (strpos($req,"/core/dashboard")!==false) ? $activeLink : $baseLink ?>">
+            <span class="w-6 text-xl mr-3 text-center opacity-80">📊</span>
+            <span class="font-bold text-[11px] tracking-widest uppercase">Dashboard Master</span>
+         </a>
+         
+         <div class="px-8 mt-8 mb-2 text-[10px] font-black text-slate-600 uppercase tracking-widest">Konfigurasi Sistem</div>
 
-         <!-- GROUP 2: Manajemen Atlet -->
-         <?php $g2Active = isGroupActive($req, ['master/swimmers/index', 'history_transfer']); ?>
-         <button onclick="toggleSidebarDropdown('dd-atlet')" class="<?= $g2Active ? $dropdownBtnActive : $dropdownBtnBase ?>">
-            <div class="flex items-center">
-               <span class="w-6 text-center mr-3 text-lg opacity-80">🏊</span>
-               <span class="font-bold text-[11px] tracking-widest uppercase">Manajemen Atlet</span>
-            </div>
-            <span id="icon-dd-atlet" class="transform transition-transform text-xs <?= $g2Active ? 'rotate-180' : '' ?>">▼</span>
-         </button>
-         <div id="dd-atlet" class="bg-[#0b1120] py-2 <?= $g2Active ? '' : 'hidden' ?>">
-             <a href="<?= BASE_URL ?>/src/master/swimmers/index.php" class="<?= (strpos($req,"master/swimmers/index")!==false) ? $childActiveLink : $childBaseLink ?>">Database Atlet</a>
-             <a href="<?= BASE_URL ?>/src/master/swimmers/history_transfer.php" class="<?= (strpos($req,"history_transfer")!==false) ? $childActiveLink : $childBaseLink ?>">Mutasi Klub</a>
-         </div>
-
-         <!-- GROUP 3: Sistem & Operasional -->
-         <?php $g3Active = isGroupActive($req, ['finance', 'maintenance', 'system_health']); ?>
-         <button onclick="toggleSidebarDropdown('dd-sistem')" class="<?= $g3Active ? $dropdownBtnActive : $dropdownBtnBase ?>">
-            <div class="flex items-center">
-               <span class="w-6 text-center mr-3 text-lg opacity-80">⚙️</span>
-               <span class="font-bold text-[11px] tracking-widest uppercase">Sistem & Ops</span>
-            </div>
-            <span id="icon-dd-sistem" class="transform transition-transform text-xs <?= $g3Active ? 'rotate-180' : '' ?>">▼</span>
-         </button>
-         <div id="dd-sistem" class="bg-[#0b1120] py-2 <?= $g3Active ? '' : 'hidden' ?>">
-             <a href="<?= BASE_URL ?>/src/master/finance/revenue.php" class="<?= (strpos($req,"finance")!==false) ? $childActiveLink : $childBaseLink ?>">Keuangan</a>
-             <a href="<?= BASE_URL ?>/src/master/maintenance/data_cleanup.php" class="<?= (strpos($req,"maintenance/data_cleanup")!==false) ? $childActiveLink : $childBaseLink ?>">Maintenance Data</a>
-             <a href="<?= BASE_URL ?>/src/master/maintenance/system_health.php" class="<?= (strpos($req,"system_health")!==false) ? $childActiveLink : $childBaseLink ?>">System Health</a>
-         </div>
-
-         <!-- GROUP 4: Konfigurasi Web -->
-         <?php $g4Active = isGroupActive($req, ['public_page', 'global_config']); ?>
-         <button onclick="toggleSidebarDropdown('dd-web')" class="<?= $g4Active ? $dropdownBtnActive : $dropdownBtnBase ?>">
-            <div class="flex items-center">
-               <span class="w-6 text-center mr-3 text-lg opacity-80">🌍</span>
-               <span class="font-bold text-[11px] tracking-widest uppercase">Konfigurasi Web</span>
-            </div>
-            <span id="icon-dd-web" class="transform transition-transform text-xs <?= $g4Active ? 'rotate-180' : '' ?>">▼</span>
-         </button>
-         <div id="dd-web" class="bg-[#0b1120] py-2 <?= $g4Active ? '' : 'hidden' ?>">
-             <a href="<?= BASE_URL ?>/core/settings/public" class="<?= (strpos($req,"public_page")!==false) ? $childActiveLink : $childBaseLink ?>">Landing Page</a>
-             <a href="<?= BASE_URL ?>/core/settings/global" class="<?= (strpos($req,"global_config")!==false) ? $childActiveLink : $childBaseLink ?>">Global Config</a>
-         </div>
-
-         <!-- GROUP 5: Data Referensi -->
-         <?php $g5Active = isGroupActive($req, ['manage_records', 'record_packages', 'dq_rules']); ?>
-         <button onclick="toggleSidebarDropdown('dd-referensi')" class="<?= $g5Active ? $dropdownBtnActive : $dropdownBtnBase ?>">
-            <div class="flex items-center">
-               <span class="w-6 text-center mr-3 text-lg opacity-80">📚</span>
-               <span class="font-bold text-[11px] tracking-widest uppercase">Data Referensi</span>
-            </div>
-            <span id="icon-dd-referensi" class="transform transition-transform text-xs <?= $g5Active ? 'rotate-180' : '' ?>">▼</span>
-         </button>
-         <div id="dd-referensi" class="bg-[#0b1120] py-2 <?= $g5Active ? '' : 'hidden' ?>">
-             <a href="<?= BASE_URL ?>/src/master/manage_records.php" class="<?= (strpos($req,"manage_records")!==false || strpos($req,"record_packages")!==false) ? $childActiveLink : $childBaseLink ?>">Manajemen Rekor</a>
-             <a href="<?= BASE_URL ?>/src/master/settings/dq_rules.php" class="<?= (strpos($req,"dq_rules")!==false) ? $childActiveLink : $childBaseLink ?>">Master DQ Rules</a>
-         </div>
-
+         <a href="<?= BASE_URL ?>/master/settings/global" class="<?= (strpos($req,"settings/global")!==false) ? $activeLink : $baseLink ?>">
+            <span class="w-6 text-xl mr-3 text-center opacity-80">📝</span>
+            <span class="font-bold text-[11px] tracking-widest uppercase">Pengaturan Global</span>
+         </a>
+         
+         <a href="<?= BASE_URL ?>/master/settings/hero" class="<?= (strpos($req,"settings/hero")!==false) ? $activeLink : $baseLink ?>">
+            <span class="w-6 text-xl mr-3 text-center opacity-80">🖼️</span>
+            <span class="font-bold text-[11px] tracking-widest uppercase">Slider Utama (Hero)</span>
+         </a>
+         
+         <a href="<?= BASE_URL ?>/master/settings/public" class="<?= (strpos($req,"settings/public")!==false) ? $activeLink : $baseLink ?>">
+            <span class="w-6 text-xl mr-3 text-center opacity-80">📢</span>
+            <span class="font-bold text-[11px] tracking-widest uppercase">Gambar & Fitur Promo</span>
+         </a>
       <?php endif; ?>
 
       <?php if($role == 'admin'): ?>
