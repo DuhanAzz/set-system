@@ -63,8 +63,8 @@ $linkFB       = $s['link_facebook'] ?? '#';
             <div class="flex items-center gap-12">
                 <div class="hidden lg:flex items-center space-x-10">
                     <a href="#home" class="nav-link active text-blue-400">Home</a>
-                    <a href="events.php" class="nav-link">Jadwal Lomba</a>
-                    <a href="results.php" class="nav-link">Hasil Lomba</a> 
+                    <a href="<?= getenv('APP_URL') ?>/swim/events" class="nav-link">Jadwal Lomba</a>
+                    <a href="<?= getenv('APP_URL') ?>/swim/results" class="nav-link">Hasil Lomba</a> 
                     <a href="#instruction" class="nav-link text-yellow-400">Panduan</a>
                 </div>
                 <div class="flex items-center border-l border-white/20 pl-10">
@@ -108,7 +108,7 @@ $linkFB       = $s['link_facebook'] ?? '#';
                 <?php endif; ?>
 
                 <div class="flex gap-6 mt-10">
-                    <a href="register.php" class="bg-blue-600 px-12 py-5 rounded-2xl font-black uppercase shadow-2xl hover:bg-blue-700 transition tracking-widest">Mulai Daftar Klub</a>
+                    <a href="<?= getenv('APP_URL') ?>/swim/register" class="bg-blue-600 px-12 py-5 rounded-2xl font-black uppercase shadow-2xl hover:bg-blue-700 transition tracking-widest">Mulai Daftar Klub</a>
                     <a href="#schedule" class="bg-white/10 backdrop-blur-md border border-white/20 px-12 py-5 rounded-2xl font-black uppercase hover:bg-white hover:text-slate-900 transition tracking-widest">Lihat Kompetisi Terbaru</a>
                 </div>
             </div>
@@ -121,7 +121,7 @@ $linkFB       = $s['link_facebook'] ?? '#';
                 <span class="text-blue-600 font-black tracking-[0.3em] uppercase text-sm mb-2 block">Upcoming Action</span>
                 <h2 class="text-5xl font-black uppercase italic text-slate-900 tracking-tighter">Competition Preview</h2>
             </div>
-            <a href="events.php" class="inline-flex items-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-full font-black uppercase text-xs tracking-widest hover:bg-blue-600 transition shadow-lg">
+            <a href="<?= getenv('APP_URL') ?>/swim/events" class="inline-flex items-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-full font-black uppercase text-xs tracking-widest hover:bg-blue-600 transition shadow-lg">
                 Jelajahi Semua Lomba &rarr;
             </a>
         </div>
@@ -173,12 +173,12 @@ $linkFB       = $s['link_facebook'] ?? '#';
                     </div>
 
                     <div class="grid grid-cols-2 gap-3 mt-8">
-                        <a href="events.php?id=<?= $e['id'] ?>" class="py-3.5 px-2 rounded-xl border-2 border-slate-100 flex items-center justify-center gap-2 hover:border-slate-800 hover:bg-slate-800 hover:text-white transition-all uppercase text-[10px] font-black tracking-widest text-slate-600">
+                        <a href="<?= getenv('APP_URL') ?>/swim/events?id=<?= $e['id'] ?>" class="py-3.5 px-2 rounded-xl border-2 border-slate-100 flex items-center justify-center gap-2 hover:border-slate-800 hover:bg-slate-800 hover:text-white transition-all uppercase text-[10px] font-black tracking-widest text-slate-600">
                             <span>📖</span> Info Lomba
                         </a>
                         
                         <?php if ($e['is_result_published'] == 1): ?>
-                            <a href="results.php?event_id=<?= $e['id'] ?>" class="py-3.5 px-2 rounded-xl flex items-center justify-center gap-2 bg-blue-50 border-2 border-blue-100 text-blue-600 hover:bg-blue-600 hover:text-white transition-all uppercase text-[10px] font-black tracking-widest">
+                            <a href="<?= getenv('APP_URL') ?>/swim/results?event_id=<?= $e['id'] ?>" class="py-3.5 px-2 rounded-xl flex items-center justify-center gap-2 bg-blue-50 border-2 border-blue-100 text-blue-600 hover:bg-blue-600 hover:text-white transition-all uppercase text-[10px] font-black tracking-widest">
                                 <span class="animate-bounce">🏆</span> Hasil
                             </a>
                         <?php else: ?>
