@@ -21,7 +21,7 @@ class LoginController extends Controller {
 
     public function process() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $username = $_POST['username'] ?? $_POST['email'] ?? '';
+            $username = $_POST['username'] ?? '';
             $password = $_POST['password'] ?? '';
 
             try {

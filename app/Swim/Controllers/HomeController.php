@@ -9,44 +9,60 @@ use PDO;
 class HomeController extends Controller {
     
     public function index() {
-        // Mengambil koneksi database
         $db = Database::getInstance()->getConnection();
         
-        $settings = [];
+        // 1. Ambil gambar slider/hero
         $sliders = [];
-        $events = [];
-
         try {
-            // Karena ini khusus Renang, kita ambil dari tabel khusus Renang jika ada.
-            // Namun, jika struktur db belum sepenuhnya terpisah, kita amankan dengan try-catch.
-            
-            // 1. Ambil Settings
-            $stmt_settings = $db->query("SELECT * FROM swim_site_settings WHERE id = 1");
-            $s = $stmt_settings->fetch(PDO::FETCH_ASSOC) ?: [];
-
-            // 2. Ambil Sliders Renang
-            $stmt_sliders = $db->query("SELECT * FROM swim_hero_images ORDER BY id DESC LIMIT 5");
-            $sliders = $stmt_sliders->fetchAll(PDO::FETCH_ASSOC) ?: [];
-
-            // 3. Ambil Event Renang
-            $sqlEvents = "SELECT id, event_name, event_location, event_city, event_date_start, event_status, poster_image, logo_left, is_result_published 
-                          FROM swim_events 
-                          WHERE event_status != 'Draft' 
-                          ORDER BY id DESC LIMIT 4";
-            $stmt_events = $db->query($sqlEvents);
-            $upcoming_preview = $stmt_events->fetchAll(PDO::FETCH_ASSOC) ?: [];
-
+            $stmt = $db->query("SELECT * FROM swim_hero_images ORDER BY id DESC LIMIT 5");
+            $sliders = $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (\Exception $e) {
-            $s = [];
-            $sliders = [];
-            $upcoming_preview = [];
+            try {
+                $stmt = $db->query("SELECT * FROM universal_hero_images ORDER BY id DESC LIMIT 5");
+                $sliders = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            } catch (\Exception $e) {}
         }
-        
-        // Mengirim data ke view Renang
+
+        // 2. Ambil 4 event terdekat
+        $upcoming_events = [];
+        try {
+            $stmt = $db->query("SELECT * FROM swim_events WHERE event_date_start >= CURDATE() ORDER BY event_date_start ASC LIMIT 4");
+            $upcoming_events = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Exception $e) {}
+
         return $this->view('swim/home', [
-            's' => $s,
             'sliders' => $sliders,
-            'upcoming_preview' => $upcoming_preview
+            'upcoming_events' => $upcoming_events
+        ]);
+    }
+
+    public function events() {
+        $db = Database::getInstance()->getConnection();
+        
+        $active_events = [];
+        try {
+            // Ambil semua event aktif yang belum selesai
+            $stmt = $db->query("SELECT * FROM swim_events WHERE event_status != 'Done' ORDER BY event_date_start ASC");
+            $active_events = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Exception $e) {}
+
+        return $this->view('swim/events', [
+            'active_events' => $active_events
+        ]);
+    }
+
+    public function results() {
+        $db = Database::getInstance()->getConnection();
+        
+        $completed_events = [];
+        try {
+            // Ambil event yang sudah selesai atau result published
+            $stmt = $db->query("SELECT * FROM swim_events WHERE event_status = 'Done' OR is_result_published = 1 ORDER BY event_date_start DESC");
+            $completed_events = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Exception $e) {}
+
+        return $this->view('swim/results', [
+            'completed_events' => $completed_events
         ]);
     }
 }
