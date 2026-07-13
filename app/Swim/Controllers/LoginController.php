@@ -27,9 +27,9 @@ class LoginController extends Controller {
             try {
                 $db = Database::getInstance()->getConnection();
                 
-                // Cari user di tabel swim_users (termasuk admin event dan manajer klub)
-                $stmt = $db->prepare("SELECT * FROM swim_users WHERE username = ?");
-                $stmt->execute([$username]);
+                // Cari user di tabel swim_users (bisa login via username atau email)
+                $stmt = $db->prepare("SELECT * FROM swim_users WHERE username = ? OR email = ?");
+                $stmt->execute([$username, $username]);
                 $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
                 if ($user && password_verify($password, $user['password'])) {
@@ -41,15 +41,25 @@ class LoginController extends Controller {
                         exit;
                     }
 
-                    // Set session
+                    // Set session utama
                     $_SESSION['swim_user_id'] = $user['id'];
-                    $_SESSION['role'] = $user['role']; // admin / user
+                    $_SESSION['role'] = $user['role']; // master / admin / user
                     $_SESSION['username'] = $user['username'];
                     $_SESSION['nama_lengkap'] = $user['nama_lengkap'] ?? $user['username'];
                     $_SESSION['klub_id'] = $user['klub_id'] ?? null;
                     
-                    header('Location: ' . getenv('APP_URL') . '/swim/dashboard');
+                    // Routing Multi-Role
+                    $role = strtolower($user['role']);
+                    if ($role === 'master') {
+                        header('Location: ' . getenv('APP_URL') . '/core/dashboard');
+                    } elseif ($role === 'admin') {
+                        header('Location: ' . getenv('APP_URL') . '/swim/admin/dashboard');
+                    } else {
+                        // Default fallback (user/club)
+                        header('Location: ' . getenv('APP_URL') . '/swim/user/dashboard');
+                    }
                     exit;
+
                 } else {
                     $_SESSION['error'] = 'Username atau Password salah!';
                     header('Location: ' . getenv('APP_URL') . '/swim/login');

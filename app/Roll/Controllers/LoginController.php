@@ -21,35 +21,43 @@ class LoginController extends Controller {
 
     public function process() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $username = $_POST['username'] ?? $_POST['email'] ?? '';
+            $username = $_POST['username'] ?? '';
             $password = $_POST['password'] ?? '';
 
             try {
                 $db = Database::getInstance()->getConnection();
                 
-                // Cari user di tabel roll_users
-                $stmt = $db->prepare("SELECT * FROM roll_users WHERE username = ?");
-                $stmt->execute([$username]);
+                $stmt = $db->prepare("SELECT * FROM roll_users WHERE username = ? OR email = ?");
+                $stmt->execute([$username, $username]);
                 $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
                 if ($user && password_verify($password, $user['password'])) {
                     
-                    // Cek status akun pending
                     if (isset($user['account_status']) && strtolower($user['account_status']) === 'pending') {
                         $_SESSION['error'] = 'Akun Anda masih dalam status PENDING. Silakan tunggu verifikasi admin.';
                         header('Location: ' . getenv('APP_URL') . '/roll/login');
                         exit;
                     }
 
-                    // Set session
+                    // Set session utama
                     $_SESSION['roll_user_id'] = $user['id'];
-                    $_SESSION['role'] = $user['role']; // admin / user
+                    $_SESSION['role'] = $user['role']; // master / admin / user
                     $_SESSION['username'] = $user['username'];
                     $_SESSION['nama_lengkap'] = $user['nama_lengkap'] ?? $user['username'];
                     $_SESSION['klub_id'] = $user['klub_id'] ?? null;
                     
-                    header('Location: ' . getenv('APP_URL') . '/roll/dashboard');
+                    // Routing Multi-Role
+                    $role = strtolower($user['role']);
+                    if ($role === 'master') {
+                        header('Location: ' . getenv('APP_URL') . '/core/dashboard');
+                    } elseif ($role === 'admin') {
+                        header('Location: ' . getenv('APP_URL') . '/roll/admin/dashboard');
+                    } else {
+                        // Default fallback (user/club)
+                        header('Location: ' . getenv('APP_URL') . '/roll/user/dashboard');
+                    }
                     exit;
+
                 } else {
                     $_SESSION['error'] = 'Username atau Password salah!';
                     header('Location: ' . getenv('APP_URL') . '/roll/login');
