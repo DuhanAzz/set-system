@@ -135,6 +135,16 @@ switch ($module) {
                 $controller->index();
             }
         } else {
+            // Fallback: Coba periksa apakah method ada di HomeController
+            $fallbackClass = "\\App\\Roll\\Controllers\\HomeController";
+            if (class_exists($fallbackClass)) {
+                $fallbackController = new $fallbackClass();
+                if (method_exists($fallbackController, $page)) {
+                    $fallbackController->$page();
+                    break;
+                }
+            }
+            
             http_response_code(404);
             echo "<h1>404 Not Found</h1><p>Halaman Roll '{$page}' tidak ditemukan.</p>";
         }
@@ -153,6 +163,16 @@ switch ($module) {
                 $controller->index();
             }
         } else {
+            // Fallback: Coba periksa apakah method ada di HomeController
+            $fallbackClass = "\\App\\Swim\\Controllers\\HomeController";
+            if (class_exists($fallbackClass)) {
+                $fallbackController = new $fallbackClass();
+                if (method_exists($fallbackController, $page)) {
+                    $fallbackController->$page();
+                    break;
+                }
+            }
+            
             http_response_code(404);
             echo "<h1>404 Not Found</h1><p>Halaman Swim '{$page}' tidak ditemukan.</p>";
         }
