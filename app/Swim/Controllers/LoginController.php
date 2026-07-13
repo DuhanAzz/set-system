@@ -28,8 +28,8 @@ class LoginController extends Controller {
                 $db = Database::getInstance()->getConnection();
                 
                 // Cari user di tabel swim_users (termasuk admin event dan manajer klub)
-                $stmt = $db->prepare("SELECT * FROM swim_users WHERE username = ? OR email = ?");
-                $stmt->execute([$username, $username]);
+                $stmt = $db->prepare("SELECT * FROM swim_users WHERE username = ?");
+                $stmt->execute([$username]);
                 $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
                 if ($user && password_verify($password, $user['password'])) {

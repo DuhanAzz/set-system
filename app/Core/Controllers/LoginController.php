@@ -28,15 +28,15 @@ class LoginController extends Controller {
                 $db = Database::getInstance()->getConnection();
                 
                 // Cari user di tabel universal_admins
-                $stmt = $db->prepare("SELECT * FROM universal_admins WHERE username = ? OR email = ?");
-                $stmt->execute([$username, $username]);
+                $stmt = $db->prepare("SELECT * FROM universal_admins WHERE username = ?");
+                $stmt->execute([$username]);
                 $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
                 // Jika universal_admins kosong/tidak ada, fallback ke swim_users (seperti lama) 
                 // untuk kemudahan migrasi jika admin master ada di swim_users
                 if (!$user) {
-                    $stmt = $db->prepare("SELECT * FROM swim_users WHERE (username = ? OR email = ?) AND role = 'master'");
-                    $stmt->execute([$username, $username]);
+                    $stmt = $db->prepare("SELECT * FROM swim_users WHERE username = ? AND role = 'master'");
+                    $stmt->execute([$username]);
                     $user = $stmt->fetch(PDO::FETCH_ASSOC);
                 }
 
