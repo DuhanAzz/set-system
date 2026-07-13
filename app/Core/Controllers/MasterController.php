@@ -42,34 +42,73 @@ class MasterController extends Controller {
         $heroTitle = 'Universal SET System'; 
 
         try {
-            $stats['eo']       = $pdo->query("SELECT COUNT(*) FROM swim_users WHERE role = 'admin'")->fetchColumn() ?: 0;
-            $stats['clubs']    = $pdo->query("SELECT COUNT(*) FROM swim_users WHERE role = 'user'")->fetchColumn() ?: 0;
-            $stats['pending_users'] = $pdo->query("SELECT COUNT(*) FROM swim_users WHERE account_status = 'pending'")->fetchColumn() ?: 0;
-            
+            // Revenue Aggregation
+            $revenueSwim = 0;
+            $revenueRoll = 0;
+            try { $revenueSwim = (int)$pdo->query("SELECT SUM(amount) FROM swim_payments WHERE status = 'Paid'")->fetchColumn(); } catch(Exception $e) {}
+            try { $revenueRoll = (int)$pdo->query("SELECT SUM(amount) FROM roll_payments WHERE status = 'Paid'")->fetchColumn(); } catch(Exception $e) {}
+            $stats['revenue'] = $revenueSwim + $revenueRoll;
+            $stats['revenue_swim'] = $revenueSwim;
+            $stats['revenue_roll'] = $revenueRoll;
+
+            // Events Count
+            $eventsSwim = 0;
+            $eventsRoll = 0;
+            try { $eventsSwim = (int)$pdo->query("SELECT COUNT(*) FROM swim_events")->fetchColumn(); } catch(Exception $e) {}
+            try { $eventsRoll = (int)$pdo->query("SELECT COUNT(*) FROM roll_events")->fetchColumn(); } catch(Exception $e) {}
+            $stats['events'] = $eventsSwim + $eventsRoll;
+            $stats['events_swim'] = $eventsSwim;
+            $stats['events_roll'] = $eventsRoll;
+
+            // Users Count (EO + Clubs)
+            $usersSwim = 0;
+            $usersRoll = 0;
+            try { $usersSwim = (int)$pdo->query("SELECT COUNT(*) FROM swim_users")->fetchColumn(); } catch(Exception $e) {}
+            try { $usersRoll = (int)$pdo->query("SELECT COUNT(*) FROM roll_users")->fetchColumn(); } catch(Exception $e) {}
+            $stats['users'] = $usersSwim + $usersRoll;
+            $stats['users_swim'] = $usersSwim;
+            $stats['users_roll'] = $usersRoll;
+
+            // Pending action placeholders (optional)
+            $stats['pending_users'] = 0;
+            try { $stats['pending_users'] = (int)$pdo->query("SELECT COUNT(*) FROM swim_users WHERE account_status = 'pending'")->fetchColumn(); } catch(Exception $e) {}
+            $stats['pending_uids'] = 0;
+
+            // Live Events (Combined)
+            $eventsList = [];
             try {
-                $stats['athletes'] = $pdo->query("SELECT COUNT(*) FROM swim_swimmers")->fetchColumn() ?: 0;
-                $stats['pending_uids'] = $pdo->query("SELECT COUNT(*) FROM swim_swimmers WHERE uid IS NULL OR trim(uid) = '' OR uid = '-' OR uid LIKE 'SW%' OR uid = '0'")->fetchColumn() ?: 0;
-            } catch (Exception $e) {}
-
-            try { $countActive = $pdo->query("SELECT COUNT(*) FROM swim_event_entries")->fetchColumn() ?: 0; } catch (Exception $e) { $countActive = 0; }
-            try { $countArchive = $pdo->query("SELECT COUNT(*) FROM event_entries_archive")->fetchColumn() ?: 0; } catch (Exception $e) { $countArchive = 0; }
-            $stats['entries'] = $countActive + $countArchive;
-
-            try { $stats['revenue'] = $pdo->query("SELECT SUM(amount) FROM swim_payments WHERE status = 'Paid'")->fetchColumn() ?: 0; } catch (Exception $e) { $stats['revenue'] = 0; }
+                $sqlSwim = "SELECT e.id, e.event_name, e.event_date_start, e.event_location, e.event_status, u.nama_lengkap as eo_name, 'swim' as source 
+                            FROM swim_events e LEFT JOIN swim_users u ON e.user_id = u.id 
+                            WHERE e.event_status != 'Done' AND e.event_date_start >= CURDATE()";
+                $stmtSwim = $pdo->query($sqlSwim);
+                if ($stmtSwim) $eventsList = array_merge($eventsList, $stmtSwim->fetchAll(PDO::FETCH_ASSOC));
+            } catch(Exception $e) {}
 
             try {
-                $settings = $pdo->query("SELECT * FROM universal_settings WHERE id=1")->fetch();
+                $sqlRoll = "SELECT e.id, e.event_name, e.event_date_start, e.event_location, e.event_status, u.nama_lengkap as eo_name, 'roll' as source 
+                            FROM roll_events e LEFT JOIN roll_users u ON e.user_id = u.id 
+                            WHERE e.event_status != 'Done' AND e.event_date_start >= CURDATE()";
+                $stmtRoll = $pdo->query($sqlRoll);
+                if ($stmtRoll) $eventsList = array_merge($eventsList, $stmtRoll->fetchAll(PDO::FETCH_ASSOC));
+            } catch(Exception $e) {}
+
+            // Sort combined events by date ascending
+            usort($eventsList, function($a, $b) {
+                return strtotime($a['event_date_start']) - strtotime($b['event_date_start']);
+            });
+            $liveEvents = array_slice($eventsList, 0, 5);
+
+            // Settings
+            try {
+                $settings = $pdo->query("SELECT * FROM universal_settings WHERE id=1")->fetch(PDO::FETCH_ASSOC);
                 if ($settings) {
                     $systemStatus = $settings['maintenance_mode'] ?? 0;
                     $heroTitle    = $settings['app_name'] ?? 'Universal SET System';
                 }
             } catch (Exception $e) {}
 
-            $sqlLive = "SELECT e.*, u.nama_lengkap as eo_name FROM swim_events e LEFT JOIN swim_users u ON e.user_id = u.id WHERE e.event_status != 'Done' AND e.event_date_start >= CURDATE() ORDER BY e.event_date_start ASC LIMIT 5";
-            try { $liveEvents = $pdo->query($sqlLive)->fetchAll(); } catch (Exception $e) {}
-
             $sqlRecent = "SELECT id, username, role, created_at, nama_lengkap, email, account_status FROM swim_users ORDER BY created_at DESC LIMIT 5";
-            try { $recentUsers = $pdo->query($sqlRecent)->fetchAll(); } catch (Exception $e) {}
+            try { $recentUsers = $pdo->query($sqlRecent)->fetchAll(PDO::FETCH_ASSOC); } catch (Exception $e) {}
 
         } catch (Exception $e) { }
 

@@ -45,7 +45,7 @@ if ($uid > 0) {
     $userData = $stmtU->fetch();
 
     if ($userData && !empty($userData['photo'])) {
-        $displayImage = BASE_URL . "/public/" . $userData['photo'] . "?t=" . time();
+        $displayImage = BASE_URL . "/" . ltrim($userData['photo'], '/');
     } elseif ($role == 'user') {
         $stmtC = $pdo->prepare("SELECT nama_klub, logo FROM swim_clubs WHERE user_id = ?");
         $stmtC->execute([$uid]);
@@ -54,7 +54,7 @@ if ($uid > 0) {
             $displayName = $clubData['nama_klub'];
             $displayRole = "CLUB ADMIN";
             if (!empty($clubData['logo'])) {
-                $displayImage = BASE_URL . "/public/" . $clubData['logo'] . "?t=" . time();
+                $displayImage = BASE_URL . "/" . ltrim($clubData['logo'], '/');
             }
         }
     }
@@ -67,7 +67,7 @@ if ($uid > 0) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SET System Dashboard</title>
-    <link rel="icon" type="image/png" href="<?= BASE_URL ?>/public/favicon.png?v=2">
+    <link rel="icon" type="image/png" href="<?= BASE_URL ?>/favicon.png?v=2">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.2.0/flowbite.min.css" rel="stylesheet" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.2.0/flowbite.min.js"></script>
@@ -82,7 +82,7 @@ if ($uid > 0) {
 <?php // include_once __DIR__ . '/../notifikasi.php'; ?>
 
 <?php
-$topbarBg = $isMaster ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-gray-200 text-slate-800';
+$topbarBg = $isMaster ? 'bg-[#161e31] border-slate-800 text-white' : 'bg-white border-gray-200 text-slate-800';
 $logoText = $isMaster ? 'Universal CMS' : 'SET System';
 ?>
 <nav class="fixed top-0 left-0 right-0 z-40 <?= $topbarBg ?> border-b h-16 shadow-sm sm:ml-64 transition-all">
@@ -119,7 +119,17 @@ $logoText = $isMaster ? 'Universal CMS' : 'SET System';
                   <p class="text-xs font-medium text-gray-500 truncate"><?= $_SESSION['email'] ?? '' ?></p>
                 </div>
                 <ul class="py-2" role="none">
-                  <li><a href="<?= BASE_URL ?>/public/profile_edit.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 font-medium flex items-center gap-2"><span>👤</span> Profil & Keamanan</a></li>
+                  <?php
+                    $role = $_SESSION['role'] ?? 'guest';
+                    if ($role === 'master') {
+                        $profileUrl = getenv('APP_URL') . '/core/profile';
+                    } elseif (strpos($_SERVER['REQUEST_URI'], '/roll/') !== false) {
+                        $profileUrl = getenv('APP_URL') . '/roll/profile';
+                    } else {
+                        $profileUrl = getenv('APP_URL') . '/swim/profile';
+                    }
+                  ?>
+                  <li><a href="<?= $profileUrl ?>" class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 font-medium flex items-center gap-2"><span>👤</span> Profil & Keamanan</a></li>
                   <div class="border-t border-gray-100 my-1"></div>
                   <li>
                     <?php

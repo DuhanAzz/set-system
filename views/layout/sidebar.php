@@ -39,7 +39,7 @@ function isGroupActive($req, $keywords) {
 <aside id="logo-sidebar" class="fixed top-0 left-0 z-50 w-64 h-screen transition-transform -translate-x-full bg-[#0F172A] sm:translate-x-0 shadow-2xl flex flex-col border-r border-slate-800" aria-label="Sidebar">
    
    <div class="h-32 flex items-center justify-center px-4 bg-[#161e31] border-b border-slate-800 shrink-0">
-      <img src="<?= BASE_URL ?>/public/img/logo.png" class="h-20 w-auto object-contain drop-shadow-2xl brightness-110" alt="Logo Web">
+      <img src="<?= BASE_URL ?>/img/logo.png" class="h-20 w-auto object-contain drop-shadow-2xl brightness-110" alt="Logo Web">
    </div>
 
    <div class="flex-1 overflow-y-auto py-6 space-y-1 custom-scrollbar">
@@ -51,13 +51,6 @@ function isGroupActive($req, $keywords) {
       </a>
 
       <?php if($role == 'master'): ?>
-         <div class="px-8 mt-8 mb-2 text-[10px] font-black text-slate-600 uppercase tracking-widest">Main Control</div>
-         
-         <a href="<?= BASE_URL ?>/core/dashboard" class="<?= (strpos($req,"/core/dashboard")!==false) ? $activeLink : $baseLink ?>">
-            <span class="w-6 text-xl mr-3 text-center opacity-80">📊</span>
-            <span class="font-bold text-[11px] tracking-widest uppercase">Dashboard Master</span>
-         </a>
-         
          <div class="px-8 mt-8 mb-2 text-[10px] font-black text-slate-600 uppercase tracking-widest">Konfigurasi Sistem</div>
 
          <a href="<?= BASE_URL ?>/core/settings/global" class="<?= (strpos($req,"settings/global")!==false) ? $activeLink : $baseLink ?>">

@@ -108,6 +108,13 @@ switch ($module) {
             } else {
                 $controller->index();
             }
+        } elseif ($page === 'profile') {
+            $controller = new \App\Core\Controllers\ProfileController();
+            if ($subpage === 'process') {
+                $controller->process();
+            } else {
+                $controller->index();
+            }
         } 
         else {
             // Placeholder untuk sub-halaman master lainnya

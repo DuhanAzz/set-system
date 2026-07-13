@@ -53,7 +53,9 @@
             <div class="relative z-10">
                 <p class="text-emerald-100 text-[10px] font-black uppercase tracking-widest mb-1">Total Pendapatan</p>
                 <h2 class="text-2xl font-black">Rp <?= number_format($stats['revenue'], 0, ',', '.') ?></h2>
-                <div class="mt-4 text-[10px] font-bold bg-white/20 inline-block px-2 py-1 rounded">All Events</div>
+                <div class="mt-4 text-[10px] font-bold bg-white/20 inline-block px-2 py-1 rounded">
+                    Renang: Rp <?= number_format($stats['revenue_swim'] ?? 0, 0, ',', '.') ?> | Roll: Rp <?= number_format($stats['revenue_roll'] ?? 0, 0, ',', '.') ?>
+                </div>
             </div>
             <div class="absolute -right-4 -bottom-4 opacity-10 group-hover:scale-110 transition duration-500 text-white">
                 <svg class="w-24 h-24" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1.41 16.09V20h-2.67v-1.93c-1.71-.36-3.15-1.46-3.27-3.4h1.96c.1 1.05 1.18 1.91 2.53 1.91 1.29 0 2.13-.81 2.13-1.88 0-1.1-.68-1.57-1.75-2.25-1.55-.98-2.69-1.66-2.69-3.5 0-1.81 1.4-2.97 3.09-3.32V4h2.67v1.93c1.71.36 3.15 1.46 3.27 3.4h-1.96c-.1-1.05-1.18-1.91-2.53-1.91-1.29 0-2.13.81-2.13 1.88 0 1.1.68 1.57 1.75 2.25 1.55.98 2.69 1.66 2.69 3.5 0 1.81-1.4 2.97-3.09 3.32z"/></svg>
@@ -63,20 +65,20 @@
         <div class="bg-gradient-to-br from-white to-slate-50 rounded-2xl p-6 border-b-4 border-blue-500 shadow-sm hover:shadow-lg transition-all duration-300 group">
             <div class="flex justify-between items-start">
                 <div>
-                    <p class="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Database Atlet</p>
-                    <h2 class="text-3xl font-black text-slate-800 group-hover:text-blue-600 transition"><?= number_format($stats['athletes']) ?></h2>
-                    <p class="text-[10px] text-slate-400 mt-1">Total terdaftar di sistem</p>
+                    <p class="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Total Event Ekosistem</p>
+                    <h2 class="text-3xl font-black text-slate-800 group-hover:text-blue-600 transition"><?= number_format($stats['events'] ?? 0) ?></h2>
+                    <p class="text-[10px] text-slate-400 mt-1"><?= $stats['events_swim'] ?? 0 ?> Renang | <?= $stats['events_roll'] ?? 0 ?> Sepatu Roda</p>
                 </div>
-                <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center text-2xl shadow-inner">🏊</div>
+                <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center text-2xl shadow-inner">📅</div>
             </div>
         </div>
 
         <div class="bg-gradient-to-br from-white to-slate-50 rounded-2xl p-6 border-b-4 border-purple-500 shadow-sm hover:shadow-lg transition-all duration-300 group">
             <div class="flex justify-between items-start">
                 <div>
-                    <p class="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Total User</p>
-                    <h2 class="text-3xl font-black text-slate-800 group-hover:text-purple-600 transition"><?= number_format($stats['eo'] + $stats['clubs']) ?></h2>
-                    <p class="text-[10px] text-slate-400 mt-1"><?= $stats['clubs'] ?> Klub / <?= $stats['eo'] ?> EO</p>
+                    <p class="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Total Tenant/User</p>
+                    <h2 class="text-3xl font-black text-slate-800 group-hover:text-purple-600 transition"><?= number_format($stats['users'] ?? 0) ?></h2>
+                    <p class="text-[10px] text-slate-400 mt-1"><?= $stats['users_swim'] ?? 0 ?> Renang | <?= $stats['users_roll'] ?? 0 ?> Sepatu Roda</p>
                 </div>
                 <div class="w-12 h-12 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center text-2xl shadow-inner">👥</div>
             </div>
@@ -110,8 +112,8 @@
             
             <div class="bg-white rounded-[2rem] shadow-sm border border-slate-200 p-8">
                 <div class="flex justify-between items-center mb-6">
-                    <h3 class="font-black text-slate-800 uppercase italic text-sm tracking-widest">🗓️ Kompetisi Mendatang</h3>
-                    <a href="events/index.php" class="text-[10px] font-bold text-blue-600 hover:underline">Lihat Semua</a>
+                    <h3 class="font-black text-slate-800 uppercase italic text-sm tracking-widest">📡 Radar Event Aktif</h3>
+                    <a href="#" class="text-[10px] font-bold text-blue-600 hover:underline">Lihat Semua</a>
                 </div>
 
                 <div class="space-y-4">
@@ -123,13 +125,17 @@
                         <?php foreach($liveEvents as $ev): ?>
                         <div class="flex items-center justify-between p-4 bg-slate-50 border border-slate-100 rounded-2xl hover:bg-white hover:shadow-md transition group">
                             <div class="flex items-center gap-4">
-                                <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex flex-col items-center justify-center font-bold text-[10px] leading-tight shadow-sm">
+                                <?php $sysIconBg = ($ev['source'] === 'roll') ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'; ?>
+                                <div class="w-12 h-12 <?= $sysIconBg ?> rounded-xl flex flex-col items-center justify-center font-bold text-[10px] leading-tight shadow-sm">
                                     <span><?= date('M', strtotime($ev['event_date_start'])) ?></span>
                                     <span class="text-lg"><?= date('d', strtotime($ev['event_date_start'])) ?></span>
                                 </div>
                                 <div>
                                     <h4 class="font-black text-slate-800 text-sm uppercase group-hover:text-blue-600 transition"><?= htmlspecialchars($ev['event_name']) ?></h4>
                                     <p class="text-[10px] text-slate-500 font-bold uppercase">
+                                        <span class="px-1.5 py-0.5 rounded text-[8px] mr-1 <?= $ev['source'] === 'roll' ? 'bg-orange-600 text-white' : 'bg-blue-600 text-white' ?>">
+                                            <?= $ev['source'] === 'roll' ? 'ROLL' : 'SWIM' ?>
+                                        </span>
                                         📍 <?= htmlspecialchars(substr($ev['event_location'], 0, 30)) ?>... 
                                         <span class="text-slate-300 mx-1">|</span> 
                                         EO: <?= htmlspecialchars($ev['eo_name'] ?? 'Unknown') ?>
@@ -210,7 +216,7 @@
                         <div class="text-2xl mb-2 group-hover:scale-110 transition">💰</div>
                         <span class="text-[9px] font-bold uppercase tracking-wider">Keuangan</span>
                     </a>
-                    <a href="settings/public_page.php" class="bg-slate-700 hover:bg-indigo-600 p-4 rounded-xl text-center transition group">
+                    <a href="<?= getenv('APP_URL') ?>/core/settings/global" class="bg-slate-700 hover:bg-indigo-600 p-4 rounded-xl text-center transition group">
                         <div class="text-2xl mb-2 group-hover:scale-110 transition">🎨</div>
                         <span class="text-[9px] font-bold uppercase tracking-wider">Editor Web</span>
                     </a>
