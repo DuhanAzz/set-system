@@ -43,20 +43,20 @@ class LoginController extends Controller {
                     $_SESSION['roll_user_id'] = $user['id'];
                     $_SESSION['roll_role'] = $user['role']; 
                     
-                    // Routing Redirect Berdasarkan Role (REVISI)
+                    // Routing Redirect Berdasarkan Role (REVISI DashboardController)
                     $role = strtolower($user['role']);
                     switch ($role) {
                         case 'master':
-                            header('Location: ' . getenv('APP_URL') . '/roll/master/dashboard');
+                            header('Location: ' . getenv('APP_URL') . '/roll/dashboard/master');
                             break;
                         case 'admin':
-                            header('Location: ' . getenv('APP_URL') . '/roll/admin/dashboard');
+                            header('Location: ' . getenv('APP_URL') . '/roll/dashboard/admin');
                             break;
                         case 'user':
-                            header('Location: ' . getenv('APP_URL') . '/roll/user/dashboard');
+                            header('Location: ' . getenv('APP_URL') . '/roll/dashboard/user');
                             break;
                         default:
-                            header('Location: ' . getenv('APP_URL') . '/roll/user/dashboard');
+                            header('Location: ' . getenv('APP_URL') . '/roll/dashboard/user');
                             break;
                     }
                     exit;

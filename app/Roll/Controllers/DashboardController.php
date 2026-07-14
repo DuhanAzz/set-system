@@ -4,7 +4,6 @@ namespace App\Roll\Controllers;
 
 use App\Core\Controller;
 use App\Core\Database;
-use PDO;
 
 class DashboardController extends Controller {
 
@@ -14,41 +13,58 @@ class DashboardController extends Controller {
         }
 
         // Proteksi Akses (Hanya yang sudah login via Roll)
-        if (!isset($_SESSION['roll_user_id']) || !isset($_SESSION['role'])) {
+        if (!isset($_SESSION['roll_user_id']) || !isset($_SESSION['roll_role'])) {
             $loginUrl = getenv('APP_URL') ? rtrim(getenv('APP_URL'), '/') . '/roll/login' : '/roll/login';
             header("Location: " . $loginUrl);
             exit;
         }
     }
 
-    public function index() {
-        $db = Database::getInstance()->getConnection();
-
-        $stats = [
-            'totalEvents' => 0,
-            'totalClubs' => 0,
-            'totalSkaters' => 0,
-            'totalEntries' => 0
-        ];
-        $latestEvents = [];
-
-        try {
-            // 1. STATISTIK
-            $stats['totalEvents'] = $db->query("SELECT COUNT(*) FROM roll_events")->fetchColumn();
-            $stats['totalClubs'] = $db->query("SELECT COUNT(*) FROM roll_clubs")->fetchColumn();
-            $stats['totalSkaters'] = $db->query("SELECT COUNT(*) FROM roll_skaters")->fetchColumn();
-            $stats['totalEntries'] = $db->query("SELECT COUNT(*) FROM roll_entries")->fetchColumn();
-
-            // 2. DATA TERBARU
-            $latestEvents = $db->query("SELECT * FROM roll_events ORDER BY id DESC LIMIT 5")->fetchAll(PDO::FETCH_ASSOC);
-        } catch (\Exception $e) {
-            // Silent error jika tabel belum siap
+    public function master() {
+        // Cek Role Master
+        if ($_SESSION['roll_role'] !== 'master') {
+            header("Location: " . getenv('APP_URL') . "/roll/login");
+            exit;
         }
+        return $this->view('roll/master/dashboard');
+    }
 
-        // Kirim data ke view
-        return $this->view('roll/dashboard', [
-            'stats' => $stats,
-            'latestEvents' => $latestEvents
-        ]);
+    public function admin() {
+        // Cek Role Admin
+        if ($_SESSION['roll_role'] !== 'admin') {
+            header("Location: " . getenv('APP_URL') . "/roll/login");
+            exit;
+        }
+        return $this->view('roll/admin/dashboard');
+    }
+
+    public function user() {
+        // Cek Role User/Club
+        if ($_SESSION['roll_role'] !== 'user' && $_SESSION['roll_role'] !== 'club') {
+            header("Location: " . getenv('APP_URL') . "/roll/login");
+            exit;
+        }
+        return $this->view('roll/user/dashboard');
+    }
+
+    // Menambahkan method index() sebagai fallback
+    public function index() {
+        $role = strtolower($_SESSION['roll_role'] ?? '');
+        switch ($role) {
+            case 'master':
+                header('Location: ' . getenv('APP_URL') . '/roll/dashboard/master');
+                break;
+            case 'admin':
+                header('Location: ' . getenv('APP_URL') . '/roll/dashboard/admin');
+                break;
+            case 'user':
+            case 'club':
+                header('Location: ' . getenv('APP_URL') . '/roll/dashboard/user');
+                break;
+            default:
+                header('Location: ' . getenv('APP_URL') . '/roll/login');
+                break;
+        }
+        exit;
     }
 }

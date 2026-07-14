@@ -45,20 +45,20 @@ class LoginController extends Controller {
                     $_SESSION['swim_user_id'] = $user['id'];
                     $_SESSION['swim_role'] = $user['role']; 
                     
-                    // Routing Redirect Berdasarkan Role (REVISI)
+                    // Routing Redirect Berdasarkan Role (REVISI DashboardController)
                     $role = strtolower($user['role']);
                     switch ($role) {
                         case 'master':
-                            header('Location: ' . getenv('APP_URL') . '/swim/master/dashboard');
+                            header('Location: ' . getenv('APP_URL') . '/swim/dashboard/master');
                             break;
                         case 'admin':
-                            header('Location: ' . getenv('APP_URL') . '/swim/admin/dashboard');
+                            header('Location: ' . getenv('APP_URL') . '/swim/dashboard/admin');
                             break;
                         case 'user':
-                            header('Location: ' . getenv('APP_URL') . '/swim/user/dashboard');
+                            header('Location: ' . getenv('APP_URL') . '/swim/dashboard/user');
                             break;
                         default:
-                            header('Location: ' . getenv('APP_URL') . '/swim/user/dashboard');
+                            header('Location: ' . getenv('APP_URL') . '/swim/dashboard/user');
                             break;
                     }
                     exit;
