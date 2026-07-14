@@ -233,6 +233,8 @@ class DashboardController extends Controller {
             'stats' => $stats,
             'jsLabels' => $jsLabels,
             'jsValues' => $jsValues,
+            'chartLabels' => $chartLabels,
+            'chartValues' => $chartValues,
             'isSchool' => $isSchool
         ]);
     }

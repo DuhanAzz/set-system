@@ -135,12 +135,12 @@ function isGroupActive($req, $keywords) {
             <span id="icon-dd-setup" class="transform transition-transform text-xs <?= $a1Active ? 'rotate-180' : '' ?>">▼</span>
          </button>
          <div id="dd-setup" class="bg-[#0b1120] py-2 <?= $a1Active ? '' : 'hidden' ?>">
-             <a href="<?= getenv('APP_URL') ?>/src/admin/settings/event_profile.php" class="<?= (strpos($req,"event_profile")!==false) ? $childActiveLink : $childBaseLink ?>">Profil Event</a>
-             <a href="<?= getenv('APP_URL') ?>/src/events/index.php" class="<?= (strpos($req,"events/index")!==false) ? $childActiveLink : $childBaseLink ?>">Daftar Nomor Lomba</a>
+             <a href="<?= getenv('APP_URL') ?>/swim/event_profile/index" class="<?= (strpos($req,"event_profile")!==false) ? $childActiveLink : $childBaseLink ?>">Profil Event</a>
+             <a href="<?= getenv('APP_URL') ?>/swim/events/index" class="<?= (strpos($req,"events/index")!==false) ? $childActiveLink : $childBaseLink ?>">Daftar Nomor Lomba</a>
          </div>
 
          <!-- GROUP 2: Operasional Lomba -->
-         <?php $a2Active = isGroupActive($req, ['entries', 'relay_management', 'seeding/index', 'seeding/final']); ?>
+         <?php $a2Active = isGroupActive($req, ['entries', 'relay']); ?>
          <button onclick="toggleSidebarDropdown('dd-ops')" class="<?= $a2Active ? $dropdownBtnActive : $dropdownBtnBase ?>">
             <div class="flex items-center">
                <span class="w-6 text-xl mr-3 text-center opacity-80">🏃</span>
@@ -149,8 +149,8 @@ function isGroupActive($req, $keywords) {
             <span id="icon-dd-ops" class="transform transition-transform text-xs <?= $a2Active ? 'rotate-180' : '' ?>">▼</span>
          </button>
          <div id="dd-ops" class="bg-[#0b1120] py-2 <?= $a2Active ? '' : 'hidden' ?>">
-             <a href="<?= getenv('APP_URL') ?>/src/admin/entries/index.php" class="<?= (strpos($req,"entries")!==false) ? $childActiveLink : $childBaseLink ?>">Verifikasi Entries</a>
-             <a href="<?= getenv('APP_URL') ?>/src/admin/relay_management.php" class="<?= (strpos($req,"relay_management")!==false) ? $childActiveLink : $childBaseLink ?> text-pink-400">Manajemen Estafet</a>
+             <a href="<?= getenv('APP_URL') ?>/swim/entries/index" class="<?= (strpos($req,"entries")!==false) ? $childActiveLink : $childBaseLink ?>">Verifikasi Entries</a>
+             <a href="<?= getenv('APP_URL') ?>/swim/relay/index" class="<?= (strpos($req,"relay")!==false) ? $childActiveLink : $childBaseLink ?> text-pink-400">Manajemen Estafet</a>
              <a href="<?= getenv('APP_URL') ?>/src/admin/seeding/index.php" class="<?= (strpos($req,"seeding/index")!==false) ? $childActiveLink : $childBaseLink ?>">Start List <?= ($adminMode == 'Babak Penyisihan') ? 'Penyisihan' : '' ?></a>
              <?php if($adminMode == 'Babak Penyisihan'): ?>
              <a href="<?= getenv('APP_URL') ?>/src/admin/seeding/final.php" class="<?= (strpos($req,"seeding/final")!==false) ? $childActiveLink : $childBaseLink ?> text-orange-400">Seeding Final</a>

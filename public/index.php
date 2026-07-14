@@ -155,7 +155,8 @@ switch ($module) {
         if ($page === 'finance' && isset($_SESSION['swim_role']) && $_SESSION['swim_role'] === 'master') {
             $controllerClass = "\\App\\Swim\\Controllers\\MasterFinanceController";
         } else {
-            $controllerClass = "\\App\\Swim\\Controllers\\" . ucfirst($page) . "Controller";
+            $pascalCasePage = str_replace(' ', '', ucwords(str_replace('_', ' ', $page)));
+            $controllerClass = "\\App\\Swim\\Controllers\\" . $pascalCasePage . "Controller";
         }
         
         if (class_exists($controllerClass)) {
