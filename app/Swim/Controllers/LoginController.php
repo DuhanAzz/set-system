@@ -76,20 +76,18 @@ class LoginController extends Controller {
         }
     }
 
+
+
     public function logout() {
-        session_start();
-        session_unset();
-        session_destroy();
-        
-        if (ini_get("session.use_cookies")) {
-            $params = session_get_cookie_params();
-            setcookie(session_name(), '', time() - 42000,
-                $params["path"], $params["domain"],
-                $params["secure"], $params["httponly"]
-            );
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
         }
+
+        unset($_SESSION['swim_user_id']);
+        unset($_SESSION['swim_role']);
+        unset($_SESSION['swim_username']); 
         
-        header('Location: ' . getenv('APP_URL') . '/swim/login');
+        header("Location: " . getenv('APP_URL') . "/swim/login");
         exit;
     }
 }

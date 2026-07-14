@@ -36,7 +36,7 @@ function isGroupActive($req, $keywords) {
 <aside id="logo-sidebar" class="fixed top-0 left-0 z-50 w-64 h-screen transition-transform -translate-x-full bg-[#0F172A] sm:translate-x-0 shadow-2xl flex flex-col border-r border-slate-800" aria-label="Sidebar">
    
    <div class="h-32 flex items-center justify-center px-4 bg-[#161e31] border-b border-slate-800 shrink-0">
-      <img src="<?= getenv('APP_URL') ?>/public/img/logo.png" class="h-20 w-auto object-contain drop-shadow-2xl brightness-110" alt="Logo Web">
+      <img src="<?= getenv('APP_URL') ?>/img/logo.png" class="h-20 w-auto object-contain drop-shadow-2xl brightness-110" alt="Logo Web">
    </div>
 
    <div class="flex-1 overflow-y-auto py-6 space-y-1 custom-scrollbar">
@@ -60,8 +60,8 @@ function isGroupActive($req, $keywords) {
             <span id="icon-dd-pengguna" class="transform transition-transform text-xs <?= $g1Active ? 'rotate-180' : '' ?>">▼</span>
          </button>
          <div id="dd-pengguna" class="bg-[#0b1120] py-2 <?= $g1Active ? '' : 'hidden' ?>">
-             <a href="<?= getenv('APP_URL') ?>/src/master/users/index.php?role=admin" class="<?= (strpos($req,"role=admin")!==false) ? $childActiveLink : $childBaseLink ?>">Admin EO</a>
-             <a href="<?= getenv('APP_URL') ?>/src/master/users/index.php?role=user" class="<?= (strpos($req,"role=user")!==false) ? $childActiveLink : $childBaseLink ?>">Akun Klub</a>
+             <a href="<?= getenv('APP_URL') ?>/swim/users/index?role=admin" class="<?= (strpos($req,"role=admin")!==false) ? $childActiveLink : $childBaseLink ?>">Admin EO</a>
+             <a href="<?= getenv('APP_URL') ?>/swim/users/index?role=user" class="<?= (strpos($req,"role=user")!==false) ? $childActiveLink : $childBaseLink ?>">Akun Klub</a>
          </div>
 
          <!-- GROUP 2: Manajemen Atlet -->
@@ -74,8 +74,8 @@ function isGroupActive($req, $keywords) {
             <span id="icon-dd-atlet" class="transform transition-transform text-xs <?= $g2Active ? 'rotate-180' : '' ?>">▼</span>
          </button>
          <div id="dd-atlet" class="bg-[#0b1120] py-2 <?= $g2Active ? '' : 'hidden' ?>">
-             <a href="<?= getenv('APP_URL') ?>/src/master/swimmers/index.php" class="<?= (strpos($req,"master/swimmers/index")!==false) ? $childActiveLink : $childBaseLink ?>">Database Atlet</a>
-             <a href="<?= getenv('APP_URL') ?>/src/master/swimmers/history_transfer.php" class="<?= (strpos($req,"history_transfer")!==false) ? $childActiveLink : $childBaseLink ?>">Mutasi Klub</a>
+             <a href="<?= getenv('APP_URL') ?>/swim/swimmers/index" class="<?= (strpos($req,"swim/swimmers/index")!==false) ? $childActiveLink : $childBaseLink ?>">Database Atlet</a>
+            <a href="<?= getenv('APP_URL') ?>/swim/swimmers/history_transfer" class="<?= (strpos($req,"history_transfer")!==false) ? $childActiveLink : $childBaseLink ?>">Mutasi Klub</a>
          </div>
 
          <!-- GROUP 3: Sistem & Operasional -->

@@ -23,7 +23,7 @@ if ($uid > 0) {
     $userData = $stmtU->fetch();
 
     if ($userData && !empty($userData['photo'])) {
-        $displayImage = getenv('APP_URL') . "/public/" . $userData['photo'] . "?t=" . time();
+        $displayImage = getenv('APP_URL') . "/" . ltrim($userData['photo'], '/');
     } elseif ($role == 'user') {
         $stmtC = $pdo->prepare("SELECT nama_klub, logo FROM swim_clubs WHERE user_id = ?");
         $stmtC->execute([$uid]);
@@ -32,7 +32,7 @@ if ($uid > 0) {
             $displayName = $clubData['nama_klub'];
             $displayRole = "CLUB ADMIN";
             if (!empty($clubData['logo'])) {
-                $displayImage = getenv('APP_URL') . "/public/" . $clubData['logo'] . "?t=" . time();
+                $displayImage = getenv('APP_URL') . "/" . ltrim($clubData['logo'], '/');
             }
         }
     }
@@ -93,9 +93,9 @@ if ($uid > 0) {
                   <p class="text-xs font-medium text-gray-500 truncate"><?= $_SESSION['email'] ?? '' ?></p>
                 </div>
                 <ul class="py-2" role="none">
-                  <li><a href="<?= getenv('APP_URL') ?>/public/profile_edit.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 font-medium flex items-center gap-2"><span>👤</span> Profil & Keamanan</a></li>
+                  <li><a href="<?= getenv('APP_URL') ?>/swim/profile/edit" class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 font-medium flex items-center gap-2"><span>👤</span> Profil & Keamanan</a></li>
                   <div class="border-t border-gray-100 my-1"></div>
-                  <li><a href="<?= getenv('APP_URL') ?>/public/logout.php" class="block px-4 py-2 text-sm text-red-600 hover:bg-red-50 font-bold flex items-center gap-2"><span>🚪</span> Logout</a></li>
+                  <li><a href="<?= getenv('APP_URL') ?>/swim/login/logout" class="block px-4 py-2 text-sm text-red-600 hover:bg-red-50 font-bold flex items-center gap-2"><span>🚪</span> Logout</a></li>
                 </ul>
               </div>
           </div>
