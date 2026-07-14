@@ -16,8 +16,8 @@ class Controller {
         $file = __DIR__ . '/../../views/' . $viewPath . '.php';
         
         if (file_exists($file)) {
-            if (strpos($viewPath, 'master/') === 0) {
-                // Layout Engine untuk Master Role
+            if (strpos($viewPath, 'master/') === 0 || strpos($viewPath, 'dashboard') !== false) {
+                // Layout Engine untuk Semua Dasbor (Master, Admin, User)
                 ob_start();
                 require_once $file;
                 $content = ob_get_clean();

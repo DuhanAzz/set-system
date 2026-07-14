@@ -38,7 +38,7 @@ $activeRelayEventId = $stmtRelayEvent->fetchColumn();
  
 ?>
 
-<div class="p-6 sm:ml-64 pt-24 bg-slate-50 min-h-screen font-sans text-slate-800">
+
 
     <div class="mb-8">
         <h1 class="text-3xl font-black uppercase tracking-tighter italic text-slate-900">Dashboard Klub</h1>
@@ -143,4 +143,3 @@ $activeRelayEventId = $stmtRelayEvent->fetchColumn();
 
     </div>
 
-</div>

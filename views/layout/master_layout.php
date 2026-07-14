@@ -3,14 +3,25 @@
 ?>
 <!-- MASTER LAYOUT WRAPPER -->
 <?php 
-// Topbar berisi tag <html>, <head>, Tailwind CSS, dan <header>
-include __DIR__ . '/topbar.php'; 
-?>
-<?php 
-// Sidebar berisi navigasi kiri
-include __DIR__ . '/sidebar.php'; 
-?>
+$uri = $_SERVER['REQUEST_URI'];
+$module = 'core'; // default
 
+if (strpos($uri, '/swim/') !== false) {
+    $module = 'swim';
+} elseif (strpos($uri, '/roll/') !== false) {
+    $module = 'roll';
+}
+
+// Fallback logic in case roll files don't exist yet
+$topbarFile = __DIR__ . "/topbar_{$module}.php";
+if (!file_exists($topbarFile)) $topbarFile = __DIR__ . '/topbar_core.php';
+
+$sidebarFile = __DIR__ . "/sidebar_{$module}.php";
+if (!file_exists($sidebarFile)) $sidebarFile = __DIR__ . '/sidebar_core.php';
+
+include $topbarFile;
+include $sidebarFile;
+?>
 <!-- MAIN CONTENT WRAPPER -->
 <div class="p-6 sm:ml-64 pt-24 bg-slate-50 min-h-screen font-sans">
     <?= $content ?? '' ?>
