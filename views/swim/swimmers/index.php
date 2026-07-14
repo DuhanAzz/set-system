@@ -17,7 +17,7 @@ if (!function_exists('hitungKU')) {
     }
 }
 ?>
-<div class="p-4 sm:ml-64">
+<div class="p-4">
     <div class="p-4 mt-14">
 
         <?php if (!empty($success_msg)): ?>

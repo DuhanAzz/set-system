@@ -1,4 +1,4 @@
-<div class="p-4 sm:ml-64">
+<div class="p-4">
     <div class="p-4 mt-14">
 
         <div class="mb-6">
@@ -24,73 +24,45 @@
                 <table class="w-full text-left text-sm">
                     <thead class="bg-slate-50 border-b border-slate-200 text-[10px] uppercase text-slate-500 tracking-wider">
                         <tr>
-                            <th class="px-6 py-4">Tanggal</th>
-                            <th class="px-6 py-4">Atlet</th>
-                            <th class="px-6 py-4 text-right">Dari Klub</th>
-                            <th class="px-6 py-4 text-center"></th> 
-                            <th class="px-6 py-4">Ke Klub</th>
-                            <th class="px-6 py-4">Keterangan</th>
+                            <th class="px-6 py-4">Waktu</th>
+                            <th class="px-6 py-4">Profil Atlet</th>
+                            <th class="px-6 py-4">Aktivitas Mutasi</th>
+                            <th class="px-6 py-4">Admin</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         <?php if(empty($transfers)): ?>
-                            <tr><td colspan="6" class="p-8 text-center text-slate-400 italic">Belum ada riwayat perpindahan.</td></tr>
+                            <tr><td colspan="4" class="p-8 text-center text-slate-400 italic">Belum ada riwayat perpindahan.</td></tr>
                         <?php else: foreach($transfers as $t): ?>
                             
-                        <?php 
-                            // LOGIKA TANGGAL: Prioritaskan transfer_date, kalau NULL pakai created_at
-                            $raw_date = $t['transfer_date'] ? $t['transfer_date'] : $t['created_at'];
-                        ?>
-                        
                         <tr class="hover:bg-slate-50 transition">
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <div class="font-bold text-slate-700 text-xs">
-                                    <?= date('d M Y', strtotime($raw_date)) ?>
+                                    <?= date('d M Y', strtotime($t['created_at'])) ?>
                                 </div>
                                 <div class="text-[10px] text-slate-400">
-                                    <?= date('H:i', strtotime($raw_date)) . ' WIB' ?>
+                                    <?= date('H:i', strtotime($t['created_at'])) . ' WIB' ?>
                                 </div>
                             </td>
 
                             <td class="px-6 py-4">
                                 <div class="font-black text-slate-800 uppercase text-xs">
-                                    <?= htmlspecialchars($t['nama_atlet']) ?>
+                                    <?= htmlspecialchars($t['nama_atlet'] ?? 'Unknown') ?>
                                 </div>
                                 <div class="text-[10px] font-mono text-blue-600">
                                     UID: <?= htmlspecialchars($t['uid'] ?? '-') ?>
                                 </div>
                             </td>
 
-                            <td class="px-6 py-4 text-right">
-                                <?php if($t['old_club']): ?>
-                                    <span class="text-[10px] font-bold text-red-600 bg-red-50 px-2 py-1 rounded border border-red-100 inline-block">
-                                        <?= htmlspecialchars($t['old_club']) ?>
-                                    </span>
-                                <?php else: ?>
-                                    <span class="text-[10px] italic text-slate-400">Unattached</span>
-                                <?php endif; ?>
-                            </td>
-
-                            <td class="px-6 py-4 text-center">
-                                <svg class="w-4 h-4 text-slate-300 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
-                            </td>
-
                             <td class="px-6 py-4">
-                                <?php if($t['new_club']): ?>
-                                    <span class="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded border border-emerald-100 inline-block">
-                                        <?= htmlspecialchars($t['new_club']) ?>
-                                    </span>
-                                <?php else: ?>
-                                    <span class="text-[10px] italic text-slate-400">Unattached</span>
-                                <?php endif; ?>
-                            </td>
-
-                            <td class="px-6 py-4">
-                                <div class="text-[10px] text-slate-600 italic">
-                                    "<?= htmlspecialchars($t['notes'] ?? '-') ?>"
+                                <div class="text-xs font-bold text-slate-700">
+                                    <?= htmlspecialchars($t['description'] ?? '-') ?>
                                 </div>
-                                <div class="text-[9px] text-slate-400 mt-1 uppercase font-bold">
-                                    Oleh: <?= htmlspecialchars($t['admin_name'] ?? 'System') ?>
+                            </td>
+
+                            <td class="px-6 py-4">
+                                <div class="text-xs font-bold text-slate-600">
+                                    <?= htmlspecialchars($t['admin_name'] ?? 'System') ?>
                                 </div>
                             </td>
 

@@ -1,4 +1,4 @@
-<div class="p-6 sm:ml-64 pt-24 bg-slate-50 min-h-screen font-sans">
+<div class="p-6 pt-24 bg-slate-50 min-h-screen font-sans">
     
     <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
         <div>

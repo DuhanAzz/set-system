@@ -178,22 +178,17 @@ class SwimmersController extends Controller {
         $transfers = [];
 
         try {
-            $sql = "SELECT t.*, 
+            $sql = "SELECT l.*, 
                            s.nama_atlet, s.uid,
-                           c_old.nama_klub as old_club,
-                           c_new.nama_klub as new_club,
                            u.nama_lengkap as admin_name
-                    FROM swimmer_transfers t
-                    JOIN swim_swimmers s ON t.swimmer_id = s.id
-                    LEFT JOIN swim_clubs c_old ON t.old_club_id = c_old.id
-                    LEFT JOIN swim_clubs c_new ON t.new_club_id = c_new.id
-                    LEFT JOIN swim_users u ON t.processed_by = u.id
-                    ORDER BY COALESCE(t.transfer_date, t.created_at) DESC";
-
-            $stmt = $this->pdo->query($sql);
-            $transfers = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+                    FROM swim_system_logs l
+                    LEFT JOIN swim_swimmers s ON l.target_id = s.id
+                    LEFT JOIN swim_users u ON l.user_id = u.id
+                    WHERE l.action_type = 'MUTASI_KLUB'
+                    ORDER BY l.created_at DESC";
+            $transfers = $this->pdo->query($sql)->fetchAll(\PDO::FETCH_ASSOC);
         } catch (\PDOException $e) {
-            $error_msg = "Gagal memuat data: " . $e->getMessage();
+            $error_msg = "Gagal memuat data mutasi: " . $e->getMessage();
         }
 
         return $this->view('swim/swimmers/history_transfer', [
@@ -238,12 +233,6 @@ class SwimmersController extends Controller {
                 $old_club_id = $currentData['club_id'];
 
                 if ($old_club_id != $club_id) {
-                    $sqlTransfer = "INSERT INTO swimmer_transfers (swimmer_id, old_club_id, new_club_id, processed_by, notes, transfer_date) 
-                                    VALUES (?, ?, ?, ?, ?, NOW())";
-                    $this->pdo->prepare($sqlTransfer)->execute([
-                        $id, $old_club_id, $club_id, $_SESSION['swim_user_id'], "Mutasi via Edit Data (Manual)"
-                    ]);
-
                     $logDesc = "Mutasi Klub atlet: $nama (UID: $uid)";
                     $sqlLog = "INSERT INTO swim_system_logs (user_id, action_type, target_id, description, ip_address) 
                                VALUES (?, 'MUTASI_KLUB', ?, ?, ?)";
