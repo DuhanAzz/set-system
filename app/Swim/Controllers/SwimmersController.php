@@ -182,9 +182,8 @@ class SwimmersController extends Controller {
                            s.nama_atlet, s.uid,
                            u.nama_lengkap as admin_name
                     FROM swim_system_logs l
-                    LEFT JOIN swim_swimmers s ON l.target_id = s.id
+                    LEFT JOIN swim_swimmers s ON (l.target_id = s.id AND l.action_type IN ('MUTASI_KLUB', 'UPDATE_SWIMMER'))
                     LEFT JOIN swim_users u ON l.user_id = u.id
-                    WHERE l.action_type = 'MUTASI_KLUB'
                     ORDER BY l.created_at DESC";
             $transfers = $this->pdo->query($sql)->fetchAll(\PDO::FETCH_ASSOC);
         } catch (\PDOException $e) {

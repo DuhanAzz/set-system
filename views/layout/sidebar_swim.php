@@ -75,7 +75,7 @@ function isGroupActive($req, $keywords) {
          </button>
          <div id="dd-atlet" class="bg-[#0b1120] py-2 <?= $g2Active ? '' : 'hidden' ?>">
              <a href="<?= getenv('APP_URL') ?>/swim/swimmers/index" class="<?= (strpos($req,"swim/swimmers/index")!==false) ? $childActiveLink : $childBaseLink ?>">Database Atlet</a>
-            <a href="<?= getenv('APP_URL') ?>/swim/swimmers/history_transfer" class="<?= (strpos($req,"history_transfer")!==false) ? $childActiveLink : $childBaseLink ?>">Mutasi Klub</a>
+            <a href="<?= getenv('APP_URL') ?>/swim/swimmers/history_transfer" class="<?= (strpos($req,"history_transfer")!==false) ? $childActiveLink : $childBaseLink ?>">Log Aktivitas</a>
          </div>
 
          <!-- GROUP 3: Sistem & Operasional -->

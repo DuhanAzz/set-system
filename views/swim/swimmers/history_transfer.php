@@ -3,13 +3,13 @@
 
         <div class="mb-6">
             <nav class="text-slate-400 text-[10px] font-bold uppercase tracking-widest mb-1">
-                <a href="/swim/swimmers/index" class="hover:text-blue-600">Database Atlet</a> / Mutasi
+                <a href="/swim/swimmers/index" class="hover:text-blue-600">Database Atlet</a> / Aktivitas
             </nav>
             <h1 class="text-3xl font-black text-slate-800 uppercase italic tracking-tighter">
-                Riwayat Mutasi Klub
+                Log Aktivitas Sistem
             </h1>
             <p class="text-xs text-slate-500 font-medium mt-1">
-                Rekam jejak perpindahan atlet antar klub.
+                Rekam jejak seluruh perubahan data dan mutasi.
             </p>
         </div>
 
@@ -25,14 +25,14 @@
                     <thead class="bg-slate-50 border-b border-slate-200 text-[10px] uppercase text-slate-500 tracking-wider">
                         <tr>
                             <th class="px-6 py-4">Waktu</th>
-                            <th class="px-6 py-4">Profil Atlet</th>
-                            <th class="px-6 py-4">Aktivitas Mutasi</th>
+                            <th class="px-6 py-4">Modul / Tipe</th>
+                            <th class="px-6 py-4">Aktivitas</th>
                             <th class="px-6 py-4">Admin</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         <?php if(empty($transfers)): ?>
-                            <tr><td colspan="4" class="p-8 text-center text-slate-400 italic">Belum ada riwayat perpindahan.</td></tr>
+                            <tr><td colspan="4" class="p-8 text-center text-slate-400 italic">Belum ada riwayat aktivitas.</td></tr>
                         <?php else: foreach($transfers as $t): ?>
                             
                         <tr class="hover:bg-slate-50 transition">
@@ -47,11 +47,13 @@
 
                             <td class="px-6 py-4">
                                 <div class="font-black text-slate-800 uppercase text-xs">
-                                    <?= htmlspecialchars($t['nama_atlet'] ?? 'Unknown') ?>
+                                    <?= htmlspecialchars(str_replace('_', ' ', $t['action_type'])) ?>
                                 </div>
-                                <div class="text-[10px] font-mono text-blue-600">
+                                <?php if ($t['nama_atlet']): ?>
+                                <div class="text-[10px] font-mono text-blue-600 mt-1">
                                     UID: <?= htmlspecialchars($t['uid'] ?? '-') ?>
                                 </div>
+                                <?php endif; ?>
                             </td>
 
                             <td class="px-6 py-4">
