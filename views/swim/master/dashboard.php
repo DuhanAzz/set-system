@@ -1,94 +1,4 @@
-<?php
-$pdo = \App\Core\Database::getInstance()->getConnection();
-// --- 3. LOGIC DATA (DATA GATHERING) ---
-$stats = [
-    'eo' => 0,
-    'clubs' => 0,
-    'athletes' => 0,
-    'entries' => 0,
-    'revenue' => 0
-];
-$liveEvents = [];
-$recentUsers = [];
-$systemStatus = 0; 
-$heroTitle = 'SwimMeet App'; 
 
-try {
-    // A. Statistik Dasar User
-    $stats['eo']       = $pdo->query("SELECT COUNT(*) FROM swim_users WHERE role = 'admin'")->fetchColumn();
-    $stats['clubs']    = $pdo->query("SELECT COUNT(*) FROM swim_users WHERE role = 'user'")->fetchColumn();
-    
-    // Hitung User Pending
-    $stats['pending_users'] = 0;
-    try {
-        $stats['pending_users'] = $pdo->query("SELECT COUNT(*) FROM swim_users WHERE account_status = 'pending'")->fetchColumn();
-    } catch (Exception $e) {}
-
-    // Cek tabel swimmers
-    $stats['athletes'] = 0;
-    $stats['pending_uids'] = 0;
-    try {
-        $stats['athletes'] = $pdo->query("SELECT COUNT(*) FROM swim_swimmers")->fetchColumn();
-        $stats['pending_uids'] = $pdo->query("SELECT COUNT(*) FROM swim_swimmers WHERE uid IS NULL OR trim(uid) = '' OR uid = '-' OR uid LIKE 'SW%' OR uid = '0'")->fetchColumn();
-    } catch (Exception $e) {}
-    
-    // B. Hitung Entries
-    $countActive = 0;
-    try {
-        $countActive = $pdo->query("SELECT COUNT(*) FROM swim_event_entries")->fetchColumn();
-    } catch (Exception $e) { /* Abaikan */ }
-
-    $countArchive = 0;
-    try {
-        $countArchive = $pdo->query("SELECT COUNT(*) FROM event_entries_archive")->fetchColumn();
-    } catch (Exception $e) { /* Abaikan */ }
-    
-    $stats['entries'] = $countActive + $countArchive;
-
-    // C. Statistik Keuangan
-    try {
-        $stats['revenue'] = $pdo->query("SELECT SUM(amount) FROM swim_payments WHERE status = 'Paid'")->fetchColumn() ?: 0;
-    } catch (Exception $e) { $stats['revenue'] = 0; }
-
-    // D. Cek Status Maintenance & Web Settings
-    try {
-        $settings = $pdo->query("SELECT * FROM swim_site_settings WHERE id=1")->fetch();
-        if ($settings) {
-            $systemStatus = $settings['maintenance_mode'] ?? 0;
-            $heroTitle    = $settings['app_name'] ?? 'SwimMeet App';
-        }
-    } catch (Exception $e) { /* Abaikan */ }
-
-    // E. Event Live / Mendatang
-    $sqlLive = "
-        SELECT e.*, u.nama_lengkap as eo_name 
-        FROM swim_events e 
-        LEFT JOIN swim_users u ON e.user_id = u.id 
-        WHERE e.event_status != 'Done' 
-        AND e.event_date_start >= CURDATE()
-        ORDER BY e.event_date_start ASC 
-        LIMIT 5
-    ";
-    $liveEvents = $pdo->query($sqlLive)->fetchAll();
-
-    // F. User Terbaru
-    $sqlRecent = "
-        SELECT id, username, role, created_at, nama_lengkap, email, account_status
-        FROM swim_users 
-        ORDER BY created_at DESC 
-        LIMIT 5
-    ";
-    $recentUsers = $pdo->query($sqlRecent)->fetchAll();
-
-} catch (PDOException $e) {
-    die("Database Error: " . $e->getMessage());
-}
-
-// --- 4. TAMPILAN ---
-// Pastikan folder views ada di root (swim-meet/views), jadi mundur 2 langkah benar
- 
- 
-?>
 
 
     
@@ -103,7 +13,7 @@ try {
         </div>
         
         <div class="flex gap-3">
-            <a href="maintenance/system_health.php" class="bg-white border border-slate-200 text-slate-600 px-4 py-2 rounded-xl font-bold text-xs uppercase hover:bg-slate-100 transition shadow-sm flex items-center gap-2">
+            <a href="<?= getenv('APP_URL') ?>/swim/maintenance/system_health" class="bg-white border border-slate-200 text-slate-600 px-4 py-2 rounded-xl font-bold text-xs uppercase hover:bg-slate-100 transition shadow-sm flex items-center gap-2">
                 <span>🛡️</span> System Health
             </a>
         </div>
@@ -121,7 +31,7 @@ try {
                     <p class="text-sm text-orange-100 font-medium mt-1">Ada pengguna (Klub/EO) baru yang menunggu persetujuan Anda untuk bisa login.</p>
                 </div>
             </div>
-            <a href="users/index.php" class="bg-white text-orange-600 px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-orange-50 transition transform group-hover:scale-105 shadow-md">Tinjau Sekarang</a>
+            <a href="<?= getenv('APP_URL') ?>/swim/users/index" class="bg-white text-orange-600 px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-orange-50 transition transform group-hover:scale-105 shadow-md">Tinjau Sekarang</a>
         </div>
         <?php endif; ?>
 
@@ -134,7 +44,7 @@ try {
                     <p class="text-sm text-blue-100 font-medium mt-1">Ada atlet yang terdaftar namun belum memiliki UID (atau format UID masih lama/salah).</p>
                 </div>
             </div>
-            <a href="swimmers/index.php" class="bg-white text-blue-700 px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-blue-50 transition transform group-hover:scale-105 shadow-md">Generate UID</a>
+            <a href="<?= getenv('APP_URL') ?>/swim/swimmers/index" class="bg-white text-blue-700 px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-blue-50 transition transform group-hover:scale-105 shadow-md">Generate UID</a>
         </div>
         <?php endif; ?>
     </div>
@@ -204,7 +114,7 @@ try {
             <div class="bg-white rounded-[2rem] shadow-sm border border-slate-200 p-8">
                 <div class="flex justify-between items-center mb-6">
                     <h3 class="font-black text-slate-800 uppercase italic text-sm tracking-widest">🗓️ Kompetisi Mendatang</h3>
-                    <a href="events/index.php" class="text-[10px] font-bold text-blue-600 hover:underline">Lihat Semua</a>
+                    <a href="<?= getenv('APP_URL') ?>/swim/events/index" class="text-[10px] font-bold text-blue-600 hover:underline">Lihat Semua</a>
                 </div>
 
                 <div class="space-y-4">
@@ -295,19 +205,19 @@ try {
             <div class="bg-slate-800 rounded-[2rem] p-8 text-white shadow-xl">
                 <h3 class="font-black uppercase italic text-sm tracking-widest mb-6 text-slate-400">⚡ Akses Cepat</h3>
                 <div class="grid grid-cols-2 gap-4">
-                    <a href="users/index.php" class="bg-slate-700 hover:bg-blue-600 p-4 rounded-xl text-center transition group">
+                    <a href="<?= getenv('APP_URL') ?>/swim/users/index" class="bg-slate-700 hover:bg-blue-600 p-4 rounded-xl text-center transition group">
                         <div class="text-2xl mb-2 group-hover:scale-110 transition">👥</div>
                         <span class="text-[9px] font-bold uppercase tracking-wider">User Manager</span>
                     </a>
-                    <a href="finance/revenue.php" class="bg-slate-700 hover:bg-emerald-600 p-4 rounded-xl text-center transition group">
+                    <a href="<?= getenv('APP_URL') ?>/swim/finance/revenue" class="bg-slate-700 hover:bg-emerald-600 p-4 rounded-xl text-center transition group">
                         <div class="text-2xl mb-2 group-hover:scale-110 transition">💰</div>
                         <span class="text-[9px] font-bold uppercase tracking-wider">Keuangan</span>
                     </a>
-                    <a href="settings/public_page.php" class="bg-slate-700 hover:bg-indigo-600 p-4 rounded-xl text-center transition group">
+                    <a href="<?= getenv('APP_URL') ?>/swim/settings/public_page" class="bg-slate-700 hover:bg-indigo-600 p-4 rounded-xl text-center transition group">
                         <div class="text-2xl mb-2 group-hover:scale-110 transition">🎨</div>
                         <span class="text-[9px] font-bold uppercase tracking-wider">Editor Web</span>
                     </a>
-                    <a href="maintenance/data_cleanup.php" class="bg-slate-700 hover:bg-red-600 p-4 rounded-xl text-center transition group">
+                    <a href="<?= getenv('APP_URL') ?>/swim/maintenance/data_cleanup" class="bg-slate-700 hover:bg-red-600 p-4 rounded-xl text-center transition group">
                         <div class="text-2xl mb-2 group-hover:scale-110 transition">🧹</div>
                         <span class="text-[9px] font-bold uppercase tracking-wider">Bersihkan Data</span>
                     </a>

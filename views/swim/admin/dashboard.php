@@ -1,105 +1,4 @@
-<?php
-$pdo = \App\Core\Database::getInstance()->getConnection();
-$uid = $_SESSION['swim_user_id'] ?? $_SESSION['user_id'] ?? 0;
 
-
-// 2. AMBIL EVENT AKTIF 
-$stmtEvent = $pdo->prepare("SELECT * FROM swim_events WHERE user_id = ? ORDER BY id DESC LIMIT 1");
-$stmtEvent->execute([$uid]);
-$event = $stmtEvent->fetch(PDO::FETCH_ASSOC);
-
-// Variable Default
-$eventId   = $event['id'] ?? 0;
-$eventName = $event['event_name'] ?? 'Belum Ada Event Aktif';
-$eventDate = $event['event_date_start'] ?? date('Y-m-d'); 
-$eventLoc  = $event['event_location'] ?? '-';
-$eventStatus = $event['event_status'] ?? 'Draft';
-
-// 3. HITUNG STATISTIK 
-$stats = ['atlet' => 0, 'entries' => 0, 'clubs' => 0, 'revenue' => 0];
-
-if ($eventId > 0) {
-    try {
-        // A. Total Entries (Nomor Lomba yang diikuti)
-        $stmtEntry = $pdo->prepare("SELECT COUNT(*) FROM swim_event_entries WHERE event_id = ?");
-        $stmtEntry->execute([$eventId]);
-        $stats['entries'] = $stmtEntry->fetchColumn();
-
-        // B. Total Atlet (Unik)
-        $stmtAtlet = $pdo->prepare("SELECT COUNT(DISTINCT swimmer_id) FROM swim_event_entries WHERE event_id = ?");
-        $stmtAtlet->execute([$eventId]);
-        $stats['atlet'] = $stmtAtlet->fetchColumn();
-
-        // C. Total Klub/Sekolah (Unik)
-        $partType = strtolower($event['participation_type'] ?? 'club');
-        $isSchool = (strpos($partType, 'school') !== false || strpos($partType, 'sekolah') !== false);
-        
-        if ($isSchool) {
-            $stmtClub = $pdo->prepare("SELECT COUNT(DISTINCT s.asal_sekolah) FROM swim_event_entries ee JOIN swim_swimmers s ON ee.swimmer_id = s.id WHERE ee.event_id = ? AND s.asal_sekolah != ''");
-        } else {
-            $stmtClub = $pdo->prepare("SELECT COUNT(DISTINCT club_id) FROM swim_event_entries WHERE event_id = ?");
-        }
-        $stmtClub->execute([$eventId]);
-        $stats['clubs'] = $stmtClub->fetchColumn();
-
-        // D. PERBAIKAN: Total Pemasukan (Revenue) dari tabel payments yang sudah Lunas
-        $stmtRev = $pdo->prepare("SELECT SUM(amount) FROM swim_payments WHERE event_id = ? AND status IN ('Paid', 'completed')");
-        $stmtRev->execute([$eventId]);
-        $stats['revenue'] = $stmtRev->fetchColumn() ?: 0;
-
-        // E. Total Pembayaran/Pendaftaran yang masih Pending
-        $stmtPending = $pdo->prepare("SELECT COUNT(*) FROM swim_payments WHERE event_id = ? AND status IN ('Pending', 'Unpaid', 'pending')");
-        $stmtPending->execute([$eventId]);
-        $stats['pending_payments'] = $stmtPending->fetchColumn() ?: 0;
-
-    } catch (Exception $e) { /* Silent Error */ }
-}
-
-// 4. DATA CHART (Top 5 Klub / Sekolah)
-$chartLabels = [];
-$chartValues = [];
-
-if ($eventId > 0) {
-    if ($isSchool) {
-        $sqlChart = "
-            SELECT s.asal_sekolah as nama_klub, COUNT(DISTINCT ee.swimmer_id) as jumlah_atlet
-            FROM swim_event_entries ee
-            JOIN swim_swimmers s ON ee.swimmer_id = s.id
-            WHERE ee.event_id = ? AND s.asal_sekolah != ''
-            GROUP BY s.asal_sekolah
-            ORDER BY jumlah_atlet DESC
-            LIMIT 5
-        ";
-    } else {
-        $sqlChart = "
-            SELECT c.nama_klub as nama_klub, COUNT(DISTINCT ee.swimmer_id) as jumlah_atlet
-            FROM swim_event_entries ee
-            JOIN swim_clubs c ON ee.club_id = c.id
-            WHERE ee.event_id = ?
-            GROUP BY c.id
-            ORDER BY jumlah_atlet DESC
-            LIMIT 5
-        ";
-    }
-    
-    try {
-        $stmtChart = $pdo->prepare($sqlChart);
-        $stmtChart->execute([$eventId]);
-        $dataChart = $stmtChart->fetchAll(PDO::FETCH_ASSOC);
-        foreach ($dataChart as $d) {
-            $chartLabels[] = $d['nama_klub'];
-            $chartValues[] = $d['jumlah_atlet'];
-        }
-    } catch(Exception $e) {}
-}
-
-$jsLabels = json_encode($chartLabels);
-$jsValues = json_encode($chartValues);
-
-// INCLUDE LAYOUT 
- 
- 
-?>
 
 
     
@@ -114,7 +13,7 @@ $jsValues = json_encode($chartValues);
         </div>
         
         <?php if($eventId == 0): ?>
-            <a href="settings/event_profile.php" class="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold text-xs uppercase hover:bg-blue-700 transition shadow-lg animate-bounce">
+            <a href="<?= getenv('APP_URL') ?>/swim/settings/event_profile" class="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold text-xs uppercase hover:bg-blue-700 transition shadow-lg animate-bounce">
                 + Buat Event Baru
             </a>
         <?php else: ?>
@@ -122,7 +21,7 @@ $jsValues = json_encode($chartValues);
                 <span class="px-4 py-2 bg-emerald-100 text-emerald-700 rounded-lg text-xs font-black uppercase tracking-wide border border-emerald-200 shadow-sm">
                     Status: <?= htmlspecialchars($eventStatus) ?>
                 </span>
-                <a href="settings/event_profile.php?event_id=<?= $eventId ?>" class="px-4 py-2 bg-slate-800 text-white rounded-lg text-xs font-bold uppercase hover:bg-slate-700 transition shadow-sm">
+                <a href="<?= getenv('APP_URL') ?>/swim/settings/event_profile?event_id=<?= $eventId ?>" class="px-4 py-2 bg-slate-800 text-white rounded-lg text-xs font-bold uppercase hover:bg-slate-700 transition shadow-sm">
                     ⚙️ Edit Event
                 </a>
             </div>
@@ -140,13 +39,13 @@ $jsValues = json_encode($chartValues);
                     <p class="text-sm text-orange-100 font-medium mt-1">Terdapat pendaftaran klub yang menunggu verifikasi pembayaran dari Anda.</p>
                 </div>
             </div>
-            <a href="entries/index.php" class="whitespace-nowrap bg-white text-orange-600 px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-orange-50 transition transform group-hover:scale-105 shadow-md">Verifikasi Sekarang</a>
+            <a href="<?= getenv('APP_URL') ?>/swim/entries/index" class="whitespace-nowrap bg-white text-orange-600 px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-orange-50 transition transform group-hover:scale-105 shadow-md">Verifikasi Sekarang</a>
         </div>
     </div>
     <?php endif; ?>
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <a href="<?= BASE_URL ?>/src/admin/finance/index.php" class="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden group border-b-4 border-emerald-500 cursor-pointer block hover:from-slate-700 hover:to-slate-800 transition-colors">
+        <a href="<?= getenv('APP_URL') ?>/swim/finance/revenue" class="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden group border-b-4 border-emerald-500 cursor-pointer block hover:from-slate-700 hover:to-slate-800 transition-colors">
             <div class="relative z-10">
                 <p class="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Total Pemasukan</p>
                 <h2 class="text-2xl font-black">Rp <?= number_format($stats['revenue'], 0, ',', '.') ?></h2>
@@ -210,7 +109,7 @@ $jsValues = json_encode($chartValues);
                 <h3 class="font-black text-slate-800 uppercase italic text-xs tracking-widest mb-4">⚡ Menu Cepat</h3>
                 <div class="grid grid-cols-1 gap-3">
                     
-                    <a href="entries/index.php" class="flex items-center gap-3 p-3 bg-slate-50 hover:bg-blue-50 rounded-xl transition group border border-slate-100">
+                    <a href="<?= getenv('APP_URL') ?>/swim/entries/index" class="flex items-center gap-3 p-3 bg-slate-50 hover:bg-blue-50 rounded-xl transition group border border-slate-100">
                         <span class="w-8 h-8 flex items-center justify-center bg-white rounded-full shadow-sm text-xs border border-slate-100 group-hover:scale-110 transition">✅</span>
                         <div>
                             <p class="text-xs font-black text-slate-700 uppercase">Verifikasi Atlet</p>
@@ -218,7 +117,7 @@ $jsValues = json_encode($chartValues);
                         </div>
                     </a>
 
-                    <a href="seeding/index.php" class="flex items-center gap-3 p-3 bg-slate-50 hover:bg-purple-50 rounded-xl transition group border border-slate-100">
+                    <a href="<?= getenv('APP_URL') ?>/swim/seeding/index" class="flex items-center gap-3 p-3 bg-slate-50 hover:bg-purple-50 rounded-xl transition group border border-slate-100">
                         <span class="w-8 h-8 flex items-center justify-center bg-white rounded-full shadow-sm text-xs border border-slate-100 group-hover:scale-110 transition">🎲</span>
                         <div>
                             <p class="text-xs font-black text-slate-700 uppercase">Seeding / Undian</p>
@@ -226,7 +125,7 @@ $jsValues = json_encode($chartValues);
                         </div>
                     </a>
 
-                    <a href="results/index.php" class="flex items-center gap-3 p-3 bg-slate-50 hover:bg-emerald-50 rounded-xl transition group border border-slate-100">
+                    <a href="<?= getenv('APP_URL') ?>/swim/results/index" class="flex items-center gap-3 p-3 bg-slate-50 hover:bg-emerald-50 rounded-xl transition group border border-slate-100">
                         <span class="w-8 h-8 flex items-center justify-center bg-white rounded-full shadow-sm text-xs border border-slate-100 group-hover:scale-110 transition">⏱️</span>
                         <div>
                             <p class="text-xs font-black text-slate-700 uppercase">Input Hasil</p>

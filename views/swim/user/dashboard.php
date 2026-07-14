@@ -1,42 +1,4 @@
-<?php
-$pdo = \App\Core\Database::getInstance()->getConnection();
-$uid = $_SESSION['swim_user_id'] ?? $_SESSION['user_id'] ?? 0;
-// 1. STATISTIK: TOTAL ATLET
-$stmt = $pdo->prepare("SELECT COUNT(*) FROM swim_swimmers WHERE user_id = ?");
-$stmt->execute([$uid]);
-$totalSwimmers = $stmt->fetchColumn();
 
-// 2. STATISTIK: TOTAL EVENT YANG DIIKUTI
-// Menghitung berapa banyak baris di tabel event_entries milik klub ini
-// Asumsi: club_id disimpan di event_entries
-$stmtEntries = $pdo->prepare("SELECT COUNT(*) FROM swim_event_entries WHERE club_id = ?");
-$stmtEntries->execute([$uid]);
-$totalEntries = $stmtEntries->fetchColumn();
-
-// 3. STATISTIK: STATUS PEMBAYARAN TERAKHIR
-$stmtPay = $pdo->prepare("SELECT status FROM swim_payments WHERE user_id = ? ORDER BY id DESC LIMIT 1");
-$stmtPay->execute([$uid]);
-$lastPaymentStatus = $stmtPay->fetchColumn(); 
-if(!$lastPaymentStatus) $lastPaymentStatus = 'Belum Ada';
-
-// 4. ACTION REQUIRED: UNPAID INVOICES
-$stmtUnpaid = $pdo->prepare("SELECT COUNT(*) FROM swim_payments WHERE user_id = ? AND status IN ('Pending', 'Unpaid', 'pending')");
-$stmtUnpaid->execute([$uid]);
-$unpaidInvoices = $stmtUnpaid->fetchColumn();
-
-// 5. ACTION REQUIRED: MISSING UID ATHLETES
-$stmtNoUid = $pdo->prepare("SELECT COUNT(*) FROM swim_swimmers WHERE user_id = ? AND (uid IS NULL OR trim(uid) = '' OR uid = '-' OR uid LIKE 'SW%' OR uid = '0')");
-$stmtNoUid->execute([$uid]);
-$missingUid = $stmtNoUid->fetchColumn();
-
-// 6. DETEKSI EVENT ESTAFET AKTIF
-$stmtRelayEvent = $pdo->query("SELECT e.id FROM swim_events e JOIN swim_event_numbers en ON e.id = en.event_id WHERE en.is_relay = 1 AND e.event_status IN ('Active', 'Open', 'Upcoming', 'Registration') ORDER BY e.event_date_start ASC LIMIT 1");
-$activeRelayEventId = $stmtRelayEvent->fetchColumn();
-
-// --- LOAD VIEWS ---
- 
- 
-?>
 
 
 
@@ -57,7 +19,7 @@ $activeRelayEventId = $stmtRelayEvent->fetchColumn();
                     <p class="text-sm text-orange-100 font-medium mt-1">Anda memiliki pendaftaran event yang belum dibayar atau masih menunggu verifikasi panitia.</p>
                 </div>
             </div>
-            <a href="pembayaran.php" class="whitespace-nowrap bg-white text-orange-600 px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-orange-50 transition transform group-hover:scale-105 shadow-md">Bayar Sekarang</a>
+            <a href="<?= getenv('APP_URL') ?>/swim/payments" class="whitespace-nowrap bg-white text-orange-600 px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-orange-50 transition transform group-hover:scale-105 shadow-md">Bayar Sekarang</a>
         </div>
         <?php endif; ?>
 
@@ -70,7 +32,7 @@ $activeRelayEventId = $stmtRelayEvent->fetchColumn();
                     <p class="text-sm text-blue-100 font-medium mt-1">Segera lengkapi data atlet Anda agar mendapatkan UID untuk bisa didaftarkan ke perlombaan.</p>
                 </div>
             </div>
-            <a href="atlet/index.php" class="whitespace-nowrap bg-white text-blue-700 px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-blue-50 transition transform group-hover:scale-105 shadow-md">Lengkapi Data</a>
+            <a href="<?= getenv('APP_URL') ?>/swim/swimmers/index" class="whitespace-nowrap bg-white text-blue-700 px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-blue-50 transition transform group-hover:scale-105 shadow-md">Lengkapi Data</a>
         </div>
         <?php endif; ?>
     </div>
@@ -114,20 +76,20 @@ $activeRelayEventId = $stmtRelayEvent->fetchColumn();
     <h3 class="font-black text-slate-800 uppercase text-sm tracking-tight mb-4 ml-2">Menu Cepat</h3>
     <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
 
-        <a href="atlet/index.php" class="bg-gradient-to-br from-white to-slate-50 p-8 rounded-3xl shadow-sm border border-slate-200 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group border-b-4 border-blue-400">
+        <a href="<?= getenv('APP_URL') ?>/swim/swimmers/index" class="bg-gradient-to-br from-white to-slate-50 p-8 rounded-3xl shadow-sm border border-slate-200 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group border-b-4 border-blue-400">
             <span class="w-16 h-16 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center text-3xl mb-6 shadow-inner group-hover:scale-110 transition">📋</span>
             <h4 class="font-black text-lg text-slate-800 uppercase italic">Data Atlet</h4>
             <p class="text-xs text-slate-500 mt-2 font-medium">Input biodata perenang baru.</p>
         </a>
 
-        <a href="kompetisi/explore.php" class="bg-gradient-to-br from-white to-slate-50 p-8 rounded-3xl shadow-sm border border-slate-200 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group border-b-4 border-purple-400">
+        <a href="<?= getenv('APP_URL') ?>/swim/events/explore" class="bg-gradient-to-br from-white to-slate-50 p-8 rounded-3xl shadow-sm border border-slate-200 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group border-b-4 border-purple-400">
             <span class="w-16 h-16 bg-purple-100 text-purple-600 rounded-2xl flex items-center justify-center text-3xl mb-6 shadow-inner group-hover:scale-110 transition">🎯</span>
             <h4 class="font-black text-lg text-slate-800 uppercase italic">Daftar Lomba</h4>
             <p class="text-xs text-slate-500 mt-2 font-medium">Pilih nomor lomba per atlet.</p>
         </a>
 
         <?php if($activeRelayEventId): ?>
-        <a href="kompetisi/relay_registration.php?event_id=<?= $activeRelayEventId ?>" class="bg-gradient-to-br from-white to-slate-50 p-8 rounded-3xl shadow-sm border border-slate-200 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group border-b-4 border-pink-400 relative overflow-hidden">
+        <a href="<?= getenv('APP_URL') ?>/swim/events/relay_registration?event_id=<?= $activeRelayEventId ?>" class="bg-gradient-to-br from-white to-slate-50 p-8 rounded-3xl shadow-sm border border-slate-200 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group border-b-4 border-pink-400 relative overflow-hidden">
             <div class="absolute -right-6 top-3 bg-pink-500 text-white text-[9px] font-black uppercase px-8 py-1 rotate-45 tracking-widest shadow-lg">NEW</div>
             <span class="w-16 h-16 bg-pink-100 text-pink-600 rounded-2xl flex items-center justify-center text-3xl mb-6 shadow-inner group-hover:scale-110 transition">🏃‍♂️</span>
             <h4 class="font-black text-lg text-slate-800 uppercase italic leading-tight">Daftar Estafet</h4>
@@ -135,7 +97,7 @@ $activeRelayEventId = $stmtRelayEvent->fetchColumn();
         </a>
         <?php endif; ?>
 
-        <a href="pembayaran.php" class="bg-gradient-to-br from-white to-slate-50 p-8 rounded-3xl shadow-sm border border-slate-200 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group border-b-4 border-orange-400">
+        <a href="<?= getenv('APP_URL') ?>/swim/payments" class="bg-gradient-to-br from-white to-slate-50 p-8 rounded-3xl shadow-sm border border-slate-200 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group border-b-4 border-orange-400">
             <span class="w-16 h-16 bg-orange-100 text-orange-600 rounded-2xl flex items-center justify-center text-3xl mb-6 shadow-inner group-hover:scale-110 transition">💳</span>
             <h4 class="font-black text-lg text-slate-800 uppercase italic">Pembayaran</h4>
             <p class="text-xs text-slate-500 mt-2 font-medium">Upload bukti transfer.</p>

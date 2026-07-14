@@ -23,7 +23,7 @@ include $topbarFile;
 include $sidebarFile;
 ?>
 <!-- MAIN CONTENT WRAPPER -->
-<div class="p-6 sm:ml-64 pt-24 bg-slate-50 min-h-screen font-sans">
+<div class="p-6 sm:ml-64 pt-20 min-h-screen bg-slate-50">
     <?= $content ?? '' ?>
 </div>
 

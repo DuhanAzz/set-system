@@ -12,7 +12,7 @@ try {
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <link rel="icon" type="image/png" href="<?= getenv('APP_URL') ?>/img/logo.png?v=2">
+    <link rel="icon" type="image/png" href="<?= getenv('APP_URL') ?>/favicon.png?v=3">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - SET System Swim</title>

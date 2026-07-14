@@ -17,8 +17,8 @@ if (!function_exists('hitungKU')) {
     }
 }
 ?>
-<div class="p-4">
-    <div class="p-4 mt-14">
+<div>
+    <div>
 
         <?php if (!empty($success_msg)): ?>
             <div class="mb-4 p-4 text-xs text-emerald-800 bg-emerald-50 rounded-xl border border-emerald-200 shadow-sm flex items-center gap-2">

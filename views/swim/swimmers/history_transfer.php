@@ -1,5 +1,5 @@
-<div class="p-4">
-    <div class="p-4 mt-14">
+<div>
+    <div>
 
         <div class="mb-6">
             <nav class="text-slate-400 text-[10px] font-bold uppercase tracking-widest mb-1">
