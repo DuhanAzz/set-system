@@ -39,22 +39,25 @@ class LoginController extends Controller {
                         exit;
                     }
 
-                    // Set session utama
+                    // Set session sesuai instruksi
                     $_SESSION['roll_user_id'] = $user['id'];
-                    $_SESSION['role'] = $user['role']; // master / admin / user
-                    $_SESSION['username'] = $user['username'];
-                    $_SESSION['nama_lengkap'] = $user['nama_lengkap'] ?? $user['username'];
-                    $_SESSION['klub_id'] = $user['klub_id'] ?? null;
+                    $_SESSION['roll_role'] = $user['role']; 
                     
-                    // Routing Multi-Role
+                    // Routing Redirect Berdasarkan Role (REVISI)
                     $role = strtolower($user['role']);
-                    if ($role === 'master') {
-                        header('Location: ' . getenv('APP_URL') . '/core/dashboard');
-                    } elseif ($role === 'admin') {
-                        header('Location: ' . getenv('APP_URL') . '/roll/admin/dashboard');
-                    } else {
-                        // Default fallback (user/club)
-                        header('Location: ' . getenv('APP_URL') . '/roll/user/dashboard');
+                    switch ($role) {
+                        case 'master':
+                            header('Location: ' . getenv('APP_URL') . '/roll/master/dashboard');
+                            break;
+                        case 'admin':
+                            header('Location: ' . getenv('APP_URL') . '/roll/admin/dashboard');
+                            break;
+                        case 'user':
+                            header('Location: ' . getenv('APP_URL') . '/roll/user/dashboard');
+                            break;
+                        default:
+                            header('Location: ' . getenv('APP_URL') . '/roll/user/dashboard');
+                            break;
                     }
                     exit;
 
