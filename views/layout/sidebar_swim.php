@@ -124,6 +124,21 @@ function isGroupActive($req, $keywords) {
       <?php endif; ?>
 
       <?php if($role == 'admin'): ?>
+         <?php
+         $hasRelay = false;
+         try {
+             $pdoSidebar = \App\Core\Database::getInstance()->getConnection();
+             $uidSidebar = $_SESSION['swim_user_id'] ?? 0;
+             $stmtSidEvt = $pdoSidebar->prepare("SELECT id FROM swim_events WHERE user_id = ? ORDER BY id DESC LIMIT 1");
+             $stmtSidEvt->execute([$uidSidebar]);
+             $sidEventId = $stmtSidEvt->fetchColumn();
+             if ($sidEventId) {
+                 $stmtRelayCheck = $pdoSidebar->prepare("SELECT 1 FROM swim_event_numbers WHERE event_id = ? AND is_relay = 1 LIMIT 1");
+                 $stmtRelayCheck->execute([$sidEventId]);
+                 $hasRelay = (bool)$stmtRelayCheck->fetchColumn();
+             }
+         } catch (\Exception $e) {}
+         ?>
          
          <!-- GROUP 1: Setup Kejuaraan -->
          <?php $a1Active = isGroupActive($req, ['event_profile', 'events/index']); ?>
@@ -146,11 +161,13 @@ function isGroupActive($req, $keywords) {
                <span class="w-6 text-xl mr-3 text-center opacity-80">🏃</span>
                <span class="font-bold text-[11px] tracking-widest uppercase">Operasional Lomba</span>
             </div>
-            <span id="icon-dd-ops" class="transform transition-transform text-xs <?= $a2Active ? 'rotate-180' : '' ?>">▼</span>
+            <span id="icon-dd-ops" class="transform transform transition-transform text-xs <?= $a2Active ? 'rotate-180' : '' ?>">▼</span>
          </button>
          <div id="dd-ops" class="bg-[#0b1120] py-2 <?= $a2Active ? '' : 'hidden' ?>">
              <a href="<?= getenv('APP_URL') ?>/swim/entries/index" class="<?= (strpos($req,"entries")!==false) ? $childActiveLink : $childBaseLink ?>">Verifikasi Entries</a>
+             <?php if($hasRelay): ?>
              <a href="<?= getenv('APP_URL') ?>/swim/relay/index" class="<?= (strpos($req,"relay")!==false) ? $childActiveLink : $childBaseLink ?> text-pink-400">Manajemen Estafet</a>
+             <?php endif; ?>
              <a href="<?= getenv('APP_URL') ?>/src/admin/seeding/index.php" class="<?= (strpos($req,"seeding/index")!==false) ? $childActiveLink : $childBaseLink ?>">Start List <?= ($adminMode == 'Babak Penyisihan') ? 'Penyisihan' : '' ?></a>
              <?php if($adminMode == 'Babak Penyisihan'): ?>
              <a href="<?= getenv('APP_URL') ?>/src/admin/seeding/final.php" class="<?= (strpos($req,"seeding/final")!==false) ? $childActiveLink : $childBaseLink ?> text-orange-400">Seeding Final</a>

@@ -16,7 +16,7 @@ class Controller {
         $file = __DIR__ . '/../../views/' . $viewPath . '.php';
         
         if (file_exists($file)) {
-            $isBackend = (strpos($viewPath, 'auth/login') === false && strpos($viewPath, 'home') === false && strpos($viewPath, 'events') === false && strpos($viewPath, 'results') === false && strpos($viewPath, 'login') === false);
+            $isBackend = (strpos($viewPath, 'swim/') === 0 || strpos($viewPath, 'core/') === 0 || strpos($viewPath, 'roll/') === 0) && strpos($viewPath, 'auth/login') === false;
 
             if ($isBackend) {
                 // Layout Engine untuk Semua Dasbor (Master, Admin, User)
