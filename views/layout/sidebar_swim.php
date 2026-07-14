@@ -79,7 +79,7 @@ function isGroupActive($req, $keywords) {
          </div>
 
          <!-- GROUP 3: Sistem & Operasional -->
-         <?php $g3Active = isGroupActive($req, ['finance', 'maintenance', 'system_health']); ?>
+         <?php $g3Active = isGroupActive($req, ['masterFinance', 'maintenance', 'system_health']); ?>
          <button onclick="toggleSidebarDropdown('dd-sistem')" class="<?= $g3Active ? $dropdownBtnActive : $dropdownBtnBase ?>">
             <div class="flex items-center">
                <span class="w-6 text-center mr-3 text-lg opacity-80">⚙️</span>
@@ -88,9 +88,9 @@ function isGroupActive($req, $keywords) {
             <span id="icon-dd-sistem" class="transform transition-transform text-xs <?= $g3Active ? 'rotate-180' : '' ?>">▼</span>
          </button>
          <div id="dd-sistem" class="bg-[#0b1120] py-2 <?= $g3Active ? '' : 'hidden' ?>">
-             <a href="<?= getenv('APP_URL') ?>/src/master/finance/revenue.php" class="<?= (strpos($req,"finance")!==false) ? $childActiveLink : $childBaseLink ?>">Keuangan</a>
-             <a href="<?= getenv('APP_URL') ?>/src/master/maintenance/data_cleanup.php" class="<?= (strpos($req,"maintenance/data_cleanup")!==false) ? $childActiveLink : $childBaseLink ?>">Maintenance Data</a>
-             <a href="<?= getenv('APP_URL') ?>/src/master/maintenance/system_health.php" class="<?= (strpos($req,"system_health")!==false) ? $childActiveLink : $childBaseLink ?>">System Health</a>
+             <a href="<?= getenv('APP_URL') ?>/swim/masterFinance/revenue" class="<?= (strpos($req,"masterFinance")!==false) ? $childActiveLink : $childBaseLink ?>">Keuangan</a>
+             <a href="<?= getenv('APP_URL') ?>/swim/maintenance/data_cleanup" class="<?= (strpos($req,"maintenance/data_cleanup")!==false) ? $childActiveLink : $childBaseLink ?>">Maintenance Data</a>
+             <a href="<?= getenv('APP_URL') ?>/swim/maintenance/system_health" class="<?= (strpos($req,"maintenance/system_health")!==false) ? $childActiveLink : $childBaseLink ?>">System Health</a>
          </div>
 
          <!-- GROUP 4: Konfigurasi Web -->
@@ -103,8 +103,8 @@ function isGroupActive($req, $keywords) {
             <span id="icon-dd-web" class="transform transition-transform text-xs <?= $g4Active ? 'rotate-180' : '' ?>">▼</span>
          </button>
          <div id="dd-web" class="bg-[#0b1120] py-2 <?= $g4Active ? '' : 'hidden' ?>">
-             <a href="<?= getenv('APP_URL') ?>/src/master/settings/public_page.php" class="<?= (strpos($req,"public_page")!==false) ? $childActiveLink : $childBaseLink ?>">Landing Page</a>
-             <a href="<?= getenv('APP_URL') ?>/src/master/settings/global_config.php" class="<?= (strpos($req,"global_config")!==false) ? $childActiveLink : $childBaseLink ?>">Global Config</a>
+             <a href="<?= getenv('APP_URL') ?>/swim/masterSettings/public_page" class="<?= (strpos($req,"public_page")!==false) ? $childActiveLink : $childBaseLink ?>">Landing Page</a>
+             <a href="<?= getenv('APP_URL') ?>/swim/masterSettings/global_config" class="<?= (strpos($req,"global_config")!==false) ? $childActiveLink : $childBaseLink ?>">Global Config</a>
          </div>
 
          <!-- GROUP 5: Data Referensi -->
@@ -117,8 +117,8 @@ function isGroupActive($req, $keywords) {
             <span id="icon-dd-referensi" class="transform transition-transform text-xs <?= $g5Active ? 'rotate-180' : '' ?>">▼</span>
          </button>
          <div id="dd-referensi" class="bg-[#0b1120] py-2 <?= $g5Active ? '' : 'hidden' ?>">
-             <a href="<?= getenv('APP_URL') ?>/src/master/manage_records.php" class="<?= (strpos($req,"manage_records")!==false || strpos($req,"record_packages")!==false) ? $childActiveLink : $childBaseLink ?>">Manajemen Rekor</a>
-             <a href="<?= getenv('APP_URL') ?>/src/master/settings/dq_rules.php" class="<?= (strpos($req,"dq_rules")!==false) ? $childActiveLink : $childBaseLink ?>">Master DQ Rules</a>
+             <a href="<?= getenv('APP_URL') ?>/swim/records/manage_records" class="<?= (strpos($req,"/records/")!==false) ? $childActiveLink : $childBaseLink ?>">Manajemen Rekor</a>
+             <a href="<?= getenv('APP_URL') ?>/swim/masterSettings/dq_rules" class="<?= (strpos($req,"dq_rules")!==false) ? $childActiveLink : $childBaseLink ?>">Master DQ Rules</a>
          </div>
 
       <?php endif; ?>

@@ -1,4 +1,4 @@
-<div class="p-6 sm:ml-64 pt-24 bg-slate-50 min-h-screen font-sans">
+<div class="font-sans">
     
     <div class="mb-8">
         <a href="/swim/users/index?role=<?= $user['role'] ?>" class="text-blue-600 font-bold text-sm hover:underline flex items-center gap-2 w-max">

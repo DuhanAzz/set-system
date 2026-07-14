@@ -152,7 +152,11 @@ switch ($module) {
 
     case 'swim':
         // Autoloader akan otomatis mencari file di app/Swim/Controllers/
-        $controllerClass = "\\App\\Swim\\Controllers\\" . ucfirst($page) . "Controller";
+        if ($page === 'finance' && isset($_SESSION['swim_role']) && $_SESSION['swim_role'] === 'master') {
+            $controllerClass = "\\App\\Swim\\Controllers\\MasterFinanceController";
+        } else {
+            $controllerClass = "\\App\\Swim\\Controllers\\" . ucfirst($page) . "Controller";
+        }
         
         if (class_exists($controllerClass)) {
             $controller = new $controllerClass();

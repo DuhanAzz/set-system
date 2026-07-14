@@ -1,4 +1,4 @@
-<div class="p-4 sm:ml-64">
+<div class="font-sans">
     <div class="p-4 mt-14 max-w-3xl mx-auto">
         
         <div class="flex justify-between items-center mb-6">

@@ -209,11 +209,11 @@
                         <div class="text-2xl mb-2 group-hover:scale-110 transition">👥</div>
                         <span class="text-[9px] font-bold uppercase tracking-wider">User Manager</span>
                     </a>
-                    <a href="<?= getenv('APP_URL') ?>/swim/finance/revenue" class="bg-slate-700 hover:bg-emerald-600 p-4 rounded-xl text-center transition group">
+                    <a href="<?= getenv('APP_URL') ?>/swim/masterFinance/revenue" class="bg-slate-700 hover:bg-emerald-600 p-4 rounded-xl text-center transition group">
                         <div class="text-2xl mb-2 group-hover:scale-110 transition">💰</div>
                         <span class="text-[9px] font-bold uppercase tracking-wider">Keuangan</span>
                     </a>
-                    <a href="<?= getenv('APP_URL') ?>/swim/settings/public_page" class="bg-slate-700 hover:bg-indigo-600 p-4 rounded-xl text-center transition group">
+                    <a href="<?= getenv('APP_URL') ?>/swim/masterSettings/public_page" class="bg-slate-700 hover:bg-indigo-600 p-4 rounded-xl text-center transition group">
                         <div class="text-2xl mb-2 group-hover:scale-110 transition">🎨</div>
                         <span class="text-[9px] font-bold uppercase tracking-wider">Editor Web</span>
                     </a>

@@ -17,7 +17,7 @@
     <?php include __DIR__ . '/../layout/topbar.php'; ?>
     <?php include __DIR__ . '/../layout/sidebar.php'; ?>
 
-    <div class="p-6 sm:ml-64 pt-24 font-sans">
+    <div class="font-sans">
         
         <div class="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-8 gap-6">
             <div>
