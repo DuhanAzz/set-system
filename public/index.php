@@ -166,7 +166,8 @@ switch ($module) {
                 $params = array_slice($url, 3);
                 $controller->$method(...$params);
             } else {
-                $controller->index();
+                $params = array_slice($url, 2);
+                $controller->index(...$params);
             }
         } else {
             // Fallback: Coba periksa apakah method ada di HomeController

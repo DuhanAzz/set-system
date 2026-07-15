@@ -91,7 +91,7 @@
 
                     <div class="mt-4 flex justify-end">
                         <?php if ($e['is_result_published'] == 1): ?>
-                            <a href="<?= getenv('APP_URL') ?>/swim/live_result/<?= $e['event_id'] ?>" class="px-6 py-2.5 rounded-xl bg-slate-900 text-white hover:bg-blue-600 transition shadow-lg text-[10px] font-black tracking-widest uppercase whitespace-nowrap">
+                            <a href="<?= getenv('APP_URL') ?>/swim/live_result/index/<?= $e['event_id'] ?>" class="px-6 py-2.5 rounded-xl bg-slate-900 text-white hover:bg-blue-600 transition shadow-lg text-[10px] font-black tracking-widest uppercase whitespace-nowrap">
                                 <span class="animate-pulse mr-1">🏆</span> Live Result &rarr;
                             </a>
                         <?php else: ?>

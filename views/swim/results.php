@@ -190,7 +190,7 @@ $linkFB       = $s['link_facebook'] ?? '';
                         <?php endif; ?>
 
                         <?php if ($e['is_result_published'] == 1): ?>
-                            <a href="<?= getenv('APP_URL') ?>/swim/live_result?event_id=<?= $e['id'] ?>" class="flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-slate-900 text-white hover:bg-blue-600 transition shadow-lg min-w-[160px] md:min-w-[200px]">
+                            <a href="<?= getenv('APP_URL') ?>/swim/live_result/index/<?= $e['id'] ?>" class="flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-slate-900 text-white hover:bg-blue-600 transition shadow-lg min-w-[160px] md:min-w-[200px]">
                                 <span class="animate-bounce text-xl">🏆</span>
                                 <div class="text-left">
                                     <div class="text-[9px] text-blue-300 font-black uppercase tracking-widest">Real-Time</div>
