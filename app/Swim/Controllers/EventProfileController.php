@@ -43,8 +43,14 @@ class EventProfileController extends Controller {
             $sponsors = $stmtSponsor->fetchAll(PDO::FETCH_ASSOC);
         }
 
-        $stmtPackages = $pdo->query("SELECT * FROM record_packages ORDER BY id ASC");
-        $packages = $stmtPackages->fetchAll(PDO::FETCH_ASSOC);
+        // 2. HOTFIX: Ambil daftar paket rekor untuk dropdown Acuan Rekor
+        $allPackages = [];
+        try {
+            $stmtPackages = $pdo->query("SELECT * FROM record_packages ORDER BY package_name ASC");
+            $allPackages = $stmtPackages->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Exception $e) {
+            // Abaikan error jika tabel belum ada, biarkan array kosong agar tidak fatal error di foreach
+        }
 
         // Fetch docs
         $stmtDoc = $pdo->prepare("SELECT id, judul_file as title, file_path, kategori FROM swim_documents WHERE event_id = ?");
@@ -62,7 +68,8 @@ class EventProfileController extends Controller {
             'eventId' => $eventId,
             'row' => $row,
             'sponsors' => $sponsors,
-            'packages' => $packages,
+            'packages' => $allPackages,
+            'allPackages' => $allPackages,
             'juknis' => $juknis,
             'formulir' => $formulir
         ]);

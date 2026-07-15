@@ -21,7 +21,7 @@ $childActiveLink = 'block px-8 py-2.5 text-[10px] text-blue-400 font-black upper
 // Link Dashboard dinamis
 if ($role == 'master') $dashLink = getenv('APP_URL') . '/swim/dashboard/master';
 elseif ($role == 'admin') $dashLink = getenv('APP_URL') . '/swim/dashboard/admin';
-elseif ($role == 'user') $dashLink = getenv('APP_URL') . '/swim/dashboard/user';
+elseif ($role == 'user') $dashLink = getenv('APP_URL') . '/swim/user_dashboard';
 else $dashLink = getenv('APP_URL') . '/swim/login';
 
 // HELPER FUNCTION: Check if req contains any of the keywords
@@ -184,34 +184,38 @@ function isGroupActive($req, $keywords) {
             <span id="icon-dd-hasil" class="transform transition-transform text-xs <?= $a3Active ? 'rotate-180' : '' ?>">▼</span>
          </button>
          <div id="dd-hasil" class="bg-[#0b1120] py-2 <?= $a3Active ? '' : 'hidden' ?>">
-             <a href="<?= getenv('APP_URL') ?>/src/admin/results/index.php" class="<?= (strpos($req,"results/index")!==false) ? $childActiveLink : $childBaseLink ?>">Input Hasil</a>
-             <a href="<?= getenv('APP_URL') ?>/src/admin/results/publish_result.php" class="<?= (strpos($req,"publish_result")!==false) ? $childActiveLink : $childBaseLink ?>">Publikasi Hasil</a>
-             <a href="<?= getenv('APP_URL') ?>/src/admin/results/medal_tally.php" class="<?= (strpos($req,"medal_tally")!==false) ? $childActiveLink : $childBaseLink ?>">Rekap Medali</a>
-             <a href="<?= getenv('APP_URL') ?>/src/admin/results/best_swimmer.php" class="<?= (strpos($req,"best_swimmer")!==false) ? $childActiveLink : $childBaseLink ?>">Perenang Terbaik</a>
-             <a href="<?= getenv('APP_URL') ?>/src/admin/results/manage_exports.php" class="<?= (strpos($req,"manage_exports")!==false) ? $childActiveLink : $childBaseLink ?>">Ekspor & Laporan</a>
+             <a href="<?= getenv('APP_URL') ?>/swim/results" class="<?= (strpos($req,"swim/results")!==false && strpos($req,"publish")===false) ? $childActiveLink : $childBaseLink ?>">Input Hasil</a>
+             <a href="<?= getenv('APP_URL') ?>/swim/results/publish" class="<?= (strpos($req,"publish")!==false) ? $childActiveLink : $childBaseLink ?>">Publikasi Hasil</a>
+             <a href="<?= getenv('APP_URL') ?>/swim/medal_tally" class="<?= (strpos($req,"medal_tally")!==false && strpos($req,"best_swimmer")===false) ? $childActiveLink : $childBaseLink ?>">Rekap Medali</a>
+             <a href="<?= getenv('APP_URL') ?>/swim/medal_tally/best_swimmer" class="<?= (strpos($req,"best_swimmer")!==false) ? $childActiveLink : $childBaseLink ?>">Perenang Terbaik</a>
+             <a href="<?= getenv('APP_URL') ?>/swim/export" class="<?= (strpos($req,"export")!==false) ? $childActiveLink : $childBaseLink ?>">Ekspor & Laporan</a>
          </div>
 
       <?php endif; ?>
 
       <?php if($role == 'user'): ?>
          <div class="px-8 mt-8 mb-2 text-[10px] font-black text-slate-600 uppercase tracking-widest">Club Management</div>
-         <a href="<?= getenv('APP_URL') ?>/src/user/atlet/index.php" class="<?= (strpos($req,"user/atlet")!==false) ? $activeLink : $baseLink ?>">
+         <a href="<?= getenv('APP_URL') ?>/swim/club_profile" class="<?= (strpos($req,"club_profile")!==false) ? $activeLink : $baseLink ?>">
+            <span class="w-6 text-xl mr-3 text-center opacity-80">🏢</span>
+            <span class="font-bold text-[11px] tracking-widest uppercase">Profil Klub</span>
+         </a>
+         <a href="<?= getenv('APP_URL') ?>/swim/swimmers" class="<?= (strpos($req,"swim/swimmers")!==false) ? $activeLink : $baseLink ?>">
             <span class="w-6 text-xl mr-3 text-center opacity-80">🏊</span>
-            <span class="font-bold text-[11px] tracking-widest uppercase">Atlet Saya</span>
+            <span class="font-bold text-[11px] tracking-widest uppercase">Roster Atlet</span>
          </a>
          
          <div class="px-8 mt-8 mb-2 text-[10px] font-black text-slate-600 uppercase tracking-widest">Registrations</div>
-         <a href="<?= getenv('APP_URL') ?>/src/user/kompetisi/explore.php" class="<?= (strpos($req,"kompetisi")!==false) ? $activeLink : $baseLink ?>">
+         <a href="<?= getenv('APP_URL') ?>/swim/explore" class="<?= (strpos($req,"explore")!==false) ? $activeLink : $baseLink ?>">
             <span class="w-6 text-xl mr-3 text-center opacity-80">🚀</span>
             <span class="font-bold text-[11px] tracking-widest uppercase">Cari Lomba</span>
          </a>
-         <a href="<?= getenv('APP_URL') ?>/src/user/pembayaran.php" class="<?= (strpos($req,"pembayaran")!==false) ? $activeLink : $baseLink ?>">
+         <a href="<?= getenv('APP_URL') ?>/swim/checkout" class="<?= (strpos($req,"checkout")!==false) ? $activeLink : $baseLink ?>">
             <span class="w-6 text-xl mr-3 text-center opacity-80">💸</span>
             <span class="font-bold text-[11px] tracking-widest uppercase">Status Bayar</span>
          </a>
          
          <div class="px-8 mt-8 mb-2 text-[10px] font-black text-slate-600 uppercase tracking-widest">Information</div>
-         <a href="<?= getenv('APP_URL') ?>/src/user/pengumuman.php" class="<?= (strpos($req,"pengumuman")!==false) ? $activeLink : $baseLink ?>">
+         <a href="<?= getenv('APP_URL') ?>/swim/announcements" class="<?= (strpos($req,"announcements")!==false) ? $activeLink : $baseLink ?>">
             <span class="w-6 text-xl mr-3 text-center opacity-80">📢</span>
             <span class="font-bold text-[11px] tracking-widest uppercase">Pengumuman</span>
          </a>

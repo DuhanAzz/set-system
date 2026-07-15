@@ -29,14 +29,14 @@ class SeedingController extends Controller {
         try {
             $sql = "SELECT en.*, 
                     IF(en.is_relay = 1, 
-                        (SELECT COUNT(re.id) FROM swim_relay_entries re WHERE re.category_id = en.id AND re.event_id = ? AND re.status IN ('Approved', 'Paid')),
-                        (SELECT COUNT(ee.id) FROM swim_event_entries ee WHERE ee.category_id = en.id AND ee.event_id = ? AND ee.status IN ('Approved', 'Paid'))
+                        (SELECT COUNT(re.id) FROM swim_relay_entries re WHERE re.category_id = en.id),
+                        (SELECT COUNT(ee.id) FROM swim_event_entries ee WHERE ee.category_id = en.id)
                     ) as total_athletes
                     FROM swim_event_numbers en 
                     WHERE en.event_id = ? 
                     ORDER BY CAST(en.event_number AS UNSIGNED) ASC";
             $stmt = $pdo->prepare($sql);
-            $stmt->execute([$targetEventId, $targetEventId, $targetEventId]);
+            $stmt->execute([$targetEventId]);
             $events = $stmt->fetchAll(\PDO::FETCH_ASSOC);
         } catch (\PDOException $e) {
             $error_msg = "Database Error: " . $e->getMessage();
@@ -139,15 +139,14 @@ class SeedingController extends Controller {
                 $stmt = $pdo->prepare("
                     SELECT id, seed_time as entry_time, NULL as tanggal_lahir 
                     FROM swim_relay_entries 
-                    WHERE category_id = ? AND status IN ('Approved', 'Paid')
+                    WHERE category_id = ?
                 ");
             } else {
-                // Hanya seeding entry yang Approved / Paid
                 $stmt = $pdo->prepare("
                     SELECT ee.id, ee.entry_time, s.tanggal_lahir 
                     FROM swim_event_entries ee
                     JOIN swim_swimmers s ON ee.swimmer_id = s.id
-                    WHERE ee.category_id = ? AND ee.status IN ('Approved', 'Paid')
+                    WHERE ee.category_id = ?
                 ");
             }
             $stmt->execute([$categoryId]);
