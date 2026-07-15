@@ -1,0 +1,1 @@
+{"nodes":[{"id":"migrate_table","label":"migrate_table.php","file_type":"code","source_file":"migrate_table.php","source_location":"L1"}],"edges":[{"source":"migrate_table","target":"database","relation":"imports","confidence":"EXTRACTED","source_file":"migrate_table.php","source_location":"L5","weight":1}]}
