@@ -6,7 +6,7 @@ use App\Core\Database;
 use PDO;
 use DateTime;
 
-class EventRegistrationController extends Controller {
+class RegistrationController extends Controller {
     private $db;
 
     public function __construct() {
