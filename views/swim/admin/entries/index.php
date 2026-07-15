@@ -77,7 +77,7 @@
 
                         <td class="py-4 px-4 text-center">
                             <?php if(!empty($row['file_path'])): ?>
-                                <a href="<?= getenv('APP_URL') ?>/uploads/payment_proofs/<?= htmlspecialchars($row['file_path']) ?>" target="_blank" class="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-blue-50 text-blue-600 border border-blue-200 hover:bg-blue-100 text-[9px] font-bold uppercase transition">
+                                <a href="<?= getenv('APP_URL') ?>/public/uploads/payments/<?= htmlspecialchars($row['file_path']) ?>" target="_blank" class="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-blue-50 text-blue-600 border border-blue-200 hover:bg-blue-100 text-[9px] font-bold uppercase transition">
                                     👁️ Lihat Bukti
                                 </a>
                             <?php else: ?>

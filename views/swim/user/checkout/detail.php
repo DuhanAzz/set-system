@@ -106,7 +106,7 @@
                             <?= ($displayStatus == 'Pending') ? 'Menunggu Verifikasi Panitia' : 'Pembayaran Lunas!' ?>
                         </p>
                         <?php if(!empty($proofFile)): ?>
-                            <a href="<?= getenv('APP_URL') ?>/uploads/payments/<?= htmlspecialchars($proofFile) ?>" target="_blank" class="inline-block mt-4 px-6 py-2 bg-slate-100 border border-slate-200 rounded-xl text-[10px] font-black text-slate-600 uppercase tracking-widest hover:bg-slate-900 hover:text-white transition">Lihat Bukti Saya</a>
+                            <a href="<?= getenv('APP_URL') ?>/public/uploads/payments/<?= htmlspecialchars($proofFile) ?>" target="_blank" class="inline-block mt-4 px-6 py-2 bg-slate-100 border border-slate-200 rounded-xl text-[10px] font-black text-slate-600 uppercase tracking-widest hover:bg-slate-900 hover:text-white transition">Lihat Bukti Saya</a>
                         <?php endif; ?>
                     </div>
                 <?php endif; ?>

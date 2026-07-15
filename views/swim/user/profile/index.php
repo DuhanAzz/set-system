@@ -16,14 +16,29 @@
 <?php endif; ?>
 
 <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden max-w-4xl">
-    <form action="<?= getenv('APP_URL') ?>/swim/club_profile/update" method="POST" class="p-8">
+    <form action="<?= getenv('APP_URL') ?>/swim/club_profile/update" method="POST" enctype="multipart/form-data" class="p-8">
         
         <h3 class="text-lg font-black text-slate-800 uppercase mb-6 pb-2 border-b-2 border-slate-100">Informasi Afiliasi (Klub/Sekolah)</h3>
         
+        <div class="mb-8 flex flex-col md:flex-row gap-6 items-center">
+            <div class="shrink-0 w-32 h-32 bg-slate-100 rounded-2xl border-2 border-dashed border-slate-300 flex items-center justify-center overflow-hidden">
+                <?php if(!empty($club['logo'])): ?>
+                    <img src="<?= getenv('APP_URL') ?>/public/uploads/logos/<?= htmlspecialchars($club['logo']) ?>" class="w-full h-full object-cover">
+                <?php else: ?>
+                    <span class="text-4xl opacity-50">🏊</span>
+                <?php endif; ?>
+            </div>
+            <div class="flex-1 w-full">
+                <label class="block text-xs font-black text-slate-700 uppercase tracking-widest mb-2">Logo Klub / Sekolah</label>
+                <input type="file" name="logo" accept="image/*" class="w-full rounded-xl border border-slate-300 bg-white text-sm font-medium focus:ring-blue-500 focus:border-blue-500 p-2 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-black file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                <p class="text-[10px] text-slate-400 mt-2 font-bold uppercase tracking-widest">Format: JPG, PNG, WEBP. Akan otomatis dipotong persegi (Square Crop).</p>
+            </div>
+        </div>
+
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
             <div>
                 <label class="block text-xs font-black text-slate-700 uppercase tracking-widest mb-2">Nama Klub / Sekolah</label>
-                <input type="text" name="nama_klub" value="<?= htmlspecialchars($club['nama_klub'] ?? '') ?>" class="w-full rounded-xl border-slate-300 bg-slate-50 text-sm font-medium focus:ring-blue-500 focus:border-blue-500 p-3" placeholder="Contoh: BINTANG TIMUR SWIMMING CLUB" required>
+                <input type="text" name="nama_klub" value="<?= htmlspecialchars($club['nama_klub'] ?? '') ?>" class="w-full rounded-xl border border-slate-300 bg-slate-50 text-sm font-medium focus:ring-blue-500 focus:border-blue-500 p-3" placeholder="Contoh: BINTANG TIMUR SWIMMING CLUB" required>
             </div>
             <div>
                 <label class="block text-xs font-black text-slate-700 uppercase tracking-widest mb-2">Asal Daerah / Kota</label>

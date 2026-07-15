@@ -4,6 +4,7 @@ namespace App\Swim\Controllers;
 
 use App\Core\Controller;
 use App\Core\Database;
+use App\Core\UploadService;
 use PDO;
 
 class ClubProfileController extends Controller {
@@ -64,16 +65,45 @@ class ClubProfileController extends Controller {
             $nama_klub = $_POST['nama_klub'] ?? '';
             $kota = $_POST['kota'] ?? '';
 
+            // Handle logo upload
+            $logo = null;
+            if (isset($_FILES['logo']) && $_FILES['logo']['error'] !== UPLOAD_ERR_NO_FILE) {
+                try {
+                    $logo = UploadService::uploadImage($_FILES['logo'], 'logos', 800);
+                } catch (\Exception $e) {
+                    $_SESSION['flash_error'] = $e->getMessage();
+                    header("Location: " . getenv('APP_URL') . "/swim/club_profile");
+                    exit;
+                }
+            }
+
             try {
                 $this->db->beginTransaction();
+
+                // Get old logo for garbage collection
+                if ($logo) {
+                    $stmtOld = $this->db->prepare("SELECT logo FROM swim_clubs WHERE user_id = ?");
+                    $stmtOld->execute([$uid]);
+                    $oldLogo = $stmtOld->fetchColumn();
+                }
 
                 // Update users
                 $stmtU = $this->db->prepare("UPDATE swim_users SET nama_lengkap = ?, phone = ?, email = ? WHERE id = ?");
                 $stmtU->execute([$nama_lengkap, $phone, $email, $uid]);
 
                 // Update clubs
-                $stmtC = $this->db->prepare("UPDATE swim_clubs SET nama_klub = ?, kota = ? WHERE user_id = ?");
-                $stmtC->execute([$nama_klub, $kota, $uid]);
+                if ($logo) {
+                    $stmtC = $this->db->prepare("UPDATE swim_clubs SET nama_klub = ?, kota = ?, logo = ? WHERE user_id = ?");
+                    $stmtC->execute([$nama_klub, $kota, $logo, $uid]);
+                    
+                    // Garbage Collection
+                    if ($oldLogo) {
+                        UploadService::deleteFile('logos', $oldLogo);
+                    }
+                } else {
+                    $stmtC = $this->db->prepare("UPDATE swim_clubs SET nama_klub = ?, kota = ? WHERE user_id = ?");
+                    $stmtC->execute([$nama_klub, $kota, $uid]);
+                }
 
                 $this->db->commit();
                 

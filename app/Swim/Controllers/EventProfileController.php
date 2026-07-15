@@ -3,6 +3,7 @@ namespace App\Swim\Controllers;
 
 use App\Core\Controller;
 use App\Core\Database;
+use App\Core\UploadService;
 use PDO;
 use PDOException;
 
@@ -140,16 +141,8 @@ class EventProfileController extends Controller {
         $uid = $_SESSION['swim_user_id'];
         
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-            $targetDir = __DIR__ . "/../../../../public/uploads/logos/";
-            $posterDir = __DIR__ . "/../../../../public/uploads/posters/";
-            $docDir    = __DIR__ . "/../../../../public/uploads/documents/";
-
             try {
                 $pdo->beginTransaction();
-                
-                if (!is_dir($targetDir)) mkdir($targetDir, 0755, true);
-                if (!is_dir($posterDir)) mkdir($posterDir, 0755, true);
-                if (!is_dir($docDir)) mkdir($docDir, 0755, true);
 
                 $eventId     = $_POST['event_id'] ?? 0;
                 $eventName   = $_POST['nama_event'] ?? '';
@@ -191,12 +184,12 @@ class EventProfileController extends Controller {
                     $stmt->execute([$eventName, $eventLoc, $eventCity, $dateStart, $dateEnd, $laneCount, $usedLanes, $poolType, $ageCalc, $partType, $status, $bankName, $bankRek, $bankAtas, $recordPackageId, $eventId, $uid]);
                 }
 
-                $this->handleImageUpload($pdo, 'logo_left', $targetDir, $eventId, 'uploads/logos/');
-                $this->handleImageUpload($pdo, 'logo_right', $targetDir, $eventId, 'uploads/logos/');
-                $this->handleImageUpload($pdo, 'poster_file', $posterDir, $eventId, 'uploads/posters/', 'poster_image');
-                $this->handleDocumentUpload($pdo, 'juknis_file', $docDir, $eventId, 'JUKNIS');
-                $this->handleDocumentUpload($pdo, 'form_file', $docDir, $eventId, 'FORMULIR');
-                $this->handleSponsorsUpload($pdo, $targetDir, $eventId);
+                $this->handleImageUpload($pdo, 'logo_left', $eventId, 'logos');
+                $this->handleImageUpload($pdo, 'logo_right', $eventId, 'logos');
+                $this->handleImageUpload($pdo, 'poster_file', $eventId, 'logos', 'poster_image');
+                $this->handleDocumentUpload($pdo, 'juknis_file', $eventId, 'JUKNIS');
+                $this->handleDocumentUpload($pdo, 'form_file', $eventId, 'FORMULIR');
+                $this->handleSponsorsUpload($pdo, $eventId);
 
                 $pdo->commit();
                 $_SESSION['swal_type'] = "success";
@@ -214,40 +207,42 @@ class EventProfileController extends Controller {
         exit;
     }
 
-    private function handleImageUpload($pdo, $fileKey, $targetDir, $eventId, $publicPath, $dbCol = null) {
+    private function handleImageUpload($pdo, $fileKey, $eventId, $folder, $dbCol = null) {
         if (!$dbCol) $dbCol = $fileKey;
         
-        if (isset($_FILES[$fileKey]) && $_FILES[$fileKey]['error'] == UPLOAD_ERR_OK) {
-            $fileTmp = $_FILES[$fileKey]['tmp_name'];
-            $fileExt = strtolower(pathinfo($_FILES[$fileKey]['name'], PATHINFO_EXTENSION));
-            $allowed = ['jpg','jpeg','png','webp'];
-            
-            if (in_array($fileExt, $allowed)) {
-                $newName = "EVENT_{$eventId}_{$dbCol}_" . time() . "." . $fileExt;
-                if (move_uploaded_file($fileTmp, $targetDir . $newName)) {
-                    $dbSavePath = $publicPath . $newName;
+        if (isset($_FILES[$fileKey]) && $_FILES[$fileKey]['error'] !== UPLOAD_ERR_NO_FILE) {
+            try {
+                $newName = UploadService::uploadImage($_FILES[$fileKey], $folder, 800);
+                if ($newName) {
+                    $stmtOld = $pdo->prepare("SELECT `$dbCol` FROM swim_events WHERE id = ?");
+                    $stmtOld->execute([$eventId]);
+                    $oldPath = $stmtOld->fetchColumn();
+                    if ($oldPath) UploadService::deleteFile($folder, basename($oldPath));
+                    
+                    $dbSavePath = "uploads/$folder/" . $newName;
                     $pdo->prepare("UPDATE swim_events SET `$dbCol` = ? WHERE id = ?")->execute([$dbSavePath, $eventId]);
                 }
+            } catch (\Exception $e) {
+                $_SESSION['swal_type'] = "error";
+                $_SESSION['swal_msg']  = $e->getMessage();
             }
         }
     }
 
-    private function handleDocumentUpload($pdo, $fileKey, $docDir, $eventId, $kategori) {
-        if (isset($_FILES[$fileKey]) && $_FILES[$fileKey]['error'] == UPLOAD_ERR_OK) {
-            $fileTmp = $_FILES[$fileKey]['tmp_name'];
-            $fileName = $_FILES[$fileKey]['name'];
-            $fileExt = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
-            
-            if ($fileExt === 'pdf' || $fileExt === 'docx') {
-                $newName = "DOC_{$eventId}_{$kategori}_" . time() . "." . $fileExt;
-                if (move_uploaded_file($fileTmp, $docDir . $newName)) {
+    private function handleDocumentUpload($pdo, $fileKey, $eventId, $kategori) {
+        if (isset($_FILES[$fileKey]) && $_FILES[$fileKey]['error'] !== UPLOAD_ERR_NO_FILE) {
+            try {
+                $fileName = $_FILES[$fileKey]['name'];
+                $newName = UploadService::uploadDocument($_FILES[$fileKey], 'documents', 5);
+                if ($newName) {
                     $dbSavePath = "uploads/documents/" . $newName;
                     
-                    $stmtCek = $pdo->prepare("SELECT id FROM swim_documents WHERE event_id = ? AND kategori = ?");
+                    $stmtCek = $pdo->prepare("SELECT id, file_path FROM swim_documents WHERE event_id = ? AND kategori = ?");
                     $stmtCek->execute([$eventId, $kategori]);
                     $exists = $stmtCek->fetch();
                     
                     if ($exists) {
+                        UploadService::deleteFile('documents', basename($exists['file_path']));
                         $pdo->prepare("UPDATE swim_documents SET judul_file = ?, file_path = ?, created_at = NOW() WHERE id = ?")
                             ->execute([$fileName, $dbSavePath, $exists['id']]);
                     } else {
@@ -255,26 +250,33 @@ class EventProfileController extends Controller {
                             ->execute([$eventId, $fileName, $dbSavePath, $kategori]);
                     }
                 }
+            } catch (\Exception $e) {
+                $_SESSION['swal_type'] = "error";
+                $_SESSION['swal_msg']  = $e->getMessage();
             }
         }
     }
 
-    private function handleSponsorsUpload($pdo, $targetDir, $eventId) {
+    private function handleSponsorsUpload($pdo, $eventId) {
         if (isset($_FILES['sponsor_files']) && is_array($_FILES['sponsor_files']['name'])) {
             $count = count($_FILES['sponsor_files']['name']);
             for ($i = 0; $i < $count; $i++) {
-                if ($_FILES['sponsor_files']['error'][$i] == UPLOAD_ERR_OK) {
-                    $fileTmp = $_FILES['sponsor_files']['tmp_name'][$i];
-                    $fileExt = strtolower(pathinfo($_FILES['sponsor_files']['name'][$i], PATHINFO_EXTENSION));
-                    $allowed = ['jpg','jpeg','png','webp'];
-                    
-                    if (in_array($fileExt, $allowed)) {
-                        $newName = "SPONSOR_{$eventId}_" . time() . "_$i." . $fileExt;
-                        if (move_uploaded_file($fileTmp, $targetDir . $newName)) {
+                if ($_FILES['sponsor_files']['error'][$i] !== UPLOAD_ERR_NO_FILE) {
+                    try {
+                        $fileArr = [
+                            'name' => $_FILES['sponsor_files']['name'][$i],
+                            'type' => $_FILES['sponsor_files']['type'][$i],
+                            'tmp_name' => $_FILES['sponsor_files']['tmp_name'][$i],
+                            'error' => $_FILES['sponsor_files']['error'][$i],
+                            'size' => $_FILES['sponsor_files']['size'][$i],
+                        ];
+                        $newName = UploadService::uploadImage($fileArr, 'logos', 800);
+                        if ($newName) {
                             $dbSavePath = "uploads/logos/" . $newName;
                             $pdo->prepare("INSERT INTO event_sponsors (event_id, sponsor_name, image_path) VALUES (?, ?, ?)")
                                 ->execute([$eventId, "Sponsor", $dbSavePath]);
                         }
+                    } catch (\Exception $e) {
                     }
                 }
             }

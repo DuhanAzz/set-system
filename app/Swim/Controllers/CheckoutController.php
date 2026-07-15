@@ -3,6 +3,7 @@ namespace App\Swim\Controllers;
 
 use App\Core\Controller;
 use App\Core\Database;
+use App\Core\UploadService;
 use PDO;
 
 class CheckoutController extends Controller {
@@ -204,23 +205,29 @@ class CheckoutController extends Controller {
             exit;
         }
 
-        $uploadDir = __DIR__ . '/../../../../public/uploads/payments/';
-        if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
+        if (isset($_FILES['bukti_transfer']) && $_FILES['bukti_transfer']['error'] !== UPLOAD_ERR_NO_FILE) {
+            try {
+                $fileName = UploadService::uploadPaymentProof($_FILES['bukti_transfer']);
+                
+                // Get old file for garbage collection
+                $stmtOld = $this->db->prepare("SELECT file_path FROM swim_payments WHERE id = ?");
+                $stmtOld->execute([$paymentId]);
+                $oldFile = $stmtOld->fetchColumn();
 
-        $fileExt = strtolower(pathinfo($_FILES['bukti_transfer']['name'], PATHINFO_EXTENSION));
-        $fileName = 'PAY_' . $event['id'] . '_' . $uid . '_' . time() . '.' . $fileExt;
-        $targetFile = $uploadDir . $fileName;
-
-        if (in_array($fileExt, ['jpg', 'jpeg', 'png', 'pdf'])) {
-            if (move_uploaded_file($_FILES['bukti_transfer']['tmp_name'], $targetFile)) {
                 $stmtUp = $this->db->prepare("UPDATE swim_payments SET file_path = ?, status = 'Pending', updated_at = NOW() WHERE id = ?");
                 $stmtUp->execute([$fileName, $paymentId]);
+                
+                // Garbage Collection
+                if ($oldFile) {
+                    UploadService::deleteFile('payments', $oldFile);
+                }
+                
                 $_SESSION['flash_success'] = "Bukti transfer berhasil diunggah! Menunggu verifikasi admin.";
-            } else {
-                $_SESSION['flash_error'] = "Gagal memindahkan file yang diunggah.";
+            } catch (\Exception $e) {
+                $_SESSION['flash_error'] = $e->getMessage();
             }
         } else {
-            $_SESSION['flash_error'] = "Format file tidak diizinkan. Gunakan JPG, PNG, atau PDF.";
+            $_SESSION['flash_error'] = "Silakan pilih file bukti transfer.";
         }
 
         if (isset($_POST['from_list']) && $_POST['from_list'] == '1') {
