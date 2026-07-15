@@ -81,17 +81,7 @@ class RelayRegistrationController extends Controller {
         $relayCategories = $stmtRelayCats->fetchAll(PDO::FETCH_ASSOC);
 
         // Get registered teams
-        $stmtTeams = $this->db->prepare("
-            SELECT r.*, 
-                   s1.nama_atlet as s1_name, s2.nama_atlet as s2_name, s3.nama_atlet as s3_name, s4.nama_atlet as s4_name
-            FROM swim_relay_entries r
-            LEFT JOIN swim_swimmers s1 ON r.swimmer_1_id = s1.id
-            LEFT JOIN swim_swimmers s2 ON r.swimmer_2_id = s2.id
-            LEFT JOIN swim_swimmers s3 ON r.swimmer_3_id = s3.id
-            LEFT JOIN swim_swimmers s4 ON r.swimmer_4_id = s4.id
-            WHERE r.event_id = ? AND r.club_id = ? 
-            ORDER BY r.id ASC
-        ");
+        $stmtTeams = $this->db->prepare("SELECT * FROM swim_relay_entries WHERE event_id = ? AND club_id = ? ORDER BY id ASC");
         $stmtTeams->execute([$event['id'], $clubId]);
         $teamsData = $stmtTeams->fetchAll(PDO::FETCH_ASSOC);
 
@@ -100,16 +90,10 @@ class RelayRegistrationController extends Controller {
             $teamsByCategory[$team['category_id']][] = $team;
         }
 
-        // Get all swimmers for dropdown
-        $stmtSw = $this->db->prepare("SELECT id, nama_atlet, jenis_kelamin FROM swim_swimmers WHERE user_id = ? ORDER BY nama_atlet ASC");
-        $stmtSw->execute([$uid]);
-        $allSwimmers = $stmtSw->fetchAll(PDO::FETCH_ASSOC);
-
         $this->view('swim/user/relay/index', [
             'event' => $event,
             'relayCategories' => $relayCategories,
             'teamsByCategory' => $teamsByCategory,
-            'allSwimmers' => $allSwimmers,
             'isClosed' => $isClosed,
             'isLocked' => $isLocked,
             'success' => $_SESSION['flash_success'] ?? null,
@@ -140,47 +124,34 @@ class RelayRegistrationController extends Controller {
         }
 
         $clubId = $this->getClubId($uid);
-        $categoryId = (int)$_POST['category_id'];
-        $teamName = trim($_POST['team_name']);
-        $seedTime = trim($_POST['seed_time'] ?? '');
-        if (empty($seedTime) || $seedTime === '00.00.00' || $seedTime === '00:00.00') $seedTime = 'NT';
+        $action = $_POST['action'] ?? '';
 
-        $s1 = (int)($_POST['swimmer_1'] ?? 0);
-        $s2 = (int)($_POST['swimmer_2'] ?? 0);
-        $s3 = (int)($_POST['swimmer_3'] ?? 0);
-        $s4 = (int)($_POST['swimmer_4'] ?? 0);
+        if ($action === 'add_relay') {
+            $categoryId = (int)$_POST['category_id'];
+            $teamName = trim($_POST['team_name']);
+            $seedTime = trim($_POST['seed_time'] ?? '');
+            if (empty($seedTime) || $seedTime === '00.00.00' || $seedTime === '00:00.00') $seedTime = 'NT';
 
-        // Validasi Duplikat Atlet
-        $swimmersArr = [$s1, $s2, $s3, $s4];
-        if (count(array_unique($swimmersArr)) !== 4 || in_array(0, $swimmersArr)) {
-            $_SESSION['flash_error'] = "Pilih 4 atlet yang berbeda untuk satu tim estafet.";
-            header("Location: " . getenv('APP_URL') . "/swim/relay_registration");
-            exit;
-        }
-
-        try {
-            $this->db->beginTransaction();
-
-            // Validasi Kepemilikan Atlet (Harus dari klub ini)
-            $p = implode(',', array_fill(0, 4, '?'));
-            $stmtCek = $this->db->prepare("SELECT id FROM swim_swimmers WHERE user_id = ? AND id IN ($p)");
-            $params = array_merge([$uid], $swimmersArr);
-            $stmtCek->execute($params);
-            $validSwimmers = $stmtCek->fetchAll(PDO::FETCH_COLUMN);
-
-            if (count($validSwimmers) !== 4) {
-                throw new \Exception("Satu atau lebih atlet tidak valid atau bukan dari klub Anda.");
+            if ($teamName !== '') {
+                try {
+                    $stmtIns = $this->db->prepare("INSERT INTO swim_relay_entries (event_id, category_id, club_id, team_name, seed_time, status) VALUES (?, ?, ?, ?, ?, 'Pending')");
+                    $stmtIns->execute([$event['id'], $categoryId, $clubId, $teamName, $seedTime]);
+                    $_SESSION['flash_success'] = "Tim estafet berhasil didaftarkan!";
+                } catch (\Exception $e) {
+                    $_SESSION['flash_error'] = "Gagal mendaftar estafet: " . $e->getMessage();
+                }
             }
-
-            // Insert
-            $stmtIns = $this->db->prepare("INSERT INTO swim_relay_entries (event_id, category_id, club_id, team_name, swimmer_1_id, swimmer_2_id, swimmer_3_id, swimmer_4_id, seed_time, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending')");
-            $stmtIns->execute([$event['id'], $categoryId, $clubId, $teamName, $s1, $s2, $s3, $s4, $seedTime]);
-
-            $this->db->commit();
-            $_SESSION['flash_success'] = "Tim Estafet berhasil didaftarkan!";
-        } catch (\Exception $e) {
-            if($this->db->inTransaction()) $this->db->rollBack();
-            $_SESSION['flash_error'] = "Gagal mendaftar estafet: " . $e->getMessage();
+        }
+        
+        if ($action === 'delete_relay') {
+            $relayId = (int)$_POST['relay_id'];
+            try {
+                $stmtDel = $this->db->prepare("DELETE FROM swim_relay_entries WHERE id = ? AND club_id = ?");
+                $stmtDel->execute([$relayId, $clubId]);
+                $_SESSION['flash_success'] = "Tim estafet dibatalkan.";
+            } catch (\Exception $e) {
+                $_SESSION['flash_error'] = "Gagal membatalkan estafet: " . $e->getMessage();
+            }
         }
 
         header("Location: " . getenv('APP_URL') . "/swim/relay_registration/index/" . $event_id);
