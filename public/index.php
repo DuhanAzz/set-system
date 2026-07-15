@@ -163,7 +163,8 @@ switch ($module) {
             $controller = new $controllerClass();
             // Jika ada method yang dipanggil di URL indeks ke-2, eksekusi itu. Jika tidak, jalankan index()
             if (method_exists($controller, $method)) {
-                $controller->$method();
+                $params = array_slice($url, 3);
+                $controller->$method(...$params);
             } else {
                 $controller->index();
             }

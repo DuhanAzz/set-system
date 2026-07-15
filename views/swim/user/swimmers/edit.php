@@ -1,46 +1,50 @@
-<div class="mb-8">
-    <h1 class="text-3xl font-black uppercase tracking-tighter italic text-slate-900">Edit Data Atlet</h1>
-    <p class="text-sm text-slate-500 font-bold uppercase tracking-widest mt-1">Perbarui informasi perenang di dalam roster</p>
-</div>
+<div class="max-w-2xl mx-auto bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
+    <h2 class="text-2xl font-black uppercase italic mb-6">Edit Data Atlet</h2>
+    
+    <?php if (isset($_SESSION['flash_error'])): ?>
+        <div class="bg-red-100 text-red-700 p-3 rounded-lg mb-4 text-sm font-bold">❌ <?= htmlspecialchars($_SESSION['flash_error']) ?></div>
+        <?php unset($_SESSION['flash_error']); ?>
+    <?php endif; ?>
 
-<?php if (isset($_SESSION['flash_error'])): ?>
-    <div class="mb-6 bg-red-50 text-red-600 border border-red-200 rounded-xl p-4 text-sm font-bold shadow-sm">
-        ❌ <?= htmlspecialchars($_SESSION['flash_error']) ?>
-    </div>
-    <?php unset($_SESSION['flash_error']); ?>
-<?php endif; ?>
-
-<div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden max-w-2xl">
-    <form action="<?= getenv('APP_URL') ?>/swim/swimmers/update/<?= $swimmer['id'] ?>" method="POST" class="p-8">
-        
-        <div class="mb-6">
-            <label class="block text-xs font-black text-slate-700 uppercase tracking-widest mb-2">Nama Lengkap Atlet</label>
-            <input type="text" name="nama_atlet" value="<?= htmlspecialchars($swimmer['nama_atlet']) ?>" class="w-full rounded-xl border-slate-300 bg-slate-50 text-sm font-black text-slate-800 focus:ring-blue-500 focus:border-blue-500 p-3 uppercase" required>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+    <?php if(!empty($swimmer['uid'])): ?>
+        <div class="mb-6 p-4 bg-blue-50 border border-blue-100 rounded-xl flex items-center justify-between">
             <div>
-                <label class="block text-xs font-black text-slate-700 uppercase tracking-widest mb-2">Jenis Kelamin</label>
-                <select name="jenis_kelamin" class="w-full rounded-xl border-slate-300 bg-slate-50 text-sm font-bold text-slate-700 focus:ring-blue-500 focus:border-blue-500 p-3" required>
-                    <option value="L" <?= (strtoupper($swimmer['jenis_kelamin']) == 'L' || strtoupper($swimmer['jenis_kelamin']) == 'PUTRA' || strtoupper($swimmer['jenis_kelamin']) == 'MALE') ? 'selected' : '' ?>>PUTRA (MALE)</option>
-                    <option value="P" <?= (strtoupper($swimmer['jenis_kelamin']) == 'P' || strtoupper($swimmer['jenis_kelamin']) == 'PUTRI' || strtoupper($swimmer['jenis_kelamin']) == 'FEMALE') ? 'selected' : '' ?>>PUTRI (FEMALE)</option>
+                <p class="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-1">UID Atlet (ID Unik)</p>
+                <p class="font-mono text-lg font-bold text-blue-900"><?= htmlspecialchars($swimmer['uid']) ?></p>
+            </div>
+            <div class="text-3xl opacity-20">🪪</div>
+        </div>
+    <?php else: ?>
+        <div class="mb-6 p-4 bg-amber-50 border border-amber-100 rounded-xl">
+            <p class="text-xs font-bold text-amber-700">⚠️ Atlet ini belum memiliki UID. (Generate UID hanya dilakukan jika diperlukan).</p>
+        </div>
+    <?php endif; ?>
+
+    <form method="POST" action="<?= getenv('APP_URL') ?>/swim/swimmers/update/<?= $swimmer['id'] ?>">
+        <div class="mb-4">
+            <label class="block text-xs font-bold text-slate-500 mb-2 uppercase">Nama Lengkap</label>
+            <input type="text" name="nama_atlet" required value="<?= htmlspecialchars($swimmer['nama_atlet']) ?>" class="w-full border-2 border-slate-100 rounded-xl p-3 focus:border-blue-500 outline-none uppercase">
+        </div>
+        <div class="grid grid-cols-2 gap-4 mb-4">
+            <div>
+                <label class="block text-xs font-bold text-slate-500 mb-2 uppercase">Jenis Kelamin</label>
+                <select name="jenis_kelamin" required class="w-full border-2 border-slate-100 rounded-xl p-3 focus:border-blue-500 outline-none">
+                    <option value="L" <?= (in_array(strtoupper($swimmer['jenis_kelamin']), ['L','M','MALE','PUTRA'])) ? 'selected' : '' ?>>PUTRA (Laki-laki)</option>
+                    <option value="P" <?= (in_array(strtoupper($swimmer['jenis_kelamin']), ['P','F','FEMALE','PUTRI'])) ? 'selected' : '' ?>>PUTRI (Perempuan)</option>
                 </select>
             </div>
-            
             <div>
-                <label class="block text-xs font-black text-slate-700 uppercase tracking-widest mb-2">Tanggal Lahir</label>
-                <input type="date" name="tanggal_lahir" value="<?= htmlspecialchars($swimmer['tanggal_lahir']) ?>" class="w-full rounded-xl border-slate-300 bg-slate-50 text-sm font-bold text-slate-700 focus:ring-blue-500 focus:border-blue-500 p-3" required>
-                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-2">* Mengubah tanggal lahir akan mengubah Kalkulasi KU pada saat perlombaan</p>
+                <label class="block text-xs font-bold text-slate-500 mb-2 uppercase">Tanggal Lahir</label>
+                <input type="date" name="tanggal_lahir" required value="<?= htmlspecialchars($swimmer['tanggal_lahir']) ?>" class="w-full border-2 border-slate-100 rounded-xl p-3 focus:border-blue-500 outline-none">
             </div>
         </div>
-
-        <div class="flex items-center gap-4 pt-6 border-t border-slate-100">
-            <a href="<?= getenv('APP_URL') ?>/swim/swimmers" class="px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest text-slate-500 hover:bg-slate-100 transition">
-                Batal
-            </a>
-            <button type="submit" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-3 rounded-xl font-black text-sm uppercase tracking-widest shadow-md transition transform hover:scale-105 text-center">
-                💾 SIMPAN PERUBAHAN
-            </button>
+        <div class="mb-6">
+            <label class="block text-xs font-bold text-slate-500 mb-2 uppercase">Asal Sekolah / Klub</label>
+            <input type="text" name="asal_sekolah" value="<?= htmlspecialchars($swimmer['asal_sekolah'] ?? '') ?>" class="w-full border-2 border-slate-100 rounded-xl p-3 focus:border-blue-500 outline-none uppercase">
+        </div>
+        <div class="flex gap-4">
+            <a href="<?= getenv('APP_URL') ?>/swim/swimmers" class="w-1/3 text-center py-3 rounded-xl border border-slate-200 font-bold text-slate-500 hover:bg-slate-50 transition">Batal</a>
+            <button type="submit" class="w-2/3 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl uppercase transition">Update Data</button>
         </div>
     </form>
 </div>

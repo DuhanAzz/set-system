@@ -32,6 +32,15 @@ class SwimmersController extends Controller {
         $rule = $this->getActiveEventAgeRule();
         foreach ($swimmers as &$swimmer) {
             $swimmer['kelompok_umur'] = $this->calculateAgeGroup($swimmer['tanggal_lahir'], $rule);
+            
+            // Fetch Record Count
+            try {
+                $stmtCount = $this->db->prepare("SELECT COUNT(*) FROM swim_athlete_records WHERE swimmer_id = ?");
+                $stmtCount->execute([$swimmer['id']]);
+                $swimmer['record_count'] = $stmtCount->fetchColumn();
+            } catch (\Exception $e) {
+                $swimmer['record_count'] = 0;
+            }
         }
 
         $this->view('swim/user/swimmers/index', [
@@ -100,6 +109,41 @@ class SwimmersController extends Controller {
         return "OVER ($age TH)";
     }
 
+    private function generateSwimmerUID($nama_atlet, $tanggal_lahir, $jenis_kelamin) {
+        $nama_bersih = preg_replace('/[^A-Za-z\s]/', '', strtoupper(trim($nama_atlet)));
+        $kata = explode(' ', $nama_bersih);
+        
+        $huruf1 = isset($kata[0][0]) ? $kata[0][0] : 'A';
+        $kode1 = str_pad(ord($huruf1) - 64, 2, '0', STR_PAD_LEFT); 
+        
+        if (isset($kata[1]) && !empty($kata[1])) {
+            $huruf2 = $kata[1][0];
+        } else {
+            $huruf2 = isset($kata[0][1]) ? $kata[0][1] : 'X'; 
+        }
+        $kode2 = str_pad(ord($huruf2) - 64, 2, '0', STR_PAD_LEFT);
+        
+        $tahun = date('Y', strtotime($tanggal_lahir));
+        $kode_jk = (strtoupper($jenis_kelamin) == 'L' || strtoupper($jenis_kelamin) == 'M') ? '1' : '9';
+        
+        $base_uid = $kode1 . $kode2 . $tahun . $kode_jk;
+        
+        $stmt = $this->db->prepare("SELECT uid FROM swim_swimmers WHERE uid LIKE ? ORDER BY uid DESC LIMIT 1");
+        $stmt->execute([$base_uid . '%']);
+        $last_uid = $stmt->fetchColumn();
+        
+        $digit_akhir = 0;
+        if ($last_uid) {
+            $last_digit = (int) substr($last_uid, -1);
+            $digit_akhir = $last_digit + 1;
+            if ($digit_akhir > 9) {
+                $digit_akhir = 9; 
+            }
+        }
+        
+        return $base_uid . $digit_akhir;
+    }
+
     public function store() {
         $this->checkAccess();
         $uid = $_SESSION['swim_user_id'];
@@ -108,6 +152,7 @@ class SwimmersController extends Controller {
             $nama = $_POST['nama_atlet'] ?? '';
             $gender = $_POST['jenis_kelamin'] ?? '';
             $dob = $_POST['tanggal_lahir'] ?? '';
+            $sekolah = $_POST['asal_sekolah'] ?? '';
             
             // Validasi format tanggal
             if (!preg_match("/^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])$/", $dob)) {
@@ -125,23 +170,27 @@ class SwimmersController extends Controller {
                 exit;
             }
 
-            // Ambil data klub/sekolah parent (dari profil)
-            $stmtClub = $this->db->prepare("SELECT c.nama_klub, u.nama_lengkap as nama_pelatih FROM swim_clubs c JOIN swim_users u ON c.user_id = u.id WHERE u.id = ?");
+            // Ambil data klub parent (dari profil)
+            $stmtClub = $this->db->prepare("SELECT c.nama_klub FROM swim_clubs c JOIN swim_users u ON c.user_id = u.id WHERE u.id = ?");
             $stmtClub->execute([$uid]);
             $club = $stmtClub->fetch(PDO::FETCH_ASSOC);
 
+            // Generate UID Baru
+            $uid_baru = $this->generateSwimmerUID($nama, $dob, $gender);
+
             try {
-                $stmt = $this->db->prepare("INSERT INTO swim_swimmers (user_id, nama_atlet, jenis_kelamin, tanggal_lahir, klub, asal_sekolah) VALUES (?, ?, ?, ?, ?, ?)");
+                $stmt = $this->db->prepare("INSERT INTO swim_swimmers (uid, user_id, nama_atlet, jenis_kelamin, tanggal_lahir, klub, asal_sekolah) VALUES (?, ?, ?, ?, ?, ?, ?)");
                 $stmt->execute([
+                    $uid_baru,
                     $uid,
                     strtoupper($nama),
                     $gender,
                     $dob,
                     $club['nama_klub'] ?? '',
-                    $club['nama_klub'] ?? '' // Kita gunakan entri yang sama ke asal sekolah agar aman
+                    strtoupper($sekolah)
                 ]);
                 
-                $_SESSION['flash_success'] = "Atlet berhasil ditambahkan!";
+                $_SESSION['flash_success'] = "Atlet berhasil ditambahkan! (UID: $uid_baru)";
             } catch (\Exception $e) {
                 $_SESSION['flash_error'] = "Gagal menyimpan: " . $e->getMessage();
             }
@@ -175,6 +224,7 @@ class SwimmersController extends Controller {
             $nama = $_POST['nama_atlet'] ?? '';
             $gender = $_POST['jenis_kelamin'] ?? '';
             $dob = $_POST['tanggal_lahir'] ?? '';
+            $sekolah = $_POST['asal_sekolah'] ?? '';
             
             // Validasi format tanggal
             if (!preg_match("/^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])$/", $dob)) {
@@ -193,8 +243,19 @@ class SwimmersController extends Controller {
             }
 
             try {
-                $stmt = $this->db->prepare("UPDATE swim_swimmers SET nama_atlet = ?, jenis_kelamin = ?, tanggal_lahir = ? WHERE id = ? AND user_id = ?");
-                $stmt->execute([strtoupper($nama), $gender, $dob, $id, $uid]);
+                // Cek UID saat ini
+                $stmtGet = $this->db->prepare("SELECT uid FROM swim_swimmers WHERE id = ?");
+                $stmtGet->execute([$id]);
+                $currentUid = $stmtGet->fetchColumn();
+
+                if (empty($currentUid)) {
+                    $uid_baru = $this->generateSwimmerUID($nama, $dob, $gender);
+                    $stmt = $this->db->prepare("UPDATE swim_swimmers SET uid = ?, nama_atlet = ?, jenis_kelamin = ?, tanggal_lahir = ?, asal_sekolah = ? WHERE id = ? AND user_id = ?");
+                    $stmt->execute([$uid_baru, strtoupper($nama), $gender, $dob, strtoupper($sekolah), $id, $uid]);
+                } else {
+                    $stmt = $this->db->prepare("UPDATE swim_swimmers SET nama_atlet = ?, jenis_kelamin = ?, tanggal_lahir = ?, asal_sekolah = ? WHERE id = ? AND user_id = ?");
+                    $stmt->execute([strtoupper($nama), $gender, $dob, strtoupper($sekolah), $id, $uid]);
+                }
                 
                 $_SESSION['flash_success'] = "Data atlet berhasil diperbarui!";
             } catch (\Exception $e) {

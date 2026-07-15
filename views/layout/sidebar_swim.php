@@ -195,29 +195,23 @@ function isGroupActive($req, $keywords) {
 
       <?php if($role == 'user'): ?>
          <div class="px-8 mt-8 mb-2 text-[10px] font-black text-slate-600 uppercase tracking-widest">Club Management</div>
-         <a href="<?= getenv('APP_URL') ?>/swim/club_profile" class="<?= (strpos($req,"club_profile")!==false) ? $activeLink : $baseLink ?>">
-            <span class="w-6 text-xl mr-3 text-center opacity-80">🏢</span>
-            <span class="font-bold text-[11px] tracking-widest uppercase">Profil Klub</span>
-         </a>
-         <a href="<?= getenv('APP_URL') ?>/swim/swimmers" class="<?= (strpos($req,"swim/swimmers")!==false) ? $activeLink : $baseLink ?>">
+         <a href="<?= getenv('APP_URL') ?>/swim/swimmers" class="<?= (strpos($req,"swim/swimmers")!==false && strpos($req,"registration")===false && strpos($req,"checkout")===false) ? $activeLink : $baseLink ?>">
             <span class="w-6 text-xl mr-3 text-center opacity-80">🏊</span>
-            <span class="font-bold text-[11px] tracking-widest uppercase">Roster Atlet</span>
+            <span class="font-bold text-[11px] tracking-widest uppercase">Atlet Saya</span>
          </a>
-         
+
          <div class="px-8 mt-8 mb-2 text-[10px] font-black text-slate-600 uppercase tracking-widest">Registrations</div>
-         <a href="<?= getenv('APP_URL') ?>/swim/explore" class="<?= (strpos($req,"explore")!==false) ? $activeLink : $baseLink ?>">
-            <span class="w-6 text-xl mr-3 text-center opacity-80">🚀</span>
-            <span class="font-bold text-[11px] tracking-widest uppercase">Cari Lomba</span>
+         <a href="<?= getenv('APP_URL') ?>/swim/registration" class="<?= (strpos($req, '/swim/registration') !== false && strpos($req, '/swim/relay_registration') === false) ? $activeLink : $baseLink ?>">
+            <span class="w-6 text-xl mr-3 text-center opacity-80">📝</span>
+            <span class="font-bold text-[11px] tracking-widest uppercase">Pendaftaran Individu</span>
          </a>
-         <a href="<?= getenv('APP_URL') ?>/swim/checkout" class="<?= (strpos($req,"checkout")!==false) ? $activeLink : $baseLink ?>">
-            <span class="w-6 text-xl mr-3 text-center opacity-80">💸</span>
-            <span class="font-bold text-[11px] tracking-widest uppercase">Status Bayar</span>
+         <a href="<?= getenv('APP_URL') ?>/swim/relay_registration" class="<?= (strpos($req, '/swim/relay_registration') !== false) ? $activeLink : $baseLink ?>">
+            <span class="w-6 text-xl mr-3 text-center opacity-80">🤝</span>
+            <span class="font-bold text-[11px] tracking-widest uppercase">Pendaftaran Estafet</span>
          </a>
-         
-         <div class="px-8 mt-8 mb-2 text-[10px] font-black text-slate-600 uppercase tracking-widest">Information</div>
-         <a href="<?= getenv('APP_URL') ?>/swim/announcements" class="<?= (strpos($req,"announcements")!==false) ? $activeLink : $baseLink ?>">
-            <span class="w-6 text-xl mr-3 text-center opacity-80">📢</span>
-            <span class="font-bold text-[11px] tracking-widest uppercase">Pengumuman</span>
+         <a href="<?= getenv('APP_URL') ?>/swim/checkout" class="<?= (strpos($req, '/swim/checkout') !== false) ? $activeLink : $baseLink ?>">
+            <span class="w-6 text-xl mr-3 text-center opacity-80">🛒</span>
+            <span class="font-bold text-[11px] tracking-widest uppercase">Checkout & Tagihan</span>
          </a>
       <?php endif; ?>
 
