@@ -19,8 +19,9 @@ class CheckoutController extends Controller {
         }
     }
 
-    private function getActiveEvent() {
-        $stmt = $this->db->query("SELECT * FROM swim_events WHERE event_status IN ('Active', 'Registration') ORDER BY event_date_start ASC LIMIT 1");
+    private function getEvent($event_id) {
+        $stmt = $this->db->prepare("SELECT * FROM swim_events WHERE id = ?");
+        $stmt->execute([$event_id]);
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
@@ -33,11 +34,58 @@ class CheckoutController extends Controller {
     public function index() {
         $this->checkAccess();
         $uid = $_SESSION['swim_user_id'];
-        $event = $this->getActiveEvent();
+        
+        $stmtPay = $this->db->prepare("
+            SELECT p.*, e.event_name 
+            FROM swim_payments p 
+            LEFT JOIN swim_events e ON p.event_id = e.id 
+            WHERE p.user_id = ? 
+            ORDER BY p.id DESC
+        ");
+        $stmtPay->execute([$uid]);
+        $payments = $stmtPay->fetchAll(PDO::FETCH_ASSOC);
+
+        $bills = [];
+        foreach ($payments as $pay) {
+            $eid = $pay['event_id'];
+            $eventName = $pay['event_name'] ? $pay['event_name'] : "Event ID #$eid (Tidak Dikenal)";
+            
+            $stmtCount = $this->db->prepare("SELECT COUNT(DISTINCT swimmer_id) FROM swim_event_entries WHERE event_id = ? AND user_id = ?");
+            $stmtCount->execute([$eid, $uid]);
+            $countEntries = $stmtCount->fetchColumn();
+
+            $bills[] = [
+                'id'            => $pay['id'],
+                'event_id'      => $eid,
+                'event_name'    => $eventName,
+                'amount'        => $pay['amount'],
+                'status'        => $pay['status'],
+                'entries'       => $countEntries
+            ];
+        }
+
+        $this->view('swim/user/checkout/list', [
+            'bills' => $bills,
+            'success' => $_SESSION['flash_success'] ?? null,
+            'error' => $_SESSION['flash_error'] ?? null
+        ]);
+        unset($_SESSION['flash_success'], $_SESSION['flash_error']);
+    }
+
+    public function detail($event_id = 0) {
+        $this->checkAccess();
+        $uid = $_SESSION['swim_user_id'];
+        
+        if (!$event_id) {
+            header("Location: " . getenv('APP_URL') . "/swim/checkout");
+            exit;
+        }
+
+        $event = $this->getEvent($event_id);
         
         if (!$event) {
-            $this->view('swim/user/checkout/index', ['event' => null]);
-            return;
+            header("Location: " . getenv('APP_URL') . "/swim/checkout");
+            exit;
         }
 
         $clubId = $this->getClubId($uid);
@@ -118,7 +166,7 @@ class CheckoutController extends Controller {
             $relayDetails = $stmtRelayDetail->fetchAll(PDO::FETCH_ASSOC);
         }
 
-        $this->view('swim/user/checkout/index', [
+        $this->view('swim/user/checkout/detail', [
             'event' => $event,
             'details' => $details,
             'relayDetails' => $relayDetails,
@@ -131,12 +179,17 @@ class CheckoutController extends Controller {
         unset($_SESSION['flash_success'], $_SESSION['flash_error']);
     }
 
-    public function upload_proof() {
+    public function upload_proof($event_id = 0) {
         $this->checkAccess();
         $uid = $_SESSION['swim_user_id'];
-        $event = $this->getActiveEvent();
         
-        if (!$event || $_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_FILES['bukti_transfer'])) {
+        if (!$event_id || $_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_FILES['bukti_transfer'])) {
+            header("Location: " . getenv('APP_URL') . "/swim/checkout");
+            exit;
+        }
+
+        $event = $this->getEvent($event_id);
+        if (!$event) {
             header("Location: " . getenv('APP_URL') . "/swim/checkout");
             exit;
         }
@@ -170,7 +223,11 @@ class CheckoutController extends Controller {
             $_SESSION['flash_error'] = "Format file tidak diizinkan. Gunakan JPG, PNG, atau PDF.";
         }
 
-        header("Location: " . getenv('APP_URL') . "/swim/checkout");
+        if (isset($_POST['from_list']) && $_POST['from_list'] == '1') {
+            header("Location: " . getenv('APP_URL') . "/swim/checkout");
+        } else {
+            header("Location: " . getenv('APP_URL') . "/swim/checkout/detail/" . $event_id);
+        }
         exit;
     }
 }

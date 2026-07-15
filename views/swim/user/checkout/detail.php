@@ -1,4 +1,5 @@
 <div class="mb-6 flex gap-3 items-center">
+    <a href="<?= getenv('APP_URL') ?>/swim/checkout" class="w-10 h-10 bg-slate-200 hover:bg-slate-300 rounded-full flex items-center justify-center text-slate-600 transition shrink-0">⬅</a>
     <div>
         <h1 class="text-2xl font-black uppercase italic text-slate-900">Checkout & Tagihan</h1>
         <p class="text-xs font-bold text-slate-500 uppercase tracking-widest mt-1">Event: <?= $event ? htmlspecialchars($event['event_name']) : 'TIDAK ADA EVENT AKTIF' ?></p>
@@ -102,7 +103,8 @@
                     <p class="text-xs font-bold text-blue-600">a.n <?= htmlspecialchars($event['bank_account_name'] ?? '-') ?></p>
                 </div>
 
-                <form action="<?= getenv('APP_URL') ?>/swim/checkout/upload_proof" method="POST" enctype="multipart/form-data">
+                <form action="<?= getenv('APP_URL') ?>/swim/checkout/upload_proof/<?= $event['id'] ?>" method="POST" enctype="multipart/form-data">
+                    <input type="hidden" name="from_list" value="0">
                     <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Upload Bukti Transfer</label>
                     <input type="file" name="bukti_transfer" accept=".jpg,.jpeg,.png,.pdf" required class="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-[10px] file:font-bold file:uppercase file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 transition cursor-pointer mb-4">
                     <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-black text-xs py-3 rounded-xl uppercase tracking-widest transition shadow-lg <?= $totalTagihan == 0 ? 'opacity-50 cursor-not-allowed' : '' ?>" <?= $totalTagihan == 0 ? 'disabled' : '' ?>>Kirim Bukti Bayar</button>

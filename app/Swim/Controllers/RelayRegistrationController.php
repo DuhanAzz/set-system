@@ -20,8 +20,9 @@ class RelayRegistrationController extends Controller {
         }
     }
 
-    private function getActiveEvent() {
-        $stmt = $this->db->query("SELECT * FROM swim_events WHERE event_status IN ('Active', 'Registration') ORDER BY event_date_start ASC LIMIT 1");
+    private function getEvent($event_id) {
+        $stmt = $this->db->prepare("SELECT * FROM swim_events WHERE id = ?");
+        $stmt->execute([$event_id]);
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
@@ -48,14 +49,20 @@ class RelayRegistrationController extends Controller {
         return $stmtC->fetchColumn();
     }
 
-    public function index() {
+    public function index($event_id = 0) {
         $this->checkAccess();
         $uid = $_SESSION['swim_user_id'];
-        $event = $this->getActiveEvent();
+        
+        if (!$event_id) {
+            header("Location: " . getenv('APP_URL') . "/swim/explore");
+            exit;
+        }
+
+        $event = $this->getEvent($event_id);
         
         if (!$event) {
-            $this->view('swim/user/relay/index', ['event' => null]);
-            return;
+            header("Location: " . getenv('APP_URL') . "/swim/explore");
+            exit;
         }
 
         $clubId = $this->getClubId($uid);
@@ -111,19 +118,24 @@ class RelayRegistrationController extends Controller {
         unset($_SESSION['flash_success'], $_SESSION['flash_error']);
     }
 
-    public function store() {
+    public function store($event_id = 0) {
         $this->checkAccess();
         $uid = $_SESSION['swim_user_id'];
-        $event = $this->getActiveEvent();
         
-        if (!$event || $_SERVER['REQUEST_METHOD'] !== 'POST') {
-            header("Location: " . getenv('APP_URL') . "/swim/relay_registration");
+        if (!$event_id || $_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header("Location: " . getenv('APP_URL') . "/swim/explore");
+            exit;
+        }
+
+        $event = $this->getEvent($event_id);
+        if (!$event) {
+            header("Location: " . getenv('APP_URL') . "/swim/explore");
             exit;
         }
 
         if ($this->isRegistrationClosed($event) || $this->getPaymentLock($uid, $event['id'])) {
             $_SESSION['flash_error'] = "Pendaftaran telah dikunci/ditutup.";
-            header("Location: " . getenv('APP_URL') . "/swim/relay_registration");
+            header("Location: " . getenv('APP_URL') . "/swim/relay_registration/index/" . $event_id);
             exit;
         }
 
@@ -171,23 +183,28 @@ class RelayRegistrationController extends Controller {
             $_SESSION['flash_error'] = "Gagal mendaftar estafet: " . $e->getMessage();
         }
 
-        header("Location: " . getenv('APP_URL') . "/swim/relay_registration");
+        header("Location: " . getenv('APP_URL') . "/swim/relay_registration/index/" . $event_id);
         exit;
     }
 
-    public function delete($relay_id = 0) {
+    public function delete($event_id = 0, $relay_id = 0) {
         $this->checkAccess();
         $uid = $_SESSION['swim_user_id'];
-        $event = $this->getActiveEvent();
         
-        if (!$event || !$relay_id || $_SERVER['REQUEST_METHOD'] !== 'POST') {
-            header("Location: " . getenv('APP_URL') . "/swim/relay_registration");
+        if (!$event_id || !$relay_id || $_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header("Location: " . getenv('APP_URL') . "/swim/explore");
+            exit;
+        }
+
+        $event = $this->getEvent($event_id);
+        if (!$event) {
+            header("Location: " . getenv('APP_URL') . "/swim/explore");
             exit;
         }
 
         if ($this->isRegistrationClosed($event) || $this->getPaymentLock($uid, $event['id'])) {
             $_SESSION['flash_error'] = "Pendaftaran telah dikunci/ditutup, pembatalan tidak diizinkan.";
-            header("Location: " . getenv('APP_URL') . "/swim/relay_registration");
+            header("Location: " . getenv('APP_URL') . "/swim/relay_registration/index/" . $event_id);
             exit;
         }
 
@@ -204,7 +221,7 @@ class RelayRegistrationController extends Controller {
             $_SESSION['flash_error'] = "Gagal membatalkan estafet.";
         }
 
-        header("Location: " . getenv('APP_URL') . "/swim/relay_registration");
+        header("Location: " . getenv('APP_URL') . "/swim/relay_registration/index/" . $event_id);
         exit;
     }
 }

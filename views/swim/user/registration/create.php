@@ -1,6 +1,5 @@
-<div class="mb-6 flex justify-between items-center">
     <div class="flex items-center gap-4">
-        <a href="<?= getenv('APP_URL') ?>/swim/registration" class="w-10 h-10 bg-slate-200 hover:bg-slate-300 rounded-full flex items-center justify-center text-slate-600 transition">⬅</a>
+        <a href="<?= getenv('APP_URL') ?>/swim/registration/index/<?= $event['id'] ?>" class="w-10 h-10 bg-slate-200 hover:bg-slate-300 rounded-full flex items-center justify-center text-slate-600 transition">⬅</a>
         <div>
             <h1 class="text-2xl font-black uppercase italic text-slate-900">Pilih Nomor Lomba</h1>
             <p class="text-xs font-bold text-slate-500 uppercase tracking-widest mt-1"><?= htmlspecialchars($swimmer['nama_atlet']) ?> • KU <?= htmlspecialchars($ku) ?></p>
@@ -24,7 +23,7 @@
         </div>
     </div>
 
-    <form method="POST" action="<?= getenv('APP_URL') ?>/swim/registration/store/<?= $swimmer['id'] ?>">
+    <form method="POST" action="<?= getenv('APP_URL') ?>/swim/registration/store/<?= $event['id'] ?>/<?= $swimmer['id'] ?>">
         
         <div class="space-y-3 mb-8">
             <?php if(empty($availableEvents)): ?>

@@ -1,4 +1,5 @@
 <div class="mb-6 flex gap-3 items-center">
+    <a href="<?= getenv('APP_URL') ?>/swim/explore/detail/<?= $event['id'] ?>" class="w-10 h-10 bg-slate-200 hover:bg-slate-300 rounded-full flex items-center justify-center text-slate-600 transition shrink-0">⬅</a>
     <div>
         <h1 class="text-2xl font-black uppercase italic text-slate-900">Pendaftaran Individu</h1>
         <p class="text-xs font-bold text-slate-500 uppercase tracking-widest mt-1">Event: <?= $event ? htmlspecialchars($event['event_name']) : 'TIDAK ADA EVENT AKTIF' ?></p>
@@ -88,11 +89,11 @@
                                     <span class="text-[10px] font-bold text-slate-300 uppercase italic">Terkunci</span>
                                 <?php else: ?>
                                     <div class="flex items-center justify-center gap-2">
-                                        <a href="<?= getenv('APP_URL') ?>/swim/registration/create/<?= $s['id'] ?>" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition shadow-sm">
+                                        <a href="<?= getenv('APP_URL') ?>/swim/registration/create/<?= $event['id'] ?>/<?= $s['id'] ?>" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition shadow-sm">
                                             <?= $s['entry_count'] > 0 ? 'Edit Lomba' : 'Daftarkan Lomba' ?>
                                         </a>
                                         <?php if($s['entry_count'] > 0): ?>
-                                        <form method="POST" action="<?= getenv('APP_URL') ?>/swim/registration/delete/<?= $s['id'] ?>" onsubmit="return confirm('Batalkan seluruh pendaftaran atlet ini?');">
+                                        <form method="POST" action="<?= getenv('APP_URL') ?>/swim/registration/delete/<?= $event['id'] ?>/<?= $s['id'] ?>" onsubmit="return confirm('Batalkan seluruh pendaftaran atlet ini?');">
                                             <button type="submit" class="bg-red-50 hover:bg-red-500 hover:text-white text-red-500 border border-red-100 px-3 py-2 rounded-xl text-[10px] font-black uppercase transition">Batal</button>
                                         </form>
                                         <?php endif; ?>

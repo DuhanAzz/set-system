@@ -1,4 +1,5 @@
 <div class="mb-6 flex gap-3 items-center">
+    <a href="<?= getenv('APP_URL') ?>/swim/explore/detail/<?= $event['id'] ?>" class="w-10 h-10 bg-slate-200 hover:bg-slate-300 rounded-full flex items-center justify-center text-slate-600 transition shrink-0">⬅</a>
     <div>
         <h1 class="text-2xl font-black uppercase italic text-slate-900">Pendaftaran Estafet</h1>
         <p class="text-xs font-bold text-slate-500 uppercase tracking-widest mt-1">Event: <?= $event ? htmlspecialchars($event['event_name']) : 'TIDAK ADA EVENT AKTIF' ?></p>
@@ -91,7 +92,7 @@
                                             </ol>
                                         </div>
                                         <?php if(!$isClosed && !$isLocked): ?>
-                                        <form method="POST" action="<?= getenv('APP_URL') ?>/swim/relay_registration/delete/<?= $team['id'] ?>" onsubmit="return confirm('Batalkan tim ini?');">
+                                        <form method="POST" action="<?= getenv('APP_URL') ?>/swim/relay_registration/delete/<?= $event['id'] ?>/<?= $team['id'] ?>" onsubmit="return confirm('Batalkan tim ini?');">
                                             <button type="submit" class="text-red-500 bg-red-50 hover:bg-red-500 hover:text-white border border-red-100 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition">Hapus</button>
                                         </form>
                                         <?php endif; ?>
@@ -106,7 +107,7 @@
                     <div class="w-full md:w-80">
                         <div class="bg-blue-50 rounded-2xl p-5 border border-blue-100">
                             <h4 class="text-xs font-black uppercase text-blue-600 tracking-widest mb-4">➕ Daftarkan Tim Baru</h4>
-                            <form method="POST" action="<?= getenv('APP_URL') ?>/swim/relay_registration/store">
+                            <form method="POST" action="<?= getenv('APP_URL') ?>/swim/relay_registration/store/<?= $event['id'] ?>">
                                 <input type="hidden" name="category_id" value="<?= $cid ?>">
                                 
                                 <div class="mb-3">
