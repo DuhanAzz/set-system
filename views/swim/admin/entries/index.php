@@ -108,6 +108,14 @@
                                     Lihat Detail
                                 </a>
 
+                                <?php if($status == "Paid" || $status == "completed"): ?>
+                                    <form method="POST" action="<?= getenv("APP_URL") ?>/swim/entries/index" class="inline" onsubmit="return confirm('Batal Verifikasi Lunas? Status akan kembali Pending.');">
+                                        <input type="hidden" name="rollback_payment_id" value="<?= $row["payment_id"] ?>">
+                                        <button type="submit" class="px-3 py-2 rounded-lg bg-orange-50 text-orange-600 border border-orange-200 hover:bg-orange-500 hover:text-white text-[9px] font-black uppercase transition" title="Batal Verifikasi">
+                                            ⏪ Batal
+                                        </button>
+                                    </form>
+                                <?php endif; ?>
                                 <?php if($status == 'Pending'): ?>
                                     <form method="POST" action="<?= getenv('APP_URL') ?>/swim/entries/index" class="inline" onsubmit="return confirm('Tolak Pembayaran ini?');">
                                         <input type="hidden" name="reject_payment_id" value="<?= $row['payment_id'] ?>">

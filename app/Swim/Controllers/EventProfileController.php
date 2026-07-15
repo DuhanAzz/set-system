@@ -12,7 +12,7 @@ class EventProfileController extends Controller {
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
         }
-        if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+        if (!isset($_SESSION['swim_role']) || $_SESSION['swim_role'] !== 'admin') {
             header("Location: " . getenv('APP_URL') . "/swim/login");
             exit;
         }
@@ -20,7 +20,7 @@ class EventProfileController extends Controller {
 
     public function index() {
         $pdo = Database::getInstance()->getConnection();
-        $uid = $_SESSION['user_id'];
+        $uid = $_SESSION['swim_user_id'];
 
         $eventId = $_GET['event_id'] ?? 0;
 
@@ -47,7 +47,7 @@ class EventProfileController extends Controller {
         $packages = $stmtPackages->fetchAll(PDO::FETCH_ASSOC);
 
         // Fetch docs
-        $stmtDoc = $pdo->prepare("SELECT id, title, file_path, kategori FROM swim_documents WHERE event_id = ?");
+        $stmtDoc = $pdo->prepare("SELECT id, judul_file as title, file_path, kategori FROM swim_documents WHERE event_id = ?");
         $stmtDoc->execute([$eventId]);
         $documents = $stmtDoc->fetchAll(PDO::FETCH_ASSOC);
         
@@ -70,7 +70,7 @@ class EventProfileController extends Controller {
 
     public function delete_image() {
         $pdo = Database::getInstance()->getConnection();
-        $uid = $_SESSION['user_id'];
+        $uid = $_SESSION['swim_user_id'];
         $eventId = $_GET['event_id'] ?? 0;
         
         if (isset($_GET['type']) && $eventId > 0) {
@@ -104,7 +104,7 @@ class EventProfileController extends Controller {
 
     public function delete_sponsor() {
         $pdo = Database::getInstance()->getConnection();
-        $uid = $_SESSION['user_id'];
+        $uid = $_SESSION['swim_user_id'];
         $eventId = $_GET['event_id'] ?? 0;
         $sponsorId = $_GET['id'] ?? 0;
 
@@ -130,7 +130,7 @@ class EventProfileController extends Controller {
 
     public function update() {
         $pdo = Database::getInstance()->getConnection();
-        $uid = $_SESSION['user_id'];
+        $uid = $_SESSION['swim_user_id'];
         
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $targetDir = __DIR__ . "/../../../../public/uploads/logos/";
@@ -241,10 +241,10 @@ class EventProfileController extends Controller {
                     $exists = $stmtCek->fetch();
                     
                     if ($exists) {
-                        $pdo->prepare("UPDATE swim_documents SET title = ?, file_path = ?, uploaded_at = NOW() WHERE id = ?")
+                        $pdo->prepare("UPDATE swim_documents SET judul_file = ?, file_path = ?, created_at = NOW() WHERE id = ?")
                             ->execute([$fileName, $dbSavePath, $exists['id']]);
                     } else {
-                        $pdo->prepare("INSERT INTO swim_documents (event_id, title, file_path, kategori) VALUES (?, ?, ?, ?)")
+                        $pdo->prepare("INSERT INTO swim_documents (event_id, judul_file, file_path, kategori) VALUES (?, ?, ?, ?)")
                             ->execute([$eventId, $fileName, $dbSavePath, $kategori]);
                     }
                 }

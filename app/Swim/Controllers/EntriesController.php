@@ -41,6 +41,16 @@ class EntriesController extends Controller {
                 header("Location: " . getenv('APP_URL') . "/swim/entries/index"); exit;
             }
             
+            $paymentIdRollback = (int)($_POST["rollback_payment_id"] ?? 0);
+            if ($paymentIdRollback > 0) {
+                try {
+                    $stmt = $pdo->prepare("UPDATE swim_payments SET status = 'Pending', updated_at = NOW() WHERE id = ? AND event_id = ?");
+                    $stmt->execute([$paymentIdRollback, $targetEventId]);
+                    $_SESSION["swal_type"] = "info";
+                    $_SESSION["swal_msg"] = "Verifikasi Dibatalkan. Status kembali Pending.";
+                } catch (\Exception $e) {}
+                header("Location: " . getenv("APP_URL") . "/swim/entries/index"); exit;
+            }
             if ($paymentIdReject > 0) {
                 try {
                     $stmt = $pdo->prepare("UPDATE swim_payments SET status = 'Rejected', updated_at = NOW() WHERE id = ? AND event_id = ?");
@@ -63,7 +73,7 @@ class EntriesController extends Controller {
                         u.id as club_id,
                         u.nama_lengkap,
                         u.email,
-                        (SELECT COUNT(*) FROM swim_event_entries WHERE club_id = u.id AND event_id = p.event_id) as total_entries
+                        ((SELECT COUNT(*) FROM swim_event_entries WHERE club_id = u.id AND event_id = p.event_id) + (SELECT COUNT(*) FROM swim_relay_entries WHERE club_id = u.id AND event_id = p.event_id)) as total_entries
                     FROM swim_payments p
                     JOIN swim_users u ON p.user_id = u.id
                     WHERE p.event_id = ? 
@@ -101,27 +111,21 @@ class EntriesController extends Controller {
         
         // --- HANDLE POST AKSI ---
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_type'])) {
-            $entryId = (int)($_POST['entry_id'] ?? 0);
+            $payId = (int)($_POST['payment_id'] ?? 0);
             $action = $_POST['action_type']; 
             
-            if ($entryId > 0) {
+            if ($payId > 0) {
                 try {
-                    if ($action === 'reject') {
-                        $stmt = $pdo->prepare("DELETE FROM swim_event_entries WHERE id = ?");
-                        $stmt->execute([$entryId]);
-                        $_SESSION['swal_type'] = 'success';
-                        $_SESSION['swal_msg'] = 'Pendaftaran ditolak dan dihapus.';
-                    } else {
-                        $newStatus = 'Pending';
-                        if ($action === 'approve') $newStatus = 'Approved';
-                        elseif ($action === 'rollback') $newStatus = 'Pending';
-                        
-                        $stmt = $pdo->prepare("UPDATE swim_event_entries SET status = ?, updated_at = NOW() WHERE id = ?");
-                        $stmt->execute([$newStatus, $entryId]);
-                        
-                        $_SESSION['swal_type'] = 'success';
-                        $_SESSION['swal_msg'] = 'Status entry berhasil diperbarui!';
-                    }
+                    $newStatus = 'Pending';
+                    if ($action === 'approve') $newStatus = 'Paid';
+                    elseif ($action === 'reject') $newStatus = 'Rejected';
+                    elseif ($action === 'rollback') $newStatus = 'Pending';
+                    
+                    $stmt = $pdo->prepare("UPDATE swim_payments SET status = ?, updated_at = NOW() WHERE id = ?");
+                    $stmt->execute([$newStatus, $payId]);
+                    
+                    $_SESSION['swal_type'] = 'success';
+                    $_SESSION['swal_msg'] = 'Status pembayaran berhasil diperbarui!';
                 } catch (\Exception $e) {
                     $_SESSION['swal_type'] = 'error';
                     $_SESSION['swal_msg'] = 'Gagal memperbarui status.';
@@ -153,6 +157,7 @@ class EntriesController extends Controller {
         $payData = $stmtPay->fetch(\PDO::FETCH_ASSOC);
         
         // 3. AMBIL ENTRIES & HITUNG
+        $relayEntries = [];
         $groupedSwimmers = [];
         $totalTagihan = 0;
         
@@ -171,6 +176,18 @@ class EntriesController extends Controller {
             
             $stmtEntries = $pdo->prepare($sqlEntries);
             $stmtEntries->execute([$targetUserId, $eventId]);
+            $sqlRelay = "
+                SELECT 
+                    re.id as relay_id, re.seed_time,
+                    en.distance, en.stroke, en.age_group, en.price as item_price, en.jenis_kelamin
+                FROM swim_relay_entries re
+                JOIN swim_event_numbers en ON re.category_id = en.id
+                WHERE re.club_id = ? AND re.event_id = ?
+                ORDER BY en.distance ASC
+            ";
+            $stmtRelay = $pdo->prepare($sqlRelay);
+            $stmtRelay->execute([$targetUserId, $eventId]);
+            $relayEntries = $stmtRelay->fetchAll(\PDO::FETCH_ASSOC);
             $rawEntries = $stmtEntries->fetchAll(\PDO::FETCH_ASSOC);
         
             foreach ($rawEntries as $row) {
@@ -221,6 +238,7 @@ class EntriesController extends Controller {
             'clubName' => $clubName,
             'payData' => $payData,
             'groupedSwimmers' => $groupedSwimmers,
+            'relayEntries' => $relayEntries,
             'totalTagihan' => $totalTagihan
         ]);
     }
@@ -260,6 +278,7 @@ class EntriesController extends Controller {
         } catch (\Exception $e) { $sponsors = []; }
         
         // 4. ENTRIES & HITUNG
+        $relayEntries = [];
         $groupedSwimmers = [];
         $totalTagihan = 0;
         
@@ -278,6 +297,18 @@ class EntriesController extends Controller {
             
             $stmtEntries = $pdo->prepare($sqlEntries);
             $stmtEntries->execute([$targetUserId, $eventId]);
+            $sqlRelay = "
+                SELECT 
+                    re.id as relay_id, re.seed_time,
+                    en.distance, en.stroke, en.age_group, en.price as item_price, en.jenis_kelamin
+                FROM swim_relay_entries re
+                JOIN swim_event_numbers en ON re.category_id = en.id
+                WHERE re.club_id = ? AND re.event_id = ?
+                ORDER BY en.distance ASC
+            ";
+            $stmtRelay = $pdo->prepare($sqlRelay);
+            $stmtRelay->execute([$targetUserId, $eventId]);
+            $relayEntries = $stmtRelay->fetchAll(\PDO::FETCH_ASSOC);
             $rawEntries = $stmtEntries->fetchAll(\PDO::FETCH_ASSOC);
         
             foreach ($rawEntries as $row) {

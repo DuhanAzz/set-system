@@ -13,7 +13,7 @@ class EventsController extends Controller {
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
         }
-        if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+        if (!isset($_SESSION['swim_role']) || $_SESSION['swim_role'] !== 'admin') {
             header("Location: " . getenv('APP_URL') . "/swim/login");
             exit;
         }
@@ -21,7 +21,7 @@ class EventsController extends Controller {
 
     public function index() {
         $pdo = Database::getInstance()->getConnection();
-        $adminId = $_SESSION['user_id'];
+        $adminId = $_SESSION['swim_user_id'];
 
         $stmtEvent = $pdo->prepare("SELECT * FROM swim_events WHERE user_id = ? ORDER BY id DESC LIMIT 1");
         $stmtEvent->execute([$adminId]);
@@ -54,7 +54,7 @@ class EventsController extends Controller {
 
     public function update_pricing() {
         $pdo = Database::getInstance()->getConnection();
-        $adminId = $_SESSION['user_id'];
+        $adminId = $_SESSION['swim_user_id'];
 
         $eventId = $this->getActiveEventId($pdo, $adminId);
         if (!$eventId) {
@@ -82,7 +82,7 @@ class EventsController extends Controller {
 
     public function add_ku() {
         $pdo = Database::getInstance()->getConnection();
-        $adminId = $_SESSION['user_id'];
+        $adminId = $_SESSION['swim_user_id'];
 
         $eventId = $this->getActiveEventId($pdo, $adminId);
 
@@ -108,7 +108,7 @@ class EventsController extends Controller {
 
     public function delete_ku() {
         $pdo = Database::getInstance()->getConnection();
-        $adminId = $_SESSION['user_id'];
+        $adminId = $_SESSION['swim_user_id'];
         $eventId = $this->getActiveEventId($pdo, $adminId);
 
         if ($_SERVER['REQUEST_METHOD'] == 'POST' && $eventId > 0) {
@@ -121,7 +121,7 @@ class EventsController extends Controller {
 
     public function store() {
         $pdo = Database::getInstance()->getConnection();
-        $adminId = $_SESSION['user_id'];
+        $adminId = $_SESSION['swim_user_id'];
 
         $stmtEvent = $pdo->prepare("SELECT * FROM swim_events WHERE user_id = ? ORDER BY id DESC LIMIT 1");
         $stmtEvent->execute([$adminId]);
@@ -219,7 +219,7 @@ class EventsController extends Controller {
 
     public function delete() {
         $pdo = Database::getInstance()->getConnection();
-        $adminId = $_SESSION['user_id'];
+        $adminId = $_SESSION['swim_user_id'];
 
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $id = (int)($_POST['id'] ?? 0);

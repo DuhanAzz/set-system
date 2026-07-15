@@ -68,7 +68,7 @@
                             <button onclick="openModal('approve')" class="col-span-2 bg-emerald-500 hover:bg-emerald-600 text-white py-3 rounded-xl text-xs font-black uppercase shadow-md">✓ Terima</button>
                             <button onclick="openModal('reject')" class="col-span-2 bg-red-100 hover:bg-red-200 text-red-600 py-3 rounded-xl text-xs font-black uppercase">✕ Tolak</button>
                         <?php elseif($statusPay == 'Paid'): ?>
-                            <button onclick="openModal('reject')" class="col-span-2 bg-slate-100 hover:bg-red-100 text-slate-500 hover:text-red-600 border border-slate-200 py-2 rounded-lg text-[10px] font-bold uppercase">🔓 Buka Kunci</button>
+                            <button onclick="openModal('rollback')" class="col-span-2 bg-slate-100 hover:bg-orange-100 text-slate-500 hover:text-orange-600 border border-slate-200 py-2 rounded-lg text-[10px] font-bold uppercase">⏪ Batal Verifikasi (Rollback)</button>
                         <?php endif; ?>
                     </div>
                 <?php endif; ?>
@@ -85,6 +85,32 @@
             </div>
         <?php else: ?>
             <div class="space-y-6">
+            <?php if(!empty($relayEntries)): ?>
+                <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm card-atlet mb-6">
+                    <div class="p-4 flex justify-between items-center border-b border-slate-100 bg-indigo-50">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 rounded-full bg-indigo-500 text-white flex items-center justify-center text-[10px] font-black shadow-sm">R</div>
+                            <div>
+                                <h3 class="text-sm font-black text-slate-800 uppercase italic leading-tight">Tim Estafet</h3>
+                                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Klub / Tim Campuran</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="divide-y divide-slate-50">
+                        <?php foreach($relayEntries as $re): ?>
+                            <div class="px-4 py-3 flex justify-between items-center hover:bg-slate-50 transition-colors">
+                                <div class="flex flex-col">
+                                    <span class="text-xs font-bold text-slate-700 uppercase"><?= $re["distance"] ?>M <?= strtoupper($re["stroke"]) ?> (<?= $re["jenis_kelamin"] ?>)</span>
+                                    <span class="text-[10px] text-slate-400 font-medium mt-0.5 uppercase">KU <?= $re["age_group"] ?></span>
+                                </div>
+                                <div class="text-right">
+                                    <span class="font-mono text-xs font-bold text-slate-500"><?= $re["seed_time"] ? htmlspecialchars($re["seed_time"]) : "NT" ?></span>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            <?php endif; ?>
             <?php foreach($groupedSwimmers as $swimmerId => $data): 
                 $info = $data['info'];
                 $events = $data['items'];

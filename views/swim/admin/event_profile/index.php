@@ -1,3 +1,4 @@
+<?php if (!function_exists("val")) { function getUrlPreview($dbPath) { if (empty($dbPath)) return ""; if (strpos($dbPath, "http") === 0) return $dbPath; $cleanPath = ltrim(preg_replace("/^(../)+/", "", $dbPath), "/"); if (strpos($cleanPath, "public/") === 0) $cleanPath = substr($cleanPath, 7); return getenv("APP_URL") . "/public/" . ltrim($cleanPath, "/"); }  function val($data, $key, $default = "") { return isset($data[$key]) ? htmlspecialchars((string)$data[$key]) : $default; } } ?>
 <div class="font-sans">
     
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
@@ -135,10 +136,10 @@
                         <label class="label-text text-amber-700">2. Buku Panduan / Juknis (PDF)</label>
                         <p class="text-[9px] text-amber-600 mb-3 font-medium">Buku panduan teknis untuk dibaca oleh klub pendaftar.</p>
                         
-                        <?php if($docJuknis): ?>
+                        <?php if($juknis): ?>
                             <div class="mb-3 flex items-center justify-between bg-green-50 px-3 py-2 rounded-lg border border-green-200">
                                 <span class="text-[10px] font-bold text-green-700">✅ Terunggah</span>
-                                <a href="<?= getUrlPreview($docJuknis['file_path']) ?>" target="_blank" class="text-[10px] font-black text-blue-600 hover:underline">Lihat File</a>
+                                <a href="<?= getUrlPreview($juknis['file_path']) ?>" target="_blank" class="text-[10px] font-black text-blue-600 hover:underline">Lihat File</a>
                             </div>
                         <?php endif; ?>
 
@@ -150,10 +151,10 @@
                         <label class="label-text text-amber-700">3. Form Pendaftaran (Opsional)</label>
                         <p class="text-[9px] text-amber-600 mb-3 font-medium">Formulir pendaftaran manual format Excel / Spreadsheet.</p>
                         
-                        <?php if($docForm): ?>
+                        <?php if($formulir): ?>
                             <div class="mb-3 flex items-center justify-between bg-green-50 px-3 py-2 rounded-lg border border-green-200">
                                 <span class="text-[10px] font-bold text-green-700">✅ Terunggah</span>
-                                <a href="<?= getUrlPreview($docForm['file_path']) ?>" target="_blank" class="text-[10px] font-black text-blue-600 hover:underline">Lihat File</a>
+                                <a href="<?= getUrlPreview($formulir['file_path']) ?>" target="_blank" class="text-[10px] font-black text-blue-600 hover:underline">Lihat File</a>
                             </div>
                         <?php endif; ?>
 

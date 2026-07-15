@@ -168,7 +168,7 @@ function isGroupActive($req, $keywords) {
              <?php if($hasRelay): ?>
              <a href="<?= getenv('APP_URL') ?>/swim/relay/index" class="<?= (strpos($req,"relay")!==false) ? $childActiveLink : $childBaseLink ?> text-pink-400">Manajemen Estafet</a>
              <?php endif; ?>
-             <a href="<?= getenv('APP_URL') ?>/src/admin/seeding/index.php" class="<?= (strpos($req,"seeding/index")!==false) ? $childActiveLink : $childBaseLink ?>">Start List <?= ($adminMode == 'Babak Penyisihan') ? 'Penyisihan' : '' ?></a>
+             <a href="<?= getenv('APP_URL') ?>/swim/seeding/index" class="<?= (strpos($req,"seeding/index")!==false) ? $childActiveLink : $childBaseLink ?>">Start List <?= ($adminMode == 'Babak Penyisihan') ? 'Penyisihan' : '' ?></a>
              <?php if($adminMode == 'Babak Penyisihan'): ?>
              <a href="<?= getenv('APP_URL') ?>/src/admin/seeding/final.php" class="<?= (strpos($req,"seeding/final")!==false) ? $childActiveLink : $childBaseLink ?> text-orange-400">Seeding Final</a>
              <?php endif; ?>
