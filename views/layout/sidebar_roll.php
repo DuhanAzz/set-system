@@ -64,18 +64,18 @@ function isGroupActive($req, $keywords) {
              <a href="<?= getenv('APP_URL') ?>/roll/master/users?role=user" class="<?= (strpos($req,"master/users")!==false && strpos($_SERVER['QUERY_STRING'] ?? '', 'role=user')!==false) ? $childActiveLink : $childBaseLink ?>">Akun Klub</a>
          </div>
 
-         <!-- GROUP 2: Manajemen Pesepatu Roda -->
+         <!-- GROUP 2: Manajemen Skaters -->
          <?php $g2Active = isGroupActive($req, ['master/skaters/index', 'history_transfer']); ?>
          <button onclick="toggleSidebarDropdown('dd-pesepatu roda')" class="<?= $g2Active ? $dropdownBtnActive : $dropdownBtnBase ?>">
             <div class="flex items-center">
                <span class="w-6 text-center mr-3 text-lg opacity-80">🛼</span>
-               <span class="font-bold text-[11px] tracking-widest uppercase">Manajemen Scatter</span>
+               <span class="font-bold text-[11px] tracking-widest uppercase">Manajemen Skaters</span>
             </div>
             <span id="icon-dd-pesepatu roda" class="transform transition-transform text-xs <?= $g2Active ? 'rotate-180' : '' ?>">▼</span>
          </button>
          <div id="dd-pesepatu roda" class="bg-[#0b1120] py-2 <?= $g2Active ? '' : 'hidden' ?>">
-             <a href="<?= getenv('APP_URL') ?>/roll/skaters/index" class="<?= (strpos($req,"roll/skaters/index")!==false) ? $childActiveLink : $childBaseLink ?>">Database Scatter</a>
-            <a href="<?= getenv('APP_URL') ?>/roll/skaters/history_transfer" class="<?= (strpos($req,"history_transfer")!==false) ? $childActiveLink : $childBaseLink ?>">Log Aktivitas</a>
+             <a href="<?= getenv('APP_URL') ?>/roll/master/skaters/index" class="<?= (strpos($req,"master/skaters/index")!==false) ? $childActiveLink : $childBaseLink ?>">Global Skaters</a>
+            <a href="<?= getenv('APP_URL') ?>/roll/master/skaters/history_transfer" class="<?= (strpos($req,"history_transfer")!==false) ? $childActiveLink : $childBaseLink ?>">Riwayat Mutasi</a>
          </div>
 
          <!-- GROUP 3: Sistem & Operasional -->

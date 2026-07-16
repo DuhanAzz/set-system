@@ -39,7 +39,8 @@ class RollUsersController extends Controller {
             $params[] = $searchWildcard;
         }
         
-        $query = "SELECT u.*, c.club_name, c.city_province as kota 
+        $query = "SELECT u.*, c.club_name, c.city_province as kota,
+                         (SELECT COUNT(*) FROM roll_skaters WHERE club_id = c.id) as total_atlet
                   FROM roll_users u 
                   LEFT JOIN roll_clubs c ON u.club_id = c.id 
                   $whereClause
@@ -59,40 +60,70 @@ class RollUsersController extends Controller {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $db = Database::getInstance()->getConnection();
             $username = $_POST['username'] ?? '';
-            $password = $_POST['password'] ?? '';
+            $password = $_POST['password'] ?? 'sepaturoda123';
             $role = $_POST['role'] ?? 'user';
+            $nama_lengkap = $_POST['nama_lengkap'] ?? '';
+            $email = $_POST['email'] ?? '';
+            $phone = $_POST['phone'] ?? '';
+            $auto_approve = $_POST['auto_approve'] ?? 0;
+            $account_status = $auto_approve ? 'active' : 'pending';
             
             $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
             
-            $stmt = $db->prepare("INSERT INTO roll_users (username, password, role) VALUES (?, ?, ?)");
+            $stmt = $db->prepare("INSERT INTO roll_users (username, password, role, nama_lengkap, email, phone, account_status) VALUES (?, ?, ?, ?, ?, ?, ?)");
             try {
-                $stmt->execute([$username, $hashedPassword, $role]);
+                $stmt->execute([$username, $hashedPassword, $role, $nama_lengkap, $email, $phone, $account_status]);
                 $_SESSION['flash_message'] = "Pengguna berhasil ditambahkan.";
                 $_SESSION['flash_type'] = "success";
             } catch (\Exception $e) {
                 $_SESSION['flash_message'] = "Gagal menambahkan pengguna: " . $e->getMessage();
                 $_SESSION['flash_type'] = "error";
             }
-            header("Location: " . getenv('APP_URL') . "/roll/master/users");
+            header("Location: " . getenv('APP_URL') . "/roll/master/users?role=" . $role);
             exit;
         }
     }
 
     public function delete($id) {
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' || isset($_GET['delete'])) {
             $db = Database::getInstance()->getConnection();
+            $idToDelete = $_POST['id'] ?? $_GET['delete'] ?? $id;
+            $roleFilter = $_GET['role'] ?? 'admin';
             $stmt = $db->prepare("DELETE FROM roll_users WHERE id = ?");
             try {
-                $stmt->execute([$id]);
+                $stmt->execute([$idToDelete]);
                 $_SESSION['flash_message'] = "Pengguna berhasil dihapus.";
                 $_SESSION['flash_type'] = "success";
             } catch (\Exception $e) {
                 $_SESSION['flash_message'] = "Gagal menghapus pengguna: " . $e->getMessage();
                 $_SESSION['flash_type'] = "error";
             }
-            header("Location: " . getenv('APP_URL') . "/roll/master/users");
+            header("Location: " . getenv('APP_URL') . "/roll/master/users?role=" . $roleFilter);
             exit;
         }
+    }
+
+    public function updateStatus($id) {
+        $db = Database::getInstance()->getConnection();
+        $status = $_GET['status'] ?? 'active';
+        $roleFilter = $_GET['role'] ?? 'admin';
+        $stmt = $db->prepare("UPDATE roll_users SET account_status = ? WHERE id = ?");
+        $stmt->execute([$status, $id]);
+        $_SESSION['flash_message'] = "Status berhasil diubah menjadi " . $status;
+        $_SESSION['flash_type'] = "success";
+        header("Location: " . getenv('APP_URL') . "/roll/master/users?role=" . $roleFilter);
+        exit;
+    }
+
+    public function verify($id) {
+        $db = Database::getInstance()->getConnection();
+        $roleFilter = $_GET['role'] ?? 'admin';
+        $stmt = $db->prepare("UPDATE roll_users SET account_status = 'active' WHERE id = ?");
+        $stmt->execute([$id]);
+        $_SESSION['flash_message'] = "Akun berhasil diverifikasi.";
+        $_SESSION['flash_type'] = "success";
+        header("Location: " . getenv('APP_URL') . "/roll/master/users?role=" . $roleFilter);
+        exit;
     }
 
     public function resetPassword($id) {

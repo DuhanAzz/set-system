@@ -1,123 +1,367 @@
-<div class="mb-8 flex justify-between items-end">
-    <div>
-        <h1 class="text-3xl font-black text-slate-800 uppercase tracking-tight">Manajemen Pengguna</h1>
-        <p class="text-sm text-slate-500 font-bold uppercase tracking-widest mt-1">Sistem Entry Sepatu Roda</p>
-    </div>
-    <button onclick="document.getElementById('modalTambah').classList.remove('hidden')" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg font-bold shadow-sm transition">
-        + Tambah Akun
-    </button>
-</div>
-
-<?php if (isset($_SESSION['flash_message'])): ?>
-    <div class="mb-6 px-4 py-3 rounded-lg <?= ($_SESSION['flash_type'] == 'error') ? 'bg-red-100 text-red-700 border border-red-200' : 'bg-green-100 text-green-700 border border-green-200' ?> font-bold shadow-sm">
-        <?= $_SESSION['flash_message'] ?>
-    </div>
-    <?php unset($_SESSION['flash_message'], $_SESSION['flash_type']); ?>
-<?php endif; ?>
-
-<div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-    <div class="overflow-x-auto">
-        <table class="w-full text-left border-collapse">
-            <thead>
-                <tr class="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider font-black border-b border-slate-200">
-                    <th class="p-4 pl-6 w-16 text-center">No</th>
-                    <th class="p-4">Username / Email</th>
-                    <th class="p-4 text-center">Role</th>
-                    <th class="p-4 text-center">Status</th>
-                    <th class="p-4 pr-6 text-center">Aksi</th>
-                </tr>
-            </thead>
-            <tbody class="text-sm">
-                <?php $no = 1; foreach ($users as $u): ?>
-                <tr class="border-b border-slate-100 hover:bg-slate-50/50 transition">
-                    <td class="p-4 pl-6 text-center font-bold text-slate-400"><?= $no++ ?></td>
-                    <td class="p-4">
-                        <div class="font-bold text-slate-800"><?= htmlspecialchars($u['username']) ?></div>
-                        <?php if(!empty($u['email'])): ?>
-                            <div class="text-xs text-slate-500"><?= htmlspecialchars($u['email']) ?></div>
-                        <?php endif; ?>
-                        <?php if($u['role'] === 'user' && !empty($u['club_name'])): ?>
-                            <div class="text-xs font-bold text-blue-600 mt-0.5">Klub: <?= htmlspecialchars($u['club_name']) ?></div>
-                        <?php endif; ?>
-                    </td>
-                    <td class="p-4 text-center">
-                        <?php if($u['role'] === 'master'): ?>
-                            <span class="inline-block bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-black tracking-widest uppercase">Master</span>
-                        <?php elseif($u['role'] === 'admin'): ?>
-                            <span class="inline-block bg-amber-100 text-amber-700 px-3 py-1 rounded-full text-xs font-black tracking-widest uppercase">Admin EO</span>
-                        <?php else: ?>
-                            <span class="inline-block bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-black tracking-widest uppercase">Klub</span>
-                        <?php endif; ?>
-                    </td>
-                    <td class="p-4 text-center">
-                        <?php if($u['account_status'] === 'active'): ?>
-                            <span class="text-emerald-500 font-bold text-xs uppercase tracking-widest">● Aktif</span>
-                        <?php else: ?>
-                            <span class="text-slate-400 font-bold text-xs uppercase tracking-widest">● <?= $u['account_status'] ?></span>
-                        <?php endif; ?>
-                    </td>
-                    <td class="p-4 pr-6">
-                        <div class="flex items-center justify-center gap-2">
-                            <form action="<?= getenv('APP_URL') ?>/roll/master/users/resetPassword/<?= $u['id'] ?>" method="POST" onsubmit="return confirm('Reset password akun ini menjadi: sepaturoda123 ?');">
-                                <button type="submit" class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1.5 rounded text-xs font-bold transition" title="Reset Password">
-                                    🔑 Reset
-                                </button>
-                            </form>
-                            <?php if($u['role'] !== 'master'): ?>
-                                <form action="<?= getenv('APP_URL') ?>/roll/master/users/delete/<?= $u['id'] ?>" method="POST" onsubmit="return confirm('Hapus permanen akun ini?');">
-                                    <button type="submit" class="bg-red-50 hover:bg-red-100 text-red-600 px-3 py-1.5 rounded text-xs font-bold transition" title="Hapus Akun">
-                                        🗑️ Hapus
-                                    </button>
-                                </form>
-                            <?php endif; ?>
-                        </div>
-                    </td>
-                </tr>
-                <?php endforeach; ?>
-                <?php if(empty($users)): ?>
-                <tr>
-                    <td colspan="5" class="p-8 text-center text-slate-400 font-bold">Belum ada pengguna.</td>
-                </tr>
-                <?php endif; ?>
-            </tbody>
-        </table>
-    </div>
-</div>
-
-<!-- Modal Tambah Akun -->
-<div id="modalTambah" class="fixed inset-0 z-[100] hidden">
-    <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="document.getElementById('modalTambah').classList.add('hidden')"></div>
-    <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-md">
-        <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
-            <div class="px-6 py-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
-                <h3 class="font-black text-slate-800 uppercase tracking-tight">Tambah Akun Baru</h3>
-                <button onclick="document.getElementById('modalTambah').classList.add('hidden')" class="text-slate-400 hover:text-red-500 font-bold">✕</button>
-            </div>
-            <form action="<?= getenv('APP_URL') ?>/roll/master/users/store" method="POST" class="p-6">
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-xs font-black text-slate-700 uppercase tracking-widest mb-2">Username</label>
-                        <input type="text" name="username" class="w-full rounded-xl border border-slate-300 px-4 py-2.5 focus:ring-blue-500 focus:border-blue-500" required>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-black text-slate-700 uppercase tracking-widest mb-2">Role</label>
-                        <select name="role" class="w-full rounded-xl border border-slate-300 px-4 py-2.5 focus:ring-blue-500 focus:border-blue-500" required>
-                            <option value="admin">Admin / EO (Manajemen Event)</option>
-                            <option value="user">User / Klub (Pendaftar)</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-black text-slate-700 uppercase tracking-widest mb-2">Password</label>
-                        <input type="text" name="password" value="sepaturoda123" class="w-full rounded-xl border border-slate-300 px-4 py-2.5 bg-slate-50 text-slate-500 font-mono" required>
-                        <p class="text-[10px] text-slate-400 mt-1 font-bold">Secara default diatur ke sepaturoda123</p>
-                    </div>
-                </div>
-                <div class="mt-8">
-                    <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow-sm transition uppercase tracking-widest text-sm">
-                        Simpan Akun
-                    </button>
-                </div>
+<div class="font-sans">
+    
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
+        <div>
+            <nav class="text-slate-400 text-[10px] font-bold uppercase tracking-widest mb-2">
+                <a href="<?= getenv('APP_URL') ?>/roll/master/dashboard" class="hover:text-blue-600">← Control Center</a>
+            </nav>
+            <h1 class="text-3xl font-black text-slate-900 uppercase tracking-tighter italic leading-none">
+                Manajemen <?= $targetRole == 'admin' ? 'Event Organizer' : 'User Klub' ?>
+            </h1>
+            <p class="text-slate-500 text-xs font-medium mt-2">Total Data: <?= count($users) ?></p>
+        </div>
+        
+        <div class="flex flex-col md:flex-row gap-3 w-full md:w-auto">
+            <form method="GET" class="relative">
+                <input type="hidden" name="role" value="<?= $targetRole ?>">
+                <input type="text" name="q" value="<?= htmlspecialchars($search) ?>" placeholder="Cari..." 
+                       class="pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold w-full md:w-64 focus:outline-none focus:border-blue-500 shadow-sm">
+                <span class="absolute left-3 top-2.5 text-slate-400">🔍</span>
             </form>
+
+            <div class="flex gap-1 bg-white p-1 rounded-xl shadow-sm border border-slate-200">
+                <a href="<?= getenv('APP_URL') ?>/roll/master/users?role=user" class="px-4 py-2 rounded-lg text-[10px] font-black uppercase transition <?= $targetRole == 'user' ? 'bg-slate-900 text-white shadow-md' : 'text-slate-400 hover:bg-slate-50' ?>">Klub</a>
+                <a href="<?= getenv('APP_URL') ?>/roll/master/users?role=admin" class="px-4 py-2 rounded-lg text-[10px] font-black uppercase transition <?= $targetRole == 'admin' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-50' ?>">EO / Event</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="flex justify-end mb-6">
+        <button onclick="openModal()" class="bg-slate-900 text-white px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-[0.1em] shadow-xl hover:bg-blue-600 transition flex items-center gap-2 hover:-translate-y-1 transform duration-200">
+            <span>+</span> Tambah <?= strtoupper($targetRole) ?>
+        </button>
+    </div>
+
+    <div class="bg-white rounded-[2rem] shadow-xl border border-slate-200 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+                <thead class="bg-slate-50/50 border-b border-slate-100">
+                    <tr>
+                        <th class="px-6 py-5 font-black uppercase text-[9px] text-slate-400 tracking-widest w-1/4">User Account</th>
+                        <th class="px-6 py-5 font-black uppercase text-[9px] text-slate-400 tracking-widest">Kontak</th>
+                        <th class="px-6 py-5 font-black uppercase text-[9px] text-slate-400 tracking-widest w-1/3">
+                            <?= $targetRole == 'admin' ? 'Detail Event' : 'Detail Klub' ?>
+                        </th>
+                        <?php if($targetRole == 'user'): ?>
+                            <th class="px-6 py-5 font-black uppercase text-[9px] text-slate-400 tracking-widest text-center">Atlet</th>
+                        <?php endif; ?>
+                        <th class="px-6 py-5 font-black uppercase text-[9px] text-slate-400 tracking-widest text-center">Status</th>
+                        <th class="px-6 py-5 font-black uppercase text-[9px] text-slate-400 tracking-widest text-right">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-50">
+                    <?php if(empty($users)): ?>
+                        <tr><td colspan="6" class="px-8 py-20 text-center text-slate-300 font-bold italic uppercase text-xs">Belum ada data.</td></tr>
+                    <?php else: foreach($users as $u): ?>
+                    <tr class="hover:bg-blue-50/30 transition group">
+                        
+                        <td class="px-6 py-5 align-top">
+                            <div class="flex items-center gap-3">
+                                <div class="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 font-black text-xs border border-slate-200 shadow-sm shrink-0">
+                                    <?= strtoupper(substr($u['nama_lengkap'], 0, 1)) ?>
+                                </div>
+                                <div>
+                                    <div class="font-black text-slate-800 uppercase italic leading-tight text-xs"><?= htmlspecialchars($u['nama_lengkap']) ?></div>
+                                    <div class="text-[10px] font-mono text-slate-400 mt-0.5">@<?= htmlspecialchars($u['username']) ?></div>
+                                </div>
+                            </div>
+                        </td>
+
+                        <td class="px-6 py-5 align-top">
+                            <div class="flex flex-col gap-1.5">
+                                <a href="mailto:<?= htmlspecialchars($u['email']) ?>" class="text-[10px] font-bold text-blue-500 hover:underline flex items-center gap-1">
+                                    📧 <?= htmlspecialchars($u['email']) ?>
+                                </a>
+                                <?php if(!empty($u['phone'])): 
+                                    $waNum = preg_replace('/[^0-9]/', '', $u['phone']);
+                                    if(substr($waNum, 0, 1) == '0') $waNum = '62' . substr($waNum, 1);
+                                ?>
+                                    <a href="https://wa.me/<?= $waNum ?>" target="_blank" class="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded w-fit hover:bg-emerald-100 transition flex items-center gap-1">
+                                        📱 WhatsApp
+                                    </a>
+                                <?php endif; ?>
+                            </div>
+                        </td>
+                        
+                        <td class="px-6 py-5 align-top">
+                            <?php if($targetRole == 'admin'): ?>
+                                <div class="space-y-1">
+                                    <div class="text-xs font-black text-slate-700 uppercase">
+                                        <?= htmlspecialchars($u['event_name'] ?? '-') ?>
+                                    </div>
+                                    <div class="flex flex-wrap gap-1 items-center">
+                                        <span class="bg-slate-100 px-1.5 py-0.5 rounded text-[9px] font-bold text-slate-500 border border-slate-200">
+                                            📍 <?= htmlspecialchars($u['event_location'] ?? '-') ?> <?= !empty($u['event_city']) ? ' - ' . htmlspecialchars($u['event_city']) : '' ?>
+                                        </span>
+                                        <span class="text-[9px] text-slate-400 font-medium">
+                                            📅 <?= !empty($u['event_date_start']) ? date('d M Y', strtotime($u['event_date_start'])) : '-' ?>
+                                        </span>
+                                    </div>
+                                    <span class="text-[9px] italic text-slate-400"><?= htmlspecialchars($u['competition_system'] ?? '-') ?></span>
+                                </div>
+                            <?php else: ?>
+                                <div class="space-y-1">
+                                    <div class="text-xs font-black text-slate-700 uppercase">
+                                        <?= htmlspecialchars($u['club_name'] ?? '-') ?>
+                                    </div>
+                                    <span class="bg-slate-100 px-1.5 py-0.5 rounded text-[9px] font-bold text-slate-500 border border-slate-200 inline-block">
+                                        🏠 <?= htmlspecialchars($u['kota'] ?? '-') ?>
+                                    </span>
+                                </div>
+                            <?php endif; ?>
+                        </td>
+
+                        <?php if($targetRole == 'user'): ?>
+                            <td class="px-6 py-5 align-top text-center">
+                                <a href="<?= getenv('APP_URL') ?>/roll/master/skaters/index?search=<?= urlencode($u['club_name'] ?? '') ?>" class="inline-block bg-slate-50 border border-slate-200 rounded-lg px-3 py-1 hover:bg-blue-50 hover:border-blue-200 hover:scale-105 transition cursor-pointer group/card">
+                                    <span class="block text-lg font-black text-blue-600 leading-none group-hover/card:text-blue-700"><?= $u['total_atlet'] ?></span>
+                                    <span class="text-[8px] uppercase font-bold text-slate-400">Atlet &rarr;</span>
+                                </a>
+                            </td>
+                        <?php endif; ?>
+
+                        <td class="px-6 py-5 align-top text-center">
+                            <?php 
+                                $status = $u['account_status'] ?? 'pending';
+                                $statusClass = match($status) {
+                                    'active' => 'bg-emerald-100 text-emerald-700 border-emerald-200',
+                                    'pending' => 'bg-amber-100 text-amber-700 border-amber-200',
+                                    'suspended' => 'bg-red-100 text-red-700 border-red-200',
+                                    default => 'bg-slate-100 text-slate-500'
+                                };
+                            ?>
+                            <div class="flex flex-col items-center gap-2">
+                                <span class="px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-wider border <?= $statusClass ?>">
+                                    <?= $status ?>
+                                </span>
+                                <div class="flex gap-1 opacity-100 lg:opacity-30 lg:group-hover:opacity-100 transition">
+                                    <?php if($status != 'active'): ?>
+                                        <a href="<?= getenv('APP_URL') ?>/roll/master/users/updateStatus/<?= $u['id'] ?>?status=active" 
+                                           class="w-5 h-5 rounded bg-emerald-500 text-white flex items-center justify-center hover:bg-emerald-600 shadow-sm text-[10px]" title="Aktifkan">✓</a>
+                                    <?php endif; ?>
+                                    <?php if($status != 'suspended'): ?>
+                                        <a href="<?= getenv('APP_URL') ?>/roll/master/users/updateStatus/<?= $u['id'] ?>?status=suspended" 
+                                           class="w-5 h-5 rounded bg-red-500 text-white flex items-center justify-center hover:bg-red-600 shadow-sm text-[10px]" title="Blokir" onclick="return confirm('Blokir user ini?')">✕</a>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        </td>
+
+                        <td class="px-6 py-5 align-top text-right">
+                            <div class="flex justify-end gap-2">
+                                <?php if($status === 'pending'): ?>
+                                    <a href="<?= getenv('APP_URL') ?>/roll/master/users/verify/<?= $u['id'] ?>" class="flex items-center justify-center bg-amber-500 hover:bg-amber-600 text-white px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition shadow-sm">
+                                        Verifikasi Akun
+                                    </a>
+                                <?php else: ?>
+                                    <button 
+                                        type="button"
+                                        data-user="<?= htmlspecialchars(json_encode($u), ENT_QUOTES, 'UTF-8') ?>"
+                                        onclick="editAdmin(this)"
+                                        class="w-8 h-8 flex items-center justify-center bg-white border border-slate-200 rounded-lg hover:border-blue-500 hover:text-blue-600 transition text-slate-400 shadow-sm">
+                                        ✏️
+                                    </button>
+                                <?php endif; ?>
+                                
+                                <form action="<?= getenv('APP_URL') ?>/roll/master/users/delete/<?= $u['id'] ?>" method="POST" onsubmit="return confirm('Hapus permanen? Data event/klub (termasuk data atlet mereka) akan hilang permanen.')" class="inline">
+                                    <button type="submit" class="w-8 h-8 flex items-center justify-center bg-white border border-slate-200 rounded-lg hover:border-red-500 hover:text-red-600 transition text-slate-400 shadow-sm">🗑️</button>
+                                </form>
+                                <form action="<?= getenv('APP_URL') ?>/roll/master/users/resetPassword/<?= $u['id'] ?>" method="POST" onsubmit="return confirm('Reset password menjadi sepaturoda123?')" class="inline">
+                                    <button type="submit" class="w-8 h-8 flex items-center justify-center bg-white border border-slate-200 rounded-lg hover:border-amber-500 hover:text-amber-600 transition text-slate-400 shadow-sm" title="Reset Password">🔑</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    <?php endforeach; endif; ?>
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
+
+<div id="modal-admin" class="fixed inset-0 z-[100] hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-lg rounded-[2rem] shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto">
+        <div class="bg-slate-900 p-6 text-white flex justify-between items-center sticky top-0 z-10">
+            <div><h3 id="modal-title" class="font-black uppercase tracking-widest italic text-lg leading-none">Tambah Akun</h3></div>
+            <button onclick="closeModal()" class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-red-500 transition">✕</button>
+        </div>
+        <form action="<?= getenv('APP_URL') ?>/roll/master/users/store" method="POST" class="p-8 space-y-6">
+            <input type="hidden" name="save_user" value="1">
+            <input type="hidden" name="user_id" id="form-id">
+            <input type="hidden" name="role" value="<?= $targetRole ?>">
+            
+            <div class="space-y-3">
+                <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-1">Info Login (Akun)</h4>
+                
+                <div>
+                    <label class="text-[10px] font-bold text-slate-500 uppercase">Username Login</label>
+                    <input type="text" name="username" id="form-username" class="w-full px-4 py-3 border border-slate-200 bg-slate-50 rounded-xl text-sm font-bold focus:bg-white focus:border-blue-500 outline-none" required placeholder="Username">
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-500 uppercase">Email (Username)</label>
+                        <input type="email" name="email" id="form-email" class="w-full px-4 py-3 border border-slate-200 bg-slate-50 rounded-xl text-sm font-bold focus:bg-white focus:border-blue-500 outline-none" required>
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-500 uppercase">No. WhatsApp</label>
+                        <input type="text" name="phone" id="form-phone" class="w-full px-4 py-3 border border-slate-200 bg-slate-50 rounded-xl text-sm font-bold focus:bg-white focus:border-blue-500 outline-none" placeholder="08...">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-500 uppercase">Password</label>
+                        <input type="password" name="password" id="form-pass" class="w-full px-4 py-3 border border-slate-200 bg-slate-50 rounded-xl text-sm font-bold focus:bg-white focus:border-blue-500 outline-none" placeholder="Kosongi jika edit user">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-500 uppercase">Nama Lengkap User</label>
+                        <input type="text" name="nama_lengkap" id="form-nama" class="w-full px-4 py-3 border border-slate-200 bg-slate-50 rounded-xl text-sm font-bold focus:bg-white focus:border-blue-500 outline-none" required>
+                    </div>
+                </div>
+            </div>
+
+            <div class="space-y-3 pt-2">
+                <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-1">
+                    <?= $targetRole == 'admin' ? 'Detail Event (Tabel Events)' : 'Detail Klub (Tabel Clubs)' ?>
+                </h4>
+                
+                <div>
+                    <label class="text-[10px] font-bold text-slate-500 uppercase">
+                        <?= $targetRole == 'admin' ? 'Nama Event (Kejuaraan)' : 'Nama Klub Renang' ?>
+                    </label>
+                    <input type="text" name="nama_detail" id="form-nama-detail" class="w-full px-4 py-3 border border-slate-200 bg-slate-50 rounded-xl text-sm font-bold focus:bg-white focus:border-blue-500 outline-none" required placeholder="<?= $targetRole == 'admin' ? 'Contoh: O2SN 2026' : 'Contoh: Pari Sakti SC' ?>">
+                </div>
+
+                <?php if($targetRole == 'admin'): ?>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-500 uppercase">Sistem Lomba</label>
+                            <select name="competition_system" id="form-mode" class="w-full px-4 py-3 border border-slate-200 bg-slate-50 rounded-xl text-xs font-bold uppercase outline-none">
+                                <option value="Langsung Final">Langsung Final</option>
+                                <option value="Babak Penyisihan">Babak Penyisihan</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-500 uppercase">Tanggal Mulai</label>
+                            <input type="date" name="event_date_start" id="form-date" class="w-full px-4 py-3 border border-slate-200 bg-slate-50 rounded-xl text-sm font-bold focus:bg-white focus:border-blue-500 outline-none">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-500 uppercase">Lokasi (Nama Kolam)</label>
+                            <input type="text" name="event_location" id="form-location" class="w-full px-4 py-3 border border-slate-200 bg-slate-50 rounded-xl text-sm font-bold focus:bg-white focus:border-blue-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-500 uppercase">Kab/Kota</label>
+                            <input type="text" name="event_city" id="form-city" class="w-full px-4 py-3 border border-slate-200 bg-slate-50 rounded-xl text-sm font-bold focus:bg-white focus:border-blue-500 outline-none">
+                        </div>
+                    </div>
+                <?php else: ?>
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-500 uppercase">Kota Asal Klub</label>
+                        <input type="text" name="kota" id="form-kota" class="w-full px-4 py-3 border border-slate-200 bg-slate-50 rounded-xl text-sm font-bold focus:bg-white focus:border-blue-500 outline-none" placeholder="Cth: Yogyakarta (Boleh Kosong)">
+                    </div>
+                <?php endif; ?>
+            </div>
+
+            <button type="submit" class="w-full bg-slate-900 hover:bg-blue-600 text-white font-black py-4 rounded-xl shadow-lg transition uppercase tracking-widest text-xs mt-4">
+                Simpan Data
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+const modal = document.getElementById('modal-admin');
+
+function openModal() {
+    document.getElementById('modal-title').innerText = "Tambah <?= strtoupper($targetRole) ?> Baru";
+    document.getElementById('form-id').value = ""; 
+    
+    document.getElementById('form-nama').value = "";
+    document.getElementById('form-email').value = "";
+    document.getElementById('form-phone').value = "";
+    document.getElementById('form-pass').required = true;
+    document.getElementById('form-pass').value = "";
+    
+    document.getElementById('form-nama-detail').value = "";
+    
+    if(document.getElementById('form-location')) document.getElementById('form-location').value = "";
+    if(document.getElementById('form-city')) document.getElementById('form-city').value = "";
+    if(document.getElementById('form-date')) document.getElementById('form-date').value = ""; 
+    if(document.getElementById('form-mode')) document.getElementById('form-mode').selectedIndex = 0;
+    if(document.getElementById('form-kota')) document.getElementById('form-kota').value = "";
+    
+    modal.classList.remove('hidden');
+}
+
+function editAdmin(buttonElement) {
+    try {
+        const jsonString = buttonElement.getAttribute('data-user');
+        const data = JSON.parse(jsonString);
+
+        document.getElementById('modal-title').innerText = "Edit <?= strtoupper($targetRole) ?>";
+        
+        document.getElementById('form-id').value = data.id; 
+        document.getElementById('form-nama').value = data.nama_lengkap; 
+        document.getElementById('form-email').value = data.email;
+        document.getElementById('form-phone').value = data.phone || '';
+        document.getElementById('form-pass').required = false; 
+        document.getElementById('form-pass').value = ""; 
+
+        const detailName = data.nama_klub || data.event_name || data.nama_lengkap;
+        document.getElementById('form-nama-detail').value = detailName;
+
+        if(document.getElementById('form-mode')) {
+            document.getElementById('form-mode').value = data.competition_system || 'Langsung Final';
+        }
+        if(document.getElementById('form-location')) {
+            document.getElementById('form-location').value = data.event_location || '';
+        }
+        if(document.getElementById('form-city')) {
+            document.getElementById('form-city').value = data.event_city || '';
+        }
+        if(document.getElementById('form-date')) {
+            document.getElementById('form-date').value = data.event_date_start || ''; 
+        }
+        
+        if(document.getElementById('form-kota')) {
+            document.getElementById('form-kota').value = data.kota || '';
+        }
+
+        modal.classList.remove('hidden');
+    } catch (e) {
+        console.error("Gagal parse data user:", e);
+        alert("Terjadi kesalahan saat mengambil data. Cek console.");
+    }
+}
+
+function closeModal() { 
+    modal.classList.add('hidden'); 
+}
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    <?php if(isset($_SESSION['swal_type'])): ?>
+        const Toast = Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false, 
+            timer: 3000,
+            timerProgressBar: true,
+            didOpen: (toast) => {
+                toast.addEventListener('mouseenter', Swal.stopTimer)
+                toast.addEventListener('mouseleave', Swal.resumeTimer)
+            }
+        });
+
+        Toast.fire({
+            icon: '<?= $_SESSION['swal_type'] ?>',
+            title: '<?= $_SESSION['swal_msg'] ?>'
+        });
+
+        <?php unset($_SESSION['swal_type']); unset($_SESSION['swal_msg']); ?>
+    <?php endif; ?>
+</script>
