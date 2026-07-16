@@ -108,7 +108,7 @@ function isGroupActive($req, $keywords) {
          </div>
 
          <!-- GROUP 5: Data Referensi -->
-         <?php $g5Active = isGroupActive($req, ['manage_records', 'record_packages', 'dq_rules']); ?>
+         <?php $g5Active = isGroupActive($req, ['manage_records', 'record_packages', 'dq_rules', 'master/reference']); ?>
          <button onclick="toggleSidebarDropdown('dd-referensi')" class="<?= $g5Active ? $dropdownBtnActive : $dropdownBtnBase ?>">
             <div class="flex items-center">
                <span class="w-6 text-center mr-3 text-lg opacity-80">📚</span>
@@ -117,6 +117,7 @@ function isGroupActive($req, $keywords) {
             <span id="icon-dd-referensi" class="transform transition-transform text-xs <?= $g5Active ? 'rotate-180' : '' ?>">▼</span>
          </button>
          <div id="dd-referensi" class="bg-[#0b1120] py-2 <?= $g5Active ? '' : 'hidden' ?>">
+             <a href="<?= getenv('APP_URL') ?>/roll/master/reference" class="<?= (strpos($req,"master/reference")!==false) ? $childActiveLink : $childBaseLink ?>">Kamus Standar</a>
              <a href="<?= getenv('APP_URL') ?>/roll/records/manage_records" class="<?= (strpos($req,"/records/")!==false) ? $childActiveLink : $childBaseLink ?>">Manajemen Rekor</a>
              <a href="<?= getenv('APP_URL') ?>/roll/masterSettings/dq_rules" class="<?= (strpos($req,"dq_rules")!==false) ? $childActiveLink : $childBaseLink ?>">Master DQ Rules</a>
          </div>
