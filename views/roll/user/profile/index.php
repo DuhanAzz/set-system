@@ -23,7 +23,7 @@
         <div class="mb-8 flex flex-col md:flex-row gap-6 items-center">
             <div class="shrink-0 w-32 h-32 bg-slate-100 rounded-2xl border-2 border-dashed border-slate-300 flex items-center justify-center overflow-hidden">
                 <?php if(!empty($club['logo'])): ?>
-                    <img src="<?= getenv('APP_URL') ?>/public/uploads/logos/<?= htmlspecialchars($club['logo']) ?>" class="w-full h-full object-cover">
+                    <img src="<?= rtrim(getenv('APP_URL'), '/') ?>/uploads/logos/<?= htmlspecialchars($club['logo']) ?>" class="w-full h-full object-cover">
                 <?php else: ?>
                     <span class="text-4xl opacity-50">🛼</span>
                 <?php endif; ?>

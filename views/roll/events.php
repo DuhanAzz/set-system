@@ -127,7 +127,7 @@ $siteDesc     = $s['site_description'] ?? 'Platform manajemen lomba sepatu roda 
                         <!-- Poster Image (Left side) -->
                         <div class="w-full sm:w-2/5 aspect-[1/1.4] sm:aspect-auto sm:min-h-[350px] bg-slate-900 relative overflow-hidden shrink-0">
                             <?php if (!empty($ev['poster_image'])): ?>
-                                <img src="<?= getenv('APP_URL') ?>/<?= ltrim($ev['poster_image'], '/') ?>" class="w-full h-full object-cover opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-700" alt="Poster">
+                                <img src="<?= rtrim(getenv('APP_URL'), '/') ?>/uploads/<?= ltrim(str_replace(['public/uploads/', 'uploads/'], '', $ev['poster_image']), '/') ?>" class="w-full h-full object-cover opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-700" alt="Poster">
                             <?php else: ?>
                                 <img src="https://images.unsplash.com/photo-1520045892732-304bc3ac5d8e?q=80&w=800&auto=format&fit=crop" class="w-full h-full object-cover opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-700" alt="Fallback Poster">
                             <?php endif; ?>
@@ -136,7 +136,7 @@ $siteDesc     = $s['site_description'] ?? 'Platform manajemen lomba sepatu roda 
                             <!-- Logos -->
                             <div class="absolute bottom-4 left-4 z-20 flex gap-2">
                                 <?php if (!empty($ev['logo_left'])): ?>
-                                    <div class="bg-white p-1 rounded-lg shadow"><img src="<?= getenv('APP_URL') ?>/<?= ltrim($ev['logo_left'], '/') ?>" class="h-8 object-contain"></div>
+                                    <div class="bg-white p-1 rounded-lg shadow"><img src="<?= rtrim(getenv('APP_URL'), '/') ?>/uploads/<?= ltrim(str_replace(['public/uploads/', 'uploads/'], '', $ev['logo_left']), '/') ?>" class="h-8 object-contain"></div>
                                 <?php endif; ?>
                             </div>
                         </div>

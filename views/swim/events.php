@@ -122,9 +122,9 @@ $linkFB       = $s['link_facebook'] ?? '';
 
                     $imgSrc = 'https://images.unsplash.com/photo-1530549387789-4c100476466c?w=800&auto=format&fit=crop';
                     if (!empty($e['poster_image'])) {
-                        $imgSrc = rtrim(getenv('APP_URL'), '/') . '/' . ltrim($e['poster_image'], '/');
+                        $imgSrc = rtrim(getenv('APP_URL'), '/') . '/uploads/' . ltrim(str_replace(['public/uploads/', 'uploads/'], '', $e['poster_image']), '/');
                     } elseif (!empty($e['logo_left'])) {
-                        $imgSrc = rtrim(getenv('APP_URL'), '/') . '/' . ltrim($e['logo_left'], '/');
+                        $imgSrc = rtrim(getenv('APP_URL'), '/') . '/uploads/' . ltrim(str_replace(['public/uploads/', 'uploads/'], '', $e['logo_left']), '/');
                     }
 
                 ?>

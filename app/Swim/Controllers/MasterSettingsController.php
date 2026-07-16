@@ -3,6 +3,8 @@ namespace App\Swim\Controllers;
 
 use App\Core\Controller;
 use App\Core\Database;
+use App\Core\UploadService;
+use PDO;
 
 class MasterSettingsController extends Controller {
 
@@ -159,21 +161,14 @@ class MasterSettingsController extends Controller {
         // --- LOGIC B: UPLOAD SLIDE BARU ---
         if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_FILES['slide_image'])) {
             try {
-                $targetDir = __DIR__ . "/../../../../public/img/hero/";
-                if (!is_dir($targetDir)) mkdir($targetDir, 0777, true);
-                
                 if (!empty($_FILES['slide_image']['name'])) {
-                    $ext = pathinfo($_FILES['slide_image']['name'], PATHINFO_EXTENSION);
-                    if(in_array(strtolower($ext), ['jpg', 'jpeg', 'png', 'webp'])) {
-                        $fileName = "slide_" . time() . "_" . rand(100,999) . "." . $ext;
-                        // For simplicity, we just use move_uploaded_file instead of compressImage
-                        if(move_uploaded_file($_FILES['slide_image']['tmp_name'], $targetDir . $fileName)) {
-                            $pdo->prepare("INSERT INTO swim_hero_images (image_path) VALUES (?)")->execute(["img/hero/" . $fileName]);
-                            $_SESSION['swal_type'] = 'success'; $_SESSION['swal_msg'] = 'Slide baru berhasil ditambahkan!';
-                        } else {
-                            throw new \Exception("Gagal upload gambar.");
-                        }
-                    } else { throw new \Exception("Format gambar harus JPG, PNG, atau WEBP."); }
+                    $fileName = UploadService::uploadImage($_FILES['slide_image'], 'hero', 1920);
+                    if ($fileName) {
+                        $pdo->prepare("INSERT INTO swim_hero_images (image_path) VALUES (?)")->execute([$fileName]);
+                        $_SESSION['swal_type'] = 'success'; $_SESSION['swal_msg'] = 'Slide baru berhasil ditambahkan!';
+                    } else {
+                        throw new \Exception("Gagal upload gambar slider.");
+                    }
                 }
             } catch (\Exception $e) {
                 $_SESSION['swal_type'] = 'error'; $_SESSION['swal_msg'] = $e->getMessage();

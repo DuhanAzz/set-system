@@ -123,7 +123,8 @@
                         <?php foreach($slides as $s): ?>
                         <div class="relative group rounded-xl overflow-hidden shadow-sm hover:shadow-2xl transition-all duration-300 border border-slate-100 bg-slate-900">
                             <div class="aspect-video">
-                                <img src="../../../public/<?= $s['image_path'] ?>" class="w-full h-full object-cover opacity-90 group-hover:opacity-60 transition duration-500 transform group-hover:scale-110">
+                                <?php $src = (strpos($s['image_path'], 'http') === 0) ? $s['image_path'] : rtrim(getenv('APP_URL'), '/') . "/uploads/hero/" . ltrim(str_replace('img/hero/', '', $s['image_path']), '/'); ?>
+                                <img src="<?= htmlspecialchars($src) ?>" class="w-full h-full object-cover opacity-90 group-hover:opacity-60 transition duration-500 transform group-hover:scale-110">
                             </div>
                             
                             <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition duration-300">

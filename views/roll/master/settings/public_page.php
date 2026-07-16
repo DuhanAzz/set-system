@@ -151,7 +151,7 @@
                                     <div class="absolute top-3 left-3 z-20 bg-slate-900/80 text-white px-2 py-1 rounded-lg text-xs font-black">
                                         #<?= $index + 1 ?>
                                     </div>
-                                    <?php $src = (strpos($slide['image_path'], 'http') === 0) ? $slide['image_path'] : getenv('APP_URL') . "/" . ltrim($slide['image_path'], '/'); ?>
+                                    <?php $src = (strpos($slide['image_path'], 'http') === 0) ? $slide['image_path'] : rtrim(getenv('APP_URL'), '/') . "/uploads/hero/" . ltrim(str_replace('img/hero/', '', $slide['image_path']), '/'); ?>
                                     <img src="<?= htmlspecialchars($src) ?>" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-110 transition duration-700">
                                     
                                     <div class="absolute inset-0 bg-gradient-to-t from-slate-900/60 to-transparent opacity-0 group-hover:opacity-100 transition duration-300"></div>

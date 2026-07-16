@@ -64,7 +64,7 @@
                         <div class="p-4 bg-emerald-50/50 rounded-xl border border-dashed border-emerald-200 mt-4">
                             <label class="block text-emerald-700 font-bold mb-2 text-sm">Ganti Logo Klub</label>
                             <?php if(!empty($c['logo'])): ?>
-                                <img src="<?= getenv('APP_URL') ?>/<?= $c['logo'] ?>" class="h-16 mb-2 rounded border border-emerald-200">
+                                <img src="<?= rtrim(getenv('APP_URL'), '/') ?>/uploads/logos/<?= ltrim(str_replace(['public/uploads/logos/', 'uploads/logos/'], '', $c['logo']), '/') ?>" class="h-16 mb-2 rounded border border-emerald-200">
                             <?php endif; ?>
                             <input type="file" name="logo" class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-emerald-600 file:text-white hover:file:bg-emerald-700 cursor-pointer">
                             <p class="text-[10px] text-slate-400 mt-1">Format: JPG, PNG. Maks 2MB.</p>
