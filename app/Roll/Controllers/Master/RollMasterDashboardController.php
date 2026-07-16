@@ -30,6 +30,7 @@ class RollMasterDashboardController extends Controller {
         ];
         $liveEvents = [];
         $recentUsers = [];
+        $pendingEntries = [];
         $systemStatus = 0; 
         $heroTitle = 'Roll Events App'; 
 
@@ -88,6 +89,18 @@ class RollMasterDashboardController extends Controller {
                 $recentUsers = $pdo->query($sqlRecent)->fetchAll(\PDO::FETCH_ASSOC);
             } catch (\Exception $e) {}
 
+            $sqlPendingEntries = "
+                SELECT re.id, re.created_at, rs.nama_lengkap as skater_name, re.status
+                FROM roll_entries re
+                LEFT JOIN roll_skaters rs ON re.skater_id = rs.id
+                WHERE re.status = 'pending'
+                ORDER BY re.created_at DESC
+                LIMIT 5
+            ";
+            try {
+                $pendingEntries = $pdo->query($sqlPendingEntries)->fetchAll(\PDO::FETCH_ASSOC);
+            } catch (\Exception $e) {}
+
         } catch (\PDOException $e) {
             die("Database Error: " . $e->getMessage());
         }
@@ -96,6 +109,7 @@ class RollMasterDashboardController extends Controller {
             'stats' => $stats,
             'liveEvents' => $liveEvents,
             'recentUsers' => $recentUsers,
+            'pendingEntries' => $pendingEntries,
             'systemStatus' => $systemStatus,
             'heroTitle' => $heroTitle
         ]);

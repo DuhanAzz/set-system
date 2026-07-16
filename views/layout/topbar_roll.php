@@ -9,7 +9,7 @@ $pdo = \App\Core\Database::getInstance()->getConnection();
 
 // --- DATA USER ---
 $uid = $_SESSION['roll_user_id'] ?? 0;
-$role = $_SESSION['roll_role'] ?? 'guest';
+$role = $_SESSION['role'] ?? 'guest';
 $displayName = $_SESSION['nama_lengkap'] ?? 'User';
 $displayRole = strtoupper($role);
 
@@ -18,21 +18,29 @@ $displayImage = "https://ui-avatars.com/api/?name=" . urlencode($displayName) . 
 
 // Logic Foto Profil (Menggunakan getenv('APP_URL'))
 if ($uid > 0) {
-    $stmtU = $pdo->prepare("SELECT photo FROM roll_users WHERE id = ?");
+    $stmtU = $pdo->prepare("SELECT photo, nama_lengkap FROM roll_users WHERE id = ?");
     $stmtU->execute([$uid]);
     $userData = $stmtU->fetch();
 
-    if ($userData && !empty($userData['photo'])) {
-        $displayImage = getenv('APP_URL') . "/" . ltrim($userData['photo'], '/');
-    } elseif ($role == 'user') {
-        $stmtC = $pdo->prepare("SELECT nama_klub, logo FROM roll_clubs WHERE user_id = ?");
+    if ($userData) {
+        if (!isset($_SESSION['nama_lengkap']) || $_SESSION['nama_lengkap'] == 'User') {
+            $displayName = $userData['nama_lengkap'] ?? 'User';
+            $_SESSION['nama_lengkap'] = $displayName;
+        }
+        if (!empty($userData['photo'])) {
+            $displayImage = getenv('APP_URL') . "/" . str_replace('public/', '', ltrim($userData['photo'], '/'));
+        }
+    }
+    
+    if ($role == 'user') {
+        $stmtC = $pdo->prepare("SELECT c.nama_klub, c.logo FROM roll_clubs c JOIN roll_users u ON u.club_id = c.id WHERE u.id = ?");
         $stmtC->execute([$uid]);
         $clubData = $stmtC->fetch();
         if ($clubData) {
             $displayName = $clubData['nama_klub'];
             $displayRole = "CLUB ADMIN";
             if (!empty($clubData['logo'])) {
-                $displayImage = getenv('APP_URL') . "/" . ltrim($clubData['logo'], '/');
+                $displayImage = getenv('APP_URL') . "/" . str_replace('public/', '', ltrim($clubData['logo'], '/'));
             }
         }
     }
@@ -93,9 +101,9 @@ if ($uid > 0) {
                   <p class="text-xs font-medium text-gray-500 truncate"><?= $_SESSION['email'] ?? '' ?></p>
                 </div>
                 <ul class="py-2" role="none">
-                  <li><a href="<?= getenv('APP_URL') ?>/roll/profile/edit" class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 font-medium flex items-center gap-2"><span>👤</span> Profil & Keamanan</a></li>
+                  <li><a href="<?= getenv('APP_URL') ?>/roll/<?= strtolower($role) ?>/profile" class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 font-medium flex items-center gap-2"><span>👤</span> Profil & Keamanan</a></li>
                   <div class="border-t border-gray-100 my-1"></div>
-                  <li><a href="<?= getenv('APP_URL') ?>/roll/login/logout" class="block px-4 py-2 text-sm text-red-600 hover:bg-red-50 font-bold flex items-center gap-2"><span>🚪</span> Logout</a></li>
+                  <li><a href="<?= getenv('APP_URL') ?>/roll/logout" class="block px-4 py-2 text-sm text-red-600 hover:bg-red-50 font-bold flex items-center gap-2"><span>🚪</span> Logout</a></li>
                 </ul>
               </div>
           </div>

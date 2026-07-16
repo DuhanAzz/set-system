@@ -200,6 +200,7 @@ switch ($module) {
             $map = [
                 'Admin' => [
                     'dashboard' => '\\App\\Roll\\Controllers\\Admin\\RollDashboardController',
+                    'profile'   => '\\App\\Roll\\Controllers\\RollProfileController',
                     'events'    => '\\App\\Roll\\Controllers\\Admin\\RollEventController',
                     'clubs'     => '\\App\\Roll\\Controllers\\Admin\\RollClubController',
                     'skaters'   => '\\App\\Roll\\Controllers\\Admin\\RollSkaterController',
@@ -216,6 +217,7 @@ switch ($module) {
                 ],
                 'Master' => [
                     'dashboard'   => '\\App\\Roll\\Controllers\\Master\\RollMasterDashboardController',
+                    'profile'     => '\\App\\Roll\\Controllers\\RollProfileController',
                     'users'       => '\\App\\Roll\\Controllers\\Master\\RollUsersController',
                     'skaters'     => '\\App\\Roll\\Controllers\\Master\\RollMasterSkaterController',
                     'finance'     => '\\App\\Roll\\Controllers\\Master\\RollMasterFinanceController',

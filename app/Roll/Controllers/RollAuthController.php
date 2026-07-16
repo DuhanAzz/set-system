@@ -42,6 +42,7 @@ class RollAuthController extends Controller {
                 // Set Session
                 $_SESSION['roll_user_id'] = $user['id'];
                 $_SESSION['role'] = $user['role']; // 'master', 'admin', 'user'
+                $_SESSION['nama_lengkap'] = $user['nama_lengkap'] ?? $user['username'];
                 
                 // Khusus klub (user) set club_id
                 if ($user['role'] === 'user') {
@@ -68,6 +69,7 @@ class RollAuthController extends Controller {
         unset($_SESSION['roll_user_id']);
         unset($_SESSION['role']);
         unset($_SESSION['roll_club_id']);
+        unset($_SESSION['nama_lengkap']);
         
         $_SESSION['flash_message'] = "Anda berhasil logout dari sistem Roll.";
         $_SESSION['flash_type'] = "success";

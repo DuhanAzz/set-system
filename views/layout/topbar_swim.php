@@ -18,13 +18,21 @@ $displayImage = "https://ui-avatars.com/api/?name=" . urlencode($displayName) . 
 
 // Logic Foto Profil (Menggunakan getenv('APP_URL'))
 if ($uid > 0) {
-    $stmtU = $pdo->prepare("SELECT photo FROM swim_users WHERE id = ?");
+    $stmtU = $pdo->prepare("SELECT photo, nama_lengkap FROM swim_users WHERE id = ?");
     $stmtU->execute([$uid]);
     $userData = $stmtU->fetch();
 
-    if ($userData && !empty($userData['photo'])) {
-        $displayImage = getenv('APP_URL') . "/" . ltrim($userData['photo'], '/');
-    } elseif ($role == 'user') {
+    if ($userData) {
+        if (!isset($_SESSION['nama_lengkap']) || $_SESSION['nama_lengkap'] == 'User') {
+            $displayName = $userData['nama_lengkap'] ?? 'User';
+            $_SESSION['nama_lengkap'] = $displayName;
+        }
+        if (!empty($userData['photo'])) {
+            $displayImage = getenv('APP_URL') . "/" . str_replace('public/', '', ltrim($userData['photo'], '/'));
+        }
+    }
+    
+    if ($role == 'user') {
         $stmtC = $pdo->prepare("SELECT nama_klub, logo FROM swim_clubs WHERE user_id = ?");
         $stmtC->execute([$uid]);
         $clubData = $stmtC->fetch();
@@ -32,7 +40,7 @@ if ($uid > 0) {
             $displayName = $clubData['nama_klub'];
             $displayRole = "CLUB ADMIN";
             if (!empty($clubData['logo'])) {
-                $displayImage = getenv('APP_URL') . "/" . ltrim($clubData['logo'], '/');
+                $displayImage = getenv('APP_URL') . "/" . str_replace('public/', '', ltrim($clubData['logo'], '/'));
             }
         }
     }

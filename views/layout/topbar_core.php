@@ -124,9 +124,9 @@ $logoText = $isMaster ? 'Universal CMS' : 'SET System';
                     if ($role === 'master') {
                         $profileUrl = getenv('APP_URL') . '/core/profile';
                     } elseif (strpos($_SERVER['REQUEST_URI'], '/roll/') !== false) {
-                        $profileUrl = getenv('APP_URL') . '/roll/profile';
+                        $profileUrl = getenv('APP_URL') . '/roll/' . strtolower($role) . '/profile';
                     } else {
-                        $profileUrl = getenv('APP_URL') . '/swim/profile';
+                        $profileUrl = getenv('APP_URL') . '/swim/profile/edit';
                     }
                   ?>
                   <li><a href="<?= $profileUrl ?>" class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 font-medium flex items-center gap-2"><span>👤</span> Profil & Keamanan</a></li>
@@ -137,7 +137,7 @@ $logoText = $isMaster ? 'Universal CMS' : 'SET System';
                     if ($role === 'master') {
                         $logoutUrl = getenv('APP_URL') . '/core/login/logout';
                     } elseif (strpos($_SERVER['REQUEST_URI'], '/roll/') !== false) {
-                        $logoutUrl = getenv('APP_URL') . '/roll/login/logout';
+                        $logoutUrl = getenv('APP_URL') . '/roll/logout';
                     } else {
                         $logoutUrl = getenv('APP_URL') . '/swim/login/logout';
                     }

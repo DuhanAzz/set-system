@@ -44,6 +44,7 @@ class LoginController extends Controller {
                     // Set session sesuai instruksi
                     $_SESSION['swim_user_id'] = $user['id'];
                     $_SESSION['swim_role'] = $user['role']; 
+                    $_SESSION['nama_lengkap'] = $user['nama_lengkap'] ?? $user['username'];
                     
                     // Routing Redirect Berdasarkan Role (REVISI DashboardController)
                     $role = strtolower($user['role']);
