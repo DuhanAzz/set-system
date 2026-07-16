@@ -72,10 +72,30 @@ class RollUsersController extends Controller {
             
             $stmt = $db->prepare("INSERT INTO roll_users (username, password, role, nama_lengkap, email, phone, account_status) VALUES (?, ?, ?, ?, ?, ?, ?)");
             try {
+                $db->beginTransaction();
                 $stmt->execute([$username, $hashedPassword, $role, $nama_lengkap, $email, $phone, $account_status]);
+                $newUserId = $db->lastInsertId();
+                
+                if ($role === 'admin') {
+                    // Create default event for the admin
+                    $stmtEvent = $db->prepare("INSERT INTO roll_events (user_id, event_name, status, race_format) VALUES (?, ?, 'Published', 'SPRINT')");
+                    $stmtEvent->execute([$newUserId, $nama_lengkap]);
+                } elseif ($role === 'user') {
+                    // Create default club for the user
+                    $stmtClub = $db->prepare("INSERT INTO roll_clubs (club_name) VALUES (?)");
+                    $stmtClub->execute([$nama_lengkap]);
+                    $newClubId = $db->lastInsertId();
+                    
+                    $stmtUpdateUser = $db->prepare("UPDATE roll_users SET club_id = ? WHERE id = ?");
+                    $stmtUpdateUser->execute([$newClubId, $newUserId]);
+                }
+                
+                $db->commit();
+                
                 $_SESSION['flash_message'] = "Pengguna berhasil ditambahkan.";
                 $_SESSION['flash_type'] = "success";
             } catch (\Exception $e) {
+                $db->rollBack();
                 $_SESSION['flash_message'] = "Gagal menambahkan pengguna: " . $e->getMessage();
                 $_SESSION['flash_type'] = "error";
             }
