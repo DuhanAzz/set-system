@@ -45,11 +45,8 @@ class RollAuthController extends Controller {
                 
                 // Khusus klub (user) set club_id
                 if ($user['role'] === 'user') {
-                    // Cari club_id dari tabel roll_clubs yang berelasi dengan user_id
-                    $stmtClub = $db->prepare("SELECT id FROM roll_clubs WHERE user_id = ?");
-                    $stmtClub->execute([$user['id']]);
-                    $club_id = $stmtClub->fetchColumn();
-                    $_SESSION['roll_club_id'] = $club_id ?: 0;
+                    // Cari club_id dari tabel roll_users itu sendiri (karena skema roll_users memiliki club_id)
+                    $_SESSION['roll_club_id'] = $user['club_id'] ?? 0;
                 }
 
                 // Redirect sesuai role
@@ -126,11 +123,14 @@ class RollAuthController extends Controller {
         
         try {
             $pdo->beginTransaction();
-            $ins = $pdo->prepare("INSERT INTO roll_users (username, nama_lengkap, email, phone, password, role, account_status) VALUES (?, ?, ?, ?, ?, ?, 'pending')");
-            if ($ins->execute([$username, $nama, $email, $phone, $hash, $userType])) {
-                $newUserId = $pdo->lastInsertId();
-                $insClub = $pdo->prepare("INSERT INTO roll_clubs (user_id, nama_klub) VALUES (?, ?)");
-                $insClub->execute([$newUserId, $nama_klub]);
+            
+            // Insert ke roll_clubs dulu (karena skema roll menggunakan club_id di tabel users, bukan user_id di tabel clubs)
+            $insClub = $pdo->prepare("INSERT INTO roll_clubs (club_name) VALUES (?)");
+            $insClub->execute([$nama_klub]);
+            $newClubId = $pdo->lastInsertId();
+
+            $ins = $pdo->prepare("INSERT INTO roll_users (username, nama_lengkap, email, phone, password, role, account_status, club_id) VALUES (?, ?, ?, ?, ?, ?, 'pending', ?)");
+            if ($ins->execute([$username, $nama, $email, $phone, $hash, $userType, $newClubId])) {
                 $pdo->commit();
                 
                 $waNumber = '6281993189787'; // Default admin number
