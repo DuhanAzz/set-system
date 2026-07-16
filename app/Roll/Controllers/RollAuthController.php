@@ -77,4 +77,86 @@ class RollAuthController extends Controller {
         header("Location: " . getenv('APP_URL') . "/roll/login");
         exit;
     }
+
+    public function register() {
+        // Jika sudah login, redirect
+        if (isset($_SESSION['role'])) {
+            header("Location: " . getenv('APP_URL') . "/roll");
+            exit;
+        }
+        return $this->view('roll/auth/register');
+    }
+
+    public function processRegister() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header("Location: " . getenv('APP_URL') . "/roll/register");
+            exit;
+        }
+
+        $pdo = Database::getInstance()->getConnection();
+        
+        $nama = $_POST['nama'] ?? '';
+        $nama_klub = $_POST['nama_klub'] ?? '';
+        $phone = $_POST['phone'] ?? '';
+        $email = $_POST['email'] ?? '';
+        $pass = $_POST['password'] ?? '';
+        $userType = 'user'; // Default klub
+
+        // Check if allow_register is enabled (using universal_settings)
+        try {
+            $allowReg = $pdo->query("SELECT allow_register FROM universal_settings WHERE id=1")->fetchColumn();
+            if ($allowReg !== false && $allowReg == 0) {
+                $_SESSION['error'] = "Pendaftaran saat ini ditutup.";
+                header("Location: " . getenv('APP_URL') . "/roll/register");
+                exit;
+            }
+        } catch (\Exception $e) {}
+
+        // Check email
+        $stmt = $pdo->prepare("SELECT id FROM roll_users WHERE email = ?");
+        $stmt->execute([$email]);
+        if ($stmt->rowCount() > 0) {
+            $_SESSION['error'] = "Email sudah terdaftar.";
+            header("Location: " . getenv('APP_URL') . "/roll/register");
+            exit;
+        }
+
+        $hash = password_hash($pass, PASSWORD_DEFAULT);
+        $username = strtolower(str_replace(' ', '', $nama)) . rand(100,999);
+        
+        try {
+            $pdo->beginTransaction();
+            $ins = $pdo->prepare("INSERT INTO roll_users (username, nama_lengkap, email, phone, password, role, account_status) VALUES (?, ?, ?, ?, ?, ?, 'pending')");
+            if ($ins->execute([$username, $nama, $email, $phone, $hash, $userType])) {
+                $newUserId = $pdo->lastInsertId();
+                $insClub = $pdo->prepare("INSERT INTO roll_clubs (user_id, nama_klub) VALUES (?, ?)");
+                $insClub->execute([$newUserId, $nama_klub]);
+                $pdo->commit();
+                
+                $waNumber = '6281993189787'; // Default admin number
+                // Attempt to get contact_wa from universal_settings
+                try {
+                    $waDb = $pdo->query("SELECT contact_wa FROM universal_settings WHERE id=1")->fetchColumn();
+                    if ($waDb) $waNumber = $waDb;
+                } catch(\Exception $e) {}
+                
+                $_SESSION['success_register'] = true;
+                $_SESSION['register_email'] = $email;
+                $_SESSION['wa_number'] = $waNumber;
+                
+                header("Location: " . getenv('APP_URL') . "/roll/register");
+                exit;
+            } else {
+                $pdo->rollBack();
+                $_SESSION['error'] = "Gagal mendaftar.";
+                header("Location: " . getenv('APP_URL') . "/roll/register");
+                exit;
+            }
+        } catch (\Exception $e) {
+            $pdo->rollBack();
+            $_SESSION['error'] = "Terjadi kesalahan sistem.";
+            header("Location: " . getenv('APP_URL') . "/roll/register");
+            exit;
+        }
+    }
 }

@@ -85,6 +85,10 @@ try {
                 </div>
                 <button type="submit" class="w-full bg-[#0F172A] hover:bg-blue-700 text-white font-black py-4 rounded-xl shadow-lg transition transform hover:-translate-y-0.5 uppercase tracking-wide text-sm">Masuk Dashboard</button>
             </form>
+            
+            <div class="mt-8 text-center">
+                <p class="text-sm text-slate-500 font-medium">Belum punya akun? <a href="<?= getenv('APP_URL') ?>/swim/register" class="text-blue-600 font-bold hover:underline">Daftar Klub Baru</a></p>
+            </div>
         </div>
     </div>
 

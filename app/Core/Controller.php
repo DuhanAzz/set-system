@@ -20,7 +20,7 @@ class Controller {
             
             // Kecualikan halaman publik agar tidak terbungkus sidebar/topbar admin
             $excluded_paths = [
-                'auth/login', 'core/portal', 
+                'auth/login', 'auth/register', 'core/portal', 
                 'swim/home', 'swim/events', 'swim/results', 'swim/live_result', 'swim/startlist',
                 'roll/home', 'roll/events', 'roll/results', 'roll/live_result', 'roll/startlist'
             ];

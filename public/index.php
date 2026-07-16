@@ -123,32 +123,7 @@ switch ($module) {
         }
         break;
 
-    case 'roll':
-        // Autoloader akan otomatis mencari file di app/Roll/Controllers/
-        $controllerClass = "\\App\\Roll\\Controllers\\" . ucfirst($page) . "Controller";
-        
-        if (class_exists($controllerClass)) {
-            $controller = new $controllerClass();
-            if (method_exists($controller, $method)) {
-                $controller->$method();
-            } else {
-                $controller->index();
-            }
-        } else {
-            // Fallback: Coba periksa apakah method ada di HomeController
-            $fallbackClass = "\\App\\Roll\\Controllers\\HomeController";
-            if (class_exists($fallbackClass)) {
-                $fallbackController = new $fallbackClass();
-                if (method_exists($fallbackController, $page)) {
-                    $fallbackController->$page();
-                    break;
-                }
-            }
-            
-            http_response_code(404);
-            echo "<h1>404 Not Found</h1><p>Halaman Roll '{$page}' tidak ditemukan.</p>";
-        }
-        break;
+
 
     case 'swim':
         // Halaman publik yang ditangani oleh HomeController
@@ -210,10 +185,12 @@ switch ($module) {
             }
         }
 
-        if ($page === 'login' || $page === 'logout') {
+        if ($page === 'login' || $page === 'logout' || $page === 'register') {
             $controller = new \App\Roll\Controllers\RollAuthController();
             if ($page === 'login' && $method === 'submit') $controller->login();
             elseif ($page === 'logout') $controller->logout();
+            elseif ($page === 'register' && $method === 'submit') $controller->processRegister();
+            elseif ($page === 'register') $controller->register();
             else $controller->index();
         } else {
             $roleFolder = ucfirst(strtolower($page)); // Master, Admin, User
