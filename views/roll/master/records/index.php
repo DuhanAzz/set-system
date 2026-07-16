@@ -21,7 +21,7 @@
                     <h3 class="font-black text-slate-800 uppercase tracking-wider text-sm">Catat Rekor Baru</h3>
                 </div>
                 <div class="p-6">
-                    <form action="<?= getenv('APP_URL') ?>/roll/master/records" method="POST" class="space-y-4">
+                    <form action="<?= getenv('APP_URL') ?>/roll/records/manage_records" method="POST" class="space-y-4">
                         <input type="hidden" name="action" value="add_record">
                         
                         <div>
@@ -33,8 +33,8 @@
                             <div>
                                 <label class="block text-slate-600 font-bold mb-2 text-xs uppercase">Gender</label>
                                 <select name="gender" required class="w-full border border-slate-300 rounded-lg px-4 py-2 focus:ring-blue-500 bg-slate-50">
-                                    <option value="Putra">Putra</option>
-                                    <option value="Putri">Putri</option>
+                                    <option value="M">Putra</option>
+                                    <option value="F">Putri</option>
                                 </select>
                             </div>
                             <div>

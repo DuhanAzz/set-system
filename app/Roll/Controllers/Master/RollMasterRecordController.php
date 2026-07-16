@@ -14,7 +14,7 @@ class RollMasterRecordController extends Controller {
         }
     }
 
-    public function index() {
+    public function manage_records() {
         $db = Database::getInstance()->getConnection();
 
         // Handle Form Submit
@@ -36,13 +36,13 @@ class RollMasterRecordController extends Controller {
                 $_SESSION['flash_msg'] = "Gagal menambah rekor: " . $e->getMessage();
                 $_SESSION['flash_type'] = "error";
             }
-            header("Location: " . getenv('APP_URL') . "/roll/master/records");
+            header("Location: " . getenv('APP_URL') . "/roll/records/manage_records");
             exit;
         }
 
         // Fetch Data
         $records = $db->query("
-            SELECT r.*, d.distance_name, a.age_group_name 
+            SELECT r.*, d.distance_name, a.group_name as age_group_name 
             FROM roll_track_records r
             JOIN roll_ref_distances d ON r.distance_id = d.id
             JOIN roll_ref_age_groups a ON r.age_group_id = a.id
@@ -50,7 +50,7 @@ class RollMasterRecordController extends Controller {
         ")->fetchAll(PDO::FETCH_ASSOC);
 
         $distances = $db->query("SELECT * FROM roll_ref_distances ORDER BY distance_name")->fetchAll(PDO::FETCH_ASSOC);
-        $ageGroups = $db->query("SELECT * FROM roll_ref_age_groups ORDER BY min_age")->fetchAll(PDO::FETCH_ASSOC);
+        $ageGroups = $db->query("SELECT * FROM roll_ref_age_groups ORDER BY min_year")->fetchAll(PDO::FETCH_ASSOC);
 
         $this->view('roll/master/records/index', [
             'records' => $records,

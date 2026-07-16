@@ -192,6 +192,18 @@ switch ($module) {
             elseif ($page === 'register' && $method === 'submit') $controller->processRegister();
             elseif ($page === 'register') $controller->register();
             else $controller->index();
+        } elseif (strtolower($page) === 'mastersettings' && isset($url[2]) && strtolower($url[2]) === 'dq_rules') {
+            $controller = new \App\Roll\Controllers\Master\RollMasterSettingsController();
+            $controller->dq_rules();
+            exit;
+        } elseif (strtolower($page) === 'records' && isset($url[2]) && strtolower($url[2]) === 'manage_records') {
+            $controller = new \App\Roll\Controllers\Master\RollMasterRecordController();
+            if (method_exists($controller, 'manage_records')) {
+                $controller->manage_records();
+            } else {
+                $controller->index();
+            }
+            exit;
         } else {
             $roleFolder = ucfirst(strtolower($page)); // Master, Admin, User
             $subRoute = isset($url[2]) && $url[2] != '' ? strtolower($url[2]) : 'dashboard';
@@ -229,9 +241,15 @@ switch ($module) {
                 'Masterfinance' => [
                     'revenue'     => '\\App\\Roll\\Controllers\\Master\\RollMasterFinanceController'
                 ],
+                'Mastersettings' => [
+                    'dq_rules' => '\\App\\Roll\\Controllers\\Master\\RollMasterSettingsController'
+                ],
                 'Maintenance' => [
                     'data_cleanup'  => '\\App\\Roll\\Controllers\\Master\\RollMaintenanceController',
                     'system_health' => '\\App\\Roll\\Controllers\\Master\\RollMaintenanceController'
+                ],
+                'Records' => [
+                    'manage_records' => '\\App\\Roll\\Controllers\\Master\\RollMasterRecordController'
                 ]
             ];
 

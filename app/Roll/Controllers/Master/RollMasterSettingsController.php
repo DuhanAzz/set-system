@@ -162,5 +162,43 @@ class RollMasterSettingsController extends Controller {
             'settings' => $settings,
             'slides' => $slides
         ]);
+    }    public function dq_rules() {
+        $db = Database::getInstance()->getConnection();
+
+        // Handle Add Rule
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'add_rule') {
+            try {
+                $stmt = $db->prepare("INSERT INTO roll_dq_rules (kode_dq, deskripsi) VALUES (?, ?)");
+                $stmt->execute([$_POST['kode_dq'], $_POST['deskripsi']]);
+                $_SESSION['flash_msg'] = "Aturan DQ berhasil ditambahkan!";
+                $_SESSION['flash_type'] = "success";
+            } catch (\Exception $e) {
+                $_SESSION['flash_msg'] = "Gagal menambah aturan: " . $e->getMessage();
+                $_SESSION['flash_type'] = "error";
+            }
+            header("Location: " . getenv('APP_URL') . "/roll/masterSettings/dq_rules");
+            exit;
+        }
+
+        // Handle Delete Rule
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete_rule') {
+            try {
+                $stmt = $db->prepare("DELETE FROM roll_dq_rules WHERE id = ?");
+                $stmt->execute([$_POST['rule_id']]);
+                $_SESSION['flash_msg'] = "Aturan DQ berhasil dihapus!";
+                $_SESSION['flash_type'] = "success";
+            } catch (\Exception $e) {
+                $_SESSION['flash_msg'] = "Gagal menghapus aturan: " . $e->getMessage();
+                $_SESSION['flash_type'] = "error";
+            }
+            header("Location: " . getenv('APP_URL') . "/roll/masterSettings/dq_rules");
+            exit;
+        }
+
+        $rules = $db->query("SELECT * FROM roll_dq_rules ORDER BY kode_dq ASC")->fetchAll(PDO::FETCH_ASSOC);
+
+        return $this->view('roll/master/settings/dq_rules', [
+            'rules' => $rules
+        ]);
     }
 }
