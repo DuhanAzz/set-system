@@ -152,7 +152,7 @@ switch ($module) {
 
     case 'swim':
         // Halaman publik yang ditangani oleh HomeController
-        $publicPages = ['home', 'events', 'results', 'startlist'];
+        $publicPages = ['home', 'events', 'results', 'startlist', 'liveresult'];
         if (in_array($page, $publicPages)) {
             $controllerClass = "\\App\\Swim\\Controllers\\HomeController";
             if (class_exists($controllerClass)) {
@@ -199,7 +199,7 @@ switch ($module) {
 
     case 'roll':
         // Halaman publik yang ditangani oleh HomeController
-        $publicPages = ['home', 'events', 'results', 'startlist'];
+        $publicPages = ['home', 'events', 'results', 'startlist', 'liveresult'];
         if (in_array($page, $publicPages)) {
             $controllerClass = "\\App\\Roll\\Controllers\\HomeController";
             if (class_exists($controllerClass)) {

@@ -5,7 +5,7 @@ $siteDesc     = $s['site_description'] ?? 'Platform manajemen lomba sepatu roda 
 <!DOCTYPE html>
 <html lang="id" class="scroll-smooth">
 <head>
-    <link rel="icon" type="image/png" href="<?= getenv('APP_URL') ?>/public/favicon.png?v=2">
+    <link rel="icon" type="image/png" href="<?= getenv('APP_URL') ?>/favicon.png?v=2">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hasil Lomba - <?= htmlspecialchars($heroTitle) ?></title>
@@ -22,14 +22,45 @@ $siteDesc     = $s['site_description'] ?? 'Platform manajemen lomba sepatu roda 
         .nav-link:hover::after, .nav-link.active::after { width: 100%; }
         .nav-link:hover { color: #f97316; }
 
-        .page-header { background-image: url('https://images.unsplash.com/photo-1572016335905-1a890473a216?q=80&w=2000&auto=format&fit=crop'); background-size: cover; background-position: center; }
+        /* --- SPEED INLINE SKATE PRELOADER --- */
+        #preloader { position: fixed; inset: 0; z-index: 9999; background-color: #0F172A; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s ease, visibility 0.5s ease; overflow: hidden; }
+        .skate-chassis { position: relative; padding-bottom: 12px; display: flex; gap: 6px; z-index: 2; }
+        .inline-wheel { width: 45px; height: 45px; border: 7px solid #ea580c; border-radius: 50%; border-top-color: #fb923c; border-right-color: #fb923c; animation: spin-fast 0.3s linear infinite; box-shadow: 0 0 20px rgba(234, 88, 12, 0.5); position: relative; }
+        .inline-wheel::before { content: ''; position: absolute; inset: 5px; background: #94a3b8; border-radius: 50%; border: 3px solid #0f172a; }
+        .speed-lines { position: absolute; bottom: -4px; left: -100%; width: 300%; height: 4px; background: repeating-linear-gradient(90deg, transparent, transparent 20px, #ea580c 20px, #ea580c 80px); animation: move-lines 0.3s linear infinite; opacity: 0.8; z-index: 3; }
+        @keyframes spin-fast { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes move-lines { 0% { transform: translateX(0); } 100% { transform: translateX(-100px); } }
+        
+        .load-text-container { margin-top: 35px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+        .load-text { color: white; font-weight: 900; letter-spacing: 0.3em; font-size: 14px; text-transform: uppercase; animation: pulse-text 1s infinite alternate; }
+        .load-perc { color: #ea580c; font-size: 32px; font-weight: 900; text-shadow: 0 0 15px rgba(234, 88, 12, 0.6); }
+        @keyframes pulse-text { from { opacity: 0.6; } to { opacity: 1; } }
+        .loader-finish { opacity: 0; visibility: hidden; pointer-events: none; }
+
+        .page-header { background-image: url('https://images.unsplash.com/photo-1563212046-2428581e220a?q=80&w=2070&auto=format&fit=crop'); background-size: cover; background-position: center; }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 flex flex-col min-h-screen">
 
+    <div id="preloader">
+        <div class="relative">
+            <div class="skate-chassis">
+                <div class="inline-wheel"></div>
+                <div class="inline-wheel"></div>
+                <div class="inline-wheel"></div>
+                <div class="inline-wheel"></div>
+            </div>
+            <div class="speed-lines"></div>
+        </div>
+        <div class="load-text-container">
+            <div class="load-text">LOADING TO FINISH LINE</div>
+            <div id="load-perc" class="load-perc">0%</div>
+        </div>
+    </div>
+
     <nav id="navbar" class="fixed w-full z-50 top-0 start-0 bg-[#0F172A] px-10 border-b border-slate-800 shadow-xl">
         <div class="max-w-screen-2xl flex items-center justify-between mx-auto w-full">
-            <a href="<?= getenv('APP_URL') ?>/roll"><img src="<?= getenv('APP_URL') ?>/public/img/logo.png" onerror="this.src='https://ui-avatars.com/api/?name=SET&background=f97316&color=fff'" class="h-20 w-auto object-contain transition-all duration-300" id="nav-logo"></a>
+            <a href="<?= getenv('APP_URL') ?>/roll"><img src="<?= getenv('APP_URL') ?>/img/logo.png" onerror="this.src='https://ui-avatars.com/api/?name=SET&background=f97316&color=fff'" class="h-20 w-auto object-contain transition-all duration-300" id="nav-logo"></a>
             
             <div class="flex items-center gap-12">
                 <div class="hidden lg:flex items-center space-x-10">
@@ -77,7 +108,7 @@ $siteDesc     = $s['site_description'] ?? 'Platform manajemen lomba sepatu roda 
             </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div class="grid grid-cols-1 gap-8">
             <?php if (empty($completed_events)): ?>
                 <div class="col-span-full text-center py-20 bg-white rounded-3xl border border-slate-200 shadow-sm">
                     <div class="text-6xl mb-4">🏆</div>
@@ -86,43 +117,57 @@ $siteDesc     = $s['site_description'] ?? 'Platform manajemen lomba sepatu roda 
                 </div>
             <?php else: ?>
                 <?php foreach ($completed_events as $ev): ?>
-                    <div class="bg-white rounded-3xl overflow-hidden shadow-xl hover:shadow-2xl transition duration-500 transform hover:-translate-y-2 border border-slate-100 flex flex-col h-full group">
+                    <div class="bg-white rounded-3xl border border-slate-200 overflow-hidden hover:shadow-2xl transition-all duration-300 group flex flex-col sm:flex-row relative h-full">
                         
-                        <!-- Poster Image -->
-                        <div class="relative h-60 w-full bg-slate-200 overflow-hidden">
-                            <div class="absolute inset-0 bg-gradient-to-t from-slate-900 to-transparent z-10"></div>
-                            
-                            <!-- Badges -->
-                            <div class="absolute top-4 left-4 z-20 flex flex-col gap-2">
-                                <span class="bg-green-500 text-white text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded shadow-lg">Completed</span>
-                            </div>
-                            
+                        <!-- Badges (Absolute to card) -->
+                        <div class="absolute top-4 left-4 z-20 flex flex-col gap-2">
+                            <span class="bg-green-500 text-white text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow-lg">Completed</span>
+                        </div>
+                        
+                        <!-- Poster Image (Left side) -->
+                        <div class="w-full sm:w-2/5 aspect-[1/1.4] sm:aspect-auto sm:min-h-[350px] bg-slate-900 relative overflow-hidden shrink-0">
                             <?php if (!empty($ev['poster_image'])): ?>
-                                <img src="<?= getenv('APP_URL') ?>/<?= ltrim($ev['poster_image'], '/') ?>" class="w-full h-full object-cover group-hover:scale-110 transition duration-700" alt="Poster">
+                                <img src="<?= getenv('APP_URL') ?>/<?= ltrim($ev['poster_image'], '/') ?>" class="w-full h-full object-cover opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-700" alt="Poster">
                             <?php else: ?>
-                                <img src="https://images.unsplash.com/photo-1517649763962-0c623066013b?q=80&w=800&auto=format&fit=crop" class="w-full h-full object-cover group-hover:scale-110 transition duration-700" alt="Fallback Poster">
+                                <img src="https://images.unsplash.com/photo-1520045892732-304bc3ac5d8e?q=80&w=800&auto=format&fit=crop" class="w-full h-full object-cover opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-700" alt="Fallback Poster">
                             <?php endif; ?>
-
+                            <div class="absolute inset-0 bg-gradient-to-t from-slate-900/80 sm:bg-gradient-to-r sm:from-transparent sm:to-slate-900/10 to-transparent"></div>
+                            
                             <!-- Logos -->
                             <div class="absolute bottom-4 left-4 z-20 flex gap-2">
                                 <?php if (!empty($ev['logo_left'])): ?>
-                                    <div class="bg-white p-1 rounded"><img src="<?= getenv('APP_URL') ?>/<?= ltrim($ev['logo_left'], '/') ?>" class="h-8 object-contain"></div>
+                                    <div class="bg-white p-1 rounded-lg shadow"><img src="<?= getenv('APP_URL') ?>/<?= ltrim($ev['logo_left'], '/') ?>" class="h-8 object-contain"></div>
                                 <?php endif; ?>
                             </div>
                         </div>
 
-                        <!-- Content -->
-                        <div class="p-6 flex flex-col flex-grow relative">
-                            <h3 class="text-2xl font-black text-slate-800 mb-2 leading-tight uppercase tracking-tight"><?= htmlspecialchars($ev['event_name']) ?></h3>
-                            <p class="text-slate-500 font-bold text-sm mb-4 flex items-center gap-1 uppercase tracking-wider">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                                <?= htmlspecialchars($ev['event_city']) ?>
-                            </p>
+                        <!-- Content (Right side) -->
+                        <div class="w-full sm:w-3/5 p-6 md:p-8 flex flex-col justify-between relative z-10">
+                            <div>
+                                <h3 class="text-2xl md:text-3xl font-black uppercase text-slate-800 mb-4 italic leading-tight line-clamp-2 group-hover:text-green-600 transition">
+                                    <?= htmlspecialchars($ev['event_name']) ?>
+                                </h3>
+                                
+                                <div class="space-y-3 text-slate-500 text-xs font-bold uppercase tracking-wide">
+                                    <div class="flex items-start gap-3">
+                                        <span class="bg-slate-50 border border-slate-100 p-2 rounded-xl text-sm shadow-sm">📅</span> 
+                                        <div class="mt-0.5">
+                                            <span class="text-slate-700"><?= date('d F Y', strtotime($ev['event_date_start'])) ?></span>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-start gap-3">
+                                        <span class="bg-slate-50 border border-slate-100 p-2 rounded-xl text-sm shadow-sm">📍</span> 
+                                        <div class="mt-0.5">
+                                            <span class="text-slate-700 line-clamp-2"><?= htmlspecialchars($ev['event_city']) ?></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                             
                             <!-- Action Buttons -->
-                            <div class="mt-auto flex gap-2">
-                                <a href="<?= getenv('APP_URL') ?>/roll/liveresult/<?= $ev['id'] ?>" class="flex-1 bg-green-600 hover:bg-green-700 text-white text-center py-3 rounded-lg font-black uppercase tracking-widest text-xs transition shadow-lg">
-                                    Lihat Hasil Lengkap
+                            <div class="grid grid-cols-1 mt-6">
+                                <a href="<?= getenv('APP_URL') ?>/roll/liveresult/<?= $ev['id'] ?>" class="py-4 px-4 rounded-xl flex items-center justify-center gap-2 bg-green-50 text-green-600 border border-green-100 hover:bg-green-600 hover:text-white transition-all uppercase text-[10px] font-black tracking-widest shadow-sm">
+                                    <span class="animate-bounce">🏆</span> Lihat Hasil Lengkap
                                 </a>
                             </div>
                         </div>
@@ -132,10 +177,40 @@ $siteDesc     = $s['site_description'] ?? 'Platform manajemen lomba sepatu roda 
         </div>
     </main>
 
-    <footer class="bg-[#0F172A] text-slate-400 py-8 border-t border-slate-800">
-        <div class="max-w-screen-xl mx-auto px-6 text-center text-sm font-semibold tracking-wider">
-            &copy; <?= date('Y') ?> SET ROLL SYSTEM. ALL RIGHTS RESERVED.
+    <footer class="bg-[#0F172A] text-white pt-32 pb-16 border-t-4 border-orange-600 text-center mt-auto">
+        <div class="max-w-screen-xl mx-auto px-10">
+            <img src="<?= getenv('APP_URL') ?>/img/logo.png" class="h-32 mx-auto mb-16 grayscale opacity-50">
+            <p class="text-slate-600 text-[11px] font-black tracking-[0.6em] uppercase">&copy; <?= date('Y') ?> SET ROLL SYSTEM. All Rights Reserved.</p>
         </div>
     </footer>
+    <script>
+        // PRELOADER
+        document.addEventListener('DOMContentLoaded', () => {
+            const textPerc = document.getElementById('load-perc');
+            const preloader = document.getElementById('preloader');
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += Math.floor(Math.random() * 20) + 10;
+                if (progress >= 100) { 
+                    progress = 100; clearInterval(interval); 
+                    setTimeout(() => { preloader.classList.add('loader-finish'); }, 400); 
+                }
+                if(textPerc) textPerc.innerText = progress + '%';
+            }, 60);
+        });
+
+        // NAVBAR SCROLL EFFECT
+        const navbar = document.getElementById('navbar');
+        const logo = document.getElementById('nav-logo');
+        window.addEventListener('scroll', () => { 
+            if(window.scrollY > 20) { 
+                navbar.classList.add('scrolled'); 
+                if(logo) logo.classList.replace('h-24', 'h-16'); 
+            } else { 
+                navbar.classList.remove('scrolled'); 
+                if(logo) logo.classList.replace('h-16', 'h-24'); 
+            }
+        });
+    </script>
 </body>
 </html>

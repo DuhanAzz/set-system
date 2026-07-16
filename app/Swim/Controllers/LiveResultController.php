@@ -98,18 +98,7 @@ class LiveResultController extends Controller {
             }
         }
 
-        $modePerAcara = [];
-        foreach($results as $r) {
-            if(!isset($modePerAcara[$r['event_number']])) {
-                $modePerAcara[$r['event_number']] = [
-                     'rank1_count' => 0, 
-                     'is_gabungan' => (stripos($r['age_group'], 'GABUNG') !== false || strpos($r['age_group'], ',') !== false || strpos($r['age_group'], '/') !== false)
-                ];
-            }
-            if($r['rank_final'] == 1) {
-                $modePerAcara[$r['event_number']]['rank1_count']++;
-            }
-        }
+
 
         $groupedResults = [];
         foreach ($results as $r) {
@@ -117,20 +106,11 @@ class LiveResultController extends Controller {
             if ($r['is_dq_final'] == 1) { $r['ms_sort'] = 9999999999 + 100; }
             elseif (!empty($r['time_final']) && $r['time_final'] != 'NT') { $r['ms_sort'] = timeToMs($r['time_final']); }
             
-            $isSplit = false;
-            $m = $modePerAcara[$r['event_number']];
-            if ($m['is_gabungan']) {
-                if ($m['rank1_count'] > 1) {
-                    $isSplit = true;
-                } elseif ($m['rank1_count'] == 1) {
-                    $isSplit = false;
-                } else {
-                    $isSplit = true;
-                }
-            }
+            $isSplit = ($r['rank_mode'] === 'split');
+            $is_gabungan = (stripos($r['age_group'], 'GABUNG') !== false || strpos($r['age_group'], ',') !== false || strpos($r['age_group'], '/') !== false);
             
             if (!$isSplit) {
-                $label = ($m['is_gabungan']) ? 'OVERALL' : $r['age_group'];
+                $label = ($is_gabungan) ? 'OVERALL' : $r['age_group'];
                 $judulAcara = "ACARA #" . $r['event_number'] . " - " . $r['distance'] . "M " . strtoupper($r['stroke']) . " " . strtoupper($r['jenis_kelamin']) . " (" . $label . ")";
             } else {
                 $realKU = getAgeGroupLabel($r['tanggal_lahir'], $eventYear, $ageGroups);
@@ -173,7 +153,7 @@ class LiveResultController extends Controller {
             return $numA < $numB ? -1 : 1;
         });
 
-        return $this->view('swim/user/live_result/index', [
+        return $this->view('swim/live_result', [
             's' => $s,
             'event' => $event,
             'teamHeaderLabel' => $teamHeaderLabel,

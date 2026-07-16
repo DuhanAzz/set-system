@@ -16,10 +16,14 @@ class Controller {
         $file = __DIR__ . '/../../views/' . $viewPath . '.php';
         
         if (file_exists($file)) {
-            $isBackend = (strpos($viewPath, 'swim/') === 0 || strpos($viewPath, 'core/') === 0 || strpos($viewPath, 'roll/') === 0);
+            $isBackend = (strpos($viewPath, 'swim/') === 0 || strpos($viewPath, 'core/') === 0 || strpos($viewPath, 'roll/') === 0 || strpos($viewPath, 'master/') === 0);
             
             // Kecualikan halaman publik agar tidak terbungkus sidebar/topbar admin
-            $excluded_paths = ['auth/login', 'core/portal', 'swim/home', 'swim/events', 'roll/home', 'roll/events'];
+            $excluded_paths = [
+                'auth/login', 'core/portal', 
+                'swim/home', 'swim/events', 'swim/results', 'swim/live_result', 'swim/startlist',
+                'roll/home', 'roll/events', 'roll/results', 'roll/live_result', 'roll/startlist'
+            ];
             foreach ($excluded_paths as $ex) {
                 if (strpos($viewPath, $ex) !== false) {
                     $isBackend = false;

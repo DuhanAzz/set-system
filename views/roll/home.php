@@ -13,9 +13,9 @@ $linkIG       = $s['link_instagram'] ?? '#';
 $linkFB       = $s['link_facebook'] ?? '#';
 
 // Gambar Tambahan
-$aboutImg = !empty($s['about_image']) ? rtrim(getenv('APP_URL'), '/') . '/public/' . ltrim($s['about_image'], '/') : 'https://images.unsplash.com/photo-1517649763962-0c623066013b?q=80&w=1000&auto=format&fit=crop';
-$footerImg = !empty($s['footer_image']) ? rtrim(getenv('APP_URL'), '/') . '/public/' . ltrim($s['footer_image'], '/') : 'https://images.unsplash.com/photo-1572016335905-1a890473a216?q=80&w=2000&auto=format&fit=crop';
-$eventFallbackImg = !empty($s['event_fallback_image']) ? rtrim(getenv('APP_URL'), '/') . '/public/' . ltrim($s['event_fallback_image'], '/') : 'https://images.unsplash.com/photo-1664352957776-db31192974f1?q=80&w=800&auto=format&fit=crop';
+$aboutImg = !empty($s['about_image']) ? rtrim(getenv('APP_URL'), '/') . '/public/' . ltrim($s['about_image'], '/') : 'https://images.unsplash.com/photo-1506141381389-13019318b2c2?q=80&w=1000&auto=format&fit=crop';
+$footerImg = !empty($s['footer_image']) ? rtrim(getenv('APP_URL'), '/') . '/public/' . ltrim($s['footer_image'], '/') : 'https://images.unsplash.com/photo-1563212046-2428581e220a?q=80&w=2000&auto=format&fit=crop';
+$eventFallbackImg = !empty($s['event_fallback_image']) ? rtrim(getenv('APP_URL'), '/') . '/public/' . ltrim($s['event_fallback_image'], '/') : 'https://images.unsplash.com/photo-1520045892732-304bc3ac5d8e?q=80&w=800&auto=format&fit=crop';
 ?>
 <!DOCTYPE html>
 <html lang="id" class="scroll-smooth">
@@ -26,7 +26,7 @@ $eventFallbackImg = !empty($s['event_fallback_image']) ? rtrim(getenv('APP_URL')
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-    <link rel="icon" type="image/png" href="<?= getenv('APP_URL') ?>/public/favicon.png?v=2">
+    <link rel="icon" type="image/png" href="<?= getenv('APP_URL') ?>/favicon.png?v=2">
     <style>
         body { font-family: 'Inter', sans-serif; }
         
@@ -79,7 +79,7 @@ $eventFallbackImg = !empty($s['event_fallback_image']) ? rtrim(getenv('APP_URL')
 
     <nav id="navbar" class="fixed w-full z-50 top-0 start-0 transparent px-10">
         <div class="max-w-screen-2xl flex items-center justify-between mx-auto w-full">
-            <a href="<?= getenv('APP_URL') ?>/roll"><img src="<?= getenv('APP_URL') ?>/public/img/logo.png" onerror="this.src='https://ui-avatars.com/api/?name=SET&background=f97316&color=fff'" class="h-24 w-auto object-contain transition-all duration-300" id="nav-logo"></a>
+            <a href="<?= getenv('APP_URL') ?>/roll"><img src="<?= getenv('APP_URL') ?>/img/logo.png" onerror="this.src='https://ui-avatars.com/api/?name=SET&background=f97316&color=fff'" class="h-24 w-auto object-contain transition-all duration-300" id="nav-logo"></a>
             
             <div class="flex items-center gap-12">
                 <div class="hidden lg:flex items-center space-x-10">
@@ -260,9 +260,9 @@ $eventFallbackImg = !empty($s['event_fallback_image']) ? rtrim(getenv('APP_URL')
 
     <footer class="bg-[#0F172A] text-white pt-20 pb-10 border-t-4 border-orange-600">
         <div class="max-w-screen-xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-12 mb-16 text-center md:text-left">
-            <div>
-                <img src="<?= getenv('APP_URL') ?>/public/img/logo.png" onerror="this.src='https://ui-avatars.com/api/?name=SET&background=f97316&color=fff'" class="h-16 mx-auto md:mx-0 mb-6 grayscale brightness-200 opacity-80">
-                <p class="text-slate-400 text-sm leading-relaxed font-medium">
+            <div class="md:col-span-1 border-r border-slate-800 pr-10">
+                <img src="<?= getenv('APP_URL') ?>/img/logo.png" onerror="this.src='https://ui-avatars.com/api/?name=SET&background=f97316&color=fff'" class="h-16 mb-6 opacity-75 hover:opacity-100 transition">
+                <p class="text-slate-400 text-sm leading-relaxed mb-6 font-medium">
                     <?= nl2br(htmlspecialchars($siteDesc)) ?>
                 </p>
             </div>
