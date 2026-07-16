@@ -42,4 +42,75 @@ class HomeController extends Controller {
             'upcoming_preview' => $upcoming_preview
         ]);
     }
+
+    public function events() {
+        $db = Database::getInstance()->getConnection();
+        
+        $s = [];
+        try {
+            $stmt_settings = $db->query("SELECT * FROM roll_site_settings WHERE id = 1");
+            $s = $stmt_settings->fetch(PDO::FETCH_ASSOC) ?: [];
+        } catch (\Exception $e) {}
+
+        $search = $_GET['q'] ?? '';
+        
+        $active_events = [];
+        $params = [];
+        $sql = "SELECT * FROM roll_events WHERE status != 'Draft'";
+        
+        if (!empty($search)) {
+            $sql .= " AND (event_name LIKE ? OR event_city LIKE ?)";
+            $params[] = "%$search%";
+            $params[] = "%$search%";
+        }
+        $sql .= " ORDER BY id DESC";
+
+        try {
+            $stmt = $db->prepare($sql);
+            $stmt->execute($params);
+            $active_events = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Exception $e) {}
+
+        return $this->view('roll/events', [
+            's' => $s,
+            'search' => $search,
+            'active_events' => $active_events
+        ]);
+    }
+
+    public function results() {
+        $db = Database::getInstance()->getConnection();
+        
+        $s = [];
+        try {
+            $stmt_settings = $db->query("SELECT * FROM roll_site_settings WHERE id = 1");
+            $s = $stmt_settings->fetch(PDO::FETCH_ASSOC) ?: [];
+        } catch (\Exception $e) {}
+
+        $search = $_GET['q'] ?? '';
+
+        $completed_events = [];
+        $params = [];
+        // GEMBOK: Hanya tampilkan event yang is_result_published = 1 (mencegah draf hasil bocor)
+        $sql = "SELECT * FROM roll_events WHERE is_result_published = 1";
+
+        if (!empty($search)) {
+            $sql .= " AND (event_name LIKE ? OR event_city LIKE ?)";
+            $params[] = "%$search%";
+            $params[] = "%$search%";
+        }
+        $sql .= " ORDER BY id DESC";
+
+        try {
+            $stmt = $db->prepare($sql);
+            $stmt->execute($params);
+            $completed_events = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Exception $e) {}
+
+        return $this->view('roll/results', [
+            's' => $s,
+            'search' => $search,
+            'completed_events' => $completed_events
+        ]);
+    }
 }

@@ -151,6 +151,18 @@ switch ($module) {
         break;
 
     case 'swim':
+        // Halaman publik yang ditangani oleh HomeController
+        $publicPages = ['home', 'events', 'results', 'startlist'];
+        if (in_array($page, $publicPages)) {
+            $controllerClass = "\\App\\Swim\\Controllers\\HomeController";
+            if (class_exists($controllerClass)) {
+                $controller = new $controllerClass();
+                if ($page === 'home') $controller->index();
+                elseif (method_exists($controller, $page)) $controller->$page();
+                break;
+            }
+        }
+
         // Autoloader akan otomatis mencari file di app/Swim/Controllers/
         if ($page === 'finance' && isset($_SESSION['swim_role']) && $_SESSION['swim_role'] === 'master') {
             $controllerClass = "\\App\\Swim\\Controllers\\MasterFinanceController";
@@ -186,6 +198,18 @@ switch ($module) {
         break;
 
     case 'roll':
+        // Halaman publik yang ditangani oleh HomeController
+        $publicPages = ['home', 'events', 'results', 'startlist'];
+        if (in_array($page, $publicPages)) {
+            $controllerClass = "\\App\\Roll\\Controllers\\HomeController";
+            if (class_exists($controllerClass)) {
+                $controller = new $controllerClass();
+                if ($page === 'home') $controller->index();
+                elseif (method_exists($controller, $page)) $controller->$page();
+                break;
+            }
+        }
+
         if ($page === 'login' || $page === 'logout') {
             $controller = new \App\Roll\Controllers\RollAuthController();
             if ($page === 'login' && $method === 'submit') $controller->login();
