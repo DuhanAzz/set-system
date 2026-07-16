@@ -236,6 +236,15 @@ switch ($module) {
                     $controller->index(...$params);
                 }
             } else {
+                // Fallback ke HomeController jika ada
+                $fallbackClass = "\\App\\Roll\\Controllers\\HomeController";
+                if (class_exists($fallbackClass)) {
+                    $fallbackController = new $fallbackClass();
+                    if (method_exists($fallbackController, $page)) {
+                        $fallbackController->$page();
+                        break;
+                    }
+                }
                 http_response_code(404);
                 echo "<h1>404 Not Found</h1><p>Halaman Roll '{$page}/{$subRoute}' tidak ditemukan.</p>";
             }
