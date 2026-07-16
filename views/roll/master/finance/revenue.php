@@ -1,7 +1,4 @@
-<?php
-include __DIR__ . '/../../../../views/layout/sidebar_roll.php';
-include __DIR__ . '/../../../../views/layout/topbar_roll.php';
-?>
+
 
 <div class="p-6">
     <div class="flex justify-between items-center mb-6">
@@ -68,4 +65,3 @@ include __DIR__ . '/../../../../views/layout/topbar_roll.php';
     </div>
 </div>
 
-<?php include __DIR__ . '/../../../../views/layout/footer_master.php'; ?>

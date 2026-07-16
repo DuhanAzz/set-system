@@ -45,14 +45,19 @@ class RollEntryController extends Controller {
         }
     }
 
-    public function approve($id) {
+    public function approvePayment($entry_id) {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $db = Database::getInstance()->getConnection();
-            $stmt = $db->prepare("UPDATE roll_entries SET status = 'Paid' WHERE id = ?");
-            $stmt->execute([$id]);
+            $stmt = $db->prepare("UPDATE roll_entries SET status = 'Paid' WHERE id = ? AND status = 'Pending'");
+            $stmt->execute([$entry_id]);
 
-            $_SESSION['flash_message'] = "Pembayaran berhasil diverifikasi!";
-            $_SESSION['flash_type'] = "success";
+            if ($stmt->rowCount() > 0) {
+                $_SESSION['flash_message'] = "Pembayaran berhasil diverifikasi!";
+                $_SESSION['flash_type'] = "success";
+            } else {
+                $_SESSION['flash_message'] = "Validasi gagal: Status bukan Pending atau data tidak ditemukan.";
+                $_SESSION['flash_type'] = "error";
+            }
             header("Location: " . getenv('APP_URL') . "/roll/admin/entries");
             exit;
         }

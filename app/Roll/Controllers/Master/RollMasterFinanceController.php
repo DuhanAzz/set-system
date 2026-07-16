@@ -44,7 +44,7 @@ class RollMasterFinanceController extends Controller {
             }
         }
 
-        $this->render('roll/master/finance/revenue', [
+        $this->view('roll/master/finance/revenue', [
             'transactions' => $transactions,
             'totalPendapatan' => $totalPendapatan
         ]);

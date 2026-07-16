@@ -1,5 +1,4 @@
-<?php include __DIR__ . '/../../../layout/sidebar_roll.php'; ?>
-<?php include __DIR__ . '/../../../layout/topbar_roll.php'; ?>
+
 <div class="p-6 sm:ml-64 pt-24 bg-slate-50 min-h-screen font-sans">
     <div class="flex justify-between items-center mb-6">
         <h1 class="text-3xl font-black text-slate-800 uppercase tracking-tight">Manajemen Pendaftaran</h1>
@@ -56,9 +55,9 @@
                                 </span>
                             </td>
                             <td class="px-6 py-4 text-center flex justify-center gap-2">
-                                <?php if(strtolower($e['status']) !== 'paid'): ?>
-                                <form action="<?= getenv('APP_URL') ?>/roll/admin/entries/approve/<?= $e['id'] ?>" method="POST" onsubmit="return confirm('Verifikasi pembayaran menjadi PAID?');">
-                                    <button type="submit" class="bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide shadow transition">Approve</button>
+                                <?php if(strtolower($e['status']) === 'pending'): ?>
+                                <form action="<?= getenv('APP_URL') ?>/roll/admin/entries/approvePayment/<?= $e['id'] ?>" method="POST" onsubmit="return confirm('Verifikasi pembayaran menjadi PAID?');">
+                                    <button type="submit" class="bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide shadow transition">Validasi Pembayaran</button>
                                 </form>
                                 <?php endif; ?>
                                 <form action="<?= getenv('APP_URL') ?>/roll/admin/entries/delete/<?= $e['id'] ?>" method="POST" onsubmit="return confirm('Yakin hapus entri ini?');">

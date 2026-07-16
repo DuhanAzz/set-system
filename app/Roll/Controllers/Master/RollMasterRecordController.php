@@ -52,7 +52,7 @@ class RollMasterRecordController extends Controller {
         $distances = $db->query("SELECT * FROM roll_ref_distances ORDER BY distance_name")->fetchAll(PDO::FETCH_ASSOC);
         $ageGroups = $db->query("SELECT * FROM roll_ref_age_groups ORDER BY min_age")->fetchAll(PDO::FETCH_ASSOC);
 
-        $this->render('roll/master/records/index', [
+        $this->view('roll/master/records/index', [
             'records' => $records,
             'distances' => $distances,
             'ageGroups' => $ageGroups
