@@ -81,7 +81,7 @@ $eventFallbackImg = !empty($s['event_fallback_image']) ? rtrim(getenv('APP_URL')
 
     <nav id="navbar" class="fixed w-full z-50 top-0 start-0 transparent px-10">
         <div class="max-w-screen-2xl flex items-center justify-between mx-auto w-full">
-            <a href="<?= getenv('APP_URL') ?>/roll" class="text-3xl font-black text-white italic tracking-tighter uppercase"><?= htmlspecialchars($appName) ?></a>
+            <a href="<?= getenv('APP_URL') ?>/roll"><img src="<?= getenv('APP_URL') ?>/img/logo.png" class="h-24 w-auto object-contain transition-all duration-300" id="nav-logo"></a>
             
             <div class="flex items-center gap-12">
                 <div class="hidden lg:flex items-center space-x-10">
@@ -219,7 +219,7 @@ $eventFallbackImg = !empty($s['event_fallback_image']) ? rtrim(getenv('APP_URL')
                     </div>
 
                     <div class="grid grid-cols-2 gap-3 mt-8">
-                        <a href="<?= getenv('APP_URL') ?>/roll/events?id=<?= $e['id'] ?>" class="py-3.5 px-2 rounded-xl border-2 border-slate-100 flex items-center justify-center gap-2 hover:border-slate-800 hover:bg-slate-800 hover:text-white transition-all uppercase text-[10px] font-black tracking-widest text-slate-600">
+                        <a href="<?= getenv('APP_URL') ?>/roll/event_detail/<?= $e['id'] ?>" class="py-3.5 px-2 rounded-xl border-2 border-slate-100 flex items-center justify-center gap-2 hover:border-slate-800 hover:bg-slate-800 hover:text-white transition-all uppercase text-[10px] font-black tracking-widest text-slate-600">
                             <span>📖</span> Info Lomba
                         </a>
                         

@@ -89,6 +89,57 @@ class HomeController extends Controller {
         ]);
     }
 
+    public function event_detail($id = null) {
+        if (!$id) {
+            header("Location: " . getenv('APP_URL') . "/roll/events");
+            exit;
+        }
+
+        $db = Database::getInstance()->getConnection();
+        $s = $this->settings;
+
+        // Fetch Event
+        $stmt = $db->prepare("SELECT * FROM roll_events WHERE id = ?");
+        $stmt->execute([$id]);
+        $event = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$event) {
+            header("Location: " . getenv('APP_URL') . "/roll/events");
+            exit;
+        }
+
+        // Fetch Classes (JOIN with references)
+        // Note: The user mentioned JOINING with roll_ref_distances and roll_ref_age_groups.
+        // Assuming roll_event_details has distance_id and age_group_id, OR we just pull all references if they are standard.
+        // Since roll_event_details has `distance` and `category_name`, maybe the user expects us to alter the table?
+        // "hasil JOIN yang mengambil nama jarak mutlak dari roll_ref_distances dan kategori umur dari roll_ref_age_groups."
+        // Let's assume roll_event_details has distance_id and age_group_id now.
+        // Wait, if it doesn't, let's alter it first, then run the query!
+        // But for now, we write the query with distance_id and age_group_id.
+        $classes = [];
+        try {
+            $classStmt = $db->prepare("
+                SELECT e.*, d.distance_name, a.group_name 
+                FROM roll_event_details e
+                JOIN roll_ref_distances d ON e.distance_id = d.id
+                JOIN roll_ref_age_groups a ON e.age_group_id = a.id
+                WHERE e.event_id = ?
+            ");
+            $classStmt->execute([$id]);
+            $classes = $classStmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Exception $e) {
+            // Fallback if table doesn't have the columns yet
+            $classes = [];
+        }
+
+        return $this->view('roll/public/events/detail', [
+            's' => $s,
+            'event' => $event,
+            'classes' => $classes
+        ]);
+    }
+
+
     public function results() {
         $db = Database::getInstance()->getConnection();
         

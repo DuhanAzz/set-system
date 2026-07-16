@@ -66,7 +66,7 @@ $siteDesc     = $s['site_description'] ?? 'Platform manajemen lomba sepatu roda 
                 <div class="hidden lg:flex items-center space-x-10">
                     <a href="<?= getenv('APP_URL') ?>/roll" class="nav-link">Home</a>
                     <a href="<?= getenv('APP_URL') ?>/roll/events" class="nav-link active text-orange-400">Jadwal Lomba</a>
-                    <a href="<?= getenv('APP_URL') ?>/roll/results" class="nav-link">Hasil Lomba</a> 
+                    <a href="<?= getenv('APP_URL') ?>/roll/results" class="nav-link">Hasil Lomba</a>
                     <a href="<?= getenv('APP_URL') ?>/roll#instruction" class="nav-link text-yellow-400">Panduan</a>
                 </div>
                 <div class="hidden lg:flex items-center border-l border-white/20 pl-10">
@@ -108,7 +108,7 @@ $siteDesc     = $s['site_description'] ?? 'Platform manajemen lomba sepatu roda 
             </div>
         </div>
 
-        <div class="grid grid-cols-1 gap-8">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <?php if (empty($active_events)): ?>
                 <div class="col-span-full text-center py-20 bg-white rounded-3xl border border-slate-200 shadow-sm">
                     <div class="text-6xl mb-4">🏁</div>
@@ -164,11 +164,15 @@ $siteDesc     = $s['site_description'] ?? 'Platform manajemen lomba sepatu roda 
                                 </div>
                             </div>
                             
-                            <!-- Action Buttons -->
                             <div class="grid grid-cols-1 mt-6">
-                                <a href="<?= getenv('APP_URL') ?>/roll/login" class="py-4 px-4 rounded-xl flex items-center justify-center gap-2 bg-slate-900 text-white hover:bg-orange-600 transition-all uppercase text-[10px] font-black tracking-widest shadow-lg">
-                                    <span>✍️</span> Daftar Sekarang
-                                </a>
+                                <div class="flex gap-2">
+                                    <a href="<?= getenv('APP_URL') ?>/roll/event_detail/<?= $ev['id'] ?>" class="flex-1 py-4 px-4 rounded-xl border-2 border-slate-100 flex items-center justify-center gap-2 hover:border-slate-800 hover:bg-slate-800 hover:text-white transition-all uppercase text-[10px] font-black tracking-widest text-slate-600 shadow-sm">
+                                        <span>📖</span> Info Lomba
+                                    </a>
+                                    <a href="<?= getenv('APP_URL') ?>/roll/login" class="flex-1 py-4 px-4 rounded-xl flex items-center justify-center gap-2 bg-orange-600 text-white hover:bg-orange-700 transition-all uppercase text-[10px] font-black tracking-widest shadow-lg">
+                                        <span>✍️</span> Daftar
+                                    </a>
+                                </div>
                             </div>
                         </div>
                     </div>

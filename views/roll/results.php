@@ -108,7 +108,7 @@ $siteDesc     = $s['site_description'] ?? 'Platform manajemen lomba sepatu roda 
             </div>
         </div>
 
-        <div class="grid grid-cols-1 gap-8">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <?php if (empty($completed_events)): ?>
                 <div class="col-span-full text-center py-20 bg-white rounded-3xl border border-slate-200 shadow-sm">
                     <div class="text-6xl mb-4">🏆</div>
@@ -164,10 +164,9 @@ $siteDesc     = $s['site_description'] ?? 'Platform manajemen lomba sepatu roda 
                                 </div>
                             </div>
                             
-                            <!-- Action Buttons -->
                             <div class="grid grid-cols-1 mt-6">
-                                <a href="<?= getenv('APP_URL') ?>/roll/liveresult/<?= $ev['id'] ?>" class="py-4 px-4 rounded-xl flex items-center justify-center gap-2 bg-green-50 text-green-600 border border-green-100 hover:bg-green-600 hover:text-white transition-all uppercase text-[10px] font-black tracking-widest shadow-sm">
-                                    <span class="animate-bounce">🏆</span> Lihat Hasil Lengkap
+                                <a href="<?= getenv('APP_URL') ?>/roll/liveresult/<?= $ev['id'] ?>" class="py-4 px-4 rounded-xl flex items-center justify-center gap-2 bg-orange-50 border-2 border-orange-100 text-orange-600 hover:bg-orange-600 hover:text-white transition-all uppercase text-[10px] font-black tracking-widest shadow-sm">
+                                    <span class="animate-bounce">🏆</span> Lihat Hasil Live
                                 </a>
                             </div>
                         </div>

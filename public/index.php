@@ -174,13 +174,22 @@ switch ($module) {
 
     case 'roll':
         // Halaman publik yang ditangani oleh HomeController
-        $publicPages = ['home', 'events', 'results', 'startlist', 'liveresult'];
+        $publicPages = ['home', 'events', 'event_detail', 'results', 'startlist', 'liveresult', 'records', 'rules'];
         if (in_array($page, $publicPages)) {
             $controllerClass = "\\App\\Roll\\Controllers\\HomeController";
+            if ($page === 'records') {
+                $controllerClass = "\\App\\Roll\\Controllers\\Public\\PublicRollRecordController";
+            } elseif ($page === 'rules') {
+                $controllerClass = "\\App\\Roll\\Controllers\\Public\\PublicRollRulesController";
+            }
+            
             if (class_exists($controllerClass)) {
                 $controller = new $controllerClass();
-                if ($page === 'home') $controller->index();
-                elseif (method_exists($controller, $page)) $controller->$page();
+                if ($page === 'home' || $page === 'records' || $page === 'rules') {
+                    $controller->index();
+                } elseif (method_exists($controller, $page)) {
+                    $controller->$page();
+                }
                 break;
             }
         }
