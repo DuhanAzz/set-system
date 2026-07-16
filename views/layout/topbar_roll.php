@@ -28,7 +28,7 @@ if ($uid > 0) {
             $_SESSION['nama_lengkap'] = $displayName;
         }
         if (!empty($userData['photo'])) {
-            $displayImage = getenv('APP_URL') . "/" . str_replace('public/', '', ltrim($userData['photo'], '/'));
+            $displayImage = rtrim(getenv('APP_URL'), '/') . '/uploads/profiles/' . ltrim(str_replace(['public/img/users/', 'img/users/', 'uploads/profiles/'], '', $userData['photo']), '/');
         }
     }
     

@@ -3,6 +3,8 @@ namespace App\Roll\Controllers;
 
 use App\Core\Controller;
 use App\Core\Database;
+use App\Core\UploadService;
+use PDO;
 
 class RollProfileController extends Controller {
     public function __construct() {
@@ -30,18 +32,11 @@ class RollProfileController extends Controller {
                     $db->beginTransaction();
 
                     if (!empty($_FILES['photo']['name'])) {
-                        $file = $_FILES['photo'];
-                        if ($file['error'] === UPLOAD_ERR_OK) {
-                            $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-                            if (in_array($ext, ['jpg', 'jpeg', 'png'])) {
-                                $targetDir = __DIR__ . "/../../../public/img/users/";
-                                if (!is_dir($targetDir)) mkdir($targetDir, 0777, true);
-                                $fileName = "roll_user_" . $userId . "_" . time() . "." . $ext;
-                                if (move_uploaded_file($file['tmp_name'], $targetDir . $fileName)) {
-                                    $dbPath = "public/img/users/" . $fileName;
-                                    $db->prepare("UPDATE roll_users SET photo = ? WHERE id = ?")->execute([$dbPath, $userId]);
-                                }
-                            }
+                        $fileName = UploadService::uploadImage($_FILES['photo'], 'profiles', 800);
+                        if ($fileName) {
+                            $db->prepare("UPDATE roll_users SET photo = ? WHERE id = ?")->execute([$fileName, $userId]);
+                        } else {
+                            throw new \Exception("Gagal mengunggah foto profil.");
                         }
                     }
 

@@ -44,4 +44,17 @@ class RollEntryController extends Controller {
             exit;
         }
     }
+
+    public function approve($id) {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $db = Database::getInstance()->getConnection();
+            $stmt = $db->prepare("UPDATE roll_entries SET status = 'Paid' WHERE id = ?");
+            $stmt->execute([$id]);
+
+            $_SESSION['flash_message'] = "Pembayaran berhasil diverifikasi!";
+            $_SESSION['flash_type'] = "success";
+            header("Location: " . getenv('APP_URL') . "/roll/admin/entries");
+            exit;
+        }
+    }
 }

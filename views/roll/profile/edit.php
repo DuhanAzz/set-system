@@ -19,7 +19,7 @@
                 <div class="p-6 text-center border-b border-slate-100 bg-slate-50">
                     <div class="w-24 h-24 mx-auto rounded-full border-4 border-white shadow-md overflow-hidden bg-gray-200 mb-3 relative group">
                         <?php if(!empty($u['photo'])): ?>
-                            <img src="<?= getenv('APP_URL') ?>/<?= str_replace('public/', '', $u['photo']) ?>?v=<?= time() ?>" class="w-full h-full object-cover">
+                            <img src="<?= rtrim(getenv('APP_URL'), '/') ?>/uploads/profiles/<?= ltrim(str_replace(['public/img/users/', 'img/users/', 'uploads/profiles/'], '', $u['photo']), '/') ?>?v=<?= time() ?>" class="w-full h-full object-cover">
                         <?php else: ?>
                             <div class="w-full h-full flex items-center justify-center text-4xl text-slate-400">👤</div>
                         <?php endif; ?>
