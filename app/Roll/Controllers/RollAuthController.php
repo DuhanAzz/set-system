@@ -83,6 +83,15 @@ class RollAuthController extends Controller {
             header("Location: " . getenv('APP_URL') . "/roll");
             exit;
         }
+        $pdo = Database::getInstance()->getConnection();
+        $settings = $pdo->query("SELECT allow_register FROM roll_site_settings WHERE id = 1")->fetch(PDO::FETCH_ASSOC);
+        if ($settings && $settings['allow_register'] == 0) {
+            $_SESSION['flash_message'] = "Pendaftaran akun baru sedang ditutup.";
+            $_SESSION['flash_type'] = "error";
+            header("Location: " . getenv('APP_URL') . "/roll/login");
+            exit;
+        }
+
         return $this->view('roll/auth/register');
     }
 
@@ -94,6 +103,14 @@ class RollAuthController extends Controller {
 
         $pdo = Database::getInstance()->getConnection();
         
+        $settings = $pdo->query("SELECT allow_register FROM roll_site_settings WHERE id = 1")->fetch(PDO::FETCH_ASSOC);
+        if ($settings && $settings['allow_register'] == 0) {
+            $_SESSION['flash_message'] = "Pendaftaran akun baru sedang ditutup.";
+            $_SESSION['flash_type'] = "error";
+            header("Location: " . getenv('APP_URL') . "/roll/login");
+            exit;
+        }
+
         $nama = $_POST['nama'] ?? '';
         $nama_klub = $_POST['nama_klub'] ?? '';
         $phone = $_POST['phone'] ?? '';

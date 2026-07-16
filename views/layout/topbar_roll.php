@@ -45,6 +45,10 @@ if ($uid > 0) {
         }
     }
 }
+
+// Cek Announcement
+$globalSettings = $pdo->query("SELECT show_announcement, announcement_text FROM roll_site_settings WHERE id = 1")->fetch();
+$showBanner = ($globalSettings && $globalSettings['show_announcement'] == 1 && !empty($globalSettings['announcement_text']));
 ?>
 
 <!DOCTYPE html>
@@ -62,7 +66,15 @@ if ($uid > 0) {
         body { font-family: 'Inter', sans-serif; background-color: #F8FAFC; }
     </style>
 </head>
-<body class="bg-slate-50">
+<body class="bg-slate-50 font-sans text-slate-800 antialiased overflow-x-hidden selection:bg-orange-500 selection:text-white">
+
+<?php if ($showBanner): ?>
+<div class="bg-gradient-to-r from-red-600 to-orange-500 text-white px-4 py-2 text-center text-xs font-black tracking-widest uppercase shadow-md flex items-center justify-center gap-3 animate-pulse">
+    <span>⚠️</span>
+    <span><?= htmlspecialchars($globalSettings['announcement_text']) ?></span>
+    <span>⚠️</span>
+</div>
+<?php endif; ?>
 
 <!-- Flash Message Global -->
 <?php include_once __DIR__ . '/../notifikasi.php'; ?>
