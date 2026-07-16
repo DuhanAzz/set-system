@@ -225,6 +225,13 @@ switch ($module) {
                     'maintenance' => '\\App\\Roll\\Controllers\\Master\\RollMaintenanceController',
                     'records'     => '\\App\\Roll\\Controllers\\Master\\RollMasterRecordController',
                     'reference'   => '\\App\\Roll\\Controllers\\Master\\RollMasterReferenceController'
+                ],
+                'Masterfinance' => [
+                    'revenue'     => '\\App\\Roll\\Controllers\\Master\\RollMasterFinanceController'
+                ],
+                'Maintenance' => [
+                    'data_cleanup'  => '\\App\\Roll\\Controllers\\Master\\RollMaintenanceController',
+                    'system_health' => '\\App\\Roll\\Controllers\\Master\\RollMaintenanceController'
                 ]
             ];
 

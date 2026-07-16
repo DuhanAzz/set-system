@@ -1,5 +1,5 @@
 <?php
-include __DIR__ . '/../../../../views/layout/sidebar_roll_master.php';
+include __DIR__ . '/../../../../views/layout/sidebar_roll.php';
 include __DIR__ . '/../../../../views/layout/topbar_roll.php';
 ?>
 

@@ -15,6 +15,10 @@ class RollMasterFinanceController extends Controller {
     }
 
     public function index() {
+        $this->revenue();
+    }
+
+    public function revenue() {
         $db = Database::getInstance()->getConnection();
 
         // Ambil Data Transaksi
@@ -40,7 +44,7 @@ class RollMasterFinanceController extends Controller {
             }
         }
 
-        $this->render('roll/master/finance/index', [
+        $this->render('roll/master/finance/revenue', [
             'transactions' => $transactions,
             'totalPendapatan' => $totalPendapatan
         ]);
