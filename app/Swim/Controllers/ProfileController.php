@@ -33,7 +33,7 @@ class ProfileController extends Controller {
                         if ($file['error'] === UPLOAD_ERR_OK) {
                             $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
                             if (in_array($ext, ['jpg', 'jpeg', 'png'])) {
-                                $targetDir = __DIR__ . "/../../../../public/img/users/";
+                                $targetDir = __DIR__ . "/../../../public/img/users/";
                                 if (!is_dir($targetDir)) mkdir($targetDir, 0777, true);
                                 $fileName = "user_" . $userId . "_" . time() . "." . $ext;
                                 if (move_uploaded_file($file['tmp_name'], $targetDir . $fileName)) {
@@ -53,7 +53,7 @@ class ProfileController extends Controller {
                         $kota = $_POST['kota'] ?? '';
                         
                         if (!empty($_FILES['logo']['name'])) {
-                            $targetDirKlub = __DIR__ . "/../../../../public/img/logos/";
+                            $targetDirKlub = __DIR__ . "/../../../public/img/logos/";
                             if (!is_dir($targetDirKlub)) mkdir($targetDirKlub, 0777, true);
                             $extKlub = strtolower(pathinfo($_FILES['logo']['name'], PATHINFO_EXTENSION));
                             $fileNameKlub = "logo_" . $userId . "_" . time() . "." . $extKlub;

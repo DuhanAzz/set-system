@@ -34,7 +34,7 @@ class RollProfileController extends Controller {
                         if ($file['error'] === UPLOAD_ERR_OK) {
                             $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
                             if (in_array($ext, ['jpg', 'jpeg', 'png'])) {
-                                $targetDir = __DIR__ . "/../../../../public/img/users/";
+                                $targetDir = __DIR__ . "/../../../public/img/users/";
                                 if (!is_dir($targetDir)) mkdir($targetDir, 0777, true);
                                 $fileName = "roll_user_" . $userId . "_" . time() . "." . $ext;
                                 if (move_uploaded_file($file['tmp_name'], $targetDir . $fileName)) {
@@ -90,7 +90,7 @@ class RollProfileController extends Controller {
                         $_SESSION['flash_type'] = "error";
                     }
                 }
-                header("Location: " . getenv('APP_URL') . "/roll/" . strtolower($role) . "/profile");
+                header("Location: " . getenv('APP_URL') . "/roll/" . strtolower($role) . "/profile?mode=password");
                 exit;
             }
         }
