@@ -11,6 +11,8 @@ $contactEmail = $s['contact_email'] ?? 'info@setroll.id';
 $contactWA    = $s['contact_wa'] ?? '#';
 $linkIG       = $s['link_instagram'] ?? '#';
 $linkFB       = $s['link_facebook'] ?? '#';
+$heroSubtitle = $s['hero_subtitle'] ?? 'Professional Event Organizer';
+$appName      = $s['app_name'] ?? 'SET Roll System';
 
 // Gambar Tambahan
 $aboutImg = !empty($s['about_image']) ? rtrim(getenv('APP_URL'), '/') . '/public/' . ltrim($s['about_image'], '/') : 'https://images.unsplash.com/photo-1506141381389-13019318b2c2?q=80&w=1000&auto=format&fit=crop';
@@ -79,7 +81,7 @@ $eventFallbackImg = !empty($s['event_fallback_image']) ? rtrim(getenv('APP_URL')
 
     <nav id="navbar" class="fixed w-full z-50 top-0 start-0 transparent px-10">
         <div class="max-w-screen-2xl flex items-center justify-between mx-auto w-full">
-            <a href="<?= getenv('APP_URL') ?>/roll"><img src="<?= getenv('APP_URL') ?>/img/logo.png" onerror="this.src='https://ui-avatars.com/api/?name=SET&background=f97316&color=fff'" class="h-24 w-auto object-contain transition-all duration-300" id="nav-logo"></a>
+            <a href="<?= getenv('APP_URL') ?>/roll" class="text-3xl font-black text-white italic tracking-tighter uppercase"><?= htmlspecialchars($appName) ?></a>
             
             <div class="flex items-center gap-12">
                 <div class="hidden lg:flex items-center space-x-10">
@@ -135,7 +137,7 @@ $eventFallbackImg = !empty($s['event_fallback_image']) ? rtrim(getenv('APP_URL')
         <div class="max-w-screen-xl mx-auto px-6 w-full pt-48 relative z-10 text-white">
             <div class="max-w-5xl">
                 <div class="inline-flex items-center gap-2 mb-6 text-orange-400">
-                    <div class="h-1 w-12 bg-orange-500"></div><span class="font-bold tracking-[0.3em] uppercase text-xs md:text-sm">Professional Event Organizer</span>
+                    <div class="h-1 w-12 bg-orange-500"></div><span class="font-bold tracking-[0.3em] uppercase text-xs md:text-sm"><?= htmlspecialchars($heroSubtitle) ?></span>
                 </div>
                 <h1 class="text-7xl md:text-9xl font-black uppercase tracking-tighter leading-none mb-10 drop-shadow-2xl"><?= htmlspecialchars($heroTitle) ?></h1>
                 
@@ -261,7 +263,7 @@ $eventFallbackImg = !empty($s['event_fallback_image']) ? rtrim(getenv('APP_URL')
     <footer class="bg-[#0F172A] text-white pt-20 pb-10 border-t-4 border-orange-600">
         <div class="max-w-screen-xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-12 mb-16 text-center md:text-left">
             <div class="md:col-span-1 border-r border-slate-800 pr-10">
-                <img src="<?= getenv('APP_URL') ?>/img/logo.png" onerror="this.src='https://ui-avatars.com/api/?name=SET&background=f97316&color=fff'" class="h-16 mb-6 opacity-75 hover:opacity-100 transition">
+                <h2 class="text-2xl font-black text-white italic tracking-tighter uppercase mb-6"><?= htmlspecialchars($appName) ?></h2>
                 <p class="text-slate-400 text-sm leading-relaxed mb-6 font-medium">
                     <?= nl2br(htmlspecialchars($siteDesc)) ?>
                 </p>

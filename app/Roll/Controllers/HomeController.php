@@ -8,15 +8,30 @@ use PDO;
 
 class HomeController extends Controller {
     
+    protected $settings = [];
+
+    public function __construct() {
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        $db = Database::getInstance()->getConnection();
+        try {
+            $stmt = $db->query("SELECT * FROM roll_site_settings WHERE id = 1");
+            $this->settings = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+        } catch (\Exception $e) {
+            $this->settings = [];
+        }
+
+        if (isset($this->settings['maintenance_mode']) && $this->settings['maintenance_mode'] == '1') {
+            echo "<!DOCTYPE html><html><head><title>Under Maintenance</title><script src=\"https://cdn.tailwindcss.com\"></script></head><body class='bg-slate-900 flex items-center justify-center h-screen text-white text-center px-4'><div><h1 class='text-5xl font-black text-orange-500 mb-4'>UNDER MAINTENANCE</h1><p class='text-slate-400'>Sistem sedang dalam perbaikan rutin. Silakan kembali lagi nanti.</p></div></body></html>";
+            exit;
+        }
+    }
+    
     public function index() {
         // Mengambil koneksi database singleton
         $db = Database::getInstance()->getConnection();
         
         try {
-            // 1. Tarik data pengaturan situs (roll_site_settings)
-            $stmt_settings = $db->query("SELECT * FROM roll_site_settings WHERE id = 1");
-            $s = $stmt_settings->fetch(PDO::FETCH_ASSOC);
-            if (!$s) $s = [];
+            $s = $this->settings;
             
             // 2. Tarik data slider/hero images (roll_hero_images)
             $stmt_sliders = $db->query("SELECT * FROM roll_hero_images ORDER BY id DESC");
@@ -46,11 +61,7 @@ class HomeController extends Controller {
     public function events() {
         $db = Database::getInstance()->getConnection();
         
-        $s = [];
-        try {
-            $stmt_settings = $db->query("SELECT * FROM roll_site_settings WHERE id = 1");
-            $s = $stmt_settings->fetch(PDO::FETCH_ASSOC) ?: [];
-        } catch (\Exception $e) {}
+        $s = $this->settings;
 
         $search = $_GET['q'] ?? '';
         
@@ -81,11 +92,7 @@ class HomeController extends Controller {
     public function results() {
         $db = Database::getInstance()->getConnection();
         
-        $s = [];
-        try {
-            $stmt_settings = $db->query("SELECT * FROM roll_site_settings WHERE id = 1");
-            $s = $stmt_settings->fetch(PDO::FETCH_ASSOC) ?: [];
-        } catch (\Exception $e) {}
+        $s = $this->settings;
 
         $search = $_GET['q'] ?? '';
 
@@ -122,11 +129,7 @@ class HomeController extends Controller {
             $event_id = $stmtFind->fetchColumn() ?: 0;
         }
 
-        $s = [];
-        try {
-            $stmt = $db->query("SELECT * FROM roll_site_settings WHERE id = 1");
-            $s = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
-        } catch (\Exception $e) {}
+        $s = $this->settings;
 
         $stmtEvt = $db->prepare("SELECT * FROM roll_events WHERE id = ?");
         $stmtEvt->execute([$event_id]);

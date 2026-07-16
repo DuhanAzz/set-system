@@ -94,7 +94,7 @@ function isGroupActive($req, $keywords) {
          </div>
 
          <!-- GROUP 4: Konfigurasi Web -->
-         <?php $g4Active = isGroupActive($req, ['public_page', 'global_config']); ?>
+         <?php $g4Active = isGroupActive($req, ['master/settings']); ?>
          <button onclick="toggleSidebarDropdown('dd-web')" class="<?= $g4Active ? $dropdownBtnActive : $dropdownBtnBase ?>">
             <div class="flex items-center">
                <span class="w-6 text-center mr-3 text-lg opacity-80">🌍</span>
@@ -103,8 +103,7 @@ function isGroupActive($req, $keywords) {
             <span id="icon-dd-web" class="transform transition-transform text-xs <?= $g4Active ? 'rotate-180' : '' ?>">▼</span>
          </button>
          <div id="dd-web" class="bg-[#0b1120] py-2 <?= $g4Active ? '' : 'hidden' ?>">
-             <a href="<?= getenv('APP_URL') ?>/roll/masterSettings/public_page" class="<?= (strpos($req,"public_page")!==false) ? $childActiveLink : $childBaseLink ?>">Landing Page</a>
-             <a href="<?= getenv('APP_URL') ?>/roll/masterSettings/global_config" class="<?= (strpos($req,"global_config")!==false) ? $childActiveLink : $childBaseLink ?>">Global Config</a>
+             <a href="<?= getenv('APP_URL') ?>/roll/master/settings" class="<?= (strpos($req,"master/settings")!==false) ? $childActiveLink : $childBaseLink ?>">Landing Page & Global</a>
          </div>
 
          <!-- GROUP 5: Data Referensi -->
