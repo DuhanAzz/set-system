@@ -25,11 +25,13 @@ elseif ($role == 'user') $dashLink = getenv('APP_URL') . '/roll/user/dashboard';
 else $dashLink = getenv('APP_URL') . '/roll/login';
 
 // HELPER FUNCTION: Check if req contains any of the keywords
-function isGroupActive($req, $keywords) {
-    foreach ($keywords as $kw) {
-        if (strpos($req, $kw) !== false) return true;
+if (!function_exists('isGroupActive')) {
+    function isGroupActive($req, $keywords) {
+        foreach ($keywords as $kw) {
+            if (strpos($req, $kw) !== false) return true;
+        }
+        return false;
     }
-    return false;
 }
 ?>
 
