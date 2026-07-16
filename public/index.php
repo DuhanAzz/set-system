@@ -185,6 +185,63 @@ switch ($module) {
         }
         break;
 
+    case 'roll':
+        if ($page === 'login' || $page === 'logout') {
+            $controller = new \App\Roll\Controllers\RollAuthController();
+            if ($page === 'login' && $method === 'submit') $controller->login();
+            elseif ($page === 'logout') $controller->logout();
+            else $controller->index();
+        } else {
+            $roleFolder = ucfirst(strtolower($page)); // Master, Admin, User
+            $subRoute = isset($url[2]) && $url[2] != '' ? strtolower($url[2]) : 'dashboard';
+            $action = isset($url[3]) && $url[3] != '' ? strtolower($url[3]) : 'index';
+            
+            $map = [
+                'Admin' => [
+                    'dashboard' => '\\App\\Roll\\Controllers\\Admin\\RollDashboardController',
+                    'events'    => '\\App\\Roll\\Controllers\\Admin\\RollEventController',
+                    'clubs'     => '\\App\\Roll\\Controllers\\Admin\\RollClubController',
+                    'skaters'   => '\\App\\Roll\\Controllers\\Admin\\RollSkaterController',
+                    'entries'   => '\\App\\Roll\\Controllers\\Admin\\RollEntryController',
+                    'pelotons'  => '\\App\\Roll\\Controllers\\Admin\\RollPelotonController',
+                    'results'   => '\\App\\Roll\\Controllers\\Admin\\RollResultController'
+                ],
+                'User' => [
+                    'dashboard'    => '\\App\\Roll\\Controllers\\User\\RollUserDashboardController',
+                    'profile'      => '\\App\\Roll\\Controllers\\User\\RollClubProfileController',
+                    'skaters'      => '\\App\\Roll\\Controllers\\User\\RollUserSkaterController',
+                    'registration' => '\\App\\Roll\\Controllers\\User\\RollRegistrationController',
+                    'checkout'     => '\\App\\Roll\\Controllers\\User\\RollCheckoutController'
+                ],
+                'Master' => [
+                    'dashboard'   => '\\App\\Roll\\Controllers\\Master\\RollMasterDashboardController',
+                    'users'       => '\\App\\Roll\\Controllers\\Master\\RollUsersController',
+                    'skaters'     => '\\App\\Roll\\Controllers\\Master\\RollMasterSkaterController',
+                    'finance'     => '\\App\\Roll\\Controllers\\Master\\RollMasterFinanceController',
+                    'settings'    => '\\App\\Roll\\Controllers\\Master\\RollMasterSettingsController',
+                    'maintenance' => '\\App\\Roll\\Controllers\\Master\\RollMaintenanceController',
+                    'records'     => '\\App\\Roll\\Controllers\\Master\\RollMasterRecordController',
+                    'reference'   => '\\App\\Roll\\Controllers\\Master\\RollMasterReferenceController'
+                ]
+            ];
+
+            if (isset($map[$roleFolder][$subRoute]) && class_exists($map[$roleFolder][$subRoute])) {
+                $controllerClass = $map[$roleFolder][$subRoute];
+                $controller = new $controllerClass();
+                if (method_exists($controller, $action)) {
+                    $params = array_slice($url, 4);
+                    $controller->$action(...$params);
+                } else {
+                    $params = array_slice($url, 3);
+                    $controller->index(...$params);
+                }
+            } else {
+                http_response_code(404);
+                echo "<h1>404 Not Found</h1><p>Halaman Roll '{$page}/{$subRoute}' tidak ditemukan.</p>";
+            }
+        }
+        break;
+
     case 'home':
         $controller = new \App\Core\Controllers\HomeController();
         $controller->index();

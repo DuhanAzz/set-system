@@ -21,8 +21,18 @@ class RollEventController extends Controller {
         $db = Database::getInstance()->getConnection();
         $events = $db->query("SELECT * FROM roll_events ORDER BY id DESC")->fetchAll(PDO::FETCH_ASSOC);
 
+        // Fetch Reference Data for Dropdowns in Views
+        $distances = [];
+        $ageGroups = [];
+        try {
+            $distances = $db->query("SELECT * FROM roll_ref_distances ORDER BY id ASC")->fetchAll(PDO::FETCH_ASSOC);
+            $ageGroups = $db->query("SELECT * FROM roll_ref_age_groups ORDER BY min_age ASC")->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Exception $e) {}
+
         return $this->view('roll/admin/events/index', [
-            'events' => $events
+            'events' => $events,
+            'distances' => $distances,
+            'ageGroups' => $ageGroups
         ]);
     }
 
