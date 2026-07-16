@@ -51,7 +51,7 @@ function isGroupActive($req, $keywords) {
          <div class="px-8 mt-8 mb-2 text-[10px] font-black text-slate-600 uppercase tracking-widest">Main Control</div>
          
          <!-- GROUP 1: Pengguna & Akses -->
-         <?php $g1Active = isGroupActive($req, ['users/index.php?role=admin', 'users/index.php?role=user']); ?>
+         <?php $g1Active = isGroupActive($req, ['master/users']); ?>
          <button onclick="toggleSidebarDropdown('dd-pengguna')" class="<?= $g1Active ? $dropdownBtnActive : $dropdownBtnBase ?>">
             <div class="flex items-center">
                <span class="w-6 text-center mr-3 text-lg opacity-80">👥</span>
@@ -60,8 +60,8 @@ function isGroupActive($req, $keywords) {
             <span id="icon-dd-pengguna" class="transform transition-transform text-xs <?= $g1Active ? 'rotate-180' : '' ?>">▼</span>
          </button>
          <div id="dd-pengguna" class="bg-[#0b1120] py-2 <?= $g1Active ? '' : 'hidden' ?>">
-             <a href="<?= getenv('APP_URL') ?>/roll/users/index?role=admin" class="<?= (strpos($req,"role=admin")!==false) ? $childActiveLink : $childBaseLink ?>">Admin EO</a>
-             <a href="<?= getenv('APP_URL') ?>/roll/users/index?role=user" class="<?= (strpos($req,"role=user")!==false) ? $childActiveLink : $childBaseLink ?>">Akun Klub</a>
+             <a href="<?= getenv('APP_URL') ?>/roll/master/users?role=admin" class="<?= (strpos($req,"master/users")!==false && strpos($_SERVER['QUERY_STRING'] ?? '', 'role=admin')!==false) ? $childActiveLink : $childBaseLink ?>">Admin EO</a>
+             <a href="<?= getenv('APP_URL') ?>/roll/master/users?role=user" class="<?= (strpos($req,"master/users")!==false && strpos($_SERVER['QUERY_STRING'] ?? '', 'role=user')!==false) ? $childActiveLink : $childBaseLink ?>">Akun Klub</a>
          </div>
 
          <!-- GROUP 2: Manajemen Pesepatu Roda -->

@@ -19,14 +19,39 @@ class RollUsersController extends Controller {
     public function index() {
         $db = Database::getInstance()->getConnection();
         
-        $query = "SELECT u.*, c.club_name 
+        $roleFilter = $_GET['role'] ?? 'admin';
+        $search = $_GET['q'] ?? '';
+        $whereClause = "WHERE 1=1";
+        $params = [];
+        
+        if ($roleFilter === 'admin') {
+            $whereClause .= " AND u.role = 'admin'";
+        } elseif ($roleFilter === 'user') {
+            $whereClause .= " AND u.role = 'user'";
+        }
+
+        if (!empty($search)) {
+            $whereClause .= " AND (u.username LIKE ? OR u.email LIKE ? OR u.nama_lengkap LIKE ? OR c.club_name LIKE ?)";
+            $searchWildcard = '%' . $search . '%';
+            $params[] = $searchWildcard;
+            $params[] = $searchWildcard;
+            $params[] = $searchWildcard;
+            $params[] = $searchWildcard;
+        }
+        
+        $query = "SELECT u.*, c.club_name, c.city_province as kota 
                   FROM roll_users u 
                   LEFT JOIN roll_clubs c ON u.club_id = c.id 
+                  $whereClause
                   ORDER BY u.id DESC";
-        $users = $db->query($query)->fetchAll(PDO::FETCH_ASSOC);
+        $stmt = $db->prepare($query);
+        $stmt->execute($params);
+        $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         return $this->view('roll/master/users/index', [
-            'users' => $users
+            'users' => $users,
+            'targetRole' => $roleFilter,
+            'search' => $search
         ]);
     }
 
