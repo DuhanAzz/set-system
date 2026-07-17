@@ -66,7 +66,7 @@ class RollAdminDashboardController extends Controller {
             $stats['atlet'] = $stmtSkater->fetchColumn();
 
             // Clubs (Unique Clubs)
-            $stmtClub = $db->prepare("SELECT COUNT(DISTINCT club_id) FROM roll_entries WHERE event_id = ?");
+            $stmtClub = $db->prepare("SELECT COUNT(DISTINCT s.club_id) FROM roll_entries e JOIN roll_skaters s ON e.skater_id = s.id WHERE e.event_id = ?");
             $stmtClub->execute([$eventId]);
             $stats['clubs'] = $stmtClub->fetchColumn();
 

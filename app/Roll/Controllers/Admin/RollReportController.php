@@ -1,0 +1,97 @@
+<?php
+
+namespace App\Roll\Controllers\Admin;
+
+use App\Core\Controller;
+use App\Core\Database;
+use PDO;
+
+class RollReportController extends Controller {
+
+    public function __construct() {
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+            header("Location: " . getenv('APP_URL') . "/roll/login");
+            exit;
+        }
+    }
+
+    public function index() {
+        $db = Database::getInstance()->getConnection();
+        $eventId = $_SESSION['roll_admin_active_event_id'] ?? 0;
+
+        if ($eventId == 0) {
+            $_SESSION['flash_message'] = "Pilih Event terlebih dahulu!";
+            $_SESSION['flash_type'] = "warning";
+            header("Location: " . getenv('APP_URL') . "/roll/admin/dashboard");
+            exit;
+        }
+
+        // Medal Tally Calculation
+        // Gold = finish_position 1, Silver = 2, Bronze = 3. Grouped by club_id
+        $stmtTally = $db->prepare("
+            SELECT c.id, c.club_name, c.logo,
+                SUM(CASE WHEN r.finish_position = 1 THEN 1 ELSE 0 END) as gold,
+                SUM(CASE WHEN r.finish_position = 2 THEN 1 ELSE 0 END) as silver,
+                SUM(CASE WHEN r.finish_position = 3 THEN 1 ELSE 0 END) as bronze
+            FROM roll_event_results r
+            JOIN roll_skaters s ON r.skater_id = s.id
+            JOIN roll_clubs c ON s.club_id = c.id
+            WHERE r.event_id = ? AND r.finish_position IN (1, 2, 3)
+            GROUP BY c.id
+            ORDER BY gold DESC, silver DESC, bronze DESC, c.club_name ASC
+        ");
+        $stmtTally->execute([$eventId]);
+        $medalTally = $stmtTally->fetchAll(PDO::FETCH_ASSOC);
+
+        return $this->view('roll/admin/reports/index', [
+            'medalTally' => $medalTally,
+            'eventId' => $eventId
+        ]);
+    }
+
+    public function generate_start_list() {
+        // Implement PDF Generation later, for now we will output raw HTML/CSV
+        $db = Database::getInstance()->getConnection();
+        $eventId = $_SESSION['roll_admin_active_event_id'] ?? 0;
+
+        if ($eventId == 0) {
+            die("Event not selected.");
+        }
+
+        $stmt = $db->prepare("
+            SELECT p.heat_name, p.start_grid, s.skater_name, c.club_name, d.distance_name, a.group_name
+            FROM roll_pelotons p
+            JOIN roll_skaters s ON p.skater_id = s.id
+            LEFT JOIN roll_clubs c ON s.club_id = c.id
+            JOIN roll_event_details ed ON p.race_class_id = ed.id
+            LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
+            LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id
+            WHERE p.event_id = ?
+            ORDER BY ed.id ASC, p.heat_name ASC, p.start_grid ASC
+        ");
+        $stmt->execute([$eventId]);
+        $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Simple CSV Output for Enterprise Export
+        header('Content-Type: text/csv');
+        header('Content-Disposition: attachment; filename="Start_List_Event_'.$eventId.'.csv"');
+        
+        $output = fopen('php://output', 'w');
+        fputcsv($output, ['Class', 'Distance', 'Age Group', 'Heat', 'Grid (0-9)', 'Skater Name', 'Club']);
+        
+        foreach($data as $row) {
+            fputcsv($output, [
+                $row['group_name'] . ' ' . $row['distance_name'],
+                $row['distance_name'],
+                $row['group_name'],
+                $row['heat_name'],
+                $row['start_grid'],
+                $row['skater_name'],
+                $row['club_name']
+            ]);
+        }
+        fclose($output);
+        exit;
+    }
+}

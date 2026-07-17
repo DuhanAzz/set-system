@@ -1,6 +1,5 @@
 <?php
 $title = "Admin Dashboard - Roll";
-ob_start();
 ?>
 
     <div class="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-8 gap-6">
@@ -92,10 +91,3 @@ ob_start();
         </div>
     </div>
 
-<?php
-$content = ob_get_clean();
-include __DIR__ . '/../../../layout/sidebar_roll.php';
-?>
-<div class="p-6 sm:ml-64 pt-24 bg-slate-50 min-h-screen font-sans">
-    <?= $content ?>
-</div>

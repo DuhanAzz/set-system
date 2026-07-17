@@ -127,24 +127,10 @@ if (!function_exists('isGroupActive')) {
       <?php endif; ?>
 
       <?php if($role == 'admin'): ?>
-         <?php
-         $hasRelay = false;
-         try {
-             $pdoSidebar = \App\Core\Database::getInstance()->getConnection();
-             $uidSidebar = $_SESSION['swim_user_id'] ?? 0;
-             $stmtSidEvt = $pdoSidebar->prepare("SELECT id FROM swim_events WHERE user_id = ? ORDER BY id DESC LIMIT 1");
-             $stmtSidEvt->execute([$uidSidebar]);
-             $sidEventId = $stmtSidEvt->fetchColumn();
-             if ($sidEventId) {
-                 $stmtRelayCheck = $pdoSidebar->prepare("SELECT 1 FROM swim_event_numbers WHERE event_id = ? AND is_relay = 1 LIMIT 1");
-                 $stmtRelayCheck->execute([$sidEventId]);
-                 $hasRelay = (bool)$stmtRelayCheck->fetchColumn();
-             }
-         } catch (\Exception $e) {}
-         ?>
          
+
          <!-- GROUP 1: Setup Kejuaraan -->
-         <?php $a1Active = isGroupActive($req, ['event_profile', 'events/index']); ?>
+         <?php $a1Active = isGroupActive($req, ['admin/events']); ?>
          <button onclick="toggleSidebarDropdown('dd-setup')" class="<?= $a1Active ? $dropdownBtnActive : $dropdownBtnBase ?>">
             <div class="flex items-center">
                <span class="w-6 text-xl mr-3 text-center opacity-80">⚙️</span>
@@ -153,45 +139,35 @@ if (!function_exists('isGroupActive')) {
             <span id="icon-dd-setup" class="transform transition-transform text-xs <?= $a1Active ? 'rotate-180' : '' ?>">▼</span>
          </button>
          <div id="dd-setup" class="bg-[#0b1120] py-2 <?= $a1Active ? '' : 'hidden' ?>">
-             <a href="<?= getenv('APP_URL') ?>/roll/event_profile/index" class="<?= (strpos($req,"event_profile")!==false) ? $childActiveLink : $childBaseLink ?>">Profil Event</a>
-             <a href="<?= getenv('APP_URL') ?>/roll/events/index" class="<?= (strpos($req,"events/index")!==false) ? $childActiveLink : $childBaseLink ?>">Daftar Nomor Lomba</a>
+             <a href="<?= getenv('APP_URL') ?>/roll/admin/events" class="<?= (strpos($req,"admin/events")!==false) ? $childActiveLink : $childBaseLink ?>">Profil & Kelas Lomba</a>
          </div>
 
          <!-- GROUP 2: Operasional Lomba -->
-         <?php $a2Active = isGroupActive($req, ['entries', 'relay']); ?>
+         <?php $a2Active = isGroupActive($req, ['admin/entries', 'admin/pelotons']); ?>
          <button onclick="toggleSidebarDropdown('dd-ops')" class="<?= $a2Active ? $dropdownBtnActive : $dropdownBtnBase ?>">
             <div class="flex items-center">
-               <span class="w-6 text-xl mr-3 text-center opacity-80">🏃</span>
+               <span class="w-6 text-xl mr-3 text-center opacity-80">🛼</span>
                <span class="font-bold text-[11px] tracking-widest uppercase">Operasional Lomba</span>
             </div>
             <span id="icon-dd-ops" class="transform transform transition-transform text-xs <?= $a2Active ? 'rotate-180' : '' ?>">▼</span>
          </button>
          <div id="dd-ops" class="bg-[#0b1120] py-2 <?= $a2Active ? '' : 'hidden' ?>">
-             <a href="<?= getenv('APP_URL') ?>/roll/entries/index" class="<?= (strpos($req,"entries")!==false) ? $childActiveLink : $childBaseLink ?>">Verifikasi Entries</a>
-             <?php if($hasRelay): ?>
-             <a href="<?= getenv('APP_URL') ?>/roll/relay/index" class="<?= (strpos($req,"relay")!==false) ? $childActiveLink : $childBaseLink ?> text-pink-400">Manajemen Estafet</a>
-             <?php endif; ?>
-             <a href="<?= getenv('APP_URL') ?>/roll/seeding/index" class="<?= (strpos($req,"seeding/index")!==false) ? $childActiveLink : $childBaseLink ?>">Start List <?= ($adminMode == 'Babak Penyisihan') ? 'Penyisihan' : '' ?></a>
-             <?php if($adminMode == 'Babak Penyisihan'): ?>
-             <a href="<?= getenv('APP_URL') ?>/src/admin/seeding/final.php" class="<?= (strpos($req,"seeding/final")!==false) ? $childActiveLink : $childBaseLink ?> text-orange-400">Seeding Final</a>
-             <?php endif; ?>
+             <a href="<?= getenv('APP_URL') ?>/roll/admin/entries" class="<?= (strpos($req,"admin/entries")!==false) ? $childActiveLink : $childBaseLink ?>">Pintu Kasir (Approval)</a>
+             <a href="<?= getenv('APP_URL') ?>/roll/admin/pelotons" class="<?= (strpos($req,"admin/pelotons")!==false) ? $childActiveLink : $childBaseLink ?>">Penyusunan Seri & Lintasan</a>
          </div>
 
-         <!-- GROUP 3: Hasil & Penghargaan -->
-         <?php $a3Active = isGroupActive($req, ['results/index', 'publish_result', 'medal_tally', 'best_skater', 'manage_exports']); ?>
+         <!-- GROUP 3: Hasil & Laporan -->
+         <?php $a3Active = isGroupActive($req, ['admin/results', 'admin/reports']); ?>
          <button onclick="toggleSidebarDropdown('dd-hasil')" class="<?= $a3Active ? $dropdownBtnActive : $dropdownBtnBase ?>">
             <div class="flex items-center">
                <span class="w-6 text-xl mr-3 text-center opacity-80">🏆</span>
-               <span class="font-bold text-[11px] tracking-widest uppercase">Hasil & Awards</span>
+               <span class="font-bold text-[11px] tracking-widest uppercase">Hasil & Laporan</span>
             </div>
             <span id="icon-dd-hasil" class="transform transition-transform text-xs <?= $a3Active ? 'rotate-180' : '' ?>">▼</span>
          </button>
          <div id="dd-hasil" class="bg-[#0b1120] py-2 <?= $a3Active ? '' : 'hidden' ?>">
-             <a href="<?= getenv('APP_URL') ?>/roll/results" class="<?= (strpos($req,"roll/results")!==false && strpos($req,"publish")===false) ? $childActiveLink : $childBaseLink ?>">Input Hasil</a>
-             <a href="<?= getenv('APP_URL') ?>/roll/results/publish" class="<?= (strpos($req,"publish")!==false) ? $childActiveLink : $childBaseLink ?>">Publikasi Hasil</a>
-             <a href="<?= getenv('APP_URL') ?>/roll/medal_tally" class="<?= (strpos($req,"medal_tally")!==false && strpos($req,"best_skater")===false) ? $childActiveLink : $childBaseLink ?>">Rekap Medali</a>
-             <a href="<?= getenv('APP_URL') ?>/roll/medal_tally/best_skater" class="<?= (strpos($req,"best_skater")!==false) ? $childActiveLink : $childBaseLink ?>">Pesepatu roda Terbaik</a>
-             <a href="<?= getenv('APP_URL') ?>/roll/export" class="<?= (strpos($req,"export")!==false) ? $childActiveLink : $childBaseLink ?>">Ekspor & Laporan</a>
+             <a href="<?= getenv('APP_URL') ?>/roll/admin/results" class="<?= (strpos($req,"admin/results")!==false) ? $childActiveLink : $childBaseLink ?>">Live Timing & DQ</a>
+             <a href="<?= getenv('APP_URL') ?>/roll/admin/reports" class="<?= (strpos($req,"admin/reports")!==false) ? $childActiveLink : $childBaseLink ?>">Klasemen Medali & Cetak</a>
          </div>
 
       <?php endif; ?>
@@ -223,7 +199,7 @@ if (!function_exists('isGroupActive')) {
    </div>
 
    <div class="p-6 border-t border-slate-800 bg-[#0F172A] shrink-0 text-center">
-      <p class="text-[9px] text-slate-600 font-bold uppercase tracking-widest">&copy; 2026 SwimMeet System</p>
+      <p class="text-[9px] text-slate-600 font-bold uppercase tracking-widest">&copy; 2026 SET Roll System</p>
    </div>
 
 </aside>

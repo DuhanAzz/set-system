@@ -1,74 +1,131 @@
+<div class="-m-6 p-6 min-h-[calc(100vh-4rem)] bg-slate-900 text-slate-200 font-sans">
+    <div class="max-w-7xl mx-auto space-y-6">
+        
+        <!-- Flash Messages -->
+        <?php if (isset($_SESSION['flash_message'])): ?>
+            <div class="p-4 rounded-xl border <?= $_SESSION['flash_type'] === 'success' ? 'bg-emerald-900/50 border-emerald-500/30 text-emerald-300' : 'bg-red-900/50 border-red-500/30 text-red-300' ?> flex items-center justify-between shadow-lg backdrop-blur-sm">
+                <span><?= $_SESSION['flash_message'] ?></span>
+                <button onclick="this.parentElement.remove()" class="text-xl">&times;</button>
+            </div>
+            <?php unset($_SESSION['flash_message']); unset($_SESSION['flash_type']); ?>
+        <?php endif; ?>
 
-<div class="p-6 sm:ml-64 pt-24 bg-slate-50 min-h-screen font-sans">
-    <div class="flex justify-between items-center mb-6">
-        <h1 class="text-3xl font-black text-slate-800 uppercase tracking-tight">Manajemen Pendaftaran</h1>
-    </div>
+        <!-- HEADER -->
+        <div class="bg-gradient-to-r from-slate-800 to-slate-900 rounded-2xl p-8 border border-slate-700/50 shadow-2xl relative overflow-hidden">
+            <div class="absolute top-0 right-0 p-8 opacity-10">
+                <span class="text-9xl">💸</span>
+            </div>
+            <div class="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center">
+                <div>
+                    <h1 class="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-300 tracking-tight uppercase">Pintu Kasir</h1>
+                    <p class="text-slate-400 mt-2 font-medium">Approval & Validasi Pendaftaran Peserta</p>
+                </div>
+            </div>
+        </div>
 
-    <?php if (isset($_SESSION['flash_message'])): ?>
-        <div class="mb-6 px-4 py-3 rounded-lg <?= ($_SESSION['flash_type'] == 'error') ? 'bg-red-100 text-red-700 border border-red-200' : 'bg-emerald-100 text-emerald-700 border border-emerald-200' ?> font-bold">
-            <?= $_SESSION['flash_message'] ?>
-        </div>
-        <?php unset($_SESSION['flash_message'], $_SESSION['flash_type']); ?>
-    <?php endif; ?>
+        <?php if ($eventId > 0): ?>
 
-    <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
-        <div class="p-6 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
-            <h3 class="font-black text-slate-800 uppercase tracking-wider text-sm">Daftar Entri Atlet</h3>
+        <!-- MANUAL ENTRY & DATA LIST -->
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            
+            <!-- Manual Entry -->
+            <div class="lg:col-span-1 bg-slate-800/50 rounded-2xl border border-slate-700/50 shadow-xl backdrop-blur-sm">
+                <div class="px-6 py-4 border-b border-slate-700/50 bg-slate-800/80">
+                    <h3 class="text-lg font-bold text-emerald-400 uppercase tracking-widest">Daftar Manual</h3>
+                </div>
+                <div class="p-6">
+                    <form action="<?= getenv('APP_URL') ?>/roll/admin/entries/store" method="POST" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Pilih Atlet</label>
+                            <select name="skater_id" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-emerald-500" required>
+                                <option value="">- Pilih Atlet -</option>
+                                <?php foreach($skaters as $s): ?>
+                                    <option value="<?= $s['id'] ?>"><?= htmlspecialchars($s['skater_name']) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Kelas Lomba</label>
+                            <select name="race_class_id" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-emerald-500" required>
+                                <option value="">- Pilih Kelas Lomba -</option>
+                                <?php foreach($classes as $c): ?>
+                                    <option value="<?= $c['id'] ?>"><?= htmlspecialchars($c['group_name']) ?> - <?= htmlspecialchars($c['distance_name']) ?> (<?= htmlspecialchars($c['category_name']) ?>)</option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-4 rounded-lg shadow-lg hover:shadow-emerald-500/25 transition-all mt-4">+ Daftar</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Validation List -->
+            <div class="lg:col-span-3 bg-slate-800/50 rounded-2xl border border-slate-700/50 shadow-xl overflow-hidden backdrop-blur-sm">
+                <div class="px-6 py-4 border-b border-slate-700/50 bg-slate-800/80 flex justify-between items-center">
+                    <h3 class="text-lg font-bold text-white uppercase tracking-widest">Daftar Pendaftaran (<?= count($entries) ?>)</h3>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-900/50 text-[10px] uppercase tracking-widest text-slate-400 border-b border-slate-700">
+                                <th class="p-4 font-bold">ID</th>
+                                <th class="p-4 font-bold">Atlet & Klub</th>
+                                <th class="p-4 font-bold">Kelas Lomba</th>
+                                <th class="p-4 font-bold text-center">Status</th>
+                                <th class="p-4 font-bold text-right">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-700/50 text-sm">
+                            <?php if(empty($entries)): ?>
+                                <tr><td colspan="5" class="p-8 text-center text-slate-500">Belum ada pendaftaran masuk.</td></tr>
+                            <?php else: ?>
+                                <?php foreach($entries as $e): ?>
+                                <tr class="hover:bg-slate-700/20 transition-colors">
+                                    <td class="p-4 text-slate-500">#<?= $e['id'] ?></td>
+                                    <td class="p-4">
+                                        <div class="font-bold text-white"><?= htmlspecialchars($e['skater_name']) ?></div>
+                                        <div class="text-xs text-blue-400"><?= htmlspecialchars($e['club_name'] ?? 'Independen') ?></div>
+                                    </td>
+                                    <td class="p-4">
+                                        <span class="text-amber-400 font-bold"><?= htmlspecialchars($e['group_name']) ?></span> - 
+                                        <span class="text-white"><?= htmlspecialchars($e['distance_name']) ?></span>
+                                        <div class="text-xs text-slate-500"><?= htmlspecialchars($e['category_name']) ?></div>
+                                    </td>
+                                    <td class="p-4 text-center">
+                                        <?php if($e['status'] === 'Paid'): ?>
+                                            <span class="inline-block px-3 py-1 bg-emerald-900/30 text-emerald-400 border border-emerald-500/30 rounded-full text-[10px] font-bold uppercase tracking-wider">Paid</span>
+                                        <?php elseif($e['status'] === 'Pending'): ?>
+                                            <span class="inline-block px-3 py-1 bg-amber-900/30 text-amber-400 border border-amber-500/30 rounded-full text-[10px] font-bold uppercase tracking-wider">Pending</span>
+                                        <?php else: ?>
+                                            <span class="inline-block px-3 py-1 bg-red-900/30 text-red-400 border border-red-500/30 rounded-full text-[10px] font-bold uppercase tracking-wider">Unpaid</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="p-4 text-right space-x-2">
+                                        <?php if($e['status'] !== 'Paid'): ?>
+                                        <form action="<?= getenv('APP_URL') ?>/roll/admin/entries/approvePayment/<?= $e['id'] ?>" method="POST" class="inline">
+                                            <button type="submit" class="text-emerald-400 hover:text-emerald-300 font-bold text-xs uppercase tracking-wider px-3 py-1 bg-emerald-900/20 rounded hover:bg-emerald-900/40 transition">Approve</button>
+                                        </form>
+                                        <?php endif; ?>
+                                        
+                                        <form action="<?= getenv('APP_URL') ?>/roll/admin/entries/delete/<?= $e['id'] ?>" method="POST" class="inline" onsubmit="return confirm('Hapus entri ini?');">
+                                            <button type="submit" class="text-red-400 hover:text-red-300 font-bold text-xs uppercase tracking-wider px-3 py-1 bg-red-900/20 rounded hover:bg-red-900/40 transition">Hapus</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
-        <div class="overflow-x-auto">
-            <table class="w-full text-left text-sm text-slate-600">
-                <thead class="bg-slate-50 text-slate-500 text-xs uppercase font-black tracking-wider">
-                    <tr>
-                        <th class="px-6 py-4">TANGGAL</th>
-                        <th class="px-6 py-4">ATLET (KU)</th>
-                        <th class="px-6 py-4">KLUB</th>
-                        <th class="px-6 py-4">EVENT & JARAK</th>
-                        <th class="px-6 py-4">STATUS</th>
-                        <th class="px-6 py-4 text-center">AKSI</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100">
-                    <?php if(empty($entries)): ?>
-                        <tr>
-                            <td colspan="6" class="px-6 py-8 text-center text-slate-400 font-bold">Belum ada data pendaftaran.</td>
-                        </tr>
-                    <?php else: ?>
-                        <?php foreach($entries as $e): 
-                            $statusColor = 'bg-slate-100 text-slate-500';
-                            if (strtolower($e['status']) == 'paid') $statusColor = 'bg-emerald-100 text-emerald-700 border border-emerald-200';
-                            else if (strtolower($e['status']) == 'pending') $statusColor = 'bg-orange-100 text-orange-700 border border-orange-200';
-                        ?>
-                        <tr class="hover:bg-slate-50 transition">
-                            <td class="px-6 py-4"><?= date('d/m/Y H:i', strtotime($e['created_at'])) ?></td>
-                            <td class="px-6 py-4">
-                                <div class="font-black text-slate-800 uppercase"><?= htmlspecialchars($e['skater_name']) ?></div>
-                                <div class="text-[10px] font-bold text-slate-500"><?= htmlspecialchars($e['age_group']) ?></div>
-                            </td>
-                            <td class="px-6 py-4 font-bold text-slate-700"><?= htmlspecialchars($e['club_name'] ?? 'Independen') ?></td>
-                            <td class="px-6 py-4">
-                                <div class="font-bold text-slate-700"><?= htmlspecialchars($e['event_name']) ?></div>
-                                <span class="bg-blue-100 text-blue-700 font-black px-2 py-0.5 rounded text-[10px] uppercase"><?= htmlspecialchars($e['race_distance']) ?></span>
-                            </td>
-                            <td class="px-6 py-4">
-                                <span class="px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded-full <?= $statusColor ?>">
-                                    <?= htmlspecialchars($e['status']) ?>
-                                </span>
-                            </td>
-                            <td class="px-6 py-4 text-center flex justify-center gap-2">
-                                <?php if(strtolower($e['status']) === 'pending'): ?>
-                                <form action="<?= getenv('APP_URL') ?>/roll/admin/entries/approvePayment/<?= $e['id'] ?>" method="POST" onsubmit="return confirm('Verifikasi pembayaran menjadi PAID?');">
-                                    <button type="submit" class="bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide shadow transition">Validasi Pembayaran</button>
-                                </form>
-                                <?php endif; ?>
-                                <form action="<?= getenv('APP_URL') ?>/roll/admin/entries/delete/<?= $e['id'] ?>" method="POST" onsubmit="return confirm('Yakin hapus entri ini?');">
-                                    <button type="submit" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide shadow transition">Hapus</button>
-                                </form>
-                            </td>
-                        </tr>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
-                </tbody>
-            </table>
-        </div>
+        
+        <?php else: ?>
+            <div class="bg-slate-800/50 rounded-2xl border border-slate-700/50 shadow-xl p-12 text-center backdrop-blur-sm">
+                <span class="text-6xl mb-4 block">⚠️</span>
+                <h3 class="text-xl font-bold text-slate-300 mb-2">Tidak Ada Event Aktif</h3>
+                <p class="text-slate-500">Silakan pilih event aktif melalui Dashboard terlebih dahulu.</p>
+            </div>
+        <?php endif; ?>
+
     </div>
 </div>
