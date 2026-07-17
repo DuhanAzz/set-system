@@ -30,14 +30,19 @@ class RollReportController extends Controller {
         // Medal Tally Calculation
         // Gold = finish_position 1, Silver = 2, Bronze = 3. Grouped by club_id
         $stmtTally = $db->prepare("
-            SELECT c.id, c.club_name, c.logo,
+            SELECT c.id, c.club_name,
                 SUM(CASE WHEN r.finish_position = 1 THEN 1 ELSE 0 END) as gold,
                 SUM(CASE WHEN r.finish_position = 2 THEN 1 ELSE 0 END) as silver,
                 SUM(CASE WHEN r.finish_position = 3 THEN 1 ELSE 0 END) as bronze
             FROM roll_event_results r
             JOIN roll_skaters s ON r.skater_id = s.id
             JOIN roll_clubs c ON s.club_id = c.id
-            WHERE r.event_id = ? AND r.finish_position IN (1, 2, 3)
+            JOIN roll_event_details ed ON r.race_class_id = ed.id
+            JOIN roll_entries e ON r.skater_id = e.skater_id AND r.race_class_id = e.race_class_id
+            WHERE r.event_id = ? 
+              AND r.finish_position IN (1, 2, 3) 
+              AND ed.result_status = 'Published' 
+              AND e.status = 'Finished'
             GROUP BY c.id
             ORDER BY gold DESC, silver DESC, bronze DESC, c.club_name ASC
         ");
@@ -93,5 +98,96 @@ class RollReportController extends Controller {
         }
         fclose($output);
         exit;
+    }
+
+    public function print_result_book() {
+        $db = Database::getInstance()->getConnection();
+        $eventId = $_SESSION['roll_admin_active_event_id'] ?? 0;
+        if ($eventId == 0) die("Event not selected.");
+
+        $stmtEvt = $db->prepare("SELECT * FROM roll_events WHERE id = ?");
+        $stmtEvt->execute([$eventId]);
+        $event = $stmtEvt->fetch(PDO::FETCH_ASSOC);
+
+        // Tally
+        $stmtTally = $db->prepare("
+            SELECT c.id, c.club_name,
+                SUM(CASE WHEN r.finish_position = 1 THEN 1 ELSE 0 END) as gold,
+                SUM(CASE WHEN r.finish_position = 2 THEN 1 ELSE 0 END) as silver,
+                SUM(CASE WHEN r.finish_position = 3 THEN 1 ELSE 0 END) as bronze
+            FROM roll_event_results r
+            JOIN roll_skaters s ON r.skater_id = s.id
+            JOIN roll_clubs c ON s.club_id = c.id
+            JOIN roll_event_details ed ON r.race_class_id = ed.id
+            JOIN roll_entries e ON r.skater_id = e.skater_id AND r.race_class_id = e.race_class_id
+            WHERE r.event_id = ? 
+              AND r.finish_position IN (1, 2, 3) 
+              AND ed.result_status = 'Published' 
+              AND e.status = 'Finished'
+            GROUP BY c.id
+            ORDER BY gold DESC, silver DESC, bronze DESC, c.club_name ASC
+        ");
+        $stmtTally->execute([$eventId]);
+        $medalTally = $stmtTally->fetchAll(PDO::FETCH_ASSOC);
+
+        // Results
+        $stmtRes = $db->prepare("
+            SELECT r.*, s.skater_name, s.bib_number, c.club_name, ed.distance, d.distance_name, a.group_name
+            FROM roll_event_results r
+            JOIN roll_skaters s ON r.skater_id = s.id
+            LEFT JOIN roll_clubs c ON s.club_id = c.id
+            JOIN roll_event_details ed ON r.race_class_id = ed.id
+            LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
+            LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id
+            WHERE r.event_id = ? AND ed.result_status = 'Published'
+            ORDER BY a.min_age ASC, d.distance ASC, r.finish_position ASC, r.timer_result ASC
+        ");
+        $stmtRes->execute([$eventId]);
+        $results = $stmtRes->fetchAll(PDO::FETCH_ASSOC);
+
+        return $this->view('roll/admin/reports/pdf_result', [
+            'event' => $event,
+            'medalTally' => $medalTally,
+            'results' => $results
+        ]);
+    }
+
+    public function print_race_book() {
+        $db = Database::getInstance()->getConnection();
+        $eventId = $_SESSION['roll_admin_active_event_id'] ?? 0;
+        if ($eventId == 0) die("Event not selected.");
+
+        $stmtEvt = $db->prepare("SELECT * FROM roll_events WHERE id = ?");
+        $stmtEvt->execute([$eventId]);
+        $event = $stmtEvt->fetch(PDO::FETCH_ASSOC);
+
+        // Pelotons
+        $stmtP = $db->prepare("
+            SELECT p.*, s.skater_name, s.bib_number, c.club_name, ed.distance, d.distance_name, a.group_name, ed.category_name
+            FROM roll_pelotons p
+            JOIN roll_skaters s ON p.skater_id = s.id
+            LEFT JOIN roll_clubs c ON s.club_id = c.id
+            JOIN roll_event_details ed ON p.race_class_id = ed.id
+            LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
+            LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id
+            WHERE p.event_id = ?
+            ORDER BY a.min_age ASC, d.distance ASC, p.heat_name ASC, p.start_grid ASC
+        ");
+        $stmtP->execute([$eventId]);
+        $pelotonsData = $stmtP->fetchAll(PDO::FETCH_ASSOC);
+
+        // Group by Class, then Heat
+        $classes = [];
+        foreach ($pelotonsData as $row) {
+            $classKey = $row['group_name'] . ' - ' . $row['distance_name'] . ' (' . $row['category_name'] . ')';
+            $classes[$classKey]['distance'] = $row['distance_name'];
+            $classes[$classKey]['format'] = $row['distance_name']; // roughly
+            $classes[$classKey]['heats'][$row['heat_name']][] = $row;
+        }
+
+        return $this->view('roll/admin/reports/pdf_racebook', [
+            'event' => $event,
+            'classes' => $classes
+        ]);
     }
 }

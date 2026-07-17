@@ -116,4 +116,109 @@ class RollPelotonController extends Controller {
             exit;
         }
     }
+    
+    public function generate() {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $db = Database::getInstance()->getConnection();
+            $eventId = $_SESSION['roll_admin_active_event_id'] ?? 0;
+            $race_class_id = $_POST['race_class_id'] ?? 0;
+
+            if ($eventId > 0 && $race_class_id > 0) {
+                try {
+                    $db->beginTransaction();
+
+                    // Check Mass Start or Sprint
+                    $stmtClass = $db->prepare("SELECT ed.distance, d.distance_name 
+                                               FROM roll_event_details ed 
+                                               LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id 
+                                               WHERE ed.id = ?");
+                    $stmtClass->execute([$race_class_id]);
+                    $classInfo = $stmtClass->fetch(PDO::FETCH_ASSOC);
+                    
+                    $distName = strtolower($classInfo['distance_name'] ?? '');
+                    $isMassStart = false;
+                    if (strpos($distName, 'ptp') !== false || strpos($distName, 'eliminasi') !== false || strpos($distName, 'marathon') !== false) {
+                        $isMassStart = true;
+                    }
+                    $numDist = (int) filter_var($distName, FILTER_SANITIZE_NUMBER_INT);
+                    if ($numDist >= 3000) {
+                        $isMassStart = true;
+                    }
+
+                    // Get Paid or Qualified entries
+                    $stmtEntries = $db->prepare("
+                        SELECT e.skater_id 
+                        FROM roll_entries e
+                        WHERE e.event_id = ? AND e.race_class_id = ? AND e.status IN ('Paid', 'Qualified')
+                        ORDER BY RAND()
+                    ");
+                    $stmtEntries->execute([$eventId, $race_class_id]);
+                    $skaters = $stmtEntries->fetchAll(PDO::FETCH_COLUMN);
+
+                    if (empty($skaters)) {
+                        throw new \Exception("Tidak ada atlet berstatus Paid/Qualified.");
+                    }
+
+                    // Delete old
+                    $stmtDel = $db->prepare("DELETE FROM roll_pelotons WHERE event_id = ? AND race_class_id = ?");
+                    $stmtDel->execute([$eventId, $race_class_id]);
+
+                    $stmtDelRes = $db->prepare("DELETE FROM roll_event_results WHERE event_id = ? AND race_class_id = ?");
+                    $stmtDelRes->execute([$eventId, $race_class_id]);
+
+                    if ($isMassStart) {
+                        // Mass Start: All in one Heat "Final"
+                        foreach ($skaters as $index => $s_id) {
+                            $heat = 'Final';
+                            $grid = $index + 1; // Sequential
+
+                            $stmtPeloton = $db->prepare("INSERT INTO roll_pelotons (event_id, race_class_id, skater_id, heat_name, start_grid) VALUES (?, ?, ?, ?, ?)");
+                            $stmtPeloton->execute([$eventId, $race_class_id, $s_id, $heat, $grid]);
+                            
+                            $stmtResult = $db->prepare("INSERT INTO roll_event_results (event_id, race_class_id, skater_id, heat_name) VALUES (?, ?, ?, ?)");
+                            $stmtResult->execute([$eventId, $race_class_id, $s_id, $heat]);
+                        }
+                    } else {
+                        // Sprint: Smart Seeding (Normal Layout)
+                        $total = count($skaters);
+                        $max_per_heat = 8;
+                        $num_heats = ceil($total / $max_per_heat);
+                        $base_count = floor($total / $num_heats);
+                        $remainder = $total % $num_heats;
+
+                        $skater_idx = 0;
+                        for ($h = 1; $h <= $num_heats; $h++) {
+                            $heat_name = "Seri " . $h;
+                            $count_this_heat = $base_count + ($h <= $remainder ? 1 : 0);
+                            
+                            for ($i = 0; $i < $count_this_heat; $i++) {
+                                $s_id = $skaters[$skater_idx++];
+                                $grid = $i + 1; // Lane assignment starts from 1
+
+                                $stmtPeloton = $db->prepare("INSERT INTO roll_pelotons (event_id, race_class_id, skater_id, heat_name, start_grid) VALUES (?, ?, ?, ?, ?)");
+                                $stmtPeloton->execute([$eventId, $race_class_id, $s_id, $heat_name, $grid]);
+                                
+                                $stmtResult = $db->prepare("INSERT INTO roll_event_results (event_id, race_class_id, skater_id, heat_name) VALUES (?, ?, ?, ?)");
+                                $stmtResult->execute([$eventId, $race_class_id, $s_id, $heat_name]);
+                            }
+                        }
+                    }
+
+                    // Update status to Seeded
+                    $stmtUpdateStatus = $db->prepare("UPDATE roll_entries SET status = 'Seeded' WHERE event_id = ? AND race_class_id = ? AND status IN ('Paid', 'Qualified')");
+                    $stmtUpdateStatus->execute([$eventId, $race_class_id]);
+
+                    $db->commit();
+                    $_SESSION['flash_message'] = "Berhasil meng-generate seri secara otomatis (Smart Seeding)!";
+                    $_SESSION['flash_type'] = "success";
+                } catch (\Exception $e) {
+                    $db->rollBack();
+                    $_SESSION['flash_message'] = "Gagal: " . $e->getMessage();
+                    $_SESSION['flash_type'] = "error";
+                }
+            }
+            header("Location: " . getenv('APP_URL') . "/roll/admin/pelotons?race_class_id=" . $race_class_id);
+            exit;
+        }
+    }
 }

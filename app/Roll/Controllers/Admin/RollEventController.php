@@ -79,9 +79,13 @@ class RollEventController extends Controller {
             $eventCity = $_POST['event_city'] ?? '';
             $raceFormat = $_POST['race_format'] ?? 'SPRINT';
             $status = $_POST['status'] ?? 'Draft';
+            
+            $tdName = $_POST['td_name'] ?? '';
+            $crName = $_POST['cr_name'] ?? '';
+            $kpName = $_POST['kp_name'] ?? '';
 
             // Verify Ownership
-            $stmtCek = $db->prepare("SELECT id, poster_image FROM roll_events WHERE id = ? AND user_id = ?");
+            $stmtCek = $db->prepare("SELECT id, poster_image, sponsor_logos FROM roll_events WHERE id = ? AND user_id = ?");
             $stmtCek->execute([$eventId, $uid]);
             $evt = $stmtCek->fetch(PDO::FETCH_ASSOC);
             if (!$evt) {
@@ -99,8 +103,30 @@ class RollEventController extends Controller {
                 } catch (\Exception $e) {}
             }
 
-            $stmt = $db->prepare("UPDATE roll_events SET event_name=?, event_date_start=?, event_date_end=?, event_location=?, event_city=?, race_format=?, status=?, poster_image=? WHERE id=?");
-            $stmt->execute([$eventName, $eventDateStart, $eventDateEnd, $eventLoc, $eventCity, $raceFormat, $status, $posterImage, $eventId]);
+            // Handle Multiple Sponsors
+            $sponsorsArray = [];
+            if (!empty($evt['sponsor_logos'])) {
+                $sponsorsArray = json_decode($evt['sponsor_logos'], true) ?: [];
+            }
+            if (isset($_FILES['sponsors']) && is_array($_FILES['sponsors']['name'])) {
+                $uploadDir = __DIR__ . '/../../../../public/uploads/sponsors/';
+                if (!is_dir($uploadDir)) {
+                    mkdir($uploadDir, 0777, true);
+                }
+                for ($i = 0; $i < count($_FILES['sponsors']['name']); $i++) {
+                    if ($_FILES['sponsors']['error'][$i] === UPLOAD_ERR_OK) {
+                        $tmpName = $_FILES['sponsors']['tmp_name'][$i];
+                        $fileName = time() . '_' . rand(1000,9999) . '_' . preg_replace("/[^a-zA-Z0-9.-]/", "_", $_FILES['sponsors']['name'][$i]);
+                        if (move_uploaded_file($tmpName, $uploadDir . $fileName)) {
+                            $sponsorsArray[] = 'uploads/sponsors/' . $fileName;
+                        }
+                    }
+                }
+            }
+            $sponsorLogosJson = json_encode($sponsorsArray);
+
+            $stmt = $db->prepare("UPDATE roll_events SET event_name=?, event_date_start=?, event_date_end=?, event_location=?, event_city=?, race_format=?, status=?, poster_image=?, td_name=?, cr_name=?, kp_name=?, sponsor_logos=? WHERE id=?");
+            $stmt->execute([$eventName, $eventDateStart, $eventDateEnd, $eventLoc, $eventCity, $raceFormat, $status, $posterImage, $tdName, $crName, $kpName, $sponsorLogosJson, $eventId]);
 
             $_SESSION['flash_message'] = "Profil Event berhasil diperbarui!";
             $_SESSION['flash_type'] = "success";
