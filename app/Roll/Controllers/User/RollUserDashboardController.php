@@ -7,7 +7,6 @@ use App\Core\Database;
 use PDO;
 
 class RollUserDashboardController extends Controller {
-
     public function __construct() {
         if (session_status() === PHP_SESSION_NONE) session_start();
         if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'user') {
@@ -18,17 +17,28 @@ class RollUserDashboardController extends Controller {
 
     public function index() {
         $db = Database::getInstance()->getConnection();
-        $club_id = $_SESSION['roll_club_id'] ?? 0;
+        $club_id = $_SESSION['roll_club_id'];
 
-        $totalSkaters = $db->prepare("SELECT COUNT(*) FROM roll_skaters WHERE club_id = ?");
-        $totalSkaters->execute([$club_id]);
-        $totalSkaters = $totalSkaters->fetchColumn();
+        $stmt = $db->prepare("
+            SELECT 
+                COUNT(*) as total_athletes,
+                SUM(CASE WHEN gender = 'M' THEN 1 ELSE 0 END) as total_male,
+                SUM(CASE WHEN gender = 'F' THEN 1 ELSE 0 END) as total_female
+            FROM roll_skaters 
+            WHERE club_id = ?
+        ");
+        $stmt->execute([$club_id]);
+        $stats = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        $activeEvents = $db->query("SELECT * FROM roll_events WHERE event_status != 'Draft' ORDER BY id DESC LIMIT 5")->fetchAll(PDO::FETCH_ASSOC);
+        // Get club name
+        $stmt2 = $db->prepare("SELECT club_name FROM roll_clubs WHERE id = ?");
+        $stmt2->execute([$club_id]);
+        $club = $stmt2->fetch(PDO::FETCH_ASSOC);
+        $clubName = $club ? $club['club_name'] : 'Klub Anda';
 
-        return $this->view('roll/user/dashboard/index', [
-            'totalSkaters' => $totalSkaters,
-            'activeEvents' => $activeEvents
+        return $this->view('roll/user/dashboard', [
+            'stats' => $stats,
+            'clubName' => $clubName
         ]);
     }
 }

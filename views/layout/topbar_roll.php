@@ -33,15 +33,12 @@ if ($uid > 0) {
     }
     
     if ($role == 'user') {
-        $stmtC = $pdo->prepare("SELECT c.nama_klub, c.logo FROM roll_clubs c JOIN roll_users u ON u.club_id = c.id WHERE u.id = ?");
+        $stmtC = $pdo->prepare("SELECT c.club_name FROM roll_clubs c JOIN roll_users u ON u.club_id = c.id WHERE u.id = ?");
         $stmtC->execute([$uid]);
         $clubData = $stmtC->fetch();
         if ($clubData) {
-            $displayName = $clubData['nama_klub'];
+            $displayName = $clubData['club_name'];
             $displayRole = "CLUB ADMIN";
-            if (!empty($clubData['logo'])) {
-                $displayImage = getenv('APP_URL') . "/" . str_replace('public/', '', ltrim($clubData['logo'], '/'));
-            }
         }
     }
 }

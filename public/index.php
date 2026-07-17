@@ -174,22 +174,13 @@ switch ($module) {
 
     case 'roll':
         // Halaman publik yang ditangani oleh HomeController
-        $publicPages = ['home', 'events', 'event_detail', 'results', 'startlist', 'liveresult', 'records', 'rules'];
+        $publicPages = ['home', 'events', 'results', 'startlist', 'liveresult'];
         if (in_array($page, $publicPages)) {
             $controllerClass = "\\App\\Roll\\Controllers\\HomeController";
-            if ($page === 'records') {
-                $controllerClass = "\\App\\Roll\\Controllers\\Public\\PublicRollRecordController";
-            } elseif ($page === 'rules') {
-                $controllerClass = "\\App\\Roll\\Controllers\\Public\\PublicRollRulesController";
-            }
-            
             if (class_exists($controllerClass)) {
                 $controller = new $controllerClass();
-                if ($page === 'home' || $page === 'records' || $page === 'rules') {
-                    $controller->index();
-                } elseif (method_exists($controller, $page)) {
-                    $controller->$page();
-                }
+                if ($page === 'home') $controller->index();
+                elseif (method_exists($controller, $page)) $controller->$page();
                 break;
             }
         }
@@ -201,6 +192,18 @@ switch ($module) {
             elseif ($page === 'register' && $method === 'submit') $controller->processRegister();
             elseif ($page === 'register') $controller->register();
             else $controller->index();
+        } elseif ($page === 'pengumuman') {
+            $controllerClass = "\\App\\Roll\\Controllers\\RollPengumumanController";
+            if (class_exists($controllerClass)) {
+                $controller = new $controllerClass();
+                if (method_exists($controller, $method)) {
+                    $params = array_slice($url, 3);
+                    $controller->$method(...$params);
+                } else {
+                    $controller->index();
+                }
+                exit;
+            }
         } elseif (strtolower($page) === 'mastersettings' && isset($url[2]) && strtolower($url[2]) === 'dq_rules') {
             $controller = new \App\Roll\Controllers\Master\RollMasterSettingsController();
             $controller->dq_rules();
@@ -234,6 +237,8 @@ switch ($module) {
                     'dashboard'    => '\\App\\Roll\\Controllers\\User\\RollUserDashboardController',
                     'profile'      => '\\App\\Roll\\Controllers\\User\\RollClubProfileController',
                     'skaters'      => '\\App\\Roll\\Controllers\\User\\RollUserSkaterController',
+                    'athletes'     => '\\App\\Roll\\Controllers\\User\\RollUserAthleteController',
+                    'explore'      => '\\App\\Roll\\Controllers\\User\\RollExploreController',
                     'registration' => '\\App\\Roll\\Controllers\\User\\RollRegistrationController',
                     'checkout'     => '\\App\\Roll\\Controllers\\User\\RollCheckoutController'
                 ],
