@@ -52,45 +52,31 @@ class RollRegistrationController extends Controller {
             $classes = $stmtClasses->fetchAll(PDO::FETCH_ASSOC);
         }
 
-        // Generate cart view data for THIS event only
-        $cartData = [];
-        foreach ($_SESSION['roll_cart'] as $index => $item) {
-            if ($item['event_id'] != $event_id) continue;
-            
-            // Find athlete name
-            $athleteName = 'Unknown';
-            foreach ($athletes as $a) {
-                if ($a['id'] == $item['skater_id']) {
-                    $athleteName = $a['skater_name'];
-                    break;
-                }
-            }
-            
-            // Find class name
-            $className = 'Unknown Class';
-            $category = '';
-            foreach ($classes as $c) {
-                if ($c['id'] == $item['race_class_id']) {
-                    $className = $c['group_name'] . ' - ' . $c['distance_name'];
-                    $category = $c['category_name'];
-                    break;
-                }
-            }
+        // Fetch registered entries for THIS event and club
+        $stmtEntries = $db->prepare("
+            SELECT e.id as entry_id, e.race_distance, e.payment_status, e.race_class_id,
+                   s.skater_name, s.gender,
+                   c.group_name, c.category_name,
+                   d.distance_name
+            FROM roll_entries e
+            JOIN roll_skaters s ON e.skater_id = s.id
+            LEFT JOIN roll_event_details c ON e.race_class_id = c.id
+            LEFT JOIN roll_ref_distances d ON c.distance_id = d.id
+            WHERE s.club_id = ? AND e.event_id = ?
+            ORDER BY s.skater_name ASC
+        ");
+        $stmtEntries->execute([$club_id, $event_id]);
+        $existingEntries = $stmtEntries->fetchAll(PDO::FETCH_ASSOC);
 
-            $cartData[] = [
-                'cart_index' => $index,
-                'skater_name' => $athleteName,
-                'class_name' => $className,
-                'category' => $category,
-                'price' => $item['price'] ?? 0
-            ];
-        }
+        $hasUnpaid = !empty(array_filter($existingEntries, fn($e) => $e['payment_status'] === 'Unpaid'));
+        $isLocked  = !empty($existingEntries) && !$hasUnpaid; // Semua sudah Pending/Paid
 
         return $this->view('roll/user/entries/index', [
-            'athletes' => $athletes,
-            'event' => $event,
-            'classes' => $classes,
-            'cartData' => $cartData
+            'athletes'        => $athletes,
+            'event'           => $event,
+            'classes'         => $classes,
+            'existingEntries' => $existingEntries,
+            'isLocked'        => $isLocked,
         ]);
     }
 
@@ -124,7 +110,7 @@ class RollRegistrationController extends Controller {
         }
 
         // Ambil Data Event (untuk tanggal)
-        $stmtE = $db->prepare("SELECT start_date FROM roll_events WHERE id = ?");
+        $stmtE = $db->prepare("SELECT event_date_start FROM roll_events WHERE id = ?");
         $stmtE->execute([$event_id]);
         $event = $stmtE->fetch(PDO::FETCH_ASSOC);
 
@@ -176,112 +162,89 @@ class RollRegistrationController extends Controller {
         exit;
     }
 
-    public function addToCart() {
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $skater_id = $_POST['skater_id'];
-            $race_class_id = $_POST['race_class_id'];
-            $event_id = $_POST['event_id'];
+    public function addEntry() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header("Location: " . getenv('APP_URL') . "/roll/user/explore");
+            exit;
+        }
 
-            // Validasi duplikasi di keranjang
-            $isDuplicate = false;
-            foreach ($_SESSION['roll_cart'] as $item) {
-                if ($item['skater_id'] == $skater_id && $item['race_class_id'] == $race_class_id) {
-                    $isDuplicate = true;
-                    break;
-                }
-            }
+        $skater_id    = (int)($_POST['skater_id'] ?? 0);
+        $race_class_id = (int)($_POST['race_class_id'] ?? 0);
+        $event_id     = (int)($_POST['event_id'] ?? 0);
+        $club_id      = (int)($_SESSION['roll_club_id'] ?? 0);
 
-            if ($isDuplicate) {
-                $_SESSION['flash_message'] = "Atlet ini sudah ada di keranjang untuk kelas tersebut.";
-                $_SESSION['flash_type'] = "error";
-            } else {
-                $_SESSION['roll_cart'][] = [
-                    'skater_id' => $skater_id,
-                    'race_class_id' => $race_class_id,
-                    'event_id' => $event_id,
-                    'price' => 150000 // Contoh statis, nanti bisa ditarik dari DB
-                ];
-                $_SESSION['flash_message'] = "Berhasil ditambahkan ke keranjang.";
-                $_SESSION['flash_type'] = "success";
-            }
-            
+        if (!$skater_id || !$race_class_id || !$event_id) {
+            $_SESSION['flash_message'] = "Data tidak lengkap.";
+            $_SESSION['flash_type'] = "error";
             header("Location: " . getenv('APP_URL') . "/roll/user/registration/index/" . $event_id);
             exit;
         }
-    }
 
-    public function removeFromCart($index) {
-        if (isset($_SESSION['roll_cart'][$index])) {
-            $event_id = $_SESSION['roll_cart'][$index]['event_id'];
-            unset($_SESSION['roll_cart'][$index]);
-            // Re-index array
-            $_SESSION['roll_cart'] = array_values($_SESSION['roll_cart']);
-            $_SESSION['flash_message'] = "Item dihapus dari keranjang.";
+        $db = Database::getInstance()->getConnection();
+
+        // Pastikan atlet milik klub ini
+        $stmtOwn = $db->prepare("SELECT id FROM roll_skaters WHERE id = ? AND club_id = ?");
+        $stmtOwn->execute([$skater_id, $club_id]);
+        if (!$stmtOwn->fetch()) {
+            $_SESSION['flash_message'] = "Atlet tidak valid.";
+            $_SESSION['flash_type'] = "error";
+            header("Location: " . getenv('APP_URL') . "/roll/user/registration/index/" . $event_id);
+            exit;
+        }
+
+        // Cek duplikasi
+        $stmtDup = $db->prepare("SELECT id FROM roll_entries WHERE skater_id = ? AND race_class_id = ? AND event_id = ?");
+        $stmtDup->execute([$skater_id, $race_class_id, $event_id]);
+        if ($stmtDup->fetch()) {
+            $_SESSION['flash_message'] = "Atlet ini sudah terdaftar di kelas lomba tersebut.";
+            $_SESSION['flash_type'] = "error";
+            header("Location: " . getenv('APP_URL') . "/roll/user/registration/index/" . $event_id);
+            exit;
+        }
+
+        // Ambil nama jarak
+        $stmtDist = $db->prepare("SELECT d.distance_name FROM roll_event_details c JOIN roll_ref_distances d ON c.distance_id = d.id WHERE c.id = ?");
+        $stmtDist->execute([$race_class_id]);
+        $distance = $stmtDist->fetchColumn() ?: '-';
+
+        try {
+            $stmt = $db->prepare("INSERT INTO roll_entries (event_id, skater_id, race_class_id, race_distance, payment_status) VALUES (?, ?, ?, ?, 'Unpaid')");
+            $stmt->execute([$event_id, $skater_id, $race_class_id, $distance]);
+            $_SESSION['flash_message'] = "Atlet berhasil didaftarkan!";
             $_SESSION['flash_type'] = "success";
-            header("Location: " . getenv('APP_URL') . "/roll/user/registration/index/" . $event_id);
-            exit;
+        } catch (\Exception $e) {
+            $_SESSION['flash_message'] = "Terjadi kesalahan: " . $e->getMessage();
+            $_SESSION['flash_type'] = "error";
         }
-        header("Location: " . getenv('APP_URL') . "/roll/user/explore");
+
+        header("Location: " . getenv('APP_URL') . "/roll/user/registration/index/" . $event_id);
         exit;
     }
 
-    public function checkout() {
-        if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_SESSION['roll_cart'])) {
-            $event_id = $_POST['event_id'] ?? null;
-            if (!$event_id) {
-                header("Location: " . getenv('APP_URL') . "/roll/user/explore");
-                exit;
-            }
+    public function removeEntry($entry_id = null) {
+        $club_id = (int)($_SESSION['roll_club_id'] ?? 0);
+        $db = Database::getInstance()->getConnection();
 
-            $db = Database::getInstance()->getConnection();
-            
-            try {
-                $db->beginTransaction();
+        // Pastikan entry milik klub ini dan masih Unpaid
+        $stmt = $db->prepare("
+            SELECT e.id, e.event_id FROM roll_entries e
+            JOIN roll_skaters s ON e.skater_id = s.id
+            WHERE e.id = ? AND s.club_id = ? AND e.payment_status = 'Unpaid'
+        ");
+        $stmt->execute([$entry_id, $club_id]);
+        $entry = $stmt->fetch(PDO::FETCH_ASSOC);
 
-                $stmt = $db->prepare("
-                    INSERT INTO roll_entries (event_id, skater_id, race_class_id, race_distance, payment_status, payment_amount)
-                    VALUES (?, ?, ?, ?, 'Unpaid', ?)
-                ");
-
-                $remainingCart = [];
-                foreach ($_SESSION['roll_cart'] as $item) {
-                    if ($item['event_id'] != $event_id) {
-                        $remainingCart[] = $item;
-                        continue;
-                    }
-                    
-                    // Cek jarak (distance) untuk disimpan ke race_distance
-                    $stmtDist = $db->prepare("SELECT d.distance_name FROM roll_event_details c JOIN roll_ref_distances d ON c.distance_id = d.id WHERE c.id = ?");
-                    $stmtDist->execute([$item['race_class_id']]);
-                    $dist = $stmtDist->fetchColumn();
-
-                    $stmt->execute([
-                        $item['event_id'],
-                        $item['skater_id'],
-                        $item['race_class_id'],
-                        $dist ?? '-',
-                        $item['price']
-                    ]);
-                }
-
-                $db->commit();
-                
-                // Kosongkan keranjang untuk event ini
-                $_SESSION['roll_cart'] = $remainingCart;
-                
-                $_SESSION['flash_message'] = "Checkout berhasil! Silakan lakukan pembayaran.";
-                $_SESSION['flash_type'] = "success";
-                
-                header("Location: " . getenv('APP_URL') . "/roll/user/checkout/detail/" . $event_id);
-                exit;
-
-            } catch (\Exception $e) {
-                $db->rollBack();
-                $_SESSION['flash_message'] = "Terjadi kesalahan sistem saat checkout.";
-                $_SESSION['flash_type'] = "error";
-                header("Location: " . getenv('APP_URL') . "/roll/user/registration/index/" . $event_id);
-                exit;
-            }
+        if ($entry) {
+            $db->prepare("DELETE FROM roll_entries WHERE id = ?")->execute([$entry['id']]);
+            $_SESSION['flash_message'] = "Pendaftaran dibatalkan.";
+            $_SESSION['flash_type'] = "success";
+            header("Location: " . getenv('APP_URL') . "/roll/user/registration/index/" . $entry['event_id']);
+        } else {
+            $_SESSION['flash_message'] = "Entry tidak dapat dihapus (sudah diproses atau tidak ditemukan).";
+            $_SESSION['flash_type'] = "error";
+            header("Location: " . getenv('APP_URL') . "/roll/user/explore");
         }
+        exit;
     }
+
 }

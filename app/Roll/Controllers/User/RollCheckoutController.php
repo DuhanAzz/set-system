@@ -21,33 +21,79 @@ class RollCheckoutController extends Controller {
         $db = Database::getInstance()->getConnection();
         $club_id = $_SESSION['roll_club_id'] ?? 0;
 
-        // Fetch events where the club has entries
+        // Ambil semua event yang pernah diikuti klub ini
         $stmt = $db->prepare("
-            SELECT DISTINCT ev.*,
-                (SELECT COUNT(*) FROM roll_entries re JOIN roll_skaters rs ON re.skater_id = rs.id WHERE re.event_id = ev.id AND rs.club_id = ? AND re.payment_status = 'Unpaid') as unpaid_count
+            SELECT DISTINCT ev.id as event_id, ev.event_name, ev.event_date_start
             FROM roll_events ev
             JOIN roll_entries e ON e.event_id = ev.id
             JOIN roll_skaters s ON e.skater_id = s.id
             WHERE s.club_id = ?
             ORDER BY ev.event_date_start DESC
         ");
-        $stmt->execute([$club_id, $club_id]);
-        $events = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $stmt->execute([$club_id]);
+        $eventRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        // If only 1 event, redirect directly
-        if (count($events) === 1) {
-            header("Location: " . getenv('APP_URL') . "/roll/user/checkout/detail/" . $events[0]['id']);
-            exit;
-        }
-
-        if (count($events) === 0) {
+        if (count($eventRows) === 0) {
             $_SESSION['flash_message'] = "Belum ada riwayat pendaftaran / checkout.";
             $_SESSION['flash_type'] = "error";
             header("Location: " . getenv('APP_URL') . "/roll/user/explore");
             exit;
         }
 
-        return $this->view('roll/user/checkout/index', ['events' => $events]);
+        // Jika hanya 1 event, langsung ke detail
+        if (count($eventRows) === 1) {
+            header("Location: " . getenv('APP_URL') . "/roll/user/checkout/detail/" . $eventRows[0]['event_id']);
+            exit;
+        }
+
+        // Bangun struktur $bills identik dengan swim checkout
+        $bills = [];
+        foreach ($eventRows as $ev) {
+            $eid = $ev['event_id'];
+
+            // Jumlah total tagihan (sum payment_amount untuk yang Unpaid)
+            $stmtAmt = $db->prepare("
+                SELECT SUM(e.payment_amount)
+                FROM roll_entries e
+                JOIN roll_skaters s ON e.skater_id = s.id
+                WHERE s.club_id = ? AND e.event_id = ? AND e.payment_status = 'Unpaid'
+            ");
+            $stmtAmt->execute([$club_id, $eid]);
+            $amount = (float)$stmtAmt->fetchColumn();
+
+            // Total atlet terdaftar
+            $stmtCnt = $db->prepare("
+                SELECT COUNT(*) FROM roll_entries e
+                JOIN roll_skaters s ON e.skater_id = s.id
+                WHERE s.club_id = ? AND e.event_id = ?
+            ");
+            $stmtCnt->execute([$club_id, $eid]);
+            $entries = (int)$stmtCnt->fetchColumn();
+
+            // Status: Unpaid jika ada yang belum bayar, Pending jika ada pending, Paid jika semua lunas
+            $stmtStat = $db->prepare("
+                SELECT payment_status FROM roll_entries e
+                JOIN roll_skaters s ON e.skater_id = s.id
+                WHERE s.club_id = ? AND e.event_id = ?
+            ");
+            $stmtStat->execute([$club_id, $eid]);
+            $statuses = $stmtStat->fetchAll(PDO::FETCH_COLUMN);
+
+            $status = 'Paid';
+            if (in_array('Unpaid', $statuses)) $status = 'Unpaid';
+            elseif (in_array('Pending', $statuses)) $status = 'Pending';
+
+            $bills[] = [
+                'id'         => $eid,
+                'event_id'   => $eid,
+                'event_name' => $ev['event_name'],
+                'amount'     => $amount,
+                'status'     => $status,
+                'entries'    => $entries,
+            ];
+        }
+
+        return $this->view('roll/user/checkout/index', ['bills' => $bills]);
     }
 
     public function detail($event_id = null) {
