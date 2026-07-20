@@ -46,16 +46,20 @@ class RollAdminDashboardController extends Controller {
         }
 
         // Variables for View
-        $eventName = $event['event_name'] ?? 'Belum Ada Event Aktif';
-        $eventLoc = $event['event_location'] ?? '-';
-        $eventDate = $event['event_date_start'] ?? date('Y-m-d');
-        $eventStatus = $event['status'] ?? 'Draft';
+        $eventName   = $event['event_name']       ?? 'Belum Ada Event Aktif';
+        $eventLoc    = $event['event_location']   ?? '-';
+        $eventDate   = $event['event_date_start'] ?? date('Y-m-d');
+        $eventStatus = $event['status']           ?? 'Draft';
 
         // 4. Calculate Stats for this event
-        $stats = ['atlet' => 0, 'entries' => 0, 'clubs' => 0, 'pending' => 0, 'paid' => 0];
+        $stats = ['atlet' => 0, 'entries' => 0, 'clubs' => 0, 'pending' => 0, 'paid' => 0, 'revenue' => 0];
+        $chartLabels = [];
+        $chartValues = [];
         
         if ($event) {
             // Entries
+            $stats['entries'] = $db->prepare("SELECT COUNT(*) FROM roll_entries WHERE event_id = ?")
+                ->execute([$eventId]) ? $db->query("SELECT COUNT(*) FROM roll_entries WHERE event_id = $eventId")->fetchColumn() : 0;
             $stmtEntry = $db->prepare("SELECT COUNT(*) FROM roll_entries WHERE event_id = ?");
             $stmtEntry->execute([$eventId]);
             $stats['entries'] = $stmtEntry->fetchColumn();
@@ -71,24 +75,53 @@ class RollAdminDashboardController extends Controller {
             $stats['clubs'] = $stmtClub->fetchColumn();
 
             // Pending Payments
-            $stmtPend = $db->prepare("SELECT COUNT(*) FROM roll_entries WHERE event_id = ? AND status = 'Pending'");
+            $stmtPend = $db->prepare("SELECT COUNT(*) FROM roll_entries WHERE event_id = ? AND payment_status = 'Pending'");
             $stmtPend->execute([$eventId]);
             $stats['pending'] = $stmtPend->fetchColumn();
 
             // Paid
-            $stmtPaid = $db->prepare("SELECT COUNT(*) FROM roll_entries WHERE event_id = ? AND status = 'Paid'");
+            $stmtPaid = $db->prepare("SELECT COUNT(*) FROM roll_entries WHERE event_id = ? AND payment_status = 'Paid'");
             $stmtPaid->execute([$eventId]);
             $stats['paid'] = $stmtPaid->fetchColumn();
+
+            // Revenue (sum paid payment_amount)
+            $stmtRev = $db->prepare("SELECT COALESCE(SUM(payment_amount), 0) FROM roll_entries WHERE event_id = ? AND payment_status = 'Paid'");
+            $stmtRev->execute([$eventId]);
+            $stats['revenue'] = (float)$stmtRev->fetchColumn();
+
+            // Top 5 Clubs for Chart
+            $stmtChart = $db->prepare("
+                SELECT c.club_name, COUNT(e.id) as total
+                FROM roll_entries e
+                JOIN roll_skaters s ON e.skater_id = s.id
+                JOIN roll_clubs c ON s.club_id = c.id
+                WHERE e.event_id = ?
+                GROUP BY c.id, c.club_name
+                ORDER BY total DESC
+                LIMIT 5
+            ");
+            $stmtChart->execute([$eventId]);
+            $chartRows = $stmtChart->fetchAll(PDO::FETCH_ASSOC);
+            foreach ($chartRows as $row) {
+                $chartLabels[] = $row['club_name'];
+                $chartValues[] = (int)$row['total'];
+            }
         }
 
+        $jsLabels = json_encode($chartLabels);
+        $jsValues = json_encode($chartValues);
+
         return $this->view('roll/admin/dashboard/index', [
-            'allEvents' => $allEvents,
-            'eventId' => $eventId,
-            'eventName' => $eventName,
-            'eventLoc' => $eventLoc,
-            'eventDate' => $eventDate,
-            'eventStatus' => $eventStatus,
-            'stats' => $stats
+            'allEvents'    => $allEvents,
+            'eventId'      => $eventId,
+            'eventName'    => $eventName,
+            'eventLoc'     => $eventLoc,
+            'eventDate'    => $eventDate,
+            'eventStatus'  => $eventStatus,
+            'stats'        => $stats,
+            'chartLabels'  => $chartLabels,
+            'jsLabels'     => $jsLabels,
+            'jsValues'     => $jsValues,
         ]);
     }
 }

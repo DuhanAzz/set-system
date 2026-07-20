@@ -198,11 +198,6 @@ if (!function_exists('isGroupActive')) {
 
    </div>
 
-   <a href="<?= getenv('APP_URL') ?>/roll" target="_blank" class="flex items-center p-4 text-slate-500 hover:bg-slate-800 transition-all border-t border-slate-800 shrink-0">
-      <span class="w-6 text-xl mr-3 text-center opacity-80">🌐</span>
-      <span class="font-bold text-xs tracking-widest uppercase">Lihat Portal Publik</span>
-   </a>
-
    <div class="p-6 border-t border-slate-800 bg-[#0F172A] shrink-0 text-center">
       <p class="text-[9px] text-slate-600 font-bold uppercase tracking-widest">&copy; 2026 SET Roll System</p>
    </div>

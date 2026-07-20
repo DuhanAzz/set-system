@@ -220,7 +220,7 @@ function isGroupActive($req, $keywords) {
    </div>
 
    <div class="p-6 border-t border-slate-800 bg-[#0F172A] shrink-0 text-center">
-      <p class="text-[9px] text-slate-600 font-bold uppercase tracking-widest">&copy; 2026 SwimMeet System</p>
+      <p class="text-[9px] text-slate-600 font-bold uppercase tracking-widest">&copy; 2026 SET Swim System</p>
    </div>
 
 </aside>

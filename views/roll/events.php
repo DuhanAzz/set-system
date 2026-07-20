@@ -37,7 +37,7 @@ $siteDesc     = $s['site_description'] ?? 'Platform manajemen lomba sepatu roda 
         @keyframes pulse-text { from { opacity: 0.6; } to { opacity: 1; } }
         .loader-finish { opacity: 0; visibility: hidden; pointer-events: none; }
 
-        .page-header { background-image: url('https://images.unsplash.com/photo-1506141381389-13019318b2c2?q=80&w=2070&auto=format&fit=crop'); background-size: cover; background-position: center; }
+        .page-header { background-image: url('<?= getenv('APP_URL') ?>/img/hero-inline-skaters.jpg'); background-size: cover; background-position: center top; }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 flex flex-col min-h-screen">
