@@ -46,34 +46,20 @@
                         <div class="grid grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Mulai</label>
-                                <input type="date" name="start_date" value="<?= htmlspecialchars($row['start_date'] ?? '') ?>" class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-800 focus:ring-2 focus:ring-blue-500" required>
+                                <input type="date" name="event_date_start" value="<?= htmlspecialchars($row['event_date_start'] ?? '') ?>" class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-800 focus:ring-2 focus:ring-blue-500" required>
                             </div>
                             <div>
                                 <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Selesai</label>
-                                <input type="date" name="end_date" value="<?= htmlspecialchars($row['end_date'] ?? '') ?>" class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-800 focus:ring-2 focus:ring-blue-500" required>
+                                <input type="date" name="event_date_end" value="<?= htmlspecialchars($row['event_date_end'] ?? '') ?>" class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-800 focus:ring-2 focus:ring-blue-500" required>
                             </div>
                         </div>
                         <div>
                             <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Lokasi (Opsional)</label>
-                            <input type="text" name="location" value="<?= htmlspecialchars($row['location'] ?? '') ?>" class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-800 focus:ring-2 focus:ring-blue-500">
+                            <input type="text" name="event_location" value="<?= htmlspecialchars($row['event_location'] ?? '') ?>" class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-800 focus:ring-2 focus:ring-blue-500">
                         </div>
                     </div>
 
-                    <div class="border-t border-slate-200 pt-4 mt-4 space-y-4">
-                        <h4 class="text-sm font-bold text-slate-800 uppercase tracking-widest">Pejabat Pengesah</h4>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Technical Delegate (TD)</label>
-                            <input type="text" name="td_name" value="<?= htmlspecialchars($row['td_name'] ?? '') ?>" class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-800 focus:ring-2 focus:ring-blue-500" placeholder="Nama TD">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Chief Referee</label>
-                            <input type="text" name="cr_name" value="<?= htmlspecialchars($row['cr_name'] ?? '') ?>" class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-800 focus:ring-2 focus:ring-blue-500" placeholder="Nama Chief Referee">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Ketua Panitia</label>
-                            <input type="text" name="kp_name" value="<?= htmlspecialchars($row['kp_name'] ?? '') ?>" class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-800 focus:ring-2 focus:ring-blue-500" placeholder="Nama Ketua Panitia">
-                        </div>
-                    </div>
+                    <!-- Pejabat Pengesah Dihapus -->
 
                     <div class="border-t border-slate-200 pt-4 mt-4">
                         <h4 class="text-sm font-bold text-slate-800 uppercase tracking-widest mb-2">Logo Sponsor</h4>
@@ -89,37 +75,61 @@
                 <div class="p-6 border-b border-slate-200/50 flex justify-between items-center">
                     <h3 class="text-lg font-bold text-slate-800 uppercase tracking-widest">Daftar Kelas Lomba</h3>
                 </div>
-                
-                <!-- Add New Class -->
-                <div class="p-4 bg-white/50 border-b border-slate-200/50">
-                    <form action="<?= getenv('APP_URL') ?>/roll/admin/events/store_class" method="POST" class="flex flex-col md:flex-row gap-3">
-                        <div class="flex-1">
-                            <select name="distance_id" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-800 focus:ring-2 focus:ring-emerald-500" required>
-                                <option value="">- Pilih Jarak -</option>
-                                <?php foreach($distances as $d): ?>
-                                    <option value="<?= $d['id'] ?>"><?= htmlspecialchars($d['distance_name']) ?></option>
-                                <?php endforeach; ?>
-                            </select>
+                        <!-- Bulk Add Classes -->
+                <div class="p-6 bg-white/50 border-b border-slate-200/50">
+                    <form action="<?= getenv('APP_URL') ?>/roll/admin/events/bulk_store_class" method="POST" class="space-y-6">
+                        <input type="hidden" name="event_id" value="<?= $row['id'] ?>">
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- Jarak Tempuh -->
+                            <div>
+                                <h4 class="text-xs font-black text-slate-600 uppercase mb-3">1. Pilih Jarak Tempuh</h4>
+                                <div class="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+                                    <?php foreach($distances as $d): ?>
+                                    <label class="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-100 cursor-pointer transition">
+                                        <input type="checkbox" name="distances[]" value="<?= $d['id'] ?>" class="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500">
+                                        <span class="text-sm font-bold text-slate-700"><?= htmlspecialchars($d['distance_name']) ?></span>
+                                    </label>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
+
+                            <!-- Kelompok Umur -->
+                            <div>
+                                <h4 class="text-xs font-black text-slate-600 uppercase mb-3">2. Pilih Kelompok Umur</h4>
+                                <div class="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+                                    <?php foreach($ageGroups as $a): ?>
+                                    <label class="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-100 cursor-pointer transition">
+                                        <input type="checkbox" name="age_groups[]" value="<?= $a['id'] ?>" class="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500">
+                                        <span class="text-sm font-bold text-slate-700"><?= htmlspecialchars($a['group_name']) ?></span>
+                                    </label>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
                         </div>
-                        <div class="flex-1">
-                            <select name="age_group_id" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-800 focus:ring-2 focus:ring-emerald-500" required>
-                                <option value="">- Pilih KU -</option>
-                                <?php foreach($ageGroups as $a): ?>
-                                    <option value="<?= $a['id'] ?>"><?= htmlspecialchars($a['group_name']) ?></option>
-                                <?php endforeach; ?>
-                            </select>
+
+                        <!-- Gender & Submit -->
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center pt-4 border-t border-slate-200 gap-4">
+                            <div>
+                                <h4 class="text-xs font-black text-slate-600 uppercase mb-2">3. Pilih Gender</h4>
+                                <div class="flex gap-4">
+                                    <label class="flex items-center gap-2 cursor-pointer">
+                                        <input type="checkbox" name="genders[]" value="Putra" class="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500" checked>
+                                        <span class="text-sm font-bold text-slate-700">Putra</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 cursor-pointer">
+                                        <input type="checkbox" name="genders[]" value="Putri" class="w-4 h-4 text-pink-600 rounded border-slate-300 focus:ring-pink-500" checked>
+                                        <span class="text-sm font-bold text-slate-700">Putri</span>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-8 rounded-xl shadow-lg hover:shadow-emerald-500/30 transition-all uppercase tracking-widest text-sm w-full sm:w-auto flex-shrink-0">
+                                ➕ Buat Kelas Massal
+                            </button>
                         </div>
-                        <div class="flex-1">
-                            <select name="category_name" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-800 focus:ring-2 focus:ring-emerald-500" required>
-                                <option value="">- Kategori -</option>
-                                <option value="Putra">Putra</option>
-                                <option value="Putri">Putri</option>
-                                <option value="Campuran">Campuran</option>
-                            </select>
-                        </div>
-                        <button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-slate-800 font-bold py-2 px-6 rounded-lg shadow-lg text-sm transition-all whitespace-nowrap">+ Tambah</button>
                     </form>
-                </div>
+                </div>   </div>
 
                 <!-- List of Classes -->
                 <div class="p-6 flex-1 overflow-auto">

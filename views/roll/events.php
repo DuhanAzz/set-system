@@ -126,11 +126,15 @@ $siteDesc     = $s['site_description'] ?? 'Platform manajemen lomba sepatu roda 
                         
                         <!-- Poster Image (Left side) -->
                         <div class="w-full sm:w-2/5 aspect-[1/1.4] sm:aspect-auto sm:min-h-[350px] bg-slate-900 relative overflow-hidden shrink-0">
-                            <?php if (!empty($ev['poster_image'])): ?>
-                                <img src="<?= rtrim(getenv('APP_URL'), '/') ?>/uploads/<?= ltrim(str_replace(['public/uploads/', 'uploads/'], '', $ev['poster_image']), '/') ?>" class="w-full h-full object-cover opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-700" alt="Poster">
-                            <?php else: ?>
-                                <img src="https://images.unsplash.com/photo-1520045892732-304bc3ac5d8e?q=80&w=800&auto=format&fit=crop" class="w-full h-full object-cover opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-700" alt="Fallback Poster">
-                            <?php endif; ?>
+                            <?php 
+                                $imgSrcEv = "https://images.unsplash.com/photo-1520045892732-304bc3ac5d8e?q=80&w=800&auto=format&fit=crop";
+                                if (!empty($ev['poster_image'])) {
+                                    $imgSrcEv = (strpos($ev['poster_image'], 'http') === 0) ? $ev['poster_image'] : (strpos($ev['poster_image'], 'uploads/logos/') !== false ? rtrim(getenv('APP_URL'), '/') . '/public/' . ltrim($ev['poster_image'], '/') : rtrim(getenv('APP_URL'), '/') . '/public/uploads/logos/' . ltrim($ev['poster_image'], '/'));
+                                } elseif (!empty($ev['logo_left'])) {
+                                    $imgSrcEv = (strpos($ev['logo_left'], 'http') === 0) ? $ev['logo_left'] : (strpos($ev['logo_left'], 'uploads/logos/') !== false ? rtrim(getenv('APP_URL'), '/') . '/public/' . ltrim($ev['logo_left'], '/') : rtrim(getenv('APP_URL'), '/') . '/public/uploads/logos/' . ltrim($ev['logo_left'], '/'));
+                                }
+                            ?>
+                            <img src="<?= htmlspecialchars($imgSrcEv) ?>" class="w-full h-full object-cover opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-700" alt="Poster">
                             <div class="absolute inset-0 bg-gradient-to-t from-slate-900/80 sm:bg-gradient-to-r sm:from-transparent sm:to-slate-900/10 to-transparent"></div>
                             
                             <!-- Logos -->

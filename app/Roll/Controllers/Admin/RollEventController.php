@@ -54,7 +54,7 @@ class RollEventController extends Controller {
         $ageGroups = [];
         try {
             $distances = $db->query("SELECT * FROM roll_ref_distances ORDER BY id ASC")->fetchAll(PDO::FETCH_ASSOC);
-            $ageGroups = $db->query("SELECT * FROM roll_ref_age_groups ORDER BY min_age ASC")->fetchAll(PDO::FETCH_ASSOC);
+            $ageGroups = $db->query("SELECT * FROM roll_ref_age_groups ORDER BY min_year ASC")->fetchAll(PDO::FETCH_ASSOC);
         } catch (\Exception $e) {}
 
         return $this->view('roll/admin/event_profile/index', [
@@ -79,10 +79,6 @@ class RollEventController extends Controller {
             $eventCity = $_POST['event_city'] ?? '';
             $raceFormat = $_POST['race_format'] ?? 'SPRINT';
             $status = $_POST['status'] ?? 'Draft';
-            
-            $tdName = $_POST['td_name'] ?? '';
-            $crName = $_POST['cr_name'] ?? '';
-            $kpName = $_POST['kp_name'] ?? '';
 
             // Verify Ownership
             $stmtCek = $db->prepare("SELECT id, poster_image, sponsor_logos FROM roll_events WHERE id = ? AND user_id = ?");
@@ -125,8 +121,8 @@ class RollEventController extends Controller {
             }
             $sponsorLogosJson = json_encode($sponsorsArray);
 
-            $stmt = $db->prepare("UPDATE roll_events SET event_name=?, event_date_start=?, event_date_end=?, event_location=?, event_city=?, race_format=?, status=?, poster_image=?, td_name=?, cr_name=?, kp_name=?, sponsor_logos=? WHERE id=?");
-            $stmt->execute([$eventName, $eventDateStart, $eventDateEnd, $eventLoc, $eventCity, $raceFormat, $status, $posterImage, $tdName, $crName, $kpName, $sponsorLogosJson, $eventId]);
+            $stmt = $db->prepare("UPDATE roll_events SET event_name=?, event_date_start=?, event_date_end=?, event_location=?, event_city=?, race_format=?, status=?, poster_image=?, sponsor_logos=? WHERE id=?");
+            $stmt->execute([$eventName, $eventDateStart, $eventDateEnd, $eventLoc, $eventCity, $raceFormat, $status, $posterImage, $sponsorLogosJson, $eventId]);
 
             $_SESSION['flash_message'] = "Profil Event berhasil diperbarui!";
             $_SESSION['flash_type'] = "success";
@@ -135,13 +131,13 @@ class RollEventController extends Controller {
         }
     }
 
-    public function add_class() {
+    public function bulk_store_class() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $db = Database::getInstance()->getConnection();
             $eventId = $_POST['event_id'];
-            $distanceId = $_POST['distance_id'];
-            $ageGroupId = $_POST['age_group_id'];
-            $gender = $_POST['gender'] ?? 'Putra'; // Added per user request in older fixes
+            $distances = $_POST['distances'] ?? [];
+            $ageGroups = $_POST['age_groups'] ?? [];
+            $genders = $_POST['genders'] ?? [];
 
             // Verify event ownership
             $uid = $_SESSION['roll_user_id'];
@@ -154,10 +150,49 @@ class RollEventController extends Controller {
                 exit;
             }
 
-            $stmt = $db->prepare("INSERT INTO roll_event_details (event_id, distance_id, age_group_id, category_name) VALUES (?, ?, ?, ?)");
-            $stmt->execute([$eventId, $distanceId, $ageGroupId, $gender]);
+            if (empty($distances) || empty($genders)) {
+                $_SESSION['flash_message'] = "Silakan centang minimal 1 Jarak dan 1 Gender!";
+                $_SESSION['flash_type'] = "error";
+                header("Location: " . getenv('APP_URL') . "/roll/admin/events");
+                exit;
+            }
 
-            $_SESSION['flash_message'] = "Kelas berhasil ditambahkan!";
+            $count = 0;
+            $stmt = $db->prepare("INSERT INTO roll_event_details (event_id, distance_id, age_group_id, category_name, distance, result_status) VALUES (?, ?, ?, ?, ?, 'Draft')");
+            
+            // For category_name and distance fallback
+            $stmtDist = $db->prepare("SELECT distance_name FROM roll_ref_distances WHERE id = ?");
+            $stmtAge = $db->prepare("SELECT group_name FROM roll_ref_age_groups WHERE id = ?");
+
+            foreach ($distances as $d_id) {
+                $stmtDist->execute([$d_id]);
+                $dName = $stmtDist->fetchColumn();
+                
+                $ages = !empty($ageGroups) ? $ageGroups : [null]; // fallback loop
+
+                foreach ($ages as $a_id) {
+                    if ($a_id) {
+                        $stmtAge->execute([$a_id]);
+                        $aName = $stmtAge->fetchColumn();
+                    } else {
+                        // Extract from distance name like "50m Sprint (Pemula)" -> "Pemula"
+                        $aName = "Umum";
+                        if (preg_match('/\((.*?)\)/', $dName, $matches)) {
+                            $aName = $matches[1];
+                        }
+                    }
+                    
+                    foreach ($genders as $gender) {
+                        $catName = $aName . ' ' . $gender;
+                        try {
+                            $stmt->execute([$eventId, $d_id, $a_id, $catName, $dName]);
+                            $count++;
+                        } catch (\Exception $e) {}
+                    }
+                }
+            }
+
+            $_SESSION['flash_message'] = "$count Kelas Lomba berhasil ditambahkan!";
             $_SESSION['flash_type'] = "success";
             header("Location: " . getenv('APP_URL') . "/roll/admin/events");
             exit;
