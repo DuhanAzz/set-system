@@ -129,9 +129,9 @@ $siteDesc     = $s['site_description'] ?? 'Platform manajemen lomba sepatu roda 
                             <?php 
                                 $imgSrcEv = "https://images.unsplash.com/photo-1520045892732-304bc3ac5d8e?q=80&w=800&auto=format&fit=crop";
                                 if (!empty($ev['poster_image'])) {
-                                    $imgSrcEv = (strpos($ev['poster_image'], 'http') === 0) ? $ev['poster_image'] : (strpos($ev['poster_image'], 'uploads/logos/') !== false ? rtrim(getenv('APP_URL'), '/') . '/public/' . ltrim($ev['poster_image'], '/') : rtrim(getenv('APP_URL'), '/') . '/public/uploads/logos/' . ltrim($ev['poster_image'], '/'));
+                                    $imgSrcEv = (strpos($ev['poster_image'], 'http') === 0) ? $ev['poster_image'] : (strpos($ev['poster_image'], 'uploads/logos/') !== false ? rtrim(getenv('APP_URL'), '/') . '/' . ltrim($ev['poster_image'], '/') : rtrim(getenv('APP_URL'), '/') . '/uploads/logos/' . ltrim($ev['poster_image'], '/'));
                                 } elseif (!empty($ev['logo_left'])) {
-                                    $imgSrcEv = (strpos($ev['logo_left'], 'http') === 0) ? $ev['logo_left'] : (strpos($ev['logo_left'], 'uploads/logos/') !== false ? rtrim(getenv('APP_URL'), '/') . '/public/' . ltrim($ev['logo_left'], '/') : rtrim(getenv('APP_URL'), '/') . '/public/uploads/logos/' . ltrim($ev['logo_left'], '/'));
+                                    $imgSrcEv = (strpos($ev['logo_left'], 'http') === 0) ? $ev['logo_left'] : (strpos($ev['logo_left'], 'uploads/logos/') !== false ? rtrim(getenv('APP_URL'), '/') . '/' . ltrim($ev['logo_left'], '/') : rtrim(getenv('APP_URL'), '/') . '/uploads/logos/' . ltrim($ev['logo_left'], '/'));
                                 }
                             ?>
                             <img src="<?= htmlspecialchars($imgSrcEv) ?>" class="w-full h-full object-cover opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-700" alt="Poster">

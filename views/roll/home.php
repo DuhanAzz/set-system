@@ -179,9 +179,9 @@ $eventFallbackImg = !empty($s['event_fallback_image']) ? rtrim(getenv('APP_URL')
                 // PATH RESOLVER UNTUK POSTER LOMBA
                 $imgSrc = $eventFallbackImg;
                 if (!empty($e['poster_image'])) {
-                    $imgSrc = (strpos($e['poster_image'], 'http') === 0) ? $e['poster_image'] : (strpos($e['poster_image'], 'uploads/logos/') !== false ? rtrim(getenv('APP_URL'), '/') . '/public/' . ltrim($e['poster_image'], '/') : rtrim(getenv('APP_URL'), '/') . '/public/uploads/logos/' . ltrim($e['poster_image'], '/'));
+                    $imgSrc = (strpos($e['poster_image'], 'http') === 0) ? $e['poster_image'] : (strpos($e['poster_image'], 'uploads/logos/') !== false ? rtrim(getenv('APP_URL'), '/') . '/' . ltrim($e['poster_image'], '/') : rtrim(getenv('APP_URL'), '/') . '/uploads/logos/' . ltrim($e['poster_image'], '/'));
                 } elseif (!empty($e['logo_left'])) {
-                    $imgSrc = (strpos($e['logo_left'], 'http') === 0) ? $e['logo_left'] : (strpos($e['logo_left'], 'uploads/logos/') !== false ? rtrim(getenv('APP_URL'), '/') . '/public/' . ltrim($e['logo_left'], '/') : rtrim(getenv('APP_URL'), '/') . '/public/uploads/logos/' . ltrim($e['logo_left'], '/'));
+                    $imgSrc = (strpos($e['logo_left'], 'http') === 0) ? $e['logo_left'] : (strpos($e['logo_left'], 'uploads/logos/') !== false ? rtrim(getenv('APP_URL'), '/') . '/' . ltrim($e['logo_left'], '/') : rtrim(getenv('APP_URL'), '/') . '/uploads/logos/' . ltrim($e['logo_left'], '/'));
                 }
             ?>
             <div class="bg-white rounded-3xl border border-slate-200 overflow-hidden hover:shadow-2xl transition-all duration-300 group flex flex-col sm:flex-row relative">

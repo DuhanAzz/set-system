@@ -1,12 +1,25 @@
 <div class="-m-6 p-6 min-h-[calc(100vh-4rem)] bg-white text-slate-800 font-sans">
     <div class="max-w-7xl mx-auto space-y-6">
         
-        <!-- Flash Messages -->
+        <!-- Flash Messages (Universal Toast) -->
         <?php if (isset($_SESSION['flash_message'])): ?>
-            <div class="p-4 rounded-xl border <?= $_SESSION['flash_type'] === 'success' ? 'bg-emerald-900/50 border-emerald-500/30 text-emerald-300' : 'bg-red-900/50 border-red-500/30 text-red-300' ?> flex items-center justify-between shadow-lg backdrop-blur-sm">
-                <span><?= $_SESSION['flash_message'] ?></span>
-                <button onclick="this.parentElement.remove()" class="text-xl">&times;</button>
+            <div id="toast-message" class="fixed bottom-10 right-10 z-[9999] min-w-[300px] p-4 rounded-xl border <?= $_SESSION['flash_type'] === 'success' ? 'bg-emerald-600 border-emerald-500 text-white' : 'bg-red-600 border-red-500 text-white' ?> flex items-center justify-between shadow-2xl transition-all duration-500 transform translate-y-0 opacity-100">
+                <div class="flex items-center space-x-3">
+                    <span class="text-xl"><?= $_SESSION['flash_type'] === 'success' ? '✅' : '⚠️' ?></span>
+                    <span class="font-bold tracking-wide"><?= $_SESSION['flash_message'] ?></span>
+                </div>
+                <button onclick="this.parentElement.style.opacity='0'; setTimeout(()=>this.parentElement.remove(), 500)" class="text-2xl ml-6 hover:text-slate-200 transition-colors">&times;</button>
             </div>
+            <script>
+                setTimeout(() => {
+                    let toast = document.getElementById('toast-message');
+                    if(toast) {
+                        toast.style.opacity = '0';
+                        toast.style.transform = 'translateY(20px)';
+                        setTimeout(() => toast.remove(), 500);
+                    }
+                }, 4000);
+            </script>
             <?php unset($_SESSION['flash_message']); unset($_SESSION['flash_type']); ?>
         <?php endif; ?>
 
@@ -52,6 +65,14 @@
                             <input type="date" name="event_date_end" value="<?= htmlspecialchars($row['event_date_end'] ?? '') ?>" class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-800 focus:ring-2 focus:ring-blue-500" required>
                         </div>
                         <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Status Publikasi</label>
+                            <select name="status" class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-800 focus:ring-2 focus:ring-blue-500">
+                                <option value="Draft" <?= ($row['status'] == 'Draft') ? 'selected' : '' ?>>Draft (Sembunyikan)</option>
+                                <option value="Published" <?= ($row['status'] == 'Published') ? 'selected' : '' ?>>Published (Tampilkan di Publik)</option>
+                                <option value="Completed" <?= ($row['status'] == 'Completed') ? 'selected' : '' ?>>Completed (Selesai)</option>
+                            </select>
+                        </div>
+                        <div>
                             <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Lokasi (Opsional)</label>
                             <input type="text" name="event_location" value="<?= htmlspecialchars($row['event_location'] ?? '') ?>" class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-800 focus:ring-2 focus:ring-blue-500">
                         </div>
@@ -64,7 +85,7 @@
                             <div class="mb-3">
                                 <p class="text-xs text-slate-500 mb-1">Poster Saat Ini:</p>
                                 <div class="relative inline-block group">
-                                    <img src="<?= rtrim(getenv('APP_URL'), '/') ?>/public/uploads/logos/<?= ltrim(str_replace(['public/uploads/logos/', 'uploads/logos/'], '', $row['poster_image']), '/') ?>" class="h-32 rounded-lg border border-slate-200 shadow-sm object-cover" alt="Poster">
+                                    <img src="<?= rtrim(getenv('APP_URL'), '/') ?>/uploads/logos/<?= ltrim(str_replace(['public/uploads/logos/', 'uploads/logos/'], '', $row['poster_image']), '/') ?>" class="h-32 rounded-lg border border-slate-200 shadow-sm object-cover" alt="Poster">
                                     <button type="button" onclick="if(confirm('Hapus poster ini?')) window.location.href='<?= getenv('APP_URL') ?>/roll/admin/events/delete_poster?id=<?= $row['id'] ?>'" class="absolute -top-2 -right-2 hidden group-hover:flex bg-red-500 text-white rounded-full w-6 h-6 items-center justify-center text-xs shadow-md hover:bg-red-600">&times;</button>
                                 </div>
                             </div>
@@ -85,7 +106,7 @@
                                     <div class="flex flex-wrap gap-2 items-center">
                                         <?php foreach($sponsorsArray as $sponsorFile): ?>
                                             <div class="relative group">
-                                                <img src="<?= rtrim(getenv('APP_URL'), '/') ?>/public/<?= ltrim($sponsorFile, '/') ?>" class="h-12 rounded bg-slate-100 border border-slate-200 object-contain p-1" alt="Sponsor">
+                                                <img src="<?= rtrim(getenv('APP_URL'), '/') ?>/<?= ltrim(str_replace('public/', '', $sponsorFile), '/') ?>" class="h-12 rounded bg-slate-100 border border-slate-200 object-contain p-1" alt="Sponsor">
                                                 <button type="button" onclick="if(confirm('Hapus logo sponsor ini?')) window.location.href='<?= getenv('APP_URL') ?>/roll/admin/events/delete_sponsor?id=<?= $row['id'] ?>&file=<?= urlencode($sponsorFile) ?>'" class="absolute -top-2 -right-2 hidden group-hover:flex bg-red-500 text-white rounded-full w-5 h-5 items-center justify-center text-xs shadow-md hover:bg-red-600">&times;</button>
                                             </div>
                                         <?php endforeach; ?>
@@ -109,7 +130,7 @@
                                     <div class="flex flex-wrap gap-2 items-center">
                                         <?php foreach($headerLogosArray as $logoFile): ?>
                                             <div class="relative group">
-                                                <img src="<?= rtrim(getenv('APP_URL'), '/') ?>/public/<?= ltrim($logoFile, '/') ?>" class="h-12 rounded bg-slate-100 border border-slate-200 object-contain p-1" alt="Header Logo">
+                                                <img src="<?= rtrim(getenv('APP_URL'), '/') ?>/<?= ltrim(str_replace('public/', '', $logoFile), '/') ?>" class="h-12 rounded bg-slate-100 border border-slate-200 object-contain p-1" alt="Header Logo">
                                                 <button type="button" onclick="if(confirm('Hapus logo ini?')) window.location.href='<?= getenv('APP_URL') ?>/roll/admin/events/delete_header_logo?id=<?= $row['id'] ?>&file=<?= urlencode($logoFile) ?>'" class="absolute -top-2 -right-2 hidden group-hover:flex bg-red-500 text-white rounded-full w-5 h-5 items-center justify-center text-xs shadow-md hover:bg-red-600">&times;</button>
                                             </div>
                                         <?php endforeach; ?>
