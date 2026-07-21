@@ -28,7 +28,7 @@ class RollEntryController extends Controller {
         }
         
         // Pintu Kasir: Ambil data entries untuk event ini
-        $sql = "SELECT e.*, s.skater_name, s.gender, a.group_name as age_group, c.club_name, d.distance_name, ed.category_name 
+        $sql = "SELECT e.*, s.skater_name, s.gender, a.group_name, c.club_name, d.distance_name, ed.category_name 
                 FROM roll_entries e 
                 JOIN roll_skaters s ON e.skater_id = s.id 
                 LEFT JOIN roll_clubs c ON s.club_id = c.id 

@@ -48,7 +48,7 @@ class RollPelotonController extends Controller {
                 JOIN roll_skaters s ON e.skater_id = s.id
                 LEFT JOIN roll_clubs c ON s.club_id = c.id
                 LEFT JOIN roll_pelotons p ON e.skater_id = p.skater_id AND e.race_class_id = p.race_class_id AND p.event_id = e.event_id
-                WHERE e.event_id = ? AND e.race_class_id = ? AND e.status = 'Paid'
+                WHERE e.event_id = ? AND e.race_class_id = ? AND e.status IN ('Paid', 'Seeded', 'Qualified')
                 ORDER BY s.skater_name ASC
             ");
             $stmtEntries->execute([$eventId, $filter_class_id]);

@@ -145,7 +145,7 @@ class RollRegistrationController extends Controller {
 
         // Validasi 2: Umur (Age Calculator)
         // Note: min_year dan max_year pada sistem ini bertindak sebagai batas UMUR.
-        $age = DateHelper::calculateAge($athlete['birth_date'], $event['start_date']);
+        $age = DateHelper::calculateAge($athlete['birth_date'], $event['event_date_start']);
         
         $minAge = $class['min_year'] ?? 0;
         $maxAge = $class['max_year'] ?? 99; // Jika null, anggap max 99 (Dewasa)
