@@ -1,0 +1,8 @@
+/Applications/XAMPP/xamppfiles/htdocs/set-system/.agents/AGENTS.md
+/Applications/XAMPP/xamppfiles/htdocs/set-system/.agents/rules/graphify.md
+/Applications/XAMPP/xamppfiles/htdocs/set-system/.agents/rules/ponytail.md
+/Applications/XAMPP/xamppfiles/htdocs/set-system/.agents/workflows/graphify.md
+/Applications/XAMPP/xamppfiles/htdocs/set-system/.graphify/GRAPH_REPORT.md
+/Applications/XAMPP/xamppfiles/htdocs/set-system/.graphify/graph.html
+/Applications/XAMPP/xamppfiles/htdocs/set-system/CHANGELOG.md
+/Applications/XAMPP/xamppfiles/htdocs/set-system/public/favicon.png
