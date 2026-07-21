@@ -65,16 +65,19 @@
                             <input type="date" name="event_date_end" value="<?= htmlspecialchars($row['event_date_end'] ?? '') ?>" class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-800 focus:ring-2 focus:ring-blue-500" required>
                         </div>
                         <div>
-                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Status Publikasi</label>
-                            <select name="status" class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-800 focus:ring-2 focus:ring-blue-500">
-                                <option value="Draft" <?= ($row['status'] == 'Draft') ? 'selected' : '' ?>>Draft (Sembunyikan)</option>
-                                <option value="Published" <?= ($row['status'] == 'Published') ? 'selected' : '' ?>>Published (Tampilkan di Publik)</option>
-                                <option value="Completed" <?= ($row['status'] == 'Completed') ? 'selected' : '' ?>>Completed (Selesai)</option>
-                            </select>
-                        </div>
-                        <div>
                             <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Lokasi (Opsional)</label>
                             <input type="text" name="event_location" value="<?= htmlspecialchars($row['event_location'] ?? '') ?>" class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-800 focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Status Kejuaraan</label>
+                            <select name="status" class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-800 focus:ring-2 focus:ring-blue-500 font-bold">
+                                <option value="Draft" <?= ($row['status'] == 'Draft') ? 'selected' : '' ?>>Draft (Sembunyikan)</option>
+                                <option value="Published" <?= ($row['status'] == 'Published') ? 'selected' : '' ?>>Published</option>
+                                <option value="Open Registration" <?= ($row['status'] == 'Open Registration') ? 'selected' : '' ?>>Open Registration</option>
+                                <option value="Close Registration" <?= ($row['status'] == 'Close Registration') ? 'selected' : '' ?>>Close Registration</option>
+                                <option value="Running" <?= ($row['status'] == 'Running') ? 'selected' : '' ?>>Running</option>
+                                <option value="Finished" <?= ($row['status'] == 'Finished') ? 'selected' : '' ?>>Finished</option>
+                            </select>
                         </div>
                     </div>
 
@@ -118,28 +121,41 @@
                             <p class="text-[10px] text-slate-500 mt-2">Pilih lebih dari satu gambar (JPG/PNG).</p>
                         </div>
 
-                        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                            <h4 class="text-sm font-bold text-slate-800 uppercase tracking-widest mb-2">Logo Header (Dokumen)</h4>
+                        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm md:col-span-2 lg:col-span-3">
+                            <h4 class="text-sm font-bold text-slate-800 uppercase tracking-widest mb-4 border-b border-slate-200 pb-2">Logo Header (Dokumen Kop Surat)</h4>
                             
                             <?php 
-                            $headerLogosArray = !empty($row['header_logos']) ? json_decode($row['header_logos'], true) : [];
-                            if (!empty($headerLogosArray)): 
+                            // Support for legacy flat array or new structured array
+                            $rawHeader = !empty($row['header_logos']) ? json_decode($row['header_logos'], true) : [];
+                            $headerLogos = ['left' => [], 'center' => [], 'right' => []];
+                            if (isset($rawHeader[0]) && !is_array($rawHeader[0])) {
+                                // Legacy format, put them all in left or distribute
+                                $headerLogos['left'] = $rawHeader;
+                            } else {
+                                $headerLogos = array_merge($headerLogos, $rawHeader);
+                            }
                             ?>
-                                <div class="mb-3">
-                                    <p class="text-[10px] text-slate-500 mb-2 uppercase font-bold tracking-wider">Logo Saat Ini (Max 4):</p>
-                                    <div class="flex flex-wrap gap-2 items-center">
-                                        <?php foreach($headerLogosArray as $logoFile): ?>
-                                            <div class="relative group">
-                                                <img src="<?= rtrim(getenv('APP_URL'), '/') ?>/<?= ltrim(str_replace('public/', '', $logoFile), '/') ?>" class="h-12 rounded bg-slate-100 border border-slate-200 object-contain p-1" alt="Header Logo">
-                                                <button type="button" onclick="if(confirm('Hapus logo ini?')) window.location.href='<?= getenv('APP_URL') ?>/roll/admin/events/delete_header_logo?id=<?= $row['id'] ?>&file=<?= urlencode($logoFile) ?>'" class="absolute -top-2 -right-2 hidden group-hover:flex bg-red-500 text-white rounded-full w-5 h-5 items-center justify-center text-xs shadow-md hover:bg-red-600">&times;</button>
-                                            </div>
-                                        <?php endforeach; ?>
-                                    </div>
-                                </div>
-                            <?php endif; ?>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <?php foreach(['left' => 'Kiri', 'center' => 'Tengah', 'right' => 'Kanan'] as $pos => $label): ?>
+                                <div class="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                                    <p class="text-xs font-bold text-slate-700 uppercase tracking-widest mb-2">Logo <?= $label ?> (Max 2)</p>
+                                    
+                                    <?php if (!empty($headerLogos[$pos])): ?>
+                                        <div class="flex flex-wrap gap-2 mb-3">
+                                            <?php foreach($headerLogos[$pos] as $logoFile): ?>
+                                                <div class="relative group">
+                                                    <img src="<?= rtrim(getenv('APP_URL'), '/') ?>/<?= ltrim(str_replace('public/', '', $logoFile), '/') ?>" class="h-10 rounded bg-white border border-slate-200 object-contain p-1" alt="Logo <?= $label ?>">
+                                                    <button type="button" onclick="if(confirm('Hapus logo ini?')) window.location.href='<?= getenv('APP_URL') ?>/roll/admin/events/delete_header_logo?id=<?= $row['id'] ?>&file=<?= urlencode($logoFile) ?>&pos=<?= $pos ?>'" class="absolute -top-2 -right-2 hidden group-hover:flex bg-red-500 text-white rounded-full w-5 h-5 items-center justify-center text-xs shadow-md hover:bg-red-600">&times;</button>
+                                                </div>
+                                            <?php endforeach; ?>
+                                        </div>
+                                    <?php endif; ?>
 
-                            <input type="file" name="header_logos[]" multiple accept="image/*" class="w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-slate-100 file:text-slate-800 hover:file:bg-slate-200">
-                            <p class="text-[10px] text-slate-500 mt-2">Maksimal 4 gambar. Urutan upload menjadi urutan posisi dari kiri ke kanan.</p>
+                                    <input type="file" name="header_logos_<?= $pos ?>[]" multiple accept="image/*" class="w-full text-[10px] text-slate-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[10px] file:font-bold file:bg-blue-100 file:text-blue-800 hover:file:bg-blue-200">
+                                </div>
+                                <?php endforeach; ?>
+                            </div>
                         </div>
                     </div>
                     

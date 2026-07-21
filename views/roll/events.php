@@ -148,6 +148,21 @@ $siteDesc     = $s['site_description'] ?? 'Platform manajemen lomba sepatu roda 
                         <!-- Content (Right side) -->
                         <div class="w-full sm:w-3/5 p-6 md:p-8 flex flex-col justify-between relative z-10">
                             <div>
+                                <?php 
+                                $statusEv = $ev['status'] ?? 'Draft';
+                                switch ($statusEv) {
+                                    case 'Published': $badgeEv = "bg-emerald-500 text-white"; break;
+                                    case 'Open Registration': $badgeEv = "bg-blue-500 text-white animate-pulse"; break;
+                                    case 'Close Registration': $badgeEv = "bg-red-500 text-white"; break;
+                                    case 'Running': $badgeEv = "bg-orange-500 text-white animate-pulse"; break;
+                                    case 'Finished': 
+                                    case 'Completed': $badgeEv = "bg-slate-700 text-white"; break;
+                                    default: $badgeEv = "bg-slate-500 text-white";
+                                }
+                                ?>
+                                <div class="absolute top-4 left-4 z-20 <?= $badgeEv ?> px-3 py-1 rounded-full font-black text-[9px] uppercase tracking-widest shadow-lg">
+                                    <?= strtoupper($statusEv) ?>
+                                </div>
                                 <h3 class="text-2xl md:text-3xl font-black uppercase text-slate-800 mb-4 italic leading-tight line-clamp-2 group-hover:text-orange-600 transition">
                                     <?= htmlspecialchars($ev['event_name']) ?>
                                 </h3>

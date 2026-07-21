@@ -174,7 +174,15 @@ $eventFallbackImg = !empty($s['event_fallback_image']) ? rtrim(getenv('APP_URL')
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <?php foreach($upcoming_preview as $e): 
                 $status = $e['status'] ?? 'Draft';
-                $badge = ($status == 'Published') ? "bg-emerald-500 animate-pulse" : (($status == 'Completed') ? "bg-slate-600" : "bg-orange-500");
+                switch ($status) {
+                    case 'Published': $badge = "bg-emerald-500"; break;
+                    case 'Open Registration': $badge = "bg-blue-500 animate-pulse"; break;
+                    case 'Close Registration': $badge = "bg-red-500"; break;
+                    case 'Running': $badge = "bg-orange-500 animate-pulse"; break;
+                    case 'Finished': 
+                    case 'Completed': $badge = "bg-slate-700"; break;
+                    default: $badge = "bg-slate-500";
+                }
                 
                 // PATH RESOLVER UNTUK POSTER LOMBA
                 $imgSrc = $eventFallbackImg;

@@ -121,23 +121,30 @@ class RollEventController extends Controller {
             }
             $sponsorLogosJson = json_encode($sponsorsArray);
 
-            // Handle Multiple Header Logos
-            $headerLogosArray = [];
-            if (!empty($evt['header_logos'])) {
-                $headerLogosArray = json_decode($evt['header_logos'], true) ?: [];
+            // Handle Structured Header Logos (Left, Center, Right)
+            $rawHeader = !empty($evt['header_logos']) ? json_decode($evt['header_logos'], true) : [];
+            $headerLogosArray = ['left' => [], 'center' => [], 'right' => []];
+            if (isset($rawHeader[0]) && !is_array($rawHeader[0])) {
+                $headerLogosArray['left'] = $rawHeader;
+            } else {
+                $headerLogosArray = array_merge($headerLogosArray, $rawHeader);
             }
-            if (isset($_FILES['header_logos']) && is_array($_FILES['header_logos']['name'])) {
-                $uploadDir = __DIR__ . '/../../../../public/uploads/logos/';
-                if (!is_dir($uploadDir)) {
-                    mkdir($uploadDir, 0777, true);
-                }
-                for ($i = 0; $i < count($_FILES['header_logos']['name']); $i++) {
-                    if (count($headerLogosArray) >= 4) break; // Max 4 logos
-                    if ($_FILES['header_logos']['error'][$i] === UPLOAD_ERR_OK) {
-                        $tmpName = $_FILES['header_logos']['tmp_name'][$i];
-                        $fileName = time() . '_h_' . rand(1000,9999) . '_' . preg_replace("/[^a-zA-Z0-9.-]/", "_", $_FILES['header_logos']['name'][$i]);
-                        if (move_uploaded_file($tmpName, $uploadDir . $fileName)) {
-                            $headerLogosArray[] = 'uploads/logos/' . $fileName;
+
+            foreach(['left', 'center', 'right'] as $pos) {
+                $inputName = "header_logos_$pos";
+                if (isset($_FILES[$inputName]) && is_array($_FILES[$inputName]['name'])) {
+                    $uploadDir = __DIR__ . '/../../../../public/uploads/logos/';
+                    if (!is_dir($uploadDir)) {
+                        mkdir($uploadDir, 0777, true);
+                    }
+                    for ($i = 0; $i < count($_FILES[$inputName]['name']); $i++) {
+                        if (count($headerLogosArray[$pos]) >= 2) break; // Max 2 logos per position
+                        if ($_FILES[$inputName]['error'][$i] === UPLOAD_ERR_OK) {
+                            $tmpName = $_FILES[$inputName]['tmp_name'][$i];
+                            $fileName = time() . "_h_{$pos}_" . rand(1000,9999) . '_' . preg_replace("/[^a-zA-Z0-9.-]/", "_", $_FILES[$inputName]['name'][$i]);
+                            if (move_uploaded_file($tmpName, $uploadDir . $fileName)) {
+                                $headerLogosArray[$pos][] = 'uploads/logos/' . $fileName;
+                            }
                         }
                     }
                 }
@@ -287,26 +294,52 @@ class RollEventController extends Controller {
     public function delete_header_logo() {
         $db = Database::getInstance()->getConnection();
         $eventId = $_GET['id'] ?? 0;
-        $logoFile = $_GET['file'] ?? '';
+        $fileToRemove = $_GET['file'] ?? '';
+        $pos = $_GET['pos'] ?? '';
         $uid = $_SESSION['roll_user_id'];
         
         $stmtCek = $db->prepare("SELECT id, header_logos FROM roll_events WHERE id = ? AND user_id = ?");
         $stmtCek->execute([$eventId, $uid]);
-        $evt = $stmtCek->fetch(PDO::FETCH_ASSOC);
-        
-        if ($evt && !empty($evt['header_logos'])) {
-            $logos = json_decode($evt['header_logos'], true) ?: [];
-            $logos = array_filter($logos, function($val) use ($logoFile) {
-                return $val !== $logoFile;
-            });
-            $logosJson = json_encode(array_values($logos));
+        if ($stmtCek->rowCount() > 0) {
+            $row = $stmtCek->fetch(PDO::FETCH_ASSOC);
+            $rawHeader = !empty($row['header_logos']) ? json_decode($row['header_logos'], true) : [];
             
-            $stmt = $db->prepare("UPDATE roll_events SET header_logos = ? WHERE id = ?");
-            $stmt->execute([$logosJson, $eventId]);
+            $headerLogos = ['left' => [], 'center' => [], 'right' => []];
+            if (isset($rawHeader[0]) && !is_array($rawHeader[0])) {
+                $headerLogos['left'] = $rawHeader;
+            } else {
+                $headerLogos = array_merge($headerLogos, $rawHeader);
+            }
+
+            if ($pos && isset($headerLogos[$pos])) {
+                $headerLogos[$pos] = array_values(array_filter($headerLogos[$pos], function($f) use ($fileToRemove) {
+                    return $f !== $fileToRemove;
+                }));
+            } else {
+                // Fallback: search all positions
+                foreach(['left', 'center', 'right'] as $p) {
+                    $headerLogos[$p] = array_values(array_filter($headerLogos[$p], function($f) use ($fileToRemove) {
+                        return $f !== $fileToRemove;
+                    }));
+                }
+            }
+
+            $newJson = json_encode($headerLogos);
+            
+            $stmtUpdate = $db->prepare("UPDATE roll_events SET header_logos = ? WHERE id = ?");
+            $stmtUpdate->execute([$newJson, $eventId]);
+
+            $uploadDir = __DIR__ . '/../../../../public/';
+            $filePath = $uploadDir . ltrim($fileToRemove, '/');
+            if (file_exists($filePath) && strpos($filePath, 'uploads/') !== false) {
+                @unlink($filePath);
+            }
+            
             $_SESSION['flash_message'] = "Logo header berhasil dihapus!";
             $_SESSION['flash_type'] = "success";
         }
-        header("Location: " . getenv('APP_URL') . "/roll/admin/events");
+        
+        header("Location: " . getenv('APP_URL') . "/roll/admin/events/profile?id=" . $eventId);
         exit;
     }
 
