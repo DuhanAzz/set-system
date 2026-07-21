@@ -1,9 +1,0 @@
-.env
-.env.*
-*.sql
-.DS_Store
-Thumbs.db
-/uploads/*
-/public/uploads/*
-!/uploads/.gitkeep
-!/public/uploads/.gitkeep
