@@ -40,7 +40,10 @@ class RollUsersController extends Controller {
         }
         
         $query = "SELECT u.*, c.club_name, c.city_province as kota,
-                         (SELECT COUNT(*) FROM roll_skaters WHERE club_id = c.id) as total_atlet
+                         (SELECT COUNT(*) FROM roll_skaters WHERE club_id = c.id) as total_atlet,
+                         (SELECT event_name FROM roll_events WHERE user_id = u.id ORDER BY id DESC LIMIT 1) as event_name,
+                         (SELECT event_date_start FROM roll_events WHERE user_id = u.id ORDER BY id DESC LIMIT 1) as event_date_start,
+                         (SELECT event_location FROM roll_events WHERE user_id = u.id ORDER BY id DESC LIMIT 1) as event_location
                   FROM roll_users u 
                   LEFT JOIN roll_clubs c ON u.club_id = c.id 
                   $whereClause
@@ -59,8 +62,9 @@ class RollUsersController extends Controller {
     public function store() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $db = Database::getInstance()->getConnection();
+            $user_id = $_POST['user_id'] ?? null;
             $username = $_POST['username'] ?? '';
-            $password = $_POST['password'] ?? 'sepaturoda123';
+            $password = $_POST['password'] ?? '';
             $role = $_POST['role'] ?? 'user';
             $nama_lengkap = $_POST['nama_lengkap'] ?? '';
             $email = $_POST['email'] ?? '';
@@ -68,35 +72,65 @@ class RollUsersController extends Controller {
             $auto_approve = $_POST['auto_approve'] ?? 0;
             $account_status = $auto_approve ? 'active' : 'pending';
             
-            $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+            $nama_detail = $_POST['nama_detail'] ?? $nama_lengkap; // Used for event or club
+            $event_date_start = !empty($_POST['event_date_start']) ? $_POST['event_date_start'] : null;
+            $event_location = $_POST['event_location'] ?? null;
             
-            $stmt = $db->prepare("INSERT INTO roll_users (username, password, role, nama_lengkap, email, phone, account_status) VALUES (?, ?, ?, ?, ?, ?, ?)");
             try {
                 $db->beginTransaction();
-                $stmt->execute([$username, $hashedPassword, $role, $nama_lengkap, $email, $phone, $account_status]);
-                $newUserId = $db->lastInsertId();
                 
-                if ($role === 'admin') {
-                    // Create default event for the admin
-                    $stmtEvent = $db->prepare("INSERT INTO roll_events (user_id, event_name, status, race_format) VALUES (?, ?, 'Published', 'SPRINT')");
-                    $stmtEvent->execute([$newUserId, $nama_lengkap]);
-                } elseif ($role === 'user') {
-                    // Create default club for the user
-                    $stmtClub = $db->prepare("INSERT INTO roll_clubs (club_name) VALUES (?)");
-                    $stmtClub->execute([$nama_lengkap]);
-                    $newClubId = $db->lastInsertId();
+                if (!empty($user_id)) {
+                    // --- UPDATE EXISTING USER ---
+                    if (!empty($password)) {
+                        $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+                        $stmt = $db->prepare("UPDATE roll_users SET username=?, password=?, role=?, nama_lengkap=?, email=?, phone=? WHERE id=?");
+                        $stmt->execute([$username, $hashedPassword, $role, $nama_lengkap, $email, $phone, $user_id]);
+                    } else {
+                        // Keep old password
+                        $stmt = $db->prepare("UPDATE roll_users SET username=?, role=?, nama_lengkap=?, email=?, phone=? WHERE id=?");
+                        $stmt->execute([$username, $role, $nama_lengkap, $email, $phone, $user_id]);
+                    }
                     
-                    $stmtUpdateUser = $db->prepare("UPDATE roll_users SET club_id = ? WHERE id = ?");
-                    $stmtUpdateUser->execute([$newClubId, $newUserId]);
+                    // Update related event or club
+                    if ($role === 'admin') {
+                        $stmtEvent = $db->prepare("UPDATE roll_events SET event_name=?, event_date_start=?, event_location=? WHERE user_id=?");
+                        $stmtEvent->execute([$nama_detail, $event_date_start, $event_location, $user_id]);
+                    } elseif ($role === 'user') {
+                        // Assuming the user has a club
+                        $stmtClub = $db->prepare("UPDATE roll_clubs c JOIN roll_users u ON c.id = u.club_id SET c.club_name=? WHERE u.id=?");
+                        $stmtClub->execute([$nama_detail, $user_id]);
+                    }
+                    
+                    $_SESSION['flash_message'] = "Pengguna berhasil diperbarui.";
+                } else {
+                    // --- CREATE NEW USER ---
+                    if (empty($password)) $password = 'sepaturoda123';
+                    $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+                    
+                    $stmt = $db->prepare("INSERT INTO roll_users (username, password, role, nama_lengkap, email, phone, account_status) VALUES (?, ?, ?, ?, ?, ?, ?)");
+                    $stmt->execute([$username, $hashedPassword, $role, $nama_lengkap, $email, $phone, $account_status]);
+                    $newUserId = $db->lastInsertId();
+                    
+                    if ($role === 'admin') {
+                        $stmtEvent = $db->prepare("INSERT INTO roll_events (user_id, event_name, event_date_start, event_location, status, race_format) VALUES (?, ?, ?, ?, 'Published', 'SPRINT')");
+                        $stmtEvent->execute([$newUserId, $nama_detail, $event_date_start, $event_location]);
+                    } elseif ($role === 'user') {
+                        $stmtClub = $db->prepare("INSERT INTO roll_clubs (club_name) VALUES (?)");
+                        $stmtClub->execute([$nama_detail]);
+                        $newClubId = $db->lastInsertId();
+                        
+                        $stmtUpdateUser = $db->prepare("UPDATE roll_users SET club_id = ? WHERE id = ?");
+                        $stmtUpdateUser->execute([$newClubId, $newUserId]);
+                    }
+                    
+                    $_SESSION['flash_message'] = "Pengguna berhasil ditambahkan.";
                 }
                 
                 $db->commit();
-                
-                $_SESSION['flash_message'] = "Pengguna berhasil ditambahkan.";
                 $_SESSION['flash_type'] = "success";
             } catch (\Exception $e) {
                 $db->rollBack();
-                $_SESSION['flash_message'] = "Gagal menambahkan pengguna: " . $e->getMessage();
+                $_SESSION['flash_message'] = "Gagal memproses pengguna: " . $e->getMessage();
                 $_SESSION['flash_type'] = "error";
             }
             header("Location: " . getenv('APP_URL') . "/roll/master/users?role=" . $role);

@@ -24,7 +24,7 @@ class RollMasterFinanceController extends Controller {
         // Ambil Data Transaksi
         $stmt = $db->query("
             SELECT 
-                e.id, e.status, e.payment_amount, e.created_at, e.race_distance,
+                e.id, 'paid' as status, 50000 as payment_amount, e.created_at, e.race_distance,
                 s.skater_name as skater_name,
                 c.club_name as club_name,
                 ev.event_name
@@ -38,11 +38,22 @@ class RollMasterFinanceController extends Controller {
 
         // Hitung Total Pendapatan
         $totalPendapatan = 0;
-        foreach($transactions as $t) {
-            if (strtolower($t['status']) === 'paid') {
-                $totalPendapatan += (float) $t['payment_amount'];
+        foreach ($transactions as $t) {
+            if ($t['status'] === 'paid') {
+                $totalPendapatan += $t['payment_amount'];
             }
         }
+
+        // --- MENGHITUNG PENDAPATAN PER BULAN (UNTUK GRAFIK) ---
+        $stmtChart = $db->query("
+            SELECT 
+                DATE_FORMAT(created_at, '%b %Y') as month_name, 
+                SUM(50000) as total_revenue
+            FROM roll_entries 
+            GROUP BY YEAR(created_at), MONTH(created_at)
+            ORDER BY YEAR(created_at) ASC, MONTH(created_at) ASC
+            LIMIT 12
+        ");
 
         $this->view('roll/master/finance/revenue', [
             'transactions' => $transactions,

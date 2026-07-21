@@ -51,7 +51,7 @@
                             <label class="block text-slate-600 font-bold mb-2 text-xs uppercase">Kelompok Umur</label>
                             <select name="age_group_id" required class="w-full border border-slate-300 rounded-lg px-4 py-2 focus:ring-blue-500 bg-slate-50">
                                 <?php foreach($ageGroups as $a): ?>
-                                    <option value="<?= $a['id'] ?>"><?= htmlspecialchars($a['age_group_name']) ?></option>
+                                    <option value="<?= $a['id'] ?>"><?= htmlspecialchars($a['group_name']) ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>

@@ -44,7 +44,7 @@ class RollMasterReferenceController extends Controller {
     public function index() {
         $db = Database::getInstance()->getConnection();
         $distances = $db->query("SELECT * FROM roll_ref_distances ORDER BY id ASC")->fetchAll(PDO::FETCH_ASSOC);
-        $ageGroups = $db->query("SELECT * FROM roll_ref_age_groups ORDER BY min_year ASC")->fetchAll(PDO::FETCH_ASSOC);
+        $ageGroups = $db->query("SELECT * FROM roll_ref_age_groups ORDER BY min_year DESC")->fetchAll(PDO::FETCH_ASSOC);
 
         return $this->view('roll/master/reference/index', [
             'distances' => $distances,

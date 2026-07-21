@@ -88,9 +88,9 @@
                             <td class="p-4 pl-6 text-center font-bold text-slate-400"><?= $no++ ?></td>
                             <td class="p-4 font-bold text-slate-700"><?= htmlspecialchars($a['group_name']) ?></td>
                             <td class="p-4 text-center text-slate-600 font-mono text-xs">
-                                <span class="bg-slate-100 px-2 py-0.5 rounded font-bold"><?= $a['max_year'] ?></span> 
+                                <span class="bg-slate-100 px-2 py-0.5 rounded font-bold"><?= $a['min_year'] ?></span> 
                                 - 
-                                <span class="bg-slate-100 px-2 py-0.5 rounded font-bold"><?= $a['min_year'] ?></span>
+                                <span class="bg-slate-100 px-2 py-0.5 rounded font-bold"><?= $a['max_year'] ?></span>
                             </td>
                             <td class="p-4 pr-6">
                                 <div class="flex items-center justify-center gap-2">

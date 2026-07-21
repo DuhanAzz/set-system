@@ -195,13 +195,13 @@
                 
                 <div>
                     <label class="text-[10px] font-bold text-slate-500 uppercase">Username Login</label>
-                    <input type="text" name="username" id="form-username" class="w-full px-4 py-3 border border-slate-200 bg-slate-50 rounded-xl text-sm font-bold focus:bg-white focus:border-blue-500 outline-none" required placeholder="Username">
+                    <input type="text" name="username" id="form-username" class="w-full px-4 py-3 border border-slate-200 bg-slate-50 rounded-xl text-sm font-bold focus:bg-white focus:border-blue-500 outline-none" required placeholder="Username" autocomplete="off" oninput="this.value = this.value.toLowerCase().replace(/\s+/g, '')">
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label class="text-[10px] font-bold text-slate-500 uppercase">Email (Username)</label>
-                        <input type="email" name="email" id="form-email" class="w-full px-4 py-3 border border-slate-200 bg-slate-50 rounded-xl text-sm font-bold focus:bg-white focus:border-blue-500 outline-none" required>
+                        <label class="text-[10px] font-bold text-slate-500 uppercase">Email</label>
+                        <input type="email" name="email" id="form-email" class="w-full px-4 py-3 border border-slate-200 bg-slate-50 rounded-xl text-sm font-bold focus:bg-white focus:border-blue-500 outline-none" required autocomplete="off" oninput="this.value = this.value.toLowerCase()">
                     </div>
                     <div>
                         <label class="text-[10px] font-bold text-slate-500 uppercase">No. WhatsApp</label>
@@ -212,7 +212,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label class="text-[10px] font-bold text-slate-500 uppercase">Password</label>
-                        <input type="password" name="password" id="form-pass" class="w-full px-4 py-3 border border-slate-200 bg-slate-50 rounded-xl text-sm font-bold focus:bg-white focus:border-blue-500 outline-none" placeholder="Kosongi jika edit user">
+                        <input type="password" name="password" id="form-pass" class="w-full px-4 py-3 border border-slate-200 bg-slate-50 rounded-xl text-sm font-bold focus:bg-white focus:border-blue-500 outline-none" placeholder="Kosongi jika edit user" autocomplete="new-password">
                     </div>
                     <div>
                         <label class="text-[10px] font-bold text-slate-500 uppercase">Nama Lengkap User</label>
@@ -234,30 +234,19 @@
                 </div>
 
                 <?php if($targetRole == 'admin'): ?>
-                    <div class="grid grid-cols-2 gap-4">
+                    <div class="grid grid-cols-2 gap-4 mt-3">
                         <div>
-                            <label class="text-[10px] font-bold text-slate-500 uppercase">Sistem Lomba</label>
-                            <select name="competition_system" id="form-mode" class="w-full px-4 py-3 border border-slate-200 bg-slate-50 rounded-xl text-xs font-bold uppercase outline-none">
-                                <option value="Langsung Final">Langsung Final</option>
-                                <option value="Babak Penyisihan">Babak Penyisihan</option>
-                            </select>
+                            <label class="text-[10px] font-bold text-slate-500 uppercase">Lokasi (Nama Kolam/Tempat)</label>
+                            <input type="text" name="event_location" id="form-location" class="w-full px-4 py-3 border border-slate-200 bg-slate-50 rounded-xl text-sm font-bold focus:bg-white focus:border-blue-500 outline-none" placeholder="Cth: Kolam Renang FIK UNY">
                         </div>
                         <div>
-                            <label class="text-[10px] font-bold text-slate-500 uppercase">Tanggal Mulai</label>
+                            <label class="text-[10px] font-bold text-slate-500 uppercase">Tanggal Mulai Event</label>
                             <input type="date" name="event_date_start" id="form-date" class="w-full px-4 py-3 border border-slate-200 bg-slate-50 rounded-xl text-sm font-bold focus:bg-white focus:border-blue-500 outline-none">
                         </div>
                     </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="text-[10px] font-bold text-slate-500 uppercase">Lokasi (Nama Kolam)</label>
-                            <input type="text" name="event_location" id="form-location" class="w-full px-4 py-3 border border-slate-200 bg-slate-50 rounded-xl text-sm font-bold focus:bg-white focus:border-blue-500 outline-none">
-                        </div>
-                        <div>
-                            <label class="text-[10px] font-bold text-slate-500 uppercase">Kab/Kota</label>
-                            <input type="text" name="event_city" id="form-city" class="w-full px-4 py-3 border border-slate-200 bg-slate-50 rounded-xl text-sm font-bold focus:bg-white focus:border-blue-500 outline-none">
-                        </div>
-                    </div>
-                <?php else: ?>
+                <?php endif; ?>
+
+                <?php if($targetRole == 'user'): ?>
                     <div>
                         <label class="text-[10px] font-bold text-slate-500 uppercase">Kota Asal Klub</label>
                         <input type="text" name="kota" id="form-kota" class="w-full px-4 py-3 border border-slate-200 bg-slate-50 rounded-xl text-sm font-bold focus:bg-white focus:border-blue-500 outline-none" placeholder="Cth: Yogyakarta (Boleh Kosong)">
@@ -280,6 +269,7 @@ function openModal() {
     document.getElementById('form-id').value = ""; 
     
     document.getElementById('form-nama').value = "";
+    document.getElementById('form-username').value = "";
     document.getElementById('form-email').value = "";
     document.getElementById('form-phone').value = "";
     document.getElementById('form-pass').required = true;
@@ -305,7 +295,8 @@ function editAdmin(buttonElement) {
         
         document.getElementById('form-id').value = data.id; 
         document.getElementById('form-nama').value = data.nama_lengkap; 
-        document.getElementById('form-email').value = data.email;
+        document.getElementById('form-username').value = data.username || '';
+        document.getElementById('form-email').value = data.email || '';
         document.getElementById('form-phone').value = data.phone || '';
         document.getElementById('form-pass').required = false; 
         document.getElementById('form-pass').value = ""; 
