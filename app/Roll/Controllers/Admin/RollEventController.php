@@ -81,7 +81,7 @@ class RollEventController extends Controller {
             $status = $_POST['status'] ?? 'Draft';
 
             // Verify Ownership
-            $stmtCek = $db->prepare("SELECT id, poster_image, sponsor_logos FROM roll_events WHERE id = ? AND user_id = ?");
+            $stmtCek = $db->prepare("SELECT id, poster_image, sponsor_logos, header_logos FROM roll_events WHERE id = ? AND user_id = ?");
             $stmtCek->execute([$eventId, $uid]);
             $evt = $stmtCek->fetch(PDO::FETCH_ASSOC);
             if (!$evt) {
@@ -121,8 +121,31 @@ class RollEventController extends Controller {
             }
             $sponsorLogosJson = json_encode($sponsorsArray);
 
-            $stmt = $db->prepare("UPDATE roll_events SET event_name=?, event_date_start=?, event_date_end=?, event_location=?, event_city=?, race_format=?, status=?, poster_image=?, sponsor_logos=? WHERE id=?");
-            $stmt->execute([$eventName, $eventDateStart, $eventDateEnd, $eventLoc, $eventCity, $raceFormat, $status, $posterImage, $sponsorLogosJson, $eventId]);
+            // Handle Multiple Header Logos
+            $headerLogosArray = [];
+            if (!empty($evt['header_logos'])) {
+                $headerLogosArray = json_decode($evt['header_logos'], true) ?: [];
+            }
+            if (isset($_FILES['header_logos']) && is_array($_FILES['header_logos']['name'])) {
+                $uploadDir = __DIR__ . '/../../../../public/uploads/logos/';
+                if (!is_dir($uploadDir)) {
+                    mkdir($uploadDir, 0777, true);
+                }
+                for ($i = 0; $i < count($_FILES['header_logos']['name']); $i++) {
+                    if (count($headerLogosArray) >= 4) break; // Max 4 logos
+                    if ($_FILES['header_logos']['error'][$i] === UPLOAD_ERR_OK) {
+                        $tmpName = $_FILES['header_logos']['tmp_name'][$i];
+                        $fileName = time() . '_h_' . rand(1000,9999) . '_' . preg_replace("/[^a-zA-Z0-9.-]/", "_", $_FILES['header_logos']['name'][$i]);
+                        if (move_uploaded_file($tmpName, $uploadDir . $fileName)) {
+                            $headerLogosArray[] = 'uploads/logos/' . $fileName;
+                        }
+                    }
+                }
+            }
+            $headerLogosJson = json_encode($headerLogosArray);
+
+            $stmt = $db->prepare("UPDATE roll_events SET event_name=?, event_date_start=?, event_date_end=?, event_location=?, event_city=?, race_format=?, status=?, poster_image=?, sponsor_logos=?, header_logos=? WHERE id=?");
+            $stmt->execute([$eventName, $eventDateStart, $eventDateEnd, $eventLoc, $eventCity, $raceFormat, $status, $posterImage, $sponsorLogosJson, $headerLogosJson, $eventId]);
 
             $_SESSION['flash_message'] = "Profil Event berhasil diperbarui!";
             $_SESSION['flash_type'] = "success";
@@ -215,5 +238,115 @@ class RollEventController extends Controller {
         }
         header("Location: " . getenv('APP_URL') . "/roll/admin/events");
         exit;
+    }
+    public function delete_poster() {
+        $db = Database::getInstance()->getConnection();
+        $eventId = $_GET['id'] ?? 0;
+        $uid = $_SESSION['roll_user_id'];
+        
+        $stmtCek = $db->prepare("SELECT id, poster_image FROM roll_events WHERE id = ? AND user_id = ?");
+        $stmtCek->execute([$eventId, $uid]);
+        $evt = $stmtCek->fetch(PDO::FETCH_ASSOC);
+        
+        if ($evt && !empty($evt['poster_image'])) {
+            $stmt = $db->prepare("UPDATE roll_events SET poster_image = NULL WHERE id = ?");
+            $stmt->execute([$eventId]);
+            $_SESSION['flash_message'] = "Poster berhasil dihapus!";
+            $_SESSION['flash_type'] = "success";
+        }
+        header("Location: " . getenv('APP_URL') . "/roll/admin/events");
+        exit;
+    }
+
+    public function delete_sponsor() {
+        $db = Database::getInstance()->getConnection();
+        $eventId = $_GET['id'] ?? 0;
+        $sponsorFile = $_GET['file'] ?? '';
+        $uid = $_SESSION['roll_user_id'];
+        
+        $stmtCek = $db->prepare("SELECT id, sponsor_logos FROM roll_events WHERE id = ? AND user_id = ?");
+        $stmtCek->execute([$eventId, $uid]);
+        $evt = $stmtCek->fetch(PDO::FETCH_ASSOC);
+        
+        if ($evt && !empty($evt['sponsor_logos'])) {
+            $sponsors = json_decode($evt['sponsor_logos'], true) ?: [];
+            $sponsors = array_filter($sponsors, function($val) use ($sponsorFile) {
+                return $val !== $sponsorFile;
+            });
+            $sponsorsJson = json_encode(array_values($sponsors));
+            
+            $stmt = $db->prepare("UPDATE roll_events SET sponsor_logos = ? WHERE id = ?");
+            $stmt->execute([$sponsorsJson, $eventId]);
+            $_SESSION['flash_message'] = "Logo sponsor berhasil dihapus!";
+            $_SESSION['flash_type'] = "success";
+        }
+        header("Location: " . getenv('APP_URL') . "/roll/admin/events");
+        exit;
+    }
+
+    public function delete_header_logo() {
+        $db = Database::getInstance()->getConnection();
+        $eventId = $_GET['id'] ?? 0;
+        $logoFile = $_GET['file'] ?? '';
+        $uid = $_SESSION['roll_user_id'];
+        
+        $stmtCek = $db->prepare("SELECT id, header_logos FROM roll_events WHERE id = ? AND user_id = ?");
+        $stmtCek->execute([$eventId, $uid]);
+        $evt = $stmtCek->fetch(PDO::FETCH_ASSOC);
+        
+        if ($evt && !empty($evt['header_logos'])) {
+            $logos = json_decode($evt['header_logos'], true) ?: [];
+            $logos = array_filter($logos, function($val) use ($logoFile) {
+                return $val !== $logoFile;
+            });
+            $logosJson = json_encode(array_values($logos));
+            
+            $stmt = $db->prepare("UPDATE roll_events SET header_logos = ? WHERE id = ?");
+            $stmt->execute([$logosJson, $eventId]);
+            $_SESSION['flash_message'] = "Logo header berhasil dihapus!";
+            $_SESSION['flash_type'] = "success";
+        }
+        header("Location: " . getenv('APP_URL') . "/roll/admin/events");
+        exit;
+    }
+
+    public function bulk_update_schedule() {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $db = Database::getInstance()->getConnection();
+            $eventId = $_POST['event_id'] ?? 0;
+            $uid = $_SESSION['roll_user_id'];
+
+            // Verify Ownership
+            $stmtCek = $db->prepare("SELECT id FROM roll_events WHERE id = ? AND user_id = ?");
+            $stmtCek->execute([$eventId, $uid]);
+            if (!$stmtCek->fetch()) {
+                $_SESSION['flash_message'] = "Akses ditolak!";
+                $_SESSION['flash_type'] = "error";
+                header("Location: " . getenv('APP_URL') . "/roll/admin/events");
+                exit;
+            }
+
+            $classIds = $_POST['class_ids'] ?? [];
+            $raceNumbers = $_POST['race_numbers'] ?? [];
+            $raceTimes = $_POST['race_times'] ?? [];
+
+            if (!empty($classIds)) {
+                $stmt = $db->prepare("UPDATE roll_event_details SET race_number = ?, race_time = ? WHERE id = ? AND event_id = ?");
+                $count = 0;
+                foreach ($classIds as $index => $c_id) {
+                    $rNum = !empty($raceNumbers[$index]) ? $raceNumbers[$index] : null;
+                    $rTime = !empty($raceTimes[$index]) ? $raceTimes[$index] : null;
+                    try {
+                        $stmt->execute([$rNum, $rTime, $c_id, $eventId]);
+                        $count++;
+                    } catch (\Exception $e) {}
+                }
+                $_SESSION['flash_message'] = "Jadwal ($count kelas) berhasil disimpan!";
+                $_SESSION['flash_type'] = "success";
+            }
+            
+            header("Location: " . getenv('APP_URL') . "/roll/admin/events");
+            exit;
+        }
     }
 }
