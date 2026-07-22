@@ -362,22 +362,23 @@ class RollEventController extends Controller {
             $classIds = $_POST['class_ids'] ?? [];
             $raceNumbers = $_POST['race_numbers'] ?? [];
             $raceTimes = $_POST['race_times'] ?? [];
+            $ageGroupIds = $_POST['age_group_ids'] ?? [];
+            $distanceIds = $_POST['distance_ids'] ?? [];
+            $categoryNames = $_POST['category_names'] ?? [];
 
             if (!empty($classIds)) {
-                $stmt = $db->prepare("UPDATE roll_event_details SET race_number = ?, race_time = ? WHERE id = ? AND event_id = ?");
-                $count = 0;
-                foreach ($classIds as $index => $c_id) {
-                    $rNum = !empty($raceNumbers[$index]) ? $raceNumbers[$index] : null;
-                    $rTime = !empty($raceTimes[$index]) ? $raceTimes[$index] : null;
-                    try {
-                        $stmt->execute([$rNum, $rTime, $c_id, $eventId]);
-                        $count++;
-                    } catch (\Exception $e) {}
+                $stmt = $db->prepare("UPDATE roll_event_details SET race_number = ?, race_time = ?, age_group_id = ?, distance_id = ?, category_name = ? WHERE id = ? AND event_id = ?");
+                foreach ($classIds as $i => $cid) {
+                    $rn = $raceNumbers[$i] ?? null;
+                    $rt = $raceTimes[$i] ?? null;
+                    $ag = !empty($ageGroupIds[$i]) ? $ageGroupIds[$i] : null;
+                    $di = !empty($distanceIds[$i]) ? $distanceIds[$i] : null;
+                    $cn = $categoryNames[$i] ?? null;
+                    $stmt->execute([$rn, $rt, $ag, $di, $cn, $cid, $eventId]);
                 }
-                $_SESSION['flash_message'] = "Jadwal ($count kelas) berhasil disimpan!";
+                $_SESSION['flash_message'] = "Jadwal dan Kategori berhasil diperbarui!";
                 $_SESSION['flash_type'] = "success";
             }
-            
             header("Location: " . getenv('APP_URL') . "/roll/admin/events");
             exit;
         }

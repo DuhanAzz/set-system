@@ -233,41 +233,81 @@
                     <?php else: ?>
                         <form action="<?= getenv('APP_URL') ?>/roll/admin/events/bulk_update_schedule" method="POST">
                             <input type="hidden" name="event_id" value="<?= $row['id'] ?>">
-                            <div class="flex flex-col space-y-2">
-                                <?php foreach($classes as $c): ?>
-                                    <div class="bg-white border border-slate-200 rounded-xl p-4 flex flex-col md:flex-row justify-between items-start md:items-center group hover:border-slate-500 transition-colors w-full gap-4">
-                                        <div class="flex items-center gap-4 flex-1">
-                                            <div class="h-10 w-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-400 font-bold shadow-sm flex-shrink-0">
-                                                🏁
-                                            </div>
-                                            <div>
-                                                <div class="font-bold text-slate-800 text-base flex flex-wrap items-center gap-2">
-                                                    <?= htmlspecialchars($c['group_name'] ?: 'Umum') ?> 
-                                                    <span class="text-slate-400 font-normal hidden sm:inline">|</span> 
-                                                    <?= htmlspecialchars($c['distance_name']) ?>
-                                                </div>
-                                                <div class="text-xs font-bold text-blue-500 uppercase tracking-widest mt-0.5">
-                                                    <?= htmlspecialchars($c['category_name']) ?>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        
-                                        <div class="flex items-center gap-3 w-full md:w-auto">
-                                            <input type="hidden" name="class_ids[]" value="<?= $c['id'] ?>">
-                                            <div class="flex-1 md:w-24">
-                                                <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Nomor (3 Digit)</label>
-                                                <input type="text" name="race_numbers[]" value="<?= htmlspecialchars($c['race_number'] ?? '') ?>" placeholder="Misal: 101" class="w-full bg-slate-50 border border-slate-200 rounded p-2 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-blue-500">
-                                            </div>
-                                            <div class="flex-1 md:w-28">
-                                                <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Jam Acara</label>
-                                                <input type="time" name="race_times[]" value="<?= htmlspecialchars($c['race_time'] ?? '') ?>" class="w-full bg-slate-50 border border-slate-200 rounded p-2 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-blue-500">
-                                            </div>
-                                            
-                                            <div class="pt-5">
-                                                <button type="button" onclick="if(confirm('Hapus kelas ini?')) window.location.href='<?= getenv('APP_URL') ?>/roll/admin/events/delete_class/<?= $c['id'] ?>'" class="text-red-500 opacity-50 hover:opacity-100 hover:text-white p-2 rounded hover:bg-red-500 transition-all font-bold text-sm h-10 w-10 flex items-center justify-center">
-                                                    &times;
-                                                </button>
-                                            </div>
+                            <div class="flex flex-col space-y-6">
+                                <?php 
+                                // Kelompokkan berdasarkan digit pertama dari race_number
+                                $groupedClasses = [];
+                                $unassignedClasses = [];
+                                foreach ($classes as $c) {
+                                    $rNo = $c['race_number'] ?? '';
+                                    if (strlen($rNo) >= 3 && is_numeric(substr($rNo, 0, 1))) {
+                                        $dayNum = substr($rNo, 0, 1);
+                                        $groupedClasses["Hari $dayNum"][] = $c;
+                                    } else {
+                                        $unassignedClasses[] = $c;
+                                    }
+                                }
+                                ksort($groupedClasses);
+                                if (!empty($unassignedClasses)) {
+                                    $groupedClasses['Belum Ditentukan (Unassigned)'] = $unassignedClasses;
+                                }
+                                ?>
+
+                                <?php foreach($groupedClasses as $dayLabel => $dayClasses): ?>
+                                    <div class="mb-4">
+                                        <h3 class="text-sm font-bold text-slate-700 uppercase tracking-widest mb-3 bg-slate-100 p-3 rounded-lg border border-slate-200 shadow-sm flex items-center gap-2">
+                                            <span class="text-xl">📅</span> <?= htmlspecialchars($dayLabel) ?>
+                                        </h3>
+                                        <div class="overflow-x-auto bg-white rounded-xl border border-slate-200 shadow-sm">
+                                            <table class="w-full text-left text-sm text-slate-600">
+                                                <thead class="bg-slate-50 border-b border-slate-200 text-[10px] uppercase font-black tracking-wider text-slate-400">
+                                                    <tr>
+                                                        <th class="p-3 w-24">Nomor (3 Digit)</th>
+                                                        <th class="p-3 w-32">Jam Acara</th>
+                                                        <th class="p-3">Kategori Lomba & Jarak</th>
+                                                        <th class="p-3 w-24 text-center">Aksi</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody class="divide-y divide-slate-100">
+                                                    <?php foreach($dayClasses as $c): ?>
+                                                    <tr class="hover:bg-slate-50 transition-colors group">
+                                                        <td class="p-2 align-top">
+                                                            <input type="hidden" name="class_ids[]" value="<?= $c['id'] ?>">
+                                                            <input type="text" name="race_numbers[]" value="<?= htmlspecialchars($c['race_number'] ?? '') ?>" placeholder="101" class="w-full bg-slate-50 border border-slate-200 rounded p-2 text-xs font-bold text-slate-700 text-center focus:ring-2 focus:ring-blue-500">
+                                                        </td>
+                                                        <td class="p-2 align-top">
+                                                            <input type="time" name="race_times[]" value="<?= htmlspecialchars($c['race_time'] ?? '') ?>" class="w-full bg-slate-50 border border-slate-200 rounded p-2 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-blue-500">
+                                                        </td>
+                                                        <td class="p-2">
+                                                            <div class="flex flex-col gap-1">
+                                                                <div class="flex gap-1">
+                                                                    <select name="age_group_ids[]" class="w-1/2 bg-slate-50 border border-slate-200 rounded p-1.5 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-blue-500">
+                                                                        <option value="">Umum</option>
+                                                                        <?php foreach($ageGroups as $ag): ?>
+                                                                            <option value="<?= $ag['id'] ?>" <?= ($c['age_group_id'] == $ag['id']) ? 'selected' : '' ?>><?= htmlspecialchars($ag['group_name']) ?></option>
+                                                                        <?php endforeach; ?>
+                                                                    </select>
+                                                                    <select name="distance_ids[]" class="w-1/2 bg-slate-50 border border-slate-200 rounded p-1.5 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-blue-500">
+                                                                        <?php foreach($distances as $dist): ?>
+                                                                            <option value="<?= $dist['id'] ?>" <?= ($c['distance_id'] == $dist['id']) ? 'selected' : '' ?>><?= htmlspecialchars($dist['distance_name']) ?></option>
+                                                                        <?php endforeach; ?>
+                                                                    </select>
+                                                                </div>
+                                                                <input type="text" name="category_names[]" value="<?= htmlspecialchars($c['category_name']) ?>" class="w-full bg-slate-50 border border-slate-200 rounded p-1.5 text-[10px] font-bold text-blue-500 uppercase tracking-widest focus:ring-2 focus:ring-blue-500" placeholder="Kategori">
+                                                            </div>
+                                                        </td>
+                                                        <td class="p-2 text-center align-top whitespace-nowrap">
+                                                            <button type="submit" title="Simpan Perubahan" class="text-emerald-500 opacity-50 hover:opacity-100 hover:text-white p-2 rounded hover:bg-emerald-500 transition-all font-bold text-sm h-8 w-8 inline-flex items-center justify-center mr-1">
+                                                                💾
+                                                            </button>
+                                                            <button type="button" title="Hapus" onclick="if(confirm('Hapus kelas ini?')) window.location.href='<?= getenv('APP_URL') ?>/roll/admin/events/delete_class/<?= $c['id'] ?>'" class="text-red-500 opacity-50 hover:opacity-100 hover:text-white p-2 rounded hover:bg-red-500 transition-all font-bold text-lg h-8 w-8 inline-flex items-center justify-center">
+                                                                &times;
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                    <?php endforeach; ?>
+                                                </tbody>
+                                            </table>
                                         </div>
                                     </div>
                                 <?php endforeach; ?>
