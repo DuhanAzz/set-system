@@ -179,23 +179,27 @@
                             <thead>
                                 <tr>
                                     <th class="text-center" style="width: 80px;">No. Lomba</th>
-                                    <th class="text-center" style="width: 80px;">Jam</th>
-                                    <th>Kategori Kelas</th>
-                                    <th>Jarak / Format</th>
+                                    <th class="text-center" style="width: 80px;">Pukul</th>
+                                    <th>Jarak</th>
+                                    <th>Kelompok Umur</th>
+                                    <th>Roller</th>
+                                    <th>Putra/Putri</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <?php if(empty($classes)): ?>
                                     <tr>
-                                        <td colspan="4" class="text-center">Belum ada jadwal perlombaan yang dibuat.</td>
+                                        <td colspan="6" class="text-center">Belum ada jadwal perlombaan yang dibuat.</td>
                                     </tr>
                                 <?php else: ?>
                                     <?php foreach($classes as $c): ?>
                                         <tr>
                                             <td class="text-center font-bold"><?= htmlspecialchars($c['race_number']) ?></td>
                                             <td class="text-center font-bold"><?= htmlspecialchars(date('H:i', strtotime($c['race_time'] ?? '00:00'))) ?></td>
-                                            <td><?= htmlspecialchars($c['category_name']) ?> <span style="color: #666; font-size: 9pt;">(<?= htmlspecialchars($c['group_name'] ?? 'Umum') ?>)</span></td>
-                                            <td><?= htmlspecialchars($c['distance_name'] ?? '-') ?></td>
+                                            <td class="font-bold"><?= htmlspecialchars($c['distance_name'] ?? '-') ?></td>
+                                            <td><?= htmlspecialchars($c['group_name'] ?? 'Umum') ?></td>
+                                            <td class="font-bold text-blue-700"><?= htmlspecialchars($c['roller_name'] ?? '-') ?></td>
+                                            <td><?= htmlspecialchars($c['gender'] ?? '-') ?></td>
                                         </tr>
                                     <?php endforeach; ?>
                                 <?php endif; ?>

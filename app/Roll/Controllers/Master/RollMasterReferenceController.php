@@ -39,16 +39,24 @@ class RollMasterReferenceController extends Controller {
         } catch (\Exception $e) {
             // Ignore if already changed or doesn't exist
         }
+
+        $db->exec("CREATE TABLE IF NOT EXISTS roll_ref_skate_classes (
+            id INT AUTO_INCREMENT PRIMARY KEY, 
+            class_name VARCHAR(50) NOT NULL, 
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )");
     }
 
     public function index() {
         $db = Database::getInstance()->getConnection();
         $distances = $db->query("SELECT * FROM roll_ref_distances ORDER BY id ASC")->fetchAll(PDO::FETCH_ASSOC);
-        $ageGroups = $db->query("SELECT * FROM roll_ref_age_groups ORDER BY min_year DESC")->fetchAll(PDO::FETCH_ASSOC);
+        $ageGroups = $db->query("SELECT * FROM roll_ref_age_groups ORDER BY min_year ASC")->fetchAll(PDO::FETCH_ASSOC);
+        $skateClasses = $db->query("SELECT * FROM roll_ref_skate_classes ORDER BY id ASC")->fetchAll(PDO::FETCH_ASSOC);
 
         return $this->view('roll/master/reference/index', [
             'distances' => $distances,
-            'ageGroups' => $ageGroups
+            'ageGroups' => $ageGroups,
+            'skateClasses' => $skateClasses
         ]);
     }
 
@@ -128,6 +136,45 @@ class RollMasterReferenceController extends Controller {
             $stmt = $db->prepare("DELETE FROM roll_ref_age_groups WHERE id = ?");
             $stmt->execute([$id]);
             $_SESSION['flash_message'] = "Kelompok umur berhasil dihapus.";
+            $_SESSION['flash_type'] = "success";
+            header("Location: " . getenv('APP_URL') . "/roll/master/reference");
+            exit;
+        }
+    }
+
+    // CRUD SKATE CLASSES
+    public function storeSkateClass() {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $db = Database::getInstance()->getConnection();
+            $class_name = $_POST['class_name'] ?? '';
+            $stmt = $db->prepare("INSERT INTO roll_ref_skate_classes (class_name) VALUES (?)");
+            $stmt->execute([$class_name]);
+            $_SESSION['flash_message'] = "Jenis Sepatu berhasil ditambahkan.";
+            $_SESSION['flash_type'] = "success";
+            header("Location: " . getenv('APP_URL') . "/roll/master/reference");
+            exit;
+        }
+    }
+
+    public function updateSkateClass($id) {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $db = Database::getInstance()->getConnection();
+            $class_name = $_POST['class_name'] ?? '';
+            $stmt = $db->prepare("UPDATE roll_ref_skate_classes SET class_name = ? WHERE id = ?");
+            $stmt->execute([$class_name, $id]);
+            $_SESSION['flash_message'] = "Jenis Sepatu berhasil diperbarui.";
+            $_SESSION['flash_type'] = "success";
+            header("Location: " . getenv('APP_URL') . "/roll/master/reference");
+            exit;
+        }
+    }
+
+    public function deleteSkateClass($id) {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $db = Database::getInstance()->getConnection();
+            $stmt = $db->prepare("DELETE FROM roll_ref_skate_classes WHERE id = ?");
+            $stmt->execute([$id]);
+            $_SESSION['flash_message'] = "Jenis Sepatu berhasil dihapus.";
             $_SESSION['flash_type'] = "success";
             header("Location: " . getenv('APP_URL') . "/roll/master/reference");
             exit;

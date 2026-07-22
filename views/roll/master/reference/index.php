@@ -13,7 +13,7 @@
         <?php unset($_SESSION['flash_message'], $_SESSION['flash_type']); ?>
     <?php endif; ?>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <!-- Panel 1: Jarak Tempuh -->
         <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
             <div class="px-6 py-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
@@ -115,6 +115,54 @@
                 </table>
             </div>
         </div>
+        
+        <!-- Panel 3: Kategori Roller (Skate Class) -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
+            <div class="px-6 py-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
+                <h3 class="font-black text-slate-800 uppercase tracking-tight flex items-center gap-2">
+                    <span class="text-xl">🛼</span> Kategori Roller
+                </h3>
+                <button onclick="document.getElementById('modalSkateClass').classList.remove('hidden')" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm transition">
+                    + Tambah Roller
+                </button>
+            </div>
+            <div class="overflow-x-auto flex-1 p-0">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-50 text-slate-500 text-[10px] uppercase tracking-widest font-black border-b border-slate-200">
+                            <th class="p-4 pl-6 w-12 text-center">No</th>
+                            <th class="p-4">Nama Roller</th>
+                            <th class="p-4 pr-6 text-center w-28">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-sm">
+                        <?php $no = 1; foreach ($skateClasses as $sc): ?>
+                        <tr class="border-b border-slate-100 hover:bg-slate-50 transition">
+                            <td class="p-4 pl-6 text-center font-bold text-slate-400"><?= $no++ ?></td>
+                            <td class="p-4 font-bold text-slate-700"><?= htmlspecialchars($sc['class_name']) ?></td>
+                            <td class="p-4 pr-6">
+                                <div class="flex items-center justify-center gap-2">
+                                    <button onclick="editSkateClass(<?= $sc['id'] ?>, '<?= htmlspecialchars(addslashes($sc['class_name'])) ?>')" class="bg-amber-100 hover:bg-amber-200 text-amber-700 px-2 py-1 rounded font-bold text-xs" title="Edit">
+                                        ✏️
+                                    </button>
+                                    <form action="<?= getenv('APP_URL') ?>/roll/master/reference/deleteSkateClass/<?= $sc['id'] ?>" method="POST" onsubmit="return confirm('Hapus Kategori Roller ini?');">
+                                        <button type="submit" class="bg-red-50 hover:bg-red-100 text-red-600 px-2 py-1 rounded font-bold text-xs" title="Hapus">
+                                            🗑️
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                        <?php if(empty($skateClasses)): ?>
+                        <tr>
+                            <td colspan="3" class="p-6 text-center text-slate-400 font-bold text-sm">Belum ada data Kategori Roller.</td>
+                        </tr>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -181,6 +229,32 @@
     </div>
 </div>
 
+<!-- Modal Kategori Roller -->
+<div id="modalSkateClass" class="fixed inset-0 z-[100] hidden">
+    <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closeSkateClassModal()"></div>
+    <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-sm">
+        <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
+                <h3 id="skateClassModalTitle" class="font-black text-slate-800 uppercase tracking-tight">Tambah Kategori Roller</h3>
+                <button onclick="closeSkateClassModal()" class="text-slate-400 hover:text-red-500 font-bold">✕</button>
+            </div>
+            <form id="skateClassForm" action="<?= getenv('APP_URL') ?>/roll/master/reference/storeSkateClass" method="POST" class="p-6">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-black text-slate-700 uppercase tracking-widest mb-2">Nama Roller</label>
+                        <input type="text" id="class_name" name="class_name" class="w-full rounded-xl border border-slate-300 px-4 py-2.5 focus:ring-blue-500 focus:border-blue-500" placeholder="Contoh: Pemula, Speed" required>
+                    </div>
+                </div>
+                <div class="mt-8">
+                    <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow-sm transition uppercase tracking-widest text-sm">
+                        Simpan Data
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
 function editDistance(id, name) {
     document.getElementById('distanceModalTitle').innerText = 'Edit Jarak Tempuh';
@@ -212,5 +286,19 @@ function closeAgeGroupModal() {
     document.getElementById('min_year').value = '';
     document.getElementById('max_year').value = '';
     document.getElementById('modalAgeGroup').classList.add('hidden');
+}
+
+function editSkateClass(id, name) {
+    document.getElementById('skateClassModalTitle').innerText = 'Edit Kategori Roller';
+    document.getElementById('skateClassForm').action = '<?= getenv("APP_URL") ?>/roll/master/reference/updateSkateClass/' + id;
+    document.getElementById('class_name').value = name;
+    document.getElementById('modalSkateClass').classList.remove('hidden');
+}
+
+function closeSkateClassModal() {
+    document.getElementById('skateClassModalTitle').innerText = 'Tambah Kategori Roller';
+    document.getElementById('skateClassForm').action = '<?= getenv("APP_URL") ?>/roll/master/reference/storeSkateClass';
+    document.getElementById('class_name').value = '';
+    document.getElementById('modalSkateClass').classList.add('hidden');
 }
 </script>

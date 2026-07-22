@@ -40,10 +40,11 @@ class RollEventController extends Controller {
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
             // Fetch Classes (roll_event_details)
-            $stmtClass = $db->prepare("SELECT ed.*, d.distance_name, a.group_name 
+            $stmtClass = $db->prepare("SELECT ed.*, d.distance_name, a.group_name, sc.class_name as roller_name
                                        FROM roll_event_details ed 
                                        LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id 
                                        LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id 
+                                       LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
                                        WHERE ed.event_id = ?");
             $stmtClass->execute([$eventId]);
             $classes = $stmtClass->fetchAll(PDO::FETCH_ASSOC);
@@ -52,9 +53,11 @@ class RollEventController extends Controller {
         // Master dictionaries for dropdowns
         $distances = [];
         $ageGroups = [];
+        $skateClasses = [];
         try {
             $distances = $db->query("SELECT * FROM roll_ref_distances ORDER BY id ASC")->fetchAll(PDO::FETCH_ASSOC);
             $ageGroups = $db->query("SELECT * FROM roll_ref_age_groups ORDER BY min_year ASC")->fetchAll(PDO::FETCH_ASSOC);
+            $skateClasses = $db->query("SELECT * FROM roll_ref_skate_classes ORDER BY id ASC")->fetchAll(PDO::FETCH_ASSOC);
         } catch (\Exception $e) {}
 
         return $this->view('roll/admin/event_profile/index', [
@@ -62,6 +65,7 @@ class RollEventController extends Controller {
             'classes' => $classes,
             'distances' => $distances,
             'ageGroups' => $ageGroups,
+            'skateClasses' => $skateClasses,
             'eventId' => $eventId
         ]);
     }
@@ -161,73 +165,7 @@ class RollEventController extends Controller {
         }
     }
 
-    public function bulk_store_class() {
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $db = Database::getInstance()->getConnection();
-            $eventId = $_POST['event_id'];
-            $distances = $_POST['distances'] ?? [];
-            $ageGroups = $_POST['age_groups'] ?? [];
-            $genders = $_POST['genders'] ?? [];
 
-            // Verify event ownership
-            $uid = $_SESSION['roll_user_id'];
-            $stmtCek = $db->prepare("SELECT id FROM roll_events WHERE id = ? AND user_id = ?");
-            $stmtCek->execute([$eventId, $uid]);
-            if ($stmtCek->rowCount() == 0) {
-                $_SESSION['flash_message'] = "Event tidak valid!";
-                $_SESSION['flash_type'] = "error";
-                header("Location: " . getenv('APP_URL') . "/roll/admin/events");
-                exit;
-            }
-
-            if (empty($distances) || empty($genders)) {
-                $_SESSION['flash_message'] = "Silakan centang minimal 1 Jarak dan 1 Gender!";
-                $_SESSION['flash_type'] = "error";
-                header("Location: " . getenv('APP_URL') . "/roll/admin/events");
-                exit;
-            }
-
-            $count = 0;
-            $stmt = $db->prepare("INSERT INTO roll_event_details (event_id, distance_id, age_group_id, category_name, distance, result_status) VALUES (?, ?, ?, ?, ?, 'Draft')");
-            
-            // For category_name and distance fallback
-            $stmtDist = $db->prepare("SELECT distance_name FROM roll_ref_distances WHERE id = ?");
-            $stmtAge = $db->prepare("SELECT group_name FROM roll_ref_age_groups WHERE id = ?");
-
-            foreach ($distances as $d_id) {
-                $stmtDist->execute([$d_id]);
-                $dName = $stmtDist->fetchColumn();
-                
-                $ages = !empty($ageGroups) ? $ageGroups : [null]; // fallback loop
-
-                foreach ($ages as $a_id) {
-                    if ($a_id) {
-                        $stmtAge->execute([$a_id]);
-                        $aName = $stmtAge->fetchColumn();
-                    } else {
-                        // Extract from distance name like "50m Sprint (Pemula)" -> "Pemula"
-                        $aName = "Umum";
-                        if (preg_match('/\((.*?)\)/', $dName, $matches)) {
-                            $aName = $matches[1];
-                        }
-                    }
-                    
-                    foreach ($genders as $gender) {
-                        $catName = $aName . ' ' . $gender;
-                        try {
-                            $stmt->execute([$eventId, $d_id, $a_id, $catName, $dName]);
-                            $count++;
-                        } catch (\Exception $e) {}
-                    }
-                }
-            }
-
-            $_SESSION['flash_message'] = "$count Kelas Lomba berhasil ditambahkan!";
-            $_SESSION['flash_type'] = "success";
-            header("Location: " . getenv('APP_URL') . "/roll/admin/events");
-            exit;
-        }
-    }
 
     public function delete_class($id) {
         $db = Database::getInstance()->getConnection();
@@ -364,10 +302,12 @@ class RollEventController extends Controller {
             $raceTimes = $_POST['race_times'] ?? [];
             $ageGroupIds = $_POST['age_group_ids'] ?? [];
             $distanceIds = $_POST['distance_ids'] ?? [];
-            $categoryNames = $_POST['category_names'] ?? [];
+            $skateClassIds = $_POST['skate_class_ids'] ?? [];
+            $genders = $_POST['genders'] ?? [];
 
-            if (!empty($classIds)) {
-                $stmt = $db->prepare("UPDATE roll_event_details SET race_number = ?, race_time = ?, age_group_id = ?, distance_id = ?, category_name = ? WHERE id = ? AND event_id = ?");
+            if (!empty($raceNumbers)) {
+                $stmtUpdate = $db->prepare("UPDATE roll_event_details SET race_number = ?, race_time = ?, age_group_id = ?, distance_id = ?, skate_class_id = ?, gender = ?, distance = ? WHERE id = ? AND event_id = ?");
+                $stmtInsert = $db->prepare("INSERT INTO roll_event_details (event_id, distance_id, age_group_id, skate_class_id, gender, race_number, race_time, distance, result_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Draft')");
                 
                 // Fetch Distances and Age Groups for validation
                 $dists = []; $ags = [];
@@ -377,12 +317,13 @@ class RollEventController extends Controller {
                 foreach($resA as $r) $ags[$r['id']] = $r['group_name'];
 
                 $valid = true;
-                foreach ($classIds as $i => $cid) {
-                    $rn = $raceNumbers[$i] ?? null;
+                foreach ($raceNumbers as $i => $rn) {
+                    $cid = $classIds[$i] ?? null;
                     $rt = $raceTimes[$i] ?? null;
                     $ag = !empty($ageGroupIds[$i]) ? $ageGroupIds[$i] : null;
                     $di = !empty($distanceIds[$i]) ? $distanceIds[$i] : null;
-                    $cn = $categoryNames[$i] ?? null;
+                    $sc = !empty($skateClassIds[$i]) ? $skateClassIds[$i] : null;
+                    $gn = $genders[$i] ?? null;
                     
                     if (empty($rn) || empty($rt)) {
                         $valid = false;
@@ -390,27 +331,36 @@ class RollEventController extends Controller {
                         break;
                     }
                     
-                    $distName = isset($dists[$di]) ? strtolower($dists[$di]) : '';
+                    $distNameOriginal = isset($dists[$di]) ? $dists[$di] : '';
+                    $distName = strtolower($distNameOriginal);
                     $agName = isset($ags[$ag]) ? strtolower($ags[$ag]) : '';
                     
-                    if (strpos($distName, 'itt 100') !== false && strpos($agName, 'senior') === false) {
+                    $isJunior = strpos($agName, 'junior') !== false;
+                    $isSenior = strpos($agName, 'senior') !== false;
+                    $isAnakAnak = !$isJunior && !$isSenior && $agName !== '';
+
+                    if (strpos($distName, 'itt 100') !== false && !$isSenior) {
                         $valid = false;
                         $_SESSION['flash_message'] = "ITT 100m hanya diperbolehkan untuk Kelompok Umur Senior!";
                         break;
                     }
-                    if ((strpos($distName, 'point') !== false || strpos($distName, 'eliminasi 10k') !== false || strpos($distName, 'eliminasi 15k') !== false || strpos($distName, '10.000m') !== false || strpos($distName, '15.000m') !== false) && !(strpos($agName, 'junior') !== false || strpos($agName, 'senior') !== false)) {
+                    if ((strpos($distName, '5k') !== false || strpos($distName, '10k') !== false || strpos($distName, '15k') !== false) && $isAnakAnak) {
                         $valid = false;
-                        $_SESSION['flash_message'] = "Point Race dan Eliminasi 10k/15k hanya diperbolehkan untuk Kelompok Umur Junior dan Senior!";
+                        $_SESSION['flash_message'] = "Jarak 5k, 10k, 15k hanya diperbolehkan untuk Kelompok Umur Junior dan Senior!";
                         break;
                     }
                     
                     if ($valid) {
-                        $stmt->execute([$rn, $rt, $ag, $di, $cn, $cid, $eventId]);
+                        if (!empty($cid)) {
+                            $stmtUpdate->execute([$rn, $rt, $ag, $di, $sc, $gn, $distNameOriginal, $cid, $eventId]);
+                        } else {
+                            $stmtInsert->execute([$eventId, $di, $ag, $sc, $gn, $rn, $rt, $distNameOriginal]);
+                        }
                     }
                 }
                 
                 if ($valid) {
-                    $_SESSION['flash_message'] = "Jadwal dan Kategori berhasil diperbarui!";
+                    $_SESSION['flash_message'] = "Jadwal dan Kelas Lomba berhasil disimpan!";
                     $_SESSION['flash_type'] = "success";
                 } else {
                     $_SESSION['flash_type'] = "error";
@@ -433,10 +383,11 @@ class RollEventController extends Controller {
         $stmtEvt->execute([$eventId]);
         $event = $stmtEvt->fetch(PDO::FETCH_ASSOC);
 
-        $stmtClass = $db->prepare("SELECT ed.*, d.distance_name, a.group_name 
+        $stmtClass = $db->prepare("SELECT ed.*, d.distance_name, a.group_name, sc.class_name as roller_name
                                    FROM roll_event_details ed 
                                    LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id 
                                    LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id 
+                                   LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
                                    WHERE ed.event_id = ?
                                    ORDER BY CAST(ed.race_number AS UNSIGNED) ASC, ed.race_number ASC");
         $stmtClass->execute([$eventId]);

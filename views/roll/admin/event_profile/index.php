@@ -164,229 +164,201 @@
                                 <?php endforeach; ?>
                             </div>
                         </div>
-                    </div>
-                    
                     <div class="pt-4 flex justify-end">
                         <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded-xl shadow-lg hover:shadow-blue-500/25 transition-all uppercase tracking-widest text-sm">Simpan Profil & Gambar</button>
                     </div>
                 </form>
-            </div>
-
-            <!-- Kelas Lomba -->
+                
+                <!-- Kelas Lomba -->
             <div class="bg-slate-50/50 rounded-2xl border border-slate-200/50 shadow-xl backdrop-blur-sm w-full flex flex-col">
-            <div class="p-6 border-b border-slate-200/50 flex justify-between items-center bg-white rounded-t-2xl">
-                <h3 class="text-lg font-bold text-slate-800 uppercase tracking-widest">Manajemen Kelas & Jadwal Lomba</h3>
+                <div class="p-6 border-b border-slate-200/50 flex justify-between items-center bg-white rounded-t-2xl">
+                    <h3 class="text-lg font-bold text-slate-800 uppercase tracking-widest">Manajemen Kelas & Jadwal Lomba</h3>
                 </div>
-                        <!-- Bulk Add Classes -->
-                <div class="p-6 bg-white/50 border-b border-slate-200/50">
-                    <form action="<?= getenv('APP_URL') ?>/roll/admin/events/bulk_store_class" method="POST" class="space-y-6">
+                
+                <div class="p-6 flex-1 overflow-auto">
+                    <form action="<?= getenv('APP_URL') ?>/roll/admin/events/bulk_update_schedule" method="POST">
                         <input type="hidden" name="event_id" value="<?= $row['id'] ?>">
-                        
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <!-- Jarak Tempuh -->
-                            <div>
-                                <h4 class="text-xs font-black text-slate-600 uppercase mb-3">1. Pilih Jarak Tempuh</h4>
-                                <div class="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
-                                    <?php foreach($distances as $d): ?>
-                                    <label class="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-100 cursor-pointer transition">
-                                        <input type="checkbox" name="distances[]" value="<?= $d['id'] ?>" class="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500">
-                                        <span class="text-sm font-bold text-slate-700"><?= htmlspecialchars($d['distance_name']) ?></span>
-                                    </label>
+                        <div class="overflow-x-auto bg-white rounded-xl border border-slate-200 shadow-sm mb-6">
+                            <table class="w-full text-left text-sm text-slate-600">
+                                <thead class="bg-slate-50 border-b border-slate-200 text-[10px] uppercase font-black tracking-wider text-slate-400">
+                                    <tr>
+                                        <th class="p-3 w-24">NO. LOMBA</th>
+                                        <th class="p-3 w-32">PUKUL</th>
+                                        <th class="p-3 w-40">JARAK LOMBA</th>
+                                        <th class="p-3 w-40">KELOMPOK UMUR</th>
+                                        <th class="p-3 w-40">ROLLER</th>
+                                        <th class="p-3 w-32">GENDER</th>
+                                        <th class="p-3 w-24 text-center">AKSI</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="schedule-matrix" class="divide-y divide-slate-100">
+                                    <?php foreach($classes as $c): ?>
+                                    <tr class="hover:bg-slate-50 transition-colors group">
+                                        <td class="p-2 align-top">
+                                            <input type="hidden" name="class_ids[]" value="<?= $c['id'] ?>">
+                                            <input type="text" name="race_numbers[]" value="<?= htmlspecialchars($c['race_number'] ?? '') ?>" placeholder="101" required class="w-full bg-slate-50 border border-slate-200 rounded p-2 text-xs font-bold text-slate-700 text-center focus:ring-2 focus:ring-blue-500">
+                                        </td>
+                                        <td class="p-2 align-top">
+                                            <input type="time" name="race_times[]" value="<?= htmlspecialchars($c['race_time'] ?? '') ?>" required class="w-full bg-slate-50 border border-slate-200 rounded p-2 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-blue-500">
+                                        </td>
+                                        <td class="p-2 align-top">
+                                            <select name="distance_ids[]" class="distance-select w-full bg-slate-50 border border-slate-200 rounded p-2 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-blue-500">
+                                                <option value="">- Jarak -</option>
+                                                <?php foreach($distances as $dist): ?>
+                                                    <option value="<?= $dist['id'] ?>" data-dist-name="<?= htmlspecialchars($dist['distance_name']) ?>" <?= ($c['distance_id'] == $dist['id']) ? 'selected' : '' ?>><?= htmlspecialchars($dist['distance_name']) ?></option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                        </td>
+                                        <td class="p-2 align-top">
+                                            <select name="age_group_ids[]" class="age-group-select w-full bg-slate-50 border border-slate-200 rounded p-2 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-blue-500">
+                                                <option value="">Umum</option>
+                                                <?php foreach($ageGroups as $ag): ?>
+                                                    <option value="<?= $ag['id'] ?>" data-ag-name="<?= htmlspecialchars($ag['group_name']) ?>" <?= ($c['age_group_id'] == $ag['id']) ? 'selected' : '' ?>><?= htmlspecialchars($ag['group_name']) ?></option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                        </td>
+                                        <td class="p-2 align-top">
+                                            <select name="skate_class_ids[]" class="w-full bg-slate-50 border border-slate-200 rounded p-2 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-blue-500">
+                                                <option value="">- Roller -</option>
+                                                <?php foreach($skateClasses as $sc): ?>
+                                                    <option value="<?= $sc['id'] ?>" <?= ($c['skate_class_id'] == $sc['id']) ? 'selected' : '' ?>><?= htmlspecialchars($sc['class_name']) ?></option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                        </td>
+                                        <td class="p-2 align-top">
+                                            <select name="genders[]" class="w-full bg-slate-50 border border-slate-200 rounded p-2 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-blue-500">
+                                                <option value="Putra" <?= ($c['gender'] == 'Putra') ? 'selected' : '' ?>>Putra</option>
+                                                <option value="Putri" <?= ($c['gender'] == 'Putri') ? 'selected' : '' ?>>Putri</option>
+                                                <option value="Campuran" <?= ($c['gender'] == 'Campuran') ? 'selected' : '' ?>>Campuran</option>
+                                            </select>
+                                        </td>
+                                        <td class="p-2 text-center align-top whitespace-nowrap">
+                                            <button type="button" title="Hapus" onclick="if(confirm('Hapus kelas ini?')) window.location.href='<?= getenv('APP_URL') ?>/roll/admin/events/delete_class/<?= $c['id'] ?>'" class="text-red-500 opacity-50 hover:opacity-100 hover:text-white p-2 rounded hover:bg-red-500 transition-all font-bold text-lg h-8 w-8 inline-flex items-center justify-center">
+                                                &times;
+                                            </button>
+                                        </td>
+                                    </tr>
                                     <?php endforeach; ?>
-                                </div>
-                            </div>
-
-                            <!-- Kelompok Umur -->
-                            <div>
-                                <h4 class="text-xs font-black text-slate-600 uppercase mb-3">2. Pilih Kelompok Umur</h4>
-                                <div class="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
-                                    <?php foreach($ageGroups as $a): ?>
-                                    <label class="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-100 cursor-pointer transition">
-                                        <input type="checkbox" name="age_groups[]" value="<?= $a['id'] ?>" class="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500">
-                                        <span class="text-sm font-bold text-slate-700"><?= htmlspecialchars($a['group_name']) ?></span>
-                                    </label>
-                                    <?php endforeach; ?>
-                                </div>
-                            </div>
+                                </tbody>
+                            </table>
                         </div>
 
-                        <!-- Gender & Submit -->
-                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center pt-4 border-t border-slate-200 gap-4">
-                            <div>
-                                <h4 class="text-xs font-black text-slate-600 uppercase mb-2">3. Pilih Gender</h4>
-                                <div class="flex gap-4">
-                                    <label class="flex items-center gap-2 cursor-pointer">
-                                        <input type="checkbox" name="genders[]" value="Putra" class="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500" checked>
-                                        <span class="text-sm font-bold text-slate-700">Putra</span>
-                                    </label>
-                                    <label class="flex items-center gap-2 cursor-pointer">
-                                        <input type="checkbox" name="genders[]" value="Putri" class="w-4 h-4 text-pink-600 rounded border-slate-300 focus:ring-pink-500" checked>
-                                        <span class="text-sm font-bold text-slate-700">Putri</span>
-                                    </label>
-                                </div>
-                            </div>
-                            
-                            <button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-8 rounded-xl shadow-lg hover:shadow-emerald-500/30 transition-all uppercase tracking-widest text-sm w-full sm:w-auto flex-shrink-0">
-                                ➕ Buat Kelas Massal
+                        <div class="mb-6">
+                            <button type="button" onclick="addScheduleRow()" class="bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 hover:border-indigo-300 font-bold py-3 px-6 rounded-xl shadow-sm transition-all text-sm w-full border-dashed flex justify-center items-center gap-2">
+                                <span class="text-xl">+</span> TAMBAH BARIS JADWAL
+                            </button>
+                        </div>
+                        
+                        <div class="flex justify-end pt-4 border-t border-slate-200/50">
+                            <button type="submit" onclick="return validateClasses()" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-10 rounded-xl shadow-lg hover:shadow-blue-500/30 transition-all uppercase tracking-widest text-sm flex items-center gap-2">
+                                💾 Simpan Semua Jadwal
                             </button>
                         </div>
                     </form>
-                </div>   </div>
-
-                <!-- List of Classes -->
-                <div class="p-6 flex-1 overflow-auto">
-                    <?php if(empty($classes)): ?>
-                        <div class="text-center text-slate-500 py-8">Belum ada kelas lomba yang ditambahkan.</div>
-                    <?php else: ?>
-                        <form action="<?= getenv('APP_URL') ?>/roll/admin/events/bulk_update_schedule" method="POST">
-                            <input type="hidden" name="event_id" value="<?= $row['id'] ?>">
-                            <div class="flex flex-col space-y-6">
-                                <?php 
-                                // Kelompokkan berdasarkan digit pertama dari race_number
-                                $groupedClasses = [];
-                                $unassignedClasses = [];
-                                foreach ($classes as $c) {
-                                    $rNo = $c['race_number'] ?? '';
-                                    if (strlen($rNo) >= 3 && is_numeric(substr($rNo, 0, 1))) {
-                                        $dayNum = substr($rNo, 0, 1);
-                                        $groupedClasses["Hari $dayNum"][] = $c;
-                                    } else {
-                                        $unassignedClasses[] = $c;
-                                    }
-                                }
-                                ksort($groupedClasses);
-                                if (!empty($unassignedClasses)) {
-                                    $groupedClasses['Belum Ditentukan (Unassigned)'] = $unassignedClasses;
-                                }
-                                ?>
-
-                                <?php foreach($groupedClasses as $dayLabel => $dayClasses): ?>
-                                    <div class="mb-4">
-                                        <h3 class="text-sm font-bold text-slate-700 uppercase tracking-widest mb-3 bg-slate-100 p-3 rounded-lg border border-slate-200 shadow-sm flex items-center gap-2">
-                                            <span class="text-xl">📅</span> <?= htmlspecialchars($dayLabel) ?>
-                                        </h3>
-                                        <div class="overflow-x-auto bg-white rounded-xl border border-slate-200 shadow-sm">
-                                            <table class="w-full text-left text-sm text-slate-600">
-                                                <thead class="bg-slate-50 border-b border-slate-200 text-[10px] uppercase font-black tracking-wider text-slate-400">
-                                                    <tr>
-                                                        <th class="p-3 w-24">Nomor (3 Digit)</th>
-                                                        <th class="p-3 w-32">Jam Acara</th>
-                                                        <th class="p-3">Kategori Lomba & Jarak</th>
-                                                        <th class="p-3 w-24 text-center">Aksi</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody class="divide-y divide-slate-100">
-                                                    <?php foreach($dayClasses as $c): ?>
-                                                    <tr class="hover:bg-slate-50 transition-colors group">
-                                                        <td class="p-2 align-top">
-                                                            <input type="hidden" name="class_ids[]" value="<?= $c['id'] ?>">
-                                                            <input type="text" name="race_numbers[]" value="<?= htmlspecialchars($c['race_number'] ?? '') ?>" placeholder="101" required class="w-full bg-slate-50 border border-slate-200 rounded p-2 text-xs font-bold text-slate-700 text-center focus:ring-2 focus:ring-blue-500">
-                                                        </td>
-                                                        <td class="p-2 align-top">
-                                                            <input type="time" name="race_times[]" value="<?= htmlspecialchars($c['race_time'] ?? '') ?>" required class="w-full bg-slate-50 border border-slate-200 rounded p-2 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-blue-500">
-                                                        </td>
-                                                        <td class="p-2">
-                                                            <div class="flex flex-col gap-1">
-                                                                <div class="flex gap-1">
-                                                                    <select name="age_group_ids[]" class="age-group-select w-1/2 bg-slate-50 border border-slate-200 rounded p-1.5 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-blue-500">
-                                                                        <option value="">Umum</option>
-                                                                        <?php foreach($ageGroups as $ag): ?>
-                                                                            <option value="<?= $ag['id'] ?>" data-ag-name="<?= htmlspecialchars($ag['group_name']) ?>" <?= ($c['age_group_id'] == $ag['id']) ? 'selected' : '' ?>><?= htmlspecialchars($ag['group_name']) ?></option>
-                                                                        <?php endforeach; ?>
-                                                                    </select>
-                                                                    <select name="distance_ids[]" class="distance-select w-1/2 bg-slate-50 border border-slate-200 rounded p-1.5 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-blue-500">
-                                                                        <option value="">- Pilih Jarak -</option>
-                                                                        <?php foreach($distances as $dist): ?>
-                                                                            <option value="<?= $dist['id'] ?>" data-dist-name="<?= htmlspecialchars($dist['distance_name']) ?>" <?= ($c['distance_id'] == $dist['id']) ? 'selected' : '' ?>><?= htmlspecialchars($dist['distance_name']) ?></option>
-                                                                        <?php endforeach; ?>
-                                                                    </select>
-                                                                </div>
-                                                                <input type="text" name="category_names[]" value="<?= htmlspecialchars($c['category_name']) ?>" class="w-full bg-slate-50 border border-slate-200 rounded p-1.5 text-[10px] font-bold text-blue-500 uppercase tracking-widest focus:ring-2 focus:ring-blue-500" placeholder="Kategori">
-                                                            </div>
-                                                        </td>
-                                                        <td class="p-2 text-center align-top whitespace-nowrap">
-                                                            <button type="submit" title="Simpan Perubahan" class="text-emerald-500 opacity-50 hover:opacity-100 hover:text-white p-2 rounded hover:bg-emerald-500 transition-all font-bold text-sm h-8 w-8 inline-flex items-center justify-center mr-1">
-                                                                💾
-                                                            </button>
-                                                            <button type="button" title="Hapus" onclick="if(confirm('Hapus kelas ini?')) window.location.href='<?= getenv('APP_URL') ?>/roll/admin/events/delete_class/<?= $c['id'] ?>'" class="text-red-500 opacity-50 hover:opacity-100 hover:text-white p-2 rounded hover:bg-red-500 transition-all font-bold text-lg h-8 w-8 inline-flex items-center justify-center">
-                                                                &times;
-                                                            </button>
-                                                        </td>
-                                                    </tr>
-                                                    <?php endforeach; ?>
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
-                                <?php endforeach; ?>
-                            </div>
-                            
-                            <div class="mt-6 flex justify-end">
-                                <button type="submit" onclick="return validateClasses()" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded-xl shadow-lg hover:shadow-blue-500/30 transition-all uppercase tracking-widest text-sm">
-                                    💾 Simpan Semua Jadwal
-                                </button>
-                            </div>
-                        </form>
-                    </div>
                 </div>
-            <?php endif; ?>
-        </div>
+            </div>
         <?php endif; ?>
     </div>
 </div>
-<script>
-function validateClasses() {
-    let valid = true;
-    document.querySelectorAll('.distance-select').forEach(sel => {
-        const row = sel.closest('tr');
-        const agSel = row.querySelector('.age-group-select');
-        const distName = sel.options[sel.selectedIndex]?.getAttribute('data-dist-name') || '';
-        const agName = agSel.options[agSel.selectedIndex]?.getAttribute('data-ag-name') || '';
 
-        // ITT 100m hanya untuk Senior
-        if (distName.includes('ITT 100') && !agName.includes('Senior')) {
-            alert('ITT 100m hanya diperbolehkan untuk Kelompok Umur Senior!');
-            sel.focus();
-            valid = false;
-        }
-        
-        // Point Race & Eliminasi (10k/15k) hanya untuk Junior & Senior
-        if ((distName.includes('Point') || (distName.includes('Eliminasi') && (distName.includes('10k') || distName.includes('15k') || distName.includes('10.000m') || distName.includes('15.000m')))) && !(agName.includes('Junior') || agName.includes('Senior'))) {
-            alert(distName + ' hanya diperbolehkan untuk Kelompok Umur Junior dan Senior!');
-            sel.focus();
-            valid = false;
-        }
-    });
-    return valid;
+<template id="row-template">
+    <tr class="hover:bg-slate-50 transition-colors group">
+        <td class="p-2 align-top">
+            <input type="hidden" name="class_ids[]" value="">
+            <input type="text" name="race_numbers[]" value="" placeholder="101" required class="w-full bg-slate-50 border border-slate-200 rounded p-2 text-xs font-bold text-slate-700 text-center focus:ring-2 focus:ring-blue-500">
+        </td>
+        <td class="p-2 align-top">
+            <input type="time" name="race_times[]" value="" required class="w-full bg-slate-50 border border-slate-200 rounded p-2 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-blue-500">
+        </td>
+        <td class="p-2 align-top">
+            <select name="distance_ids[]" class="distance-select w-full bg-slate-50 border border-slate-200 rounded p-2 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-blue-500">
+                <option value="">- Jarak -</option>
+                <?php foreach($distances as $dist): ?>
+                    <option value="<?= $dist['id'] ?>" data-dist-name="<?= htmlspecialchars($dist['distance_name']) ?>"><?= htmlspecialchars($dist['distance_name']) ?></option>
+                <?php endforeach; ?>
+            </select>
+        </td>
+        <td class="p-2 align-top">
+            <select name="age_group_ids[]" class="age-group-select w-full bg-slate-50 border border-slate-200 rounded p-2 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-blue-500">
+                <option value="">Umum</option>
+                <?php foreach($ageGroups as $ag): ?>
+                    <option value="<?= $ag['id'] ?>" data-ag-name="<?= htmlspecialchars($ag['group_name']) ?>"><?= htmlspecialchars($ag['group_name']) ?></option>
+                <?php endforeach; ?>
+            </select>
+        </td>
+        <td class="p-2 align-top">
+            <select name="skate_class_ids[]" class="w-full bg-slate-50 border border-slate-200 rounded p-2 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-blue-500">
+                <option value="">- Roller -</option>
+                <?php foreach($skateClasses as $sc): ?>
+                    <option value="<?= $sc['id'] ?>"><?= htmlspecialchars($sc['class_name']) ?></option>
+                <?php endforeach; ?>
+            </select>
+        </td>
+        <td class="p-2 align-top">
+            <select name="genders[]" class="w-full bg-slate-50 border border-slate-200 rounded p-2 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-blue-500">
+                <option value="Putra" selected>Putra</option>
+                <option value="Putri">Putri</option>
+                <option value="Campuran">Campuran</option>
+            </select>
+        </td>
+        <td class="p-2 text-center align-top whitespace-nowrap">
+            <button type="button" title="Hapus Baris" onclick="this.closest('tr').remove()" class="text-red-500 opacity-50 hover:opacity-100 hover:text-white p-2 rounded hover:bg-red-500 transition-all font-bold text-lg h-8 w-8 inline-flex items-center justify-center">
+                &times;
+            </button>
+        </td>
+    </tr>
+</template>
+
+<script>
+function addScheduleRow() {
+    const template = document.getElementById('row-template');
+    const tbody = document.getElementById('schedule-matrix');
+    const clone = template.content.cloneNode(true);
+    
+    // Attach event listeners to new row
+    attachPorserosiRules(clone.querySelector('.age-group-select'));
+    
+    tbody.appendChild(clone);
 }
 
-document.querySelectorAll('.distance-select').forEach(sel => {
-    sel.addEventListener('change', function() {
+function attachPorserosiRules(selectElement) {
+    if(!selectElement) return;
+    selectElement.addEventListener('change', function() {
         const row = this.closest('tr');
-        const agSel = row.querySelector('.age-group-select');
-        const distName = this.options[this.selectedIndex]?.getAttribute('data-dist-name') || '';
+        const distSel = row.querySelector('.distance-select');
+        const agName = this.options[this.selectedIndex]?.getAttribute('data-ag-name') || '';
         
-        // Auto filter available age groups
-        Array.from(agSel.options).forEach(opt => {
-            const agName = opt.getAttribute('data-ag-name') || '';
-            opt.disabled = false;
+        const isJunior = agName.toUpperCase().includes('JUNIOR');
+        const isSenior = agName.toUpperCase().includes('SENIOR');
+        const isAnakAnak = !isJunior && !isSenior && agName.trim() !== '';
+        
+        // Porserosi Rules:
+        Array.from(distSel.options).forEach(opt => {
+            const distName = (opt.getAttribute('data-dist-name') || '').toUpperCase();
+            if (!distName) return; // Skip default empty option
             
-            if (distName.includes('ITT 100') && !agName.includes('Senior') && agName !== '') {
-                opt.disabled = true;
+            let shouldDisable = false;
+            
+            // ITT 100m HANYA Senior
+            if (distName.includes('ITT 100') && !isSenior) {
+                shouldDisable = true;
             }
-            if ((distName.includes('Point') || (distName.includes('Eliminasi') && (distName.includes('10k') || distName.includes('15k') || distName.includes('10.000m') || distName.includes('15.000m')))) && !(agName.includes('Junior') || agName.includes('Senior')) && agName !== '') {
-                opt.disabled = true;
+            
+            // 5k, 10k, 15k HANYA Junior & Senior
+            if ((distName.includes('5K') || distName.includes('10K') || distName.includes('15K')) && isAnakAnak) {
+                shouldDisable = true;
             }
+            
+            opt.disabled = shouldDisable;
+            if (shouldDisable && opt.selected) distSel.value = ''; // Reset if selected
         });
-        
-        // If current selection is now disabled, reset it
-        if (agSel.options[agSel.selectedIndex]?.disabled) {
-            agSel.value = '';
-            alert('Pilihan Kelompok Umur sebelumnya tidak valid untuk jarak ini dan telah direset.');
-        }
     });
-    
-    // Trigger change to set initial state
+}
+
+// Attach rules to existing rows
+document.querySelectorAll('.age-group-select').forEach(sel => {
+    attachPorserosiRules(sel);
+    // Trigger initial state
     sel.dispatchEvent(new Event('change'));
 });
 </script>
