@@ -153,10 +153,11 @@ class RollEventController extends Controller {
                     }
                 }
             }
+            $entryFee = $_POST['entry_fee'] ?? 150000;
             $headerLogosJson = json_encode($headerLogosArray);
 
-            $stmt = $db->prepare("UPDATE roll_events SET event_name=?, event_date_start=?, event_date_end=?, event_location=?, event_city=?, race_format=?, status=?, poster_image=?, sponsor_logos=?, header_logos=? WHERE id=?");
-            $stmt->execute([$eventName, $eventDateStart, $eventDateEnd, $eventLoc, $eventCity, $raceFormat, $status, $posterImage, $sponsorLogosJson, $headerLogosJson, $eventId]);
+            $stmt = $db->prepare("UPDATE roll_events SET event_name=?, event_date_start=?, event_date_end=?, event_location=?, event_city=?, race_format=?, status=?, entry_fee=?, poster_image=?, sponsor_logos=?, header_logos=? WHERE id=?");
+            $stmt->execute([$eventName, $eventDateStart, $eventDateEnd, $eventLoc, $eventCity, $raceFormat, $status, $entryFee, $posterImage, $sponsorLogosJson, $headerLogosJson, $eventId]);
 
             $_SESSION['flash_message'] = "Profil Event berhasil diperbarui!";
             $_SESSION['flash_type'] = "success";

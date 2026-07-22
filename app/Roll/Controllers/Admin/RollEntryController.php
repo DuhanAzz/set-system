@@ -18,188 +18,214 @@ class RollEntryController extends Controller {
 
     public function index() {
         $db = Database::getInstance()->getConnection();
-        $eventId = $_SESSION['roll_admin_active_event_id'] ?? 0;
+        $targetEventId = $_SESSION['roll_admin_active_event_id'] ?? 0;
 
-        if ($eventId == 0) {
+        if ($targetEventId == 0) {
             $_SESSION['flash_message'] = "Pilih Event terlebih dahulu!";
             $_SESSION['flash_type'] = "warning";
             header("Location: " . getenv('APP_URL') . "/roll/admin/dashboard");
             exit;
         }
-        
-        // Pintu Kasir: Ambil data entries dikelompokkan per Klub
-        $sql = "SELECT c.id as club_id, c.club_name, 
-                       COUNT(DISTINCT s.id) as total_athletes, 
-                       COUNT(e.id) as total_entries,
-                       p.id as payment_id, p.payment_proof, p.status as payment_status, p.total_amount
-                FROM roll_entries e 
-                JOIN roll_skaters s ON e.skater_id = s.id 
-                LEFT JOIN roll_clubs c ON s.club_id = c.id 
-                LEFT JOIN roll_payments p ON p.club_id = c.id AND p.event_id = e.event_id
-                WHERE e.event_id = ?
-                GROUP BY c.id, c.club_name, p.id, p.payment_proof, p.status, p.total_amount
-                ORDER BY c.club_name ASC";
-        
-        $stmt = $db->prepare($sql);
-        $stmt->execute([$eventId]);
-        $clubs = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        // Data needed for manual insert by Admin
-        $stmtSkaters = $db->prepare("SELECT id, skater_name, club_id FROM roll_skaters");
-        $stmtSkaters->execute();
-        $skaters = $stmtSkaters->fetchAll(PDO::FETCH_ASSOC);
+        // Handle Action Approve/Reject Pembayaran
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $paymentIdApprove = (int)($_POST['approve_payment_id'] ?? 0);
+            $paymentIdReject  = (int)($_POST['reject_payment_id'] ?? 0);
+            
+            if ($paymentIdApprove > 0) {
+                try {
+                    $stmt = $db->prepare("UPDATE roll_payments SET status = 'Paid', created_at = NOW() WHERE id = ? AND event_id = ?");
+                    $stmt->execute([$paymentIdApprove, $targetEventId]);
+                    $_SESSION['flash_type'] = 'success'; 
+                    $_SESSION['flash_message'] = 'Pembayaran Lunas! Klub diverifikasi.';
+                } catch (\Exception $e) {}
+                header("Location: " . getenv('APP_URL') . "/roll/admin/entries"); exit;
+            }
+            
+            $paymentIdRollback = (int)($_POST["rollback_payment_id"] ?? 0);
+            if ($paymentIdRollback > 0) {
+                try {
+                    $stmt = $db->prepare("UPDATE roll_payments SET status = 'Pending', created_at = NOW() WHERE id = ? AND event_id = ?");
+                    $stmt->execute([$paymentIdRollback, $targetEventId]);
+                    $_SESSION["flash_type"] = "info";
+                    $_SESSION["flash_message"] = "Verifikasi Dibatalkan. Status kembali Pending.";
+                } catch (\Exception $e) {}
+                header("Location: " . getenv("APP_URL") . "/roll/admin/entries"); exit;
+            }
+            if ($paymentIdReject > 0) {
+                try {
+                    $stmt = $db->prepare("UPDATE roll_payments SET status = 'Rejected', created_at = NOW() WHERE id = ? AND event_id = ?");
+                    $stmt->execute([$paymentIdReject, $targetEventId]);
+                    $_SESSION['flash_type'] = 'warning'; 
+                    $_SESSION['flash_message'] = 'Pembayaran Ditolak.';
+                } catch (\Exception $e) {}
+                header("Location: " . getenv('APP_URL') . "/roll/admin/entries"); exit;
+            }
+        }
 
-        $stmtClasses = $db->prepare("SELECT ed.id, d.distance_name, a.group_name, ed.category_name 
-                                     FROM roll_event_details ed 
-                                     LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id 
-                                     LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id 
-                                     WHERE ed.event_id = ?");
-        $stmtClasses->execute([$eventId]);
-        $classes = $stmtClasses->fetchAll(PDO::FETCH_ASSOC);
+        // Fetch entry fee
+        $stmtFee = $db->prepare("SELECT entry_fee FROM roll_events WHERE id = ?");
+        $stmtFee->execute([$targetEventId]);
+        $eventFee = $stmtFee->fetchColumn() ?: 150000;
+
+        // Query List Klub & Payments
+        try {
+            $sql = "SELECT 
+                        p.id as payment_id,
+                        p.status as payment_status,
+                        p.payment_proof as file_path,
+                        p.total_amount as amount,
+                        p.event_id,
+                        c.id as club_id,
+                        c.club_name as nama_lengkap,
+                        u.email,
+                        (SELECT COUNT(*) FROM roll_entries e JOIN roll_skaters s ON e.skater_id = s.id WHERE s.club_id = c.id AND e.event_id = ?) as total_entries
+                    FROM roll_clubs c
+                    LEFT JOIN roll_payments p ON p.club_id = c.id AND p.event_id = ?
+                    LEFT JOIN roll_users u ON u.club_id = c.id
+                    WHERE (SELECT COUNT(*) FROM roll_entries e JOIN roll_skaters s ON e.skater_id = s.id WHERE s.club_id = c.id AND e.event_id = ?) > 0
+                    ORDER BY 
+                        CASE WHEN p.status = 'Pending' THEN 1 ELSE 2 END, 
+                        p.created_at DESC";
+            
+            $stmt = $db->prepare($sql);
+            $stmt->execute([$targetEventId, $targetEventId, $targetEventId]);
+            $listData = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Calculate dynamic amount if not paid/set
+            foreach ($listData as &$row) {
+                if (empty($row['amount']) || $row['amount'] <= 0) {
+                    $row['amount'] = $row['total_entries'] * $eventFee;
+                }
+            }
+        } catch (\PDOException $e) {
+            $listData = [];
+        }
 
         return $this->view('roll/admin/entries/index', [
-            'clubs' => $clubs,
-            'skaters' => $skaters,
-            'classes' => $classes,
-            'eventId' => $eventId
+            'listData' => $listData,
+            'targetEventId' => $targetEventId
         ]);
     }
 
-    public function store() {
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $db = Database::getInstance()->getConnection();
-            $eventId = $_SESSION['roll_admin_active_event_id'] ?? 0;
-            $skaterId = $_POST['skater_id'] ?? 0;
-            $raceClassId = $_POST['race_class_id'] ?? 0; // Using race_class_id as requested
-
-            if ($eventId == 0 || $skaterId == 0 || $raceClassId == 0) {
-                $_SESSION['flash_message'] = "Data tidak lengkap!";
-                $_SESSION['flash_type'] = "error";
-                header("Location: " . getenv('APP_URL') . "/roll/admin/entries");
-                exit;
-            }
-
-            // GEMBOK ANTI-DUPLIKASI (Double Entry Check)
-            $stmtCek = $db->prepare("SELECT id FROM roll_entries WHERE event_id = ? AND skater_id = ? AND race_class_id = ?");
-            $stmtCek->execute([$eventId, $skaterId, $raceClassId]);
-            if ($stmtCek->rowCount() > 0) {
-                $_SESSION['flash_message'] = "Atlet ini sudah terdaftar di kelas lomba tersebut!";
-                $_SESSION['flash_type'] = "error";
-                header("Location: " . getenv('APP_URL') . "/roll/admin/entries");
-                exit;
-            }
-
-            // Note: If roll_entries doesn't have race_class_id, we need to alter it.
-            // But we will write the SQL assuming it exists per user requirements.
-            $stmt = $db->prepare("INSERT INTO roll_entries (event_id, skater_id, race_class_id, status) VALUES (?, ?, ?, 'Paid')");
-            try {
-                $stmt->execute([$eventId, $skaterId, $raceClassId]);
-                $_SESSION['flash_message'] = "Atlet berhasil didaftarkan secara manual!";
-                $_SESSION['flash_type'] = "success";
-            } catch (\Exception $e) {
-                $_SESSION['flash_message'] = "Gagal mendaftar: " . $e->getMessage();
-                $_SESSION['flash_type'] = "error";
-            }
-            
-            header("Location: " . getenv('APP_URL') . "/roll/admin/entries");
+    public function detail() {
+        if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+            header("Location: " . getenv('APP_URL') . "/roll/login");
             exit;
         }
-    }
-
-    public function delete($id) {
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $db = Database::getInstance()->getConnection();
-            $eventId = $_SESSION['roll_admin_active_event_id'] ?? 0;
-
-            $stmt = $db->prepare("DELETE FROM roll_entries WHERE id = ? AND event_id = ?");
-            $stmt->execute([$id, $eventId]);
-
-            $_SESSION['flash_message'] = "Pendaftaran berhasil dihapus!";
-            $_SESSION['flash_type'] = "success";
-            header("Location: " . getenv('APP_URL') . "/roll/admin/entries");
-            exit;
-        }
-    }
-
-    public function change_status($entryId, $status) {
+        
         $db = Database::getInstance()->getConnection();
-        $eventId = $_SESSION['roll_admin_active_event_id'] ?? 0;
+        $eventId = (int)($_GET['event_id'] ?? 0);
+        $targetClubId = (int)($_GET['id'] ?? 0);
         
-        if ($eventId > 0) {
-            $stmt = $db->prepare("UPDATE roll_entries SET status = ? WHERE id = ? AND event_id = ?");
-            $stmt->execute([$status, $entryId, $eventId]);
-            
-            $_SESSION['flash_message'] = "Status pendaftaran diperbarui!";
-            $_SESSION['flash_type'] = "success";
+        if ($eventId == 0 || $targetClubId == 0) {
+            die("Parameter URL tidak lengkap.");
         }
-        header("Location: " . getenv('APP_URL') . "/roll/admin/entries");
-        exit;
-    }
-
-    public function get_club_details($clubId) {
-        $db = Database::getInstance()->getConnection();
-        $eventId = $_SESSION['roll_admin_active_event_id'] ?? 0;
         
-        $sql = "SELECT s.skater_name, s.gender, a.group_name, d.distance_name, ed.category_name, e.status
-                FROM roll_entries e
-                JOIN roll_skaters s ON e.skater_id = s.id
-                LEFT JOIN roll_event_details ed ON e.race_class_id = ed.id
-                LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
-                LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id
-                WHERE e.event_id = ? AND s.club_id = ?
-                ORDER BY s.skater_name ASC";
-        $stmt = $db->prepare($sql);
-        $stmt->execute([$eventId, $clubId]);
-        $entries = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
-        header('Content-Type: application/json');
-        echo json_encode($entries);
-        exit;
-    }
-
-    public function approve_club() {
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $db = Database::getInstance()->getConnection();
-            $eventId = $_SESSION['roll_admin_active_event_id'] ?? 0;
-            $clubId = $_POST['club_id'] ?? 0;
+        // --- HANDLE POST AKSI ---
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_type'])) {
+            $payId = (int)($_POST['payment_id'] ?? 0);
+            $action = $_POST['action_type']; 
             
-            if ($eventId > 0 && $clubId > 0) {
-                // 1. Mark payment as paid
-                $stmtCheck = $db->prepare("SELECT id FROM roll_payments WHERE event_id = ? AND club_id = ?");
-                $stmtCheck->execute([$eventId, $clubId]);
-                $paymentId = $stmtCheck->fetchColumn();
-                
-                if ($paymentId) {
-                    $db->prepare("UPDATE roll_payments SET status = 'Paid' WHERE id = ?")->execute([$paymentId]);
-                } else {
-                    $db->prepare("INSERT INTO roll_payments (event_id, club_id, status) VALUES (?, ?, 'Paid')")->execute([$eventId, $clubId]);
+            if ($payId > 0) {
+                try {
+                    $newStatus = 'Pending';
+                    if ($action === 'approve') $newStatus = 'Paid';
+                    elseif ($action === 'reject') $newStatus = 'Rejected';
+                    elseif ($action === 'rollback') $newStatus = 'Pending';
+                    
+                    $stmt = $db->prepare("UPDATE roll_payments SET status = ?, created_at = NOW() WHERE id = ?");
+                    $stmt->execute([$newStatus, $payId]);
+                    
+                    $_SESSION['flash_type'] = 'success';
+                    $_SESSION['flash_message'] = 'Status pembayaran berhasil diperbarui!';
+                } catch (\Exception $e) {
+                    $_SESSION['flash_type'] = 'error';
+                    $_SESSION['flash_message'] = 'Gagal memperbarui status.';
                 }
-                
-                $_SESSION['flash_message'] = "Seluruh pendaftaran klub berhasil di-Approve!";
-                $_SESSION['flash_type'] = "success";
+            } else if ($action === 'approve') {
+                 // Insert if doesn't exist
+                 $stmt = $db->prepare("INSERT INTO roll_payments (event_id, club_id, status) VALUES (?, ?, 'Paid')");
+                 $stmt->execute([$eventId, $targetClubId]);
             }
-            header("Location: " . getenv('APP_URL') . "/roll/admin/entries");
+            
+            header("Location: " . getenv('APP_URL') . "/roll/admin/entries/detail?id=$targetClubId&event_id=$eventId");
             exit;
         }
-    }
-
-    public function approvePayment($entry_id) {
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $db = Database::getInstance()->getConnection();
-            $eventId = $_SESSION['roll_admin_active_event_id'] ?? 0;
-
-            $stmt = $db->prepare("UPDATE roll_entries SET status = 'Paid' WHERE id = ? AND event_id = ? AND status IN ('Pending', 'Unpaid')");
-            $stmt->execute([$entry_id, $eventId]);
-
-            if ($stmt->rowCount() > 0) {
-                $_SESSION['flash_message'] = "Pembayaran berhasil diverifikasi (Paid)!";
-                $_SESSION['flash_type'] = "success";
-            } else {
-                $_SESSION['flash_message'] = "Validasi gagal: Status tidak dapat diubah.";
-                $_SESSION['flash_type'] = "error";
+        
+        // 2. AMBIL DATA EVENT
+        $stmtEvt = $db->prepare("SELECT * FROM roll_events WHERE id = ? LIMIT 1");
+        $stmtEvt->execute([$eventId]);
+        $eventData = $stmtEvt->fetch(PDO::FETCH_ASSOC);
+        if (!$eventData) die("Event tidak ditemukan");
+        
+        // AMBIL DATA KLUB
+        $stmtClub = $db->prepare("SELECT c.club_name, u.email FROM roll_clubs c LEFT JOIN roll_users u ON u.club_id = c.id WHERE c.id = ?");
+        $stmtClub->execute([$targetClubId]);
+        $clubData = $stmtClub->fetch(PDO::FETCH_ASSOC);
+        
+        $clubName = $clubData['club_name'] ?? 'Klub ID: ' . $targetClubId;
+        $emailUser = $clubData['email'] ?? 'No Email';
+        
+        // AMBIL DATA PEMBAYARAN
+        $stmtPay = $db->prepare("SELECT * FROM roll_payments WHERE event_id = ? AND club_id = ? LIMIT 1");
+        $stmtPay->execute([$eventId, $targetClubId]);
+        $payData = $stmtPay->fetch(PDO::FETCH_ASSOC);
+        
+        // AMBIL SEMUA ENTRI ATLET DARI KLUB INI
+        $sqlEntries = "SELECT s.id as skater_id, s.skater_name, s.gender, s.birth_date, a.group_name, d.distance_name, ed.category_name, ed.distance
+                       FROM roll_entries e
+                       JOIN roll_skaters s ON e.skater_id = s.id
+                       LEFT JOIN roll_event_details ed ON e.race_class_id = ed.id
+                       LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
+                       LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id
+                       WHERE e.event_id = ? AND s.club_id = ?
+                       ORDER BY s.skater_name ASC";
+        $stmtE = $db->prepare($sqlEntries);
+        $stmtE->execute([$eventId, $targetClubId]);
+        $allEntries = $stmtE->fetchAll(PDO::FETCH_ASSOC);
+        
+        // KELOMPOKKAN PER ATLET
+        $groupedSkaters = [];
+        $totalTagihan = 0;
+        $hargaPerNomor = isset($eventData['entry_fee']) && $eventData['entry_fee'] > 0 ? $eventData['entry_fee'] : 150000;
+        
+        foreach($allEntries as $ent) {
+            $sId = $ent['skater_id'];
+            if(!isset($groupedSkaters[$sId])) {
+                $groupedSkaters[$sId] = [
+                    'info' => [
+                        'nama' => $ent['skater_name'],
+                        'gender' => $ent['gender'] == 'M' ? 'Putra' : 'Putri',
+                        'lahir' => $ent['birth_date']
+                    ],
+                    'items' => [],
+                    'subtotal' => 0
+                ];
             }
-            header("Location: " . getenv('APP_URL') . "/roll/admin/entries");
-            exit;
+            
+            $groupedSkaters[$sId]['items'][] = [
+                'distance' => $ent['distance'],
+                'stroke' => $ent['category_name'] ?: $ent['distance_name'],
+                'age_group' => $ent['group_name']
+            ];
+            
+            $groupedSkaters[$sId]['subtotal'] += $hargaPerNomor;
+            $totalTagihan += $hargaPerNomor;
         }
+        
+        if(isset($payData['total_amount']) && $payData['total_amount'] > 0) {
+            $totalTagihan = $payData['total_amount'];
+        }
+
+        return $this->view('roll/admin/entries/detail', [
+            'eventId' => $eventId,
+            'targetUserId' => $targetClubId,
+            'clubName' => $clubName,
+            'emailUser' => $emailUser,
+            'payData' => $payData,
+            'groupedSkaters' => $groupedSkaters,
+            'totalTagihan' => $totalTagihan
+        ]);
     }
 }

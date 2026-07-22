@@ -86,6 +86,10 @@
                                 <option value="Finished" <?= ($row['status'] == 'Finished') ? 'selected' : '' ?>>Finished</option>
                             </select>
                         </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Biaya / Kelas (Rp)</label>
+                            <input type="number" name="entry_fee" value="<?= htmlspecialchars($row['entry_fee'] ?? '150000') ?>" class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-800 focus:ring-2 focus:ring-blue-500" required>
+                        </div>
                     </div>
 
                     <!-- Gambar / Media -->
