@@ -95,6 +95,73 @@
             </div>
         </div>
 
+        <!-- MVP TALLY TABLE -->
+        <div class="bg-slate-50/50 rounded-2xl border border-slate-200/50 shadow-xl overflow-hidden backdrop-blur-sm mt-6">
+            <div class="px-6 py-4 border-b border-slate-200/50 bg-slate-50/80 flex justify-between items-center">
+                <h3 class="text-lg font-bold text-slate-800 uppercase tracking-widest">Klasemen Skater Terbaik (Top 10 MVP)</h3>
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-white/50 text-[10px] uppercase tracking-widest text-slate-500 border-b border-slate-200">
+                            <th class="p-4 font-bold w-16 text-center">Rank</th>
+                            <th class="p-4 font-bold">Atlet & Klub</th>
+                            <th class="p-4 font-bold w-32 text-center text-amber-400">Emas (1)</th>
+                            <th class="p-4 font-bold w-32 text-center text-slate-600">Perak (2)</th>
+                            <th class="p-4 font-bold w-32 text-center text-amber-700">Perunggu (3)</th>
+                            <th class="p-4 font-bold w-32 text-center text-slate-800">Total Lawan Dikalahkan</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-700/50 text-sm">
+                        <?php if(empty($mvpTally)): ?>
+                            <tr><td colspan="6" class="p-8 text-center text-slate-500">Belum ada medali yang direkapitulasi.</td></tr>
+                        <?php else: ?>
+                            <?php $rank = 1; foreach($mvpTally as $mvp): ?>
+                            <tr class="hover:bg-slate-700/20 transition-colors <?= $rank <= 3 ? 'bg-slate-50/50' : '' ?>">
+                                <td class="p-4 text-center">
+                                    <?php if($rank == 1): ?>
+                                        <span class="text-2xl">🥇</span>
+                                    <?php elseif($rank == 2): ?>
+                                        <span class="text-2xl">🥈</span>
+                                    <?php elseif($rank == 3): ?>
+                                        <span class="text-2xl">🥉</span>
+                                    <?php else: ?>
+                                        <span class="font-bold text-slate-500"><?= $rank ?></span>
+                                    <?php endif; ?>
+                                </td>
+                                <td class="p-4">
+                                    <div class="font-bold text-slate-800 text-base"><?= htmlspecialchars($mvp['skater_name']) ?></div>
+                                    <div class="text-xs text-blue-500 font-bold"><?= htmlspecialchars($mvp['club_name']) ?></div>
+                                </td>
+                                <td class="p-4 text-center">
+                                    <span class="inline-block w-8 h-8 rounded-full bg-amber-900/30 border border-amber-500/30 text-amber-400 font-black flex items-center justify-center mx-auto">
+                                        <?= $mvp['gold'] ?>
+                                    </span>
+                                </td>
+                                <td class="p-4 text-center">
+                                    <span class="inline-block w-8 h-8 rounded-full bg-slate-700 border border-slate-500/50 text-slate-600 font-black flex items-center justify-center mx-auto">
+                                        <?= $mvp['silver'] ?>
+                                    </span>
+                                </td>
+                                <td class="p-4 text-center">
+                                    <span class="inline-block w-8 h-8 rounded-full bg-amber-900/50 border border-amber-700/50 text-amber-600 font-black flex items-center justify-center mx-auto">
+                                        <?= $mvp['bronze'] ?>
+                                    </span>
+                                </td>
+                                <td class="p-4 text-center">
+                                    <span class="font-black text-xl text-slate-800">
+                                        <?= $mvp['total_defeated'] ?>
+                                    </span>
+                                </td>
+                            </tr>
+                            <?php $rank++; endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
         <?php else: ?>
             <div class="bg-slate-50/50 rounded-2xl border border-slate-200/50 shadow-xl p-12 text-center backdrop-blur-sm">
                 <span class="text-6xl mb-4 block">⚠️</span>

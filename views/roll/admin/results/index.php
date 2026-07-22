@@ -76,17 +76,19 @@
             </form>
         </div>
 
-        <!-- TIMING INPUT TABLE -->
+        <!-- TABLE RESULT -->
         <?php if ($filter_class_id > 0 && !empty($filter_heat)): ?>
         <div class="bg-slate-50/50 rounded-2xl border border-slate-200/50 shadow-xl overflow-hidden backdrop-blur-sm">
             <div class="px-6 py-4 border-b border-slate-200/50 bg-slate-50/80 flex justify-between items-center">
-                <h3 class="text-lg font-bold text-slate-800 uppercase tracking-widest">Lembar Kerja: <?= htmlspecialchars($filter_heat) ?> (<?= count($results) ?> Peserta)</h3>
+                <div class="flex items-center gap-4">
+                    <h3 class="text-lg font-bold text-slate-800 uppercase tracking-widest">Input Hasil Lomba (<?= count($results) ?> Peserta)</h3>
+                    <span class="px-3 py-1 bg-red-100 text-red-600 border border-red-200 rounded-lg text-xs font-bold uppercase tracking-widest">Eliminasi (Sisa <?= $totalNotEliminated ?>)</span>
+                </div>
             </div>
             
             <form action="<?= getenv('APP_URL') ?>/roll/admin/results/update" method="POST">
                 <input type="hidden" name="race_class_id" value="<?= htmlspecialchars($filter_class_id) ?>">
                 <input type="hidden" name="heat_name" value="<?= htmlspecialchars($filter_heat) ?>">
-                
                 <div class="overflow-x-auto">
                     <table class="w-full text-left border-collapse">
                         <thead>
@@ -95,13 +97,14 @@
                                 <th class="p-4 font-bold">Atlet & Klub</th>
                                 <th class="p-4 font-bold w-48 text-center">Waktu (ms)</th>
                                 <th class="p-4 font-bold w-32 text-center">Posisi (Rank)</th>
+                                <th class="p-4 font-bold w-32 text-center">Poin</th>
                                 <th class="p-4 font-bold w-48 text-center">DQ Rule</th>
                                 <th class="p-4 font-bold w-32 text-center">Eliminasi</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-700/50 text-sm">
                             <?php if(empty($results)): ?>
-                                <tr><td colspan="6" class="p-8 text-center text-slate-500">Data peloton kosong. Susun peloton terlebih dahulu.</td></tr>
+                                <tr><td colspan="7" class="p-8 text-center text-slate-500">Data peloton kosong. Susun peloton terlebih dahulu.</td></tr>
                             <?php else: ?>
                                 <?php foreach($results as $r): ?>
                                 <tr class="hover:bg-slate-700/20 transition-colors <?= $r['is_eliminated'] ? 'bg-red-900/10' : '' ?>">
@@ -120,6 +123,9 @@
                                     </td>
                                     <td class="p-4">
                                         <input type="number" step="1" name="finish_position[]" value="<?= $r['finish_position'] ?>" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-blue-500 text-center font-bold">
+                                    </td>
+                                    <td class="p-4">
+                                        <input type="number" step="1" name="total_points[]" value="<?= $r['total_points'] ?>" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-amber-500 text-center font-bold placeholder-slate-400" placeholder="0">
                                     </td>
                                     <td class="p-4">
                                         <select name="dq_rule_id[]" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-red-500 text-xs">
@@ -150,16 +156,25 @@
             </form>
             
             <?php if(!empty($results)): ?>
-            <div class="p-6 border-t border-slate-200/50 bg-white/80 flex justify-between items-center">
+            <div class="p-6 border-t border-slate-200/50 bg-white/80 flex flex-col md:flex-row justify-between items-center gap-4">
                 <div class="text-xs text-slate-500">
                     * Pastikan seluruh hasil seri untuk kelas ini sudah disimpan sebelum melakukan Publish.
                 </div>
-                <form action="<?= getenv('APP_URL') ?>/roll/admin/results/publish" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin Kunci & Publish hasil? Tindakan ini akan mengaktifkan algoritma Fastest Loser atau mengunci Final!');">
-                    <input type="hidden" name="race_class_id" value="<?= htmlspecialchars($filter_class_id) ?>">
-                    <button type="submit" class="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-slate-800 font-black py-3 px-8 rounded-lg shadow-lg hover:shadow-indigo-500/25 transition-all uppercase tracking-widest text-xs flex items-center gap-2">
-                        <span>📢</span> Kunci & Publish Hasil Lomba
-                    </button>
-                </form>
+                <div class="flex items-center gap-3">
+                    <form action="<?= getenv('APP_URL') ?>/roll/admin/results/publish" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin Kunci & Publish hasil? Tindakan ini akan mengaktifkan algoritma Fastest Loser atau mengunci Final!');">
+                        <input type="hidden" name="race_class_id" value="<?= htmlspecialchars($filter_class_id) ?>">
+                        <button type="submit" class="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-black py-3 px-6 rounded-lg shadow-lg hover:shadow-indigo-500/25 transition-all uppercase tracking-widest text-xs flex items-center gap-2">
+                            <span>📢</span> Publish Hasil
+                        </button>
+                    </form>
+
+                    <form action="<?= getenv('APP_URL') ?>/roll/admin/results/officialize" method="POST" onsubmit="return confirm('Sahkan hasil ini? Status Provisional (Masa Protes) akan dihapus!');">
+                        <input type="hidden" name="race_class_id" value="<?= htmlspecialchars($filter_class_id) ?>">
+                        <button type="submit" class="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-black py-3 px-6 rounded-lg shadow-lg hover:shadow-blue-500/25 transition-all uppercase tracking-widest text-xs flex items-center gap-2">
+                            <span>✅</span> Sahkan (Official)
+                        </button>
+                    </form>
+                </div>
             </div>
             <?php endif; ?>
         </div>

@@ -67,7 +67,7 @@ class RollPublicController extends Controller {
             LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
             LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id
             WHERE r.event_id = ? AND ed.result_status = 'Published'
-            ORDER BY a.min_year ASC, d.distance_name ASC, r.finish_position ASC, r.timer_result ASC
+            ORDER BY a.min_year ASC, d.distance_name ASC, r.finish_position ASC, r.finish_time_ms ASC
         ");
         $stmtRes->execute([$eventId]);
         $results = $stmtRes->fetchAll(PDO::FETCH_ASSOC);

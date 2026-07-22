@@ -33,6 +33,13 @@
                     <h1 class="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-300 tracking-tight uppercase">Setup Kejuaraan</h1>
                     <p class="text-slate-500 mt-2 font-medium">Pengaturan Profil dan Kelas Lomba</p>
                 </div>
+                <?php if(!empty($row)): ?>
+                <div class="mt-4 md:mt-0 flex flex-wrap gap-2 md:gap-4">
+                    <a href="<?= getenv('APP_URL') ?>/roll/admin/events/print_schedule" target="_blank" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:shadow-indigo-500/25 transition-all flex items-center">
+                        <span class="mr-2">🖨️</span> Cetak Jadwal & Kelas
+                    </a>
+                </div>
+                <?php endif; ?>
             </div>
         </div>
 
@@ -273,23 +280,24 @@
                                                     <tr class="hover:bg-slate-50 transition-colors group">
                                                         <td class="p-2 align-top">
                                                             <input type="hidden" name="class_ids[]" value="<?= $c['id'] ?>">
-                                                            <input type="text" name="race_numbers[]" value="<?= htmlspecialchars($c['race_number'] ?? '') ?>" placeholder="101" class="w-full bg-slate-50 border border-slate-200 rounded p-2 text-xs font-bold text-slate-700 text-center focus:ring-2 focus:ring-blue-500">
+                                                            <input type="text" name="race_numbers[]" value="<?= htmlspecialchars($c['race_number'] ?? '') ?>" placeholder="101" required class="w-full bg-slate-50 border border-slate-200 rounded p-2 text-xs font-bold text-slate-700 text-center focus:ring-2 focus:ring-blue-500">
                                                         </td>
                                                         <td class="p-2 align-top">
-                                                            <input type="time" name="race_times[]" value="<?= htmlspecialchars($c['race_time'] ?? '') ?>" class="w-full bg-slate-50 border border-slate-200 rounded p-2 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-blue-500">
+                                                            <input type="time" name="race_times[]" value="<?= htmlspecialchars($c['race_time'] ?? '') ?>" required class="w-full bg-slate-50 border border-slate-200 rounded p-2 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-blue-500">
                                                         </td>
                                                         <td class="p-2">
                                                             <div class="flex flex-col gap-1">
                                                                 <div class="flex gap-1">
-                                                                    <select name="age_group_ids[]" class="w-1/2 bg-slate-50 border border-slate-200 rounded p-1.5 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-blue-500">
+                                                                    <select name="age_group_ids[]" class="age-group-select w-1/2 bg-slate-50 border border-slate-200 rounded p-1.5 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-blue-500">
                                                                         <option value="">Umum</option>
                                                                         <?php foreach($ageGroups as $ag): ?>
-                                                                            <option value="<?= $ag['id'] ?>" <?= ($c['age_group_id'] == $ag['id']) ? 'selected' : '' ?>><?= htmlspecialchars($ag['group_name']) ?></option>
+                                                                            <option value="<?= $ag['id'] ?>" data-ag-name="<?= htmlspecialchars($ag['group_name']) ?>" <?= ($c['age_group_id'] == $ag['id']) ? 'selected' : '' ?>><?= htmlspecialchars($ag['group_name']) ?></option>
                                                                         <?php endforeach; ?>
                                                                     </select>
-                                                                    <select name="distance_ids[]" class="w-1/2 bg-slate-50 border border-slate-200 rounded p-1.5 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-blue-500">
+                                                                    <select name="distance_ids[]" class="distance-select w-1/2 bg-slate-50 border border-slate-200 rounded p-1.5 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-blue-500">
+                                                                        <option value="">- Pilih Jarak -</option>
                                                                         <?php foreach($distances as $dist): ?>
-                                                                            <option value="<?= $dist['id'] ?>" <?= ($c['distance_id'] == $dist['id']) ? 'selected' : '' ?>><?= htmlspecialchars($dist['distance_name']) ?></option>
+                                                                            <option value="<?= $dist['id'] ?>" data-dist-name="<?= htmlspecialchars($dist['distance_name']) ?>" <?= ($c['distance_id'] == $dist['id']) ? 'selected' : '' ?>><?= htmlspecialchars($dist['distance_name']) ?></option>
                                                                         <?php endforeach; ?>
                                                                     </select>
                                                                 </div>
@@ -314,16 +322,71 @@
                             </div>
                             
                             <div class="mt-6 flex justify-end">
-                                <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded-xl shadow-lg hover:shadow-blue-500/30 transition-all uppercase tracking-widest text-sm">
+                                <button type="submit" onclick="return validateClasses()" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded-xl shadow-lg hover:shadow-blue-500/30 transition-all uppercase tracking-widest text-sm">
                                     💾 Simpan Semua Jadwal
                                 </button>
                             </div>
                         </form>
-                    <?php endif; ?>
+                    </div>
                 </div>
-            </div>
+            <?php endif; ?>
         </div>
-        
         <?php endif; ?>
     </div>
 </div>
+<script>
+function validateClasses() {
+    let valid = true;
+    document.querySelectorAll('.distance-select').forEach(sel => {
+        const row = sel.closest('tr');
+        const agSel = row.querySelector('.age-group-select');
+        const distName = sel.options[sel.selectedIndex]?.getAttribute('data-dist-name') || '';
+        const agName = agSel.options[agSel.selectedIndex]?.getAttribute('data-ag-name') || '';
+
+        // ITT 100m hanya untuk Senior
+        if (distName.includes('ITT 100') && !agName.includes('Senior')) {
+            alert('ITT 100m hanya diperbolehkan untuk Kelompok Umur Senior!');
+            sel.focus();
+            valid = false;
+        }
+        
+        // Point Race & Eliminasi (10k/15k) hanya untuk Junior & Senior
+        if ((distName.includes('Point') || (distName.includes('Eliminasi') && (distName.includes('10k') || distName.includes('15k') || distName.includes('10.000m') || distName.includes('15.000m')))) && !(agName.includes('Junior') || agName.includes('Senior'))) {
+            alert(distName + ' hanya diperbolehkan untuk Kelompok Umur Junior dan Senior!');
+            sel.focus();
+            valid = false;
+        }
+    });
+    return valid;
+}
+
+document.querySelectorAll('.distance-select').forEach(sel => {
+    sel.addEventListener('change', function() {
+        const row = this.closest('tr');
+        const agSel = row.querySelector('.age-group-select');
+        const distName = this.options[this.selectedIndex]?.getAttribute('data-dist-name') || '';
+        
+        // Auto filter available age groups
+        Array.from(agSel.options).forEach(opt => {
+            const agName = opt.getAttribute('data-ag-name') || '';
+            opt.disabled = false;
+            
+            if (distName.includes('ITT 100') && !agName.includes('Senior') && agName !== '') {
+                opt.disabled = true;
+            }
+            if ((distName.includes('Point') || (distName.includes('Eliminasi') && (distName.includes('10k') || distName.includes('15k') || distName.includes('10.000m') || distName.includes('15.000m')))) && !(agName.includes('Junior') || agName.includes('Senior')) && agName !== '') {
+                opt.disabled = true;
+            }
+        });
+        
+        // If current selection is now disabled, reset it
+        if (agSel.options[agSel.selectedIndex]?.disabled) {
+            agSel.value = '';
+            alert('Pilihan Kelompok Umur sebelumnya tidak valid untuk jarak ini dan telah direset.');
+        }
+    });
+    
+    // Trigger change to set initial state
+    sel.dispatchEvent(new Event('change'));
+});
+</script>

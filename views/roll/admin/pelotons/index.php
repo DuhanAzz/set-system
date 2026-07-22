@@ -46,14 +46,30 @@
         <!-- SEEDING TABLE -->
         <?php if ($filter_class_id > 0): ?>
         <div class="bg-slate-50/50 rounded-2xl border border-slate-200/50 shadow-xl overflow-hidden backdrop-blur-sm">
-            <div class="px-6 py-4 border-b border-slate-200/50 bg-slate-50/80 flex flex-col md:flex-row justify-between items-center gap-4">
-                <h3 class="text-lg font-bold text-slate-800 uppercase tracking-widest">Susunan Peloton (<?= count($entries) ?> Peserta)</h3>
+            <div class="px-6 py-4 border-b border-slate-200/50 bg-slate-50/80 flex flex-col justify-between items-center gap-4">
+                <h3 class="text-lg font-bold text-slate-800 uppercase tracking-widest self-start">Susunan Peloton (<?= count($entries) ?> Peserta)</h3>
                 
                 <?php if(!empty($entries)): ?>
-                <form action="<?= getenv('APP_URL') ?>/roll/admin/pelotons/generate" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin memecah otomatis (Auto-Generate)? Data seri dan lintasan sebelumnya untuk kelas ini akan ditimpa!');">
+                <form action="<?= getenv('APP_URL') ?>/roll/admin/pelotons/generate" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin memecah otomatis (Auto-Generate)? Data seri dan lintasan sebelumnya untuk kelas ini akan ditimpa!');" class="flex flex-col md:flex-row gap-3 w-full justify-end items-end">
                     <input type="hidden" name="race_class_id" value="<?= htmlspecialchars($filter_class_id) ?>">
-                    <button type="submit" class="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-400 hover:to-red-400 text-slate-800 font-black py-2 px-6 rounded-lg shadow-lg hover:shadow-orange-500/25 transition-all text-xs uppercase tracking-widest flex items-center gap-2">
-                        <span>⚡</span> Generate Seri (Auto)
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Metode</label>
+                        <select name="seeding_method" class="w-full bg-white border border-slate-200 rounded px-2 py-1 text-slate-800 text-xs font-bold" required>
+                            <option value="snake">Snake Mode (Normal)</option>
+                            <option value="winner">Winner Mode (Final)</option>
+                            <option value="descending">Descending Mode (ITT)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Prefix</label>
+                        <select name="heat_prefix" class="w-full bg-white border border-slate-200 rounded px-2 py-1 text-slate-800 text-xs font-bold" required>
+                            <option value="Seri">Seri (Penyisihan)</option>
+                            <option value="Semi Final">Semi Final</option>
+                            <option value="Final">Final</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-400 hover:to-red-400 text-white font-black py-2 px-6 rounded shadow-lg hover:shadow-orange-500/25 transition-all text-xs uppercase tracking-widest flex items-center gap-2 h-[28px] mb-0.5">
+                        <span>⚡</span> Generate
                     </button>
                 </form>
                 <?php endif; ?>

@@ -22,7 +22,8 @@ class Controller {
             $excluded_paths = [
                 'auth/login', 'auth/register', 'core/portal', 
                 'swim/home', 'swim/events', 'swim/results', 'swim/live_result', 'swim/startlist',
-                'roll/home', 'roll/events', 'roll/results', 'roll/live_result', 'roll/startlist', 'roll/public'
+                'roll/home', 'roll/events', 'roll/results', 'roll/live_result', 'roll/startlist', 'roll/public',
+                'print_'
             ];
             foreach ($excluded_paths as $ex) {
                 if (strpos($viewPath, $ex) !== false) {

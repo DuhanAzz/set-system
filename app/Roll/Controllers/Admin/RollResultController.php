@@ -40,10 +40,15 @@ class RollResultController extends Controller {
         $classes = $stmtClasses->fetchAll(PDO::FETCH_ASSOC);
 
         $heats = [];
+        $totalNotEliminated = 0;
         if ($filter_class_id > 0) {
             $stmtHeats = $db->prepare("SELECT DISTINCT heat_name FROM roll_event_results WHERE event_id = ? AND race_class_id = ? ORDER BY heat_name ASC");
             $stmtHeats->execute([$eventId, $filter_class_id]);
             $heats = $stmtHeats->fetchAll(PDO::FETCH_ASSOC);
+            
+            $stmtCountElim = $db->prepare("SELECT COUNT(*) FROM roll_event_results WHERE event_id = ? AND race_class_id = ? AND is_eliminated = 0 AND heat_name = ?");
+            $stmtCountElim->execute([$eventId, $filter_class_id, $filter_heat]);
+            $totalNotEliminated = (int) $stmtCountElim->fetchColumn();
         }
 
         $results = [];
@@ -55,7 +60,7 @@ class RollResultController extends Controller {
                 LEFT JOIN roll_clubs c ON s.club_id = c.id
                 LEFT JOIN roll_pelotons p ON r.skater_id = p.skater_id AND r.race_class_id = p.race_class_id AND r.event_id = p.event_id
                 WHERE r.event_id = ? AND r.race_class_id = ? AND r.heat_name = ?
-                ORDER BY r.finish_position ASC, r.finish_time_ms ASC, s.skater_name ASC
+                ORDER BY r.finish_position IS NULL, r.finish_position ASC, r.total_points DESC, r.finish_time_ms ASC, s.skater_name ASC
             ");
             $stmtRes->execute([$eventId, $filter_class_id, $filter_heat]);
             $results = $stmtRes->fetchAll(PDO::FETCH_ASSOC);
@@ -70,7 +75,8 @@ class RollResultController extends Controller {
             'dqRules' => $dqRules,
             'eventId' => $eventId,
             'filter_class_id' => $filter_class_id,
-            'filter_heat' => $filter_heat
+            'filter_heat' => $filter_heat,
+            'totalNotEliminated' => $totalNotEliminated
         ]);
     }
 
@@ -82,6 +88,7 @@ class RollResultController extends Controller {
             $result_ids = $_POST['result_id'] ?? [];
             $times = $_POST['finish_time_ms'] ?? [];
             $positions = $_POST['finish_position'] ?? [];
+            $total_points = $_POST['total_points'] ?? [];
             $dq_rules = $_POST['dq_rule_id'] ?? [];
             $eliminations = $_POST['is_eliminated'] ?? [];
             
@@ -92,20 +99,22 @@ class RollResultController extends Controller {
                 $count = 0;
                 try {
                     $db->beginTransaction();
-                    $stmtUpdate = $db->prepare("UPDATE roll_event_results SET finish_time_ms = ?, finish_position = ?, dq_rule_id = ?, is_eliminated = ? WHERE id = ? AND event_id = ?");
+                    $stmtUpdate = $db->prepare("UPDATE roll_event_results SET finish_time_ms = ?, finish_position = ?, total_points = ?, dq_rule_id = ?, is_eliminated = ? WHERE id = ? AND event_id = ?");
                     
                     foreach ($result_ids as $index => $r_id) {
                         $t = trim($times[$index] ?? '');
                         $pos = trim($positions[$index] ?? '');
+                        $pts = trim($total_points[$index] ?? '');
                         $dq = trim($dq_rules[$index] ?? '');
                         
                         $is_elim = isset($eliminations[$r_id]) ? 1 : 0;
                         
                         $t = ($t === '') ? null : $t;
                         $pos = ($pos === '') ? null : $pos;
+                        $pts = ($pts === '') ? 0 : (int)$pts;
                         $dq = ($dq === '') ? null : $dq;
                         
-                        $stmtUpdate->execute([$t, $pos, $dq, $is_elim, $r_id, $eventId]);
+                        $stmtUpdate->execute([$t, $pos, $pts, $dq, $is_elim, $r_id, $eventId]);
                         $count++;
                     }
                     $db->commit();
@@ -239,6 +248,28 @@ class RollResultController extends Controller {
                     $db->commit();
                 } catch (\Exception $e) {
                     $db->rollBack();
+                    $_SESSION['flash_message'] = "Gagal: " . $e->getMessage();
+                    $_SESSION['flash_type'] = "error";
+                }
+            }
+            header("Location: " . getenv('APP_URL') . "/roll/admin/results?race_class_id=" . $race_class_id);
+            exit;
+        }
+    }
+
+    public function officialize() {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $db = Database::getInstance()->getConnection();
+            $eventId = $_SESSION['roll_admin_active_event_id'] ?? 0;
+            $race_class_id = $_POST['race_class_id'] ?? 0;
+
+            if ($eventId > 0 && $race_class_id > 0) {
+                try {
+                    $stmt = $db->prepare("UPDATE roll_event_results SET is_official = 1 WHERE event_id = ? AND race_class_id = ?");
+                    $stmt->execute([$eventId, $race_class_id]);
+                    $_SESSION['flash_message'] = "Hasil lomba telah disahkan (Official)!";
+                    $_SESSION['flash_type'] = "success";
+                } catch (\Exception $e) {
                     $_SESSION['flash_message'] = "Gagal: " . $e->getMessage();
                     $_SESSION['flash_type'] = "error";
                 }

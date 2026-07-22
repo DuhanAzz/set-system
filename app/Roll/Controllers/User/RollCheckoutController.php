@@ -200,6 +200,63 @@ class RollCheckoutController extends Controller {
                 exit;
             }
 
+            // VALIDASI RELAY PORSEROSI V3.0
+            $stmtRelayCheck = $db->prepare("
+                SELECT c.id as class_id, c.category_name, a.group_name as class_ag, d.distance_name,
+                       s.birth_date, s.skater_name
+                FROM roll_entries e
+                JOIN roll_event_details c ON e.race_class_id = c.id
+                JOIN roll_ref_distances d ON c.distance_id = d.id
+                JOIN roll_ref_age_groups a ON c.age_group_id = a.id
+                JOIN roll_skaters s ON e.skater_id = s.id
+                WHERE s.club_id = ? AND e.event_id = ? AND d.distance_name LIKE '%Relay%'
+            ");
+            $stmtRelayCheck->execute([$club_id, $event_id]);
+            $relayEntries = $stmtRelayCheck->fetchAll(PDO::FETCH_ASSOC);
+            
+            $relayGroups = [];
+            foreach ($relayEntries as $re) {
+                $relayGroups[$re['class_id']][] = $re;
+            }
+
+            // Get Event Date for Age Calc
+            $stmtEv = $db->prepare("SELECT event_date_start FROM roll_events WHERE id = ?");
+            $stmtEv->execute([$event_id]);
+            $evDate = $stmtEv->fetchColumn();
+
+            foreach ($relayGroups as $cid => $team) {
+                if (count($team) < 3 || count($team) > 4) {
+                    $_SESSION['flash_message'] = "Validasi Gagal: Kelas {$team[0]['category_name']} harus terdiri dari 3 atau 4 atlet (3 Inti + 1 Cadangan). Anda mendaftar " . count($team) . " atlet.";
+                    $_SESSION['flash_type'] = "error";
+                    header("Location: " . getenv('APP_URL') . "/roll/user/checkout/detail/" . $event_id);
+                    exit;
+                }
+                
+                // Cek komposisi umur
+                $ag = $team[0]['class_ag'];
+                $hasKuA = false;
+                $hasKuC = false;
+                
+                foreach ($team as $member) {
+                    $age = \App\Helpers\DateHelper::calculateAge($member['birth_date'], $evDate);
+                    if ($age <= 7) $hasKuA = true;
+                    if ($age >= 10 && $age <= 11) $hasKuC = true;
+                }
+                
+                if (strpos($ag, 'A-B') !== false && !$hasKuA) {
+                    $_SESSION['flash_message'] = "Validasi Gagal: Tim {$team[0]['category_name']} WAJIB memiliki minimal 1 atlet KU A (<= 7 Tahun).";
+                    $_SESSION['flash_type'] = "error";
+                    header("Location: " . getenv('APP_URL') . "/roll/user/checkout/detail/" . $event_id);
+                    exit;
+                }
+                if (strpos($ag, 'C-D') !== false && !$hasKuC) {
+                    $_SESSION['flash_message'] = "Validasi Gagal: Tim {$team[0]['category_name']} WAJIB memiliki minimal 1 atlet KU C (10-11 Tahun).";
+                    $_SESSION['flash_type'] = "error";
+                    header("Location: " . getenv('APP_URL') . "/roll/user/checkout/detail/" . $event_id);
+                    exit;
+                }
+            }
+
             try {
                 $db->beginTransaction();
                 

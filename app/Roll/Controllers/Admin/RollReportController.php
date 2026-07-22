@@ -49,8 +49,36 @@ class RollReportController extends Controller {
         $stmtTally->execute([$eventId]);
         $medalTally = $stmtTally->fetchAll(PDO::FETCH_ASSOC);
 
+        // MVP Tally Calculation
+        $stmtMVP = $db->prepare("
+            SELECT s.id, s.skater_name, s.date_of_birth, c.club_name,
+                SUM(CASE WHEN r.finish_position = 1 THEN 1 ELSE 0 END) as gold,
+                SUM(CASE WHEN r.finish_position = 2 THEN 1 ELSE 0 END) as silver,
+                SUM(CASE WHEN r.finish_position = 3 THEN 1 ELSE 0 END) as bronze,
+                SUM(CASE WHEN r.finish_position = 1 THEN (
+                    SELECT COUNT(r2.id) - 1
+                    FROM roll_event_results r2 
+                    WHERE r2.race_class_id = r.race_class_id AND r2.event_id = r.event_id
+                ) ELSE 0 END) as total_defeated
+            FROM roll_event_results r
+            JOIN roll_skaters s ON r.skater_id = s.id
+            LEFT JOIN roll_clubs c ON s.club_id = c.id
+            JOIN roll_event_details ed ON r.race_class_id = ed.id
+            JOIN roll_entries e ON r.skater_id = e.skater_id AND r.race_class_id = e.race_class_id
+            WHERE r.event_id = ? 
+              AND r.finish_position IN (1, 2, 3) 
+              AND ed.result_status = 'Published' 
+              AND e.status = 'Finished'
+            GROUP BY s.id
+            ORDER BY gold DESC, silver DESC, bronze DESC, s.date_of_birth DESC, total_defeated DESC, s.skater_name ASC
+            LIMIT 10
+        ");
+        $stmtMVP->execute([$eventId]);
+        $mvpTally = $stmtMVP->fetchAll(PDO::FETCH_ASSOC);
+
         return $this->view('roll/admin/reports/index', [
             'medalTally' => $medalTally,
+            'mvpTally' => $mvpTally,
             'eventId' => $eventId
         ]);
     }
@@ -140,7 +168,7 @@ class RollReportController extends Controller {
             LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
             LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id
             WHERE r.event_id = ? AND ed.result_status = 'Published'
-            ORDER BY a.min_age ASC, d.distance ASC, r.finish_position ASC, r.timer_result ASC
+            ORDER BY a.min_age ASC, d.distance ASC, r.finish_position ASC, r.finish_time_ms ASC
         ");
         $stmtRes->execute([$eventId]);
         $results = $stmtRes->fetchAll(PDO::FETCH_ASSOC);

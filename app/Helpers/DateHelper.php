@@ -12,16 +12,12 @@ class DateHelper {
      * @return int Umur (dalam tahun)
      */
     public static function calculateAge($dob, $eventDate) {
-        $birthYear = (int) date('Y', strtotime($dob));
-        $eventYear = (int) date('Y', strtotime($eventDate));
+        $eventYear = date('Y', strtotime($eventDate));
         
-        // Untuk sepatu roda, perhitungan resmi biasanya hanya selisih tahun murni.
-        // Jika butuh perhitungan akurat ke bulan/tanggal:
-        // $b = new \DateTime($dob);
-        // $e = new \DateTime($eventDate);
-        // return $b->diff($e)->y;
-
-        // Sesuai konvensi standar (Tahun Event - Tahun Lahir)
-        return $eventYear - $birthYear;
+        // Porserosi v3.0: Umur dihitung per 31 Desember di tahun saat lomba dilaksanakan
+        $cutoffDate = new \DateTime("$eventYear-12-31");
+        $birthDate = new \DateTime($dob);
+        
+        return $birthDate->diff($cutoffDate)->y;
     }
 }

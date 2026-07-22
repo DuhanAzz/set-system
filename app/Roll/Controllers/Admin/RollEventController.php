@@ -368,19 +368,83 @@ class RollEventController extends Controller {
 
             if (!empty($classIds)) {
                 $stmt = $db->prepare("UPDATE roll_event_details SET race_number = ?, race_time = ?, age_group_id = ?, distance_id = ?, category_name = ? WHERE id = ? AND event_id = ?");
+                
+                // Fetch Distances and Age Groups for validation
+                $dists = []; $ags = [];
+                $resD = $db->query("SELECT id, distance_name FROM roll_ref_distances")->fetchAll(PDO::FETCH_ASSOC);
+                $resA = $db->query("SELECT id, group_name FROM roll_ref_age_groups")->fetchAll(PDO::FETCH_ASSOC);
+                foreach($resD as $r) $dists[$r['id']] = $r['distance_name'];
+                foreach($resA as $r) $ags[$r['id']] = $r['group_name'];
+
+                $valid = true;
                 foreach ($classIds as $i => $cid) {
                     $rn = $raceNumbers[$i] ?? null;
                     $rt = $raceTimes[$i] ?? null;
                     $ag = !empty($ageGroupIds[$i]) ? $ageGroupIds[$i] : null;
                     $di = !empty($distanceIds[$i]) ? $distanceIds[$i] : null;
                     $cn = $categoryNames[$i] ?? null;
-                    $stmt->execute([$rn, $rt, $ag, $di, $cn, $cid, $eventId]);
+                    
+                    if (empty($rn) || empty($rt)) {
+                        $valid = false;
+                        $_SESSION['flash_message'] = "Nomor lomba dan jam acara tidak boleh kosong!";
+                        break;
+                    }
+                    
+                    $distName = isset($dists[$di]) ? strtolower($dists[$di]) : '';
+                    $agName = isset($ags[$ag]) ? strtolower($ags[$ag]) : '';
+                    
+                    if (strpos($distName, 'itt 100') !== false && strpos($agName, 'senior') === false) {
+                        $valid = false;
+                        $_SESSION['flash_message'] = "ITT 100m hanya diperbolehkan untuk Kelompok Umur Senior!";
+                        break;
+                    }
+                    if ((strpos($distName, 'point') !== false || strpos($distName, 'eliminasi 10k') !== false || strpos($distName, 'eliminasi 15k') !== false || strpos($distName, '10.000m') !== false || strpos($distName, '15.000m') !== false) && !(strpos($agName, 'junior') !== false || strpos($agName, 'senior') !== false)) {
+                        $valid = false;
+                        $_SESSION['flash_message'] = "Point Race dan Eliminasi 10k/15k hanya diperbolehkan untuk Kelompok Umur Junior dan Senior!";
+                        break;
+                    }
+                    
+                    if ($valid) {
+                        $stmt->execute([$rn, $rt, $ag, $di, $cn, $cid, $eventId]);
+                    }
                 }
-                $_SESSION['flash_message'] = "Jadwal dan Kategori berhasil diperbarui!";
-                $_SESSION['flash_type'] = "success";
+                
+                if ($valid) {
+                    $_SESSION['flash_message'] = "Jadwal dan Kategori berhasil diperbarui!";
+                    $_SESSION['flash_type'] = "success";
+                } else {
+                    $_SESSION['flash_type'] = "error";
+                }
             }
             header("Location: " . getenv('APP_URL') . "/roll/admin/events");
             exit;
         }
+    }
+
+    public function print_schedule() {
+        $db = Database::getInstance()->getConnection();
+        $eventId = $_SESSION['roll_admin_active_event_id'] ?? 0;
+        
+        if ($eventId == 0) {
+            die("Event not selected.");
+        }
+
+        $stmtEvt = $db->prepare("SELECT * FROM roll_events WHERE id = ?");
+        $stmtEvt->execute([$eventId]);
+        $event = $stmtEvt->fetch(PDO::FETCH_ASSOC);
+
+        $stmtClass = $db->prepare("SELECT ed.*, d.distance_name, a.group_name 
+                                   FROM roll_event_details ed 
+                                   LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id 
+                                   LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id 
+                                   WHERE ed.event_id = ?
+                                   ORDER BY CAST(ed.race_number AS UNSIGNED) ASC, ed.race_number ASC");
+        $stmtClass->execute([$eventId]);
+        $classes = $stmtClass->fetchAll(PDO::FETCH_ASSOC);
+
+        return $this->view('roll/admin/event_profile/print_schedule', [
+            'event' => $event,
+            'classes' => $classes
+        ]);
     }
 }

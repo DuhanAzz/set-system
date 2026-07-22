@@ -86,8 +86,14 @@
                     <div class="space-y-6">
                         <?php foreach($groupedResults as $className => $classResults): ?>
                             <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                                <div class="bg-slate-100 px-6 py-4 border-b border-slate-200">
+                                <?php $isOfficial = isset($classResults[0]['is_official']) && $classResults[0]['is_official'] == 1; ?>
+                                <div class="bg-slate-100 px-6 py-4 border-b border-slate-200 flex justify-between items-center">
                                     <h4 class="font-black text-slate-800 uppercase tracking-wide"><?= htmlspecialchars($className) ?></h4>
+                                    <?php if ($isOfficial): ?>
+                                        <span class="px-3 py-1 bg-emerald-100 text-emerald-700 text-[10px] font-bold rounded uppercase tracking-widest border border-emerald-200">Official</span>
+                                    <?php else: ?>
+                                        <span class="px-3 py-1 bg-amber-100 text-amber-700 text-[10px] font-bold rounded uppercase tracking-widest border border-amber-200">Provisional (Masa Protes)</span>
+                                    <?php endif; ?>
                                 </div>
                                 <div class="overflow-x-auto">
                                     <table class="w-full text-left border-collapse">
