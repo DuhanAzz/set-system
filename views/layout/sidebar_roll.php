@@ -123,37 +123,59 @@ if (!function_exists('isGroupActive')) {
              <a href="<?= getenv('APP_URL') ?>/roll/records/manage_records" class="<?= (strpos($req,"/records/")!==false) ? $childActiveLink : $childBaseLink ?>">Manajemen Rekor</a>
              <a href="<?= getenv('APP_URL') ?>/roll/masterSettings/dq_rules" class="<?= (strpos($req,"dq_rules")!==false) ? $childActiveLink : $childBaseLink ?>">Master DQ Rules</a>
          </div>
-
       <?php endif; ?>
 
       <?php if($role == 'admin'): ?>
-         
+         <?php
+            $activeEventId = $_SESSION['roll_admin_active_event_id'] ?? 0;
+            $sidebarDistances = [];
+            if ($activeEventId > 0) {
+               $dbSide = \App\Core\Database::getInstance()->getConnection();
+               $stmtSide = $dbSide->prepare("
+                  SELECT DISTINCT d.id, d.distance_name, ed.category_name 
+                  FROM roll_event_details ed 
+                  JOIN roll_ref_distances d ON ed.distance_id = d.id 
+                  WHERE ed.event_id = ?
+                  ORDER BY d.id ASC
+               ");
+               $stmtSide->execute([$activeEventId]);
+               $sidebarDistances = $stmtSide->fetchAll(PDO::FETCH_ASSOC);
+            }
+         ?>
 
          <!-- GROUP 1: Setup Kejuaraan -->
-         <?php $a1Active = isGroupActive($req, ['admin/events']); ?>
-         <button onclick="toggleSidebarDropdown('dd-setup')" class="<?= $a1Active ? $dropdownBtnActive : $dropdownBtnBase ?>">
-            <div class="flex items-center">
-               <span class="w-6 text-xl mr-3 text-center opacity-80">⚙️</span>
-               <span class="font-bold text-[11px] tracking-widest uppercase">Setup Kejuaraan</span>
-            </div>
-            <span id="icon-dd-setup" class="transform transition-transform text-xs <?= $a1Active ? 'rotate-180' : '' ?>">▼</span>
-         </button>
-         <div id="dd-setup" class="bg-[#0b1120] py-2 <?= $a1Active ? '' : 'hidden' ?>">
-             <a href="<?= getenv('APP_URL') ?>/roll/admin/events" class="<?= (strpos($req,"admin/events")!==false) ? $childActiveLink : $childBaseLink ?>">Profil & Kelas Lomba</a>
-         </div>
+         <a href="<?= getenv('APP_URL') ?>/roll/admin/events" class="<?= (strpos($req,"admin/events")!==false) ? $activeLink : $baseLink ?>">
+            <span class="w-6 text-xl mr-3 text-center opacity-80">⚙️</span>
+            <span class="font-bold text-[11px] tracking-widest uppercase">Setup Kejuaraan</span>
+         </a>
 
-         <!-- GROUP 2: Operasional Lomba -->
-         <?php $a2Active = isGroupActive($req, ['admin/entries', 'admin/pelotons']); ?>
+         <!-- GROUP 2: Verifikasi Entries -->
+         <a href="<?= getenv('APP_URL') ?>/roll/admin/entries" class="<?= (strpos($req,"admin/entries")!==false) ? $activeLink : $baseLink ?>">
+            <span class="w-6 text-xl mr-3 text-center opacity-80">🧾</span>
+            <span class="font-bold text-[11px] tracking-widest uppercase">Verifikasi Entries</span>
+         </a>
+
+         <!-- GROUP 3: Penyusunan Seri & Lintasan -->
+         <?php $a2Active = isGroupActive($req, ['admin/pelotons']); ?>
          <button onclick="toggleSidebarDropdown('dd-ops')" class="<?= $a2Active ? $dropdownBtnActive : $dropdownBtnBase ?>">
             <div class="flex items-center">
                <span class="w-6 text-xl mr-3 text-center opacity-80">🛼</span>
-               <span class="font-bold text-[11px] tracking-widest uppercase">Operasional Lomba</span>
+               <span class="font-bold text-[11px] tracking-widest uppercase">Penyusunan Seri & Lintasan</span>
             </div>
             <span id="icon-dd-ops" class="transform transform transition-transform text-xs <?= $a2Active ? 'rotate-180' : '' ?>">▼</span>
          </button>
          <div id="dd-ops" class="bg-[#0b1120] py-2 <?= $a2Active ? '' : 'hidden' ?>">
-             <a href="<?= getenv('APP_URL') ?>/roll/admin/entries" class="<?= (strpos($req,"admin/entries")!==false) ? $childActiveLink : $childBaseLink ?>">Pintu Kasir (Approval)</a>
-             <a href="<?= getenv('APP_URL') ?>/roll/admin/pelotons" class="<?= (strpos($req,"admin/pelotons")!==false) ? $childActiveLink : $childBaseLink ?>">Penyusunan Seri & Lintasan</a>
+             <?php foreach($sidebarDistances as $sd): ?>
+                 <?php 
+                    $label = !empty($sd['category_name']) ? $sd['category_name'] . ' ' . $sd['distance_name'] : $sd['distance_name'];
+                    $isActive = (isset($_GET['distance_id']) && $_GET['distance_id'] == $sd['id']) ? $childActiveLink : $childBaseLink;
+                 ?>
+                 <a href="<?= getenv('APP_URL') ?>/roll/admin/pelotons?distance_id=<?= $sd['id'] ?>&cat=<?= urlencode($sd['category_name']) ?>" class="<?= $isActive ?>"><?= htmlspecialchars($label) ?></a>
+             <?php endforeach; ?>
+             <?php if(empty($sidebarDistances)): ?>
+                 <span class="block px-14 py-2 text-[10px] text-slate-500 italic">Belum ada kelas</span>
+             <?php endif; ?>
+         </div>unan Seri & Lintasan</a>
          </div>
 
          <!-- GROUP 3: Hasil & Laporan -->

@@ -127,16 +127,26 @@ class RollEntryController extends Controller {
             $payId = (int)($_POST['payment_id'] ?? 0);
             $action = $_POST['action_type']; 
             
+            $newStatus = 'Pending';
+            if ($action === 'approve') $newStatus = 'Paid';
+            elseif ($action === 'reject') $newStatus = 'Rejected';
+            elseif ($action === 'rollback') $newStatus = 'Pending';
+
             if ($payId > 0) {
                 try {
-                    $newStatus = 'Pending';
-                    if ($action === 'approve') $newStatus = 'Paid';
-                    elseif ($action === 'reject') $newStatus = 'Rejected';
-                    elseif ($action === 'rollback') $newStatus = 'Pending';
-                    
                     $stmt = $db->prepare("UPDATE roll_payments SET status = ?, created_at = NOW() WHERE id = ?");
                     $stmt->execute([$newStatus, $payId]);
                     
+                    // Sync with entries
+                    $stmtEntries = $db->prepare("
+                        UPDATE roll_entries e
+                        JOIN roll_skaters s ON e.skater_id = s.id
+                        SET e.status = ?
+                        WHERE e.event_id = ? AND s.club_id = ?
+                    ");
+                    $entryStatus = ($newStatus === 'Paid') ? 'Paid' : 'Pending';
+                    $stmtEntries->execute([$entryStatus, $eventId, $targetClubId]);
+
                     $_SESSION['flash_type'] = 'success';
                     $_SESSION['flash_message'] = 'Status pembayaran berhasil diperbarui!';
                 } catch (\Exception $e) {
@@ -147,6 +157,18 @@ class RollEntryController extends Controller {
                  // Insert if doesn't exist
                  $stmt = $db->prepare("INSERT INTO roll_payments (event_id, club_id, status) VALUES (?, ?, 'Paid')");
                  $stmt->execute([$eventId, $targetClubId]);
+
+                 // Sync with entries
+                 $stmtEntries = $db->prepare("
+                     UPDATE roll_entries e
+                     JOIN roll_skaters s ON e.skater_id = s.id
+                     SET e.status = 'Paid'
+                     WHERE e.event_id = ? AND s.club_id = ?
+                 ");
+                 $stmtEntries->execute([$eventId, $targetClubId]);
+
+                 $_SESSION['flash_type'] = 'success';
+                 $_SESSION['flash_message'] = 'Status pembayaran berhasil disetujui!';
             }
             
             header("Location: " . getenv('APP_URL') . "/roll/admin/entries/detail?id=$targetClubId&event_id=$eventId");
