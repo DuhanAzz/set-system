@@ -310,11 +310,13 @@ class RollEventController extends Controller {
                 $stmtInsert = $db->prepare("INSERT INTO roll_event_details (event_id, distance_id, age_group_id, skate_class_id, gender, race_number, race_time, distance, result_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Draft')");
                 
                 // Fetch Distances and Age Groups for validation
-                $dists = []; $ags = [];
+                $dists = []; $ags = []; $rollers = [];
                 $resD = $db->query("SELECT id, distance_name FROM roll_ref_distances")->fetchAll(PDO::FETCH_ASSOC);
                 $resA = $db->query("SELECT id, group_name FROM roll_ref_age_groups")->fetchAll(PDO::FETCH_ASSOC);
+                $resR = $db->query("SELECT id, class_name FROM roll_ref_skate_classes")->fetchAll(PDO::FETCH_ASSOC);
                 foreach($resD as $r) $dists[$r['id']] = $r['distance_name'];
                 foreach($resA as $r) $ags[$r['id']] = $r['group_name'];
+                foreach($resR as $r) $rollers[$r['id']] = $r['class_name'];
 
                 $valid = true;
                 foreach ($raceNumbers as $i => $rn) {
@@ -332,23 +334,21 @@ class RollEventController extends Controller {
                     }
                     
                     $distNameOriginal = isset($dists[$di]) ? $dists[$di] : '';
-                    $distName = strtolower($distNameOriginal);
-                    $agName = isset($ags[$ag]) ? strtolower($ags[$ag]) : '';
+                    $distName = strtoupper($distNameOriginal);
+                    $agName = isset($ags[$ag]) ? strtoupper($ags[$ag]) : '';
+                    $rollerName = isset($rollers[$sc]) ? strtoupper($rollers[$sc]) : '';
                     
-                    $isJunior = strpos($agName, 'junior') !== false;
-                    $isSenior = strpos($agName, 'senior') !== false;
-                    $isAnakAnak = !$isJunior && !$isSenior && $agName !== '';
+                    $isSpeed = strpos($rollerName, 'SPEED') !== false;
+                    $isSenior = strpos($agName, 'SENIOR') !== false;
+                    $isJunior = strpos($agName, 'JUNIOR') !== false;
 
-                    if (strpos($distName, 'itt 100') !== false && !$isSenior) {
+                    if (strpos($distName, 'ITT 100') !== false && (!$isSenior || !$isSpeed)) {
                         $valid = false;
-                        $_SESSION['flash_message'] = "ITT 100m hanya diperbolehkan untuk Kelompok Umur Senior!";
+                        $_SESSION['flash_message'] = "ITT 100m hanya diperbolehkan untuk kategori Speed Kelompok Umur Senior!";
                         break;
                     }
-                    if ((strpos($distName, '5k') !== false || strpos($distName, '10k') !== false || strpos($distName, '15k') !== false) && $isAnakAnak) {
-                        $valid = false;
-                        $_SESSION['flash_message'] = "Jarak 5k, 10k, 15k hanya diperbolehkan untuk Kelompok Umur Junior dan Senior!";
-                        break;
-                    }
+                    
+                    // Relaxed backend check to rely mostly on frontend, but keeping strict ITT rule.
                     
                     if ($valid) {
                         if (!empty($cid)) {

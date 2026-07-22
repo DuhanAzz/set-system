@@ -218,10 +218,10 @@
                                             </select>
                                         </td>
                                         <td class="p-2 align-top">
-                                            <select name="skate_class_ids[]" class="w-full bg-slate-50 border border-slate-200 rounded p-2 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-blue-500">
+                                            <select name="skate_class_ids[]" class="roller-select w-full bg-slate-50 border border-slate-200 rounded p-2 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-blue-500">
                                                 <option value="">- Roller -</option>
                                                 <?php foreach($skateClasses as $sc): ?>
-                                                    <option value="<?= $sc['id'] ?>" <?= ($c['skate_class_id'] == $sc['id']) ? 'selected' : '' ?>><?= htmlspecialchars($sc['class_name']) ?></option>
+                                                    <option value="<?= $sc['id'] ?>" data-roller-name="<?= htmlspecialchars($sc['class_name']) ?>" <?= ($c['skate_class_id'] == $sc['id']) ? 'selected' : '' ?>><?= htmlspecialchars($sc['class_name']) ?></option>
                                                 <?php endforeach; ?>
                                             </select>
                                         </td>
@@ -287,10 +287,10 @@
             </select>
         </td>
         <td class="p-2 align-top">
-            <select name="skate_class_ids[]" class="w-full bg-slate-50 border border-slate-200 rounded p-2 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-blue-500">
+            <select name="skate_class_ids[]" class="roller-select w-full bg-slate-50 border border-slate-200 rounded p-2 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-blue-500">
                 <option value="">- Roller -</option>
                 <?php foreach($skateClasses as $sc): ?>
-                    <option value="<?= $sc['id'] ?>"><?= htmlspecialchars($sc['class_name']) ?></option>
+                    <option value="<?= $sc['id'] ?>" data-roller-name="<?= htmlspecialchars($sc['class_name']) ?>"><?= htmlspecialchars($sc['class_name']) ?></option>
                 <?php endforeach; ?>
             </select>
         </td>
@@ -310,55 +310,97 @@
 </template>
 
 <script>
-function addScheduleRow() {
-    const template = document.getElementById('row-template');
-    const tbody = document.getElementById('schedule-matrix');
-    const clone = template.content.cloneNode(true);
+function attachPorserosiRules(row) {
+    if(!row) return;
+    const agSel = row.querySelector('.age-group-select');
+    const rollerSel = row.querySelector('.roller-select');
+    const distSel = row.querySelector('.distance-select');
     
-    // Attach event listeners to new row
-    attachPorserosiRules(clone.querySelector('.age-group-select'));
-    
-    tbody.appendChild(clone);
-}
-
-function attachPorserosiRules(selectElement) {
-    if(!selectElement) return;
-    selectElement.addEventListener('change', function() {
-        const row = this.closest('tr');
-        const distSel = row.querySelector('.distance-select');
-        const agName = this.options[this.selectedIndex]?.getAttribute('data-ag-name') || '';
+    function applyRules() {
+        const agName = agSel.options[agSel.selectedIndex]?.getAttribute('data-ag-name') || '';
+        const rollerName = rollerSel.options[rollerSel.selectedIndex]?.getAttribute('data-roller-name') || '';
         
+        const isSpeed = rollerName.toUpperCase().includes('SPEED');
+        const isStandar = rollerName.toUpperCase().includes('STANDART') || rollerName.toUpperCase().includes('STANDAR');
+        const isPemula = rollerName.toUpperCase().includes('PEMULA');
+        
+        const isKuA = agName.toUpperCase().includes('KU A');
+        const isKuB = agName.toUpperCase().includes('KU B');
+        const isKuC = agName.toUpperCase().includes('KU C');
+        const isKuD = agName.toUpperCase().includes('KU D');
         const isJunior = agName.toUpperCase().includes('JUNIOR');
         const isSenior = agName.toUpperCase().includes('SENIOR');
-        const isAnakAnak = !isJunior && !isSenior && agName.trim() !== '';
         
         // Porserosi Rules:
         Array.from(distSel.options).forEach(opt => {
             const distName = (opt.getAttribute('data-dist-name') || '').toUpperCase();
             if (!distName) return; // Skip default empty option
             
-            let shouldDisable = false;
+            let shouldDisable = true; // Default disable, then enable based on allowed list
             
-            // ITT 100m HANYA Senior
-            if (distName.includes('ITT 100') && !isSenior) {
-                shouldDisable = true;
+            if (isSpeed) {
+                // Speed: DTT 200, 500+D, 1000m, Elim, PTP
+                if (distName.includes('DTT') && distName.includes('200')) shouldDisable = false;
+                if (distName.includes('500') && distName.includes('+D')) shouldDisable = false;
+                if (distName.includes('1000') && !distName.includes('POINT') && !distName.includes('ELIMINASI')) shouldDisable = false;
+                
+                // Eliminasi Rules
+                if (distName.includes('ELIMINASI')) {
+                    if ((isKuA || isKuB) && distName.includes('3000')) shouldDisable = false;
+                    if ((isKuC || isKuD) && distName.includes('5000')) shouldDisable = false;
+                    if ((isJunior || isSenior) && distName.includes('10.000')) shouldDisable = false;
+                }
+                
+                // PTP / Point to Point Rules
+                if (distName.includes('PTP') || distName.includes('POINT')) {
+                    if ((isKuC || isKuD) && distName.includes('3000')) shouldDisable = false;
+                    if ((isJunior || isSenior) && distName.includes('5000')) shouldDisable = false;
+                    // Note: if there is a 10k point race as well, adjust as needed.
+                }
+            } else if (isStandar) {
+                // Standar: 300, 500, 1000
+                if (distName.includes('300') && !distName.includes('3000')) shouldDisable = false;
+                if (distName.includes('500') && !distName.includes('+D') && !distName.includes('5000')) shouldDisable = false;
+                if (distName.includes('1000') && !distName.includes('10.000')) shouldDisable = false;
+            } else if (isPemula) {
+                // Pemula: 100m, 200m
+                if (distName.includes('100') && !distName.includes('1000')) shouldDisable = false;
+                if (distName.includes('200')) shouldDisable = false;
+            } else {
+                // Jika roller belum dipilih, aktifkan semua sementara (atau disable semua)
+                shouldDisable = false; 
             }
             
-            // 5k, 10k, 15k HANYA Junior & Senior
-            if ((distName.includes('5K') || distName.includes('10K') || distName.includes('15K')) && isAnakAnak) {
-                shouldDisable = true;
+            // Allow ITT 100m explicitly only for Speed Senior (Assuming ITT is Speed)
+            if (distName.includes('ITT 100') && isSenior && isSpeed) {
+                shouldDisable = false;
             }
             
             opt.disabled = shouldDisable;
-            if (shouldDisable && opt.selected) distSel.value = ''; // Reset if selected
+            if (shouldDisable && opt.selected) distSel.value = ''; // Reset if selected is now disabled
         });
-    });
+    }
+
+    agSel.addEventListener('change', applyRules);
+    rollerSel.addEventListener('change', applyRules);
 }
 
 // Attach rules to existing rows
-document.querySelectorAll('.age-group-select').forEach(sel => {
-    attachPorserosiRules(sel);
+document.querySelectorAll('tbody#schedule-matrix tr').forEach(row => {
+    attachPorserosiRules(row);
     // Trigger initial state
-    sel.dispatchEvent(new Event('change'));
+    const agSel = row.querySelector('.age-group-select');
+    if(agSel) agSel.dispatchEvent(new Event('change'));
 });
+
+function addScheduleRow() {
+    const template = document.getElementById('row-template');
+    const tbody = document.getElementById('schedule-matrix');
+    const clone = template.content.cloneNode(true);
+    
+    // Attach event listeners to new row
+    attachPorserosiRules(clone.querySelector('tr'));
+    
+    tbody.appendChild(clone);
+}
 </script>
