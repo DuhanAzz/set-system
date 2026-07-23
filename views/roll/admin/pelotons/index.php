@@ -49,73 +49,50 @@
     <div class="max-w-7xl mx-auto grid grid-cols-1 gap-8">
         <?php foreach($classes as $cls): 
             $cId = $cls['class_id'];
-            $data = $entriesByClass[$cId] ?? ['unseeded' => [], 'heats' => []];
             $totalEntries = $cls['total_paid_entries'];
-            $hasHeats = count($data['heats']) > 0;
+            $hasHeats = $cls['total_heats'] > 0;
             $raceNumber = !empty($cls['race_number']) ? str_pad($cls['race_number'], 3, '0', STR_PAD_LEFT) : '---';
         ?>
         
-        <div class="bg-white rounded-[2.5rem] shadow-sm border border-slate-200 overflow-hidden mb-4">
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col md:flex-row items-center justify-between mb-3">
             <!-- HEADER KELAS -->
-            <div class="bg-slate-900 text-white p-6 flex flex-col md:flex-row justify-between items-center gap-4 relative overflow-hidden">
-                <div class="absolute -right-4 -top-10 opacity-10 font-black italic text-[120px] pointer-events-none"><?= $raceNumber ?></div>
-                <div class="flex items-center gap-4 z-10">
-                    <div class="bg-indigo-600 text-white rounded-2xl w-16 h-16 flex items-center justify-center flex-col shrink-0">
-                        <span class="text-[10px] font-bold uppercase tracking-widest opacity-80">Race</span>
-                        <span class="text-xl font-black"><?= $raceNumber ?></span>
-                    </div>
-                    <div>
-                        <h2 class="text-xl font-black uppercase italic leading-none">
-                            <?= $cls['group_name'] ?> | <?= $cls['roller_name'] ?> | <?= $cls['distance_name'] ?>
-                        </h2>
-                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-2">
-                            Total Pendaftar Valid: <span class="text-emerald-400"><?= $totalEntries ?> Atlet</span>
-                        </p>
-                    </div>
+            <div class="bg-slate-900 text-white p-3 md:px-5 flex items-center gap-4 flex-1 w-full">
+                <div class="bg-indigo-600 text-white rounded-xl w-12 h-12 flex items-center justify-center flex-col shrink-0">
+                    <span class="text-[8px] font-bold uppercase tracking-widest opacity-80">Race</span>
+                    <span class="text-base font-black"><?= $raceNumber ?></span>
+                </div>
+                <div>
+                    <h2 class="text-base md:text-lg font-black uppercase italic leading-tight">
+                        <?= $cls['group_name'] ?> | <?= $cls['roller_name'] ?> | <?= $cls['distance_name'] ?>
+                    </h2>
+                    <p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
+                        Total Pendaftar Valid: <span class="text-emerald-400"><?= $totalEntries ?> Atlet</span>
+                    </p>
                 </div>
             </div>
 
-            <!-- KONTEN SERI -->
-            <div class="p-6 md:p-8 bg-slate-50/50">
+            <!-- KONTEN KARTU (Status & Tombol) -->
+            <div class="p-3 md:px-5 bg-slate-50/50 flex items-center justify-between md:justify-end gap-3 w-full md:w-auto border-t md:border-t-0 md:border-l border-slate-200">
                 
                 <?php if($totalEntries == 0): ?>
-                    <div class="text-center py-10 opacity-50">
-                        <span class="text-3xl block mb-2">😴</span>
-                        <span class="text-xs font-bold uppercase tracking-widest text-slate-400">Belum ada atlet yang lunas di kelas ini</span>
-                    </div>
+                    <div class="opacity-50 text-[10px] font-bold uppercase tracking-widest text-slate-400 mr-2">Belum ada atlet</div>
                 <?php else: ?>
                     
                     <?php if($hasHeats): ?>
-                        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                            <?php foreach($data['heats'] as $heatName => $members): ?>
-                                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                                    <div class="bg-indigo-50 border-b border-indigo-100 p-3 text-center">
-                                        <h3 class="font-black text-indigo-900 uppercase italic"><?= $heatName ?></h3>
-                                    </div>
-                                    <ul class="divide-y divide-slate-100">
-                                        <?php foreach($members as $m): ?>
-                                            <li class="p-3 flex items-center justify-between hover:bg-slate-50 transition-colors">
-                                                <div class="flex items-center gap-3">
-                                                    <span class="w-7 h-7 rounded bg-slate-100 border border-slate-200 flex items-center justify-center text-[10px] font-black text-slate-500 shrink-0"><?= $m['start_grid'] ?></span>
-                                                    <div>
-                                                        <div class="text-xs font-black text-slate-700 uppercase"><?= htmlspecialchars($m['skater_name']) ?></div>
-                                                        <div class="text-[9px] font-bold text-slate-400 uppercase"><?= htmlspecialchars($m['club_name']) ?></div>
-                                                    </div>
-                                                </div>
-                                            </li>
-                                        <?php endforeach; ?>
-                                    </ul>
-                                </div>
-                            <?php endforeach; ?>
+                        <div class="flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-lg border border-emerald-100">
+                            <span class="text-sm">✅</span>
+                            <span class="text-[10px] font-black uppercase tracking-widest"><?= $cls['total_heats'] ?? 0 ?> Seri</span>
                         </div>
                     <?php else: ?>
-                        <!-- Belum Seeding -->
-                        <div class="bg-amber-50 border border-amber-200 rounded-2xl p-6 text-center">
-                            <span class="text-3xl block mb-2">🎲</span>
-                            <h3 class="font-black text-amber-700 uppercase tracking-widest text-xs">Belum Dilakukan Seeding</h3>
-                            <p class="text-[10px] text-amber-600 font-bold mt-1">Tekan tombol Generate All di atas untuk membagi <?= $totalEntries ?> atlet ini ke dalam seri lintasan.</p>
+                        <div class="flex items-center gap-1.5 bg-amber-50 text-amber-700 px-3 py-1.5 rounded-lg border border-amber-200">
+                            <span class="text-sm">🎲</span>
+                            <span class="text-[10px] font-black uppercase tracking-widest">Unseeded</span>
                         </div>
                     <?php endif; ?>
+
+                    <a href="<?= getenv('APP_URL') ?>/roll/admin/pelotons/detail?class_id=<?= $cId ?>" class="bg-slate-900 hover:bg-indigo-600 text-white text-[10px] font-bold uppercase tracking-widest py-2 px-4 rounded-lg transition-colors shrink-0 shadow-sm">
+                        📄 Lihat Detail
+                    </a>
 
                 <?php endif; ?>
 

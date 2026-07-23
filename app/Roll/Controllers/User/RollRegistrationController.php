@@ -54,15 +54,17 @@ class RollRegistrationController extends Controller {
 
         // Fetch registered entries for THIS event and club
         $stmtEntries = $db->prepare("
-            SELECT e.id as entry_id, e.race_distance, e.payment_status, e.race_class_id,
+            SELECT e.id as entry_id, e.race_class_id,
                    s.skater_name, s.gender,
                    a.group_name, c.category_name,
-                   d.distance_name
+                   d.distance_name,
+                   COALESCE(p.status, 'Unpaid') as payment_status
             FROM roll_entries e
             JOIN roll_skaters s ON e.skater_id = s.id
             LEFT JOIN roll_event_details c ON e.race_class_id = c.id
             LEFT JOIN roll_ref_age_groups a ON c.age_group_id = a.id
             LEFT JOIN roll_ref_distances d ON c.distance_id = d.id
+            LEFT JOIN roll_payments p ON p.club_id = s.club_id AND p.event_id = e.event_id
             WHERE s.club_id = ? AND e.event_id = ?
             ORDER BY s.skater_name ASC
         ");
