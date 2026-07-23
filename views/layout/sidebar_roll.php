@@ -165,26 +165,12 @@ if (!function_exists('isGroupActive')) {
 
          <!-- GROUP 3: Penyusunan Seri & Lintasan -->
          <?php $a2Active = isGroupActive($req, ['admin/pelotons']); ?>
-         <button onclick="toggleSidebarDropdown('dd-ops')" class="<?= $a2Active ? $dropdownBtnActive : $dropdownBtnBase ?>">
+         <a href="<?= getenv('APP_URL') ?>/roll/admin/pelotons" class="<?= $a2Active ? $dropdownBtnActive : $dropdownBtnBase ?>">
             <div class="flex items-center">
                <span class="w-6 text-xl mr-3 text-center opacity-80">🛼</span>
                <span class="font-bold text-[11px] tracking-widest uppercase">Penyusunan Seri & Lintasan</span>
             </div>
-            <span id="icon-dd-ops" class="transform transform transition-transform text-xs <?= $a2Active ? 'rotate-180' : '' ?>">▼</span>
-         </button>
-         <div id="dd-ops" class="bg-[#0b1120] py-2 <?= $a2Active ? '' : 'hidden' ?>">
-             <?php foreach($sidebarDistances as $sd): ?>
-                 <?php 
-                    $label = !empty($sd['category_name']) ? $sd['category_name'] . ' ' . $sd['distance_name'] : $sd['distance_name'];
-                    $isActive = (isset($_GET['distance_id']) && $_GET['distance_id'] == $sd['id']) ? $childActiveLink : $childBaseLink;
-                 ?>
-                 <a href="<?= getenv('APP_URL') ?>/roll/admin/pelotons?distance_id=<?= $sd['id'] ?>&cat=<?= urlencode($sd['category_name']) ?>" class="<?= $isActive ?>"><?= htmlspecialchars($label) ?></a>
-             <?php endforeach; ?>
-             <?php if(empty($sidebarDistances)): ?>
-                 <span class="block px-14 py-2 text-[10px] text-slate-500 italic">Belum ada kelas</span>
-             <?php endif; ?>
-         </div>unan Seri & Lintasan</a>
-         </div>
+         </a>
 
          <!-- GROUP 3: Hasil & Laporan -->
          <?php $a3Active = isGroupActive($req, ['admin/results', 'admin/reports']); ?>
