@@ -181,8 +181,9 @@ class RollBibController extends Controller {
         fputcsv($output, ['Nomor BIB', 'Nama Atlet', 'Gender', 'Klub']);
 
         foreach ($athletes as $row) {
+            // Use ="001" format to force Excel to treat the value as a string and keep leading zeros
             fputcsv($output, [
-                $row['bib_number'],
+                '="' . $row['bib_number'] . '"',
                 $row['skater_name'],
                 $row['gender'],
                 $row['club_name']

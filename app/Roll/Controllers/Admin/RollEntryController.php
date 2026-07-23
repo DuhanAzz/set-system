@@ -231,4 +231,79 @@ class RollEntryController extends Controller {
             'totalTagihan' => $totalTagihan
         ]);
     }
+
+    public function print_invoice() {
+        if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+            die("Unauthorized");
+        }
+        
+        $db = Database::getInstance()->getConnection();
+        $eventId = (int)($_GET['event_id'] ?? 0);
+        $targetClubId = (int)($_GET['id'] ?? 0);
+        
+        if ($eventId == 0 || $targetClubId == 0) {
+            die("Parameter URL tidak lengkap.");
+        }
+        
+        $stmtEvt = $db->prepare("SELECT * FROM roll_events WHERE id = ? LIMIT 1");
+        $stmtEvt->execute([$eventId]);
+        $eventData = $stmtEvt->fetch(PDO::FETCH_ASSOC);
+        if (!$eventData) die("Event tidak ditemukan");
+        
+        $stmtClub = $db->prepare("SELECT club_name FROM roll_clubs WHERE id = ?");
+        $stmtClub->execute([$targetClubId]);
+        $clubData = $stmtClub->fetch(PDO::FETCH_ASSOC);
+        $clubName = $clubData['club_name'] ?? 'Klub ID: ' . $targetClubId;
+        
+        $stmtPay = $db->prepare("SELECT * FROM roll_payments WHERE event_id = ? AND club_id = ? LIMIT 1");
+        $stmtPay->execute([$eventId, $targetClubId]);
+        $payData = $stmtPay->fetch(PDO::FETCH_ASSOC);
+        
+        $sqlEntries = "SELECT s.id as skater_id, s.skater_name, s.gender, a.group_name, d.distance_name, ed.category_name, ed.distance
+                       FROM roll_entries e
+                       JOIN roll_skaters s ON e.skater_id = s.id
+                       LEFT JOIN roll_event_details ed ON e.race_class_id = ed.id
+                       LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
+                       LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id
+                       WHERE e.event_id = ? AND s.club_id = ?
+                       ORDER BY s.skater_name ASC";
+        $stmtE = $db->prepare($sqlEntries);
+        $stmtE->execute([$eventId, $targetClubId]);
+        $allEntries = $stmtE->fetchAll(PDO::FETCH_ASSOC);
+        
+        $groupedSkaters = [];
+        $totalTagihan = 0;
+        $hargaPerNomor = isset($eventData['entry_fee']) && $eventData['entry_fee'] > 0 ? $eventData['entry_fee'] : 150000;
+        
+        foreach($allEntries as $ent) {
+            $sId = $ent['skater_id'];
+            if(!isset($groupedSkaters[$sId])) {
+                $groupedSkaters[$sId] = [
+                    'info' => [
+                        'nama' => $ent['skater_name'],
+                        'gender' => $ent['gender'] == 'M' ? 'Putra' : 'Putri'
+                    ],
+                    'items' => []
+                ];
+            }
+            $groupedSkaters[$sId]['items'][] = [
+                'distance' => $ent['distance'],
+                'stroke' => $ent['category_name'] ?: $ent['distance_name'],
+                'age_group' => $ent['group_name']
+            ];
+            $totalTagihan += $hargaPerNomor;
+        }
+        
+        if(isset($payData['total_amount']) && $payData['total_amount'] > 0) {
+            $totalTagihan = $payData['total_amount'];
+        }
+
+        return $this->view('roll/admin/entries/print_invoice', [
+            'event' => $eventData,
+            'clubName' => $clubName,
+            'payData' => $payData,
+            'groupedSkaters' => $groupedSkaters,
+            'totalTagihan' => $totalTagihan
+        ]);
+    }
 }

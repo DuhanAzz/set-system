@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Daftar Nomor BIB - <?= htmlspecialchars($event['event_name']) ?></title>
+    <title>Tanda Terima - <?= htmlspecialchars($clubName) ?></title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         /* --- RESET & COLOR SETTINGS --- */
@@ -108,6 +108,14 @@
             @page { margin: 0; size: A4; }
             * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
         }
+
+        .invoice-box {
+            border: 2px dashed #333;
+            padding: 15px;
+            margin-bottom: 20px;
+            background: #fdfdfd;
+            border-radius: 8px;
+        }
     </style>
 </head>
 <body>
@@ -152,7 +160,7 @@
                                         <?php endforeach; ?>
                                         </div>
                                     <?php endif; ?>
-                                    <h1 style="margin: 0; font-size: 16pt; text-transform: uppercase;">Daftar Nomor BIB Atlet</h1>
+                                    <h1 style="margin: 0; font-size: 16pt; text-transform: uppercase;">Tanda Terima Pendaftaran</h1>
                                     <p style="margin: 5px 0 0 0; font-size: 12pt; font-weight: bold; color: #333;"><?= htmlspecialchars($event['event_name']) ?></p>
                                     <?php if(!empty($event['event_date_start'])): ?>
                                         <p style="font-size: 10pt; margin: 2px 0 0 0; color: #666;">Tanggal: <?= date('d M Y', strtotime($event['event_date_start'])) ?> - <?= date('d M Y', strtotime($event['event_date_end'])) ?></p>
@@ -175,32 +183,88 @@
             <tbody>
                 <tr>
                     <td>
+                        <!-- INVOICE BOX -->
+                        <div class="invoice-box">
+                            <table style="width: 100%; border: none;">
+                                <tr>
+                                    <td style="width: 60%; vertical-align: top;">
+                                        <p style="margin: 0; font-size: 10pt; color: #555; text-transform: uppercase;">Dibayarkan Oleh / Klub:</p>
+                                        <h2 style="margin: 5px 0 15px 0; font-size: 16pt; font-weight: 900; color: #000; text-transform: uppercase;">
+                                            <?= htmlspecialchars($clubName) ?>
+                                        </h2>
+                                        
+                                        <table style="width: 100%; font-size: 10pt;">
+                                            <tr>
+                                                <td style="width: 150px; font-weight: bold;">Status Verifikasi</td>
+                                                <td>: 
+                                                    <?php if(isset($payData['status']) && $payData['status'] === 'Paid'): ?>
+                                                        <span style="color: green; font-weight: bold; text-transform: uppercase;">LUNAS (TERVERIFIKASI)</span>
+                                                    <?php else: ?>
+                                                        <span style="color: red; font-weight: bold; text-transform: uppercase;">BELUM LUNAS</span>
+                                                    <?php endif; ?>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td style="font-weight: bold;">Total Tagihan</td>
+                                                <td>: Rp <?= number_format($totalTagihan, 0, ',', '.') ?></td>
+                                            </tr>
+                                            <tr>
+                                                <td style="font-weight: bold;">Jumlah Atlet</td>
+                                                <td>: <?= count($groupedSkaters) ?> Atlet</td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                    <td style="width: 40%; text-align: right; vertical-align: middle;">
+                                        <?php if(isset($payData['status']) && $payData['status'] === 'Paid'): ?>
+                                            <div style="border: 4px solid green; display: inline-block; padding: 15px 25px; border-radius: 10px; color: green; font-weight: 900; font-size: 24pt; transform: rotate(-10deg); opacity: 0.8; letter-spacing: 5px;">
+                                                PAID
+                                            </div>
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                        
+                        <p style="font-size: 11pt; font-weight: bold; margin-bottom: 5px; text-transform: uppercase; border-bottom: 2px solid #000; display: inline-block; padding-bottom: 2px;">
+                            Rincian Daftar Atlet
+                        </p>
+
                         <table class="schedule-table">
                             <thead>
                                 <tr>
-                                    <th class="text-center" style="width: 80px;">No. BIB</th>
+                                    <th class="text-center" style="width: 40px;">No</th>
                                     <th>Nama Atlet</th>
                                     <th class="text-center" style="width: 80px;">Gender</th>
-                                    <th>Klub / Kontingen</th>
+                                    <th>Nomor Lomba (Kelas)</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <?php if(empty($athletes)): ?>
+                                <?php if(empty($groupedSkaters)): ?>
                                     <tr>
-                                        <td colspan="4" class="text-center">Belum ada data BIB yang di-generate.</td>
+                                        <td colspan="4" class="text-center">Belum ada rincian atlet.</td>
                                     </tr>
                                 <?php else: ?>
-                                    <?php foreach($athletes as $a): ?>
+                                    <?php $no = 1; foreach($groupedSkaters as $skId => $s): ?>
                                         <tr>
-                                            <td class="text-center font-bold" style="font-size: 12pt;"><?= htmlspecialchars($a['bib_number']) ?></td>
-                                            <td class="font-bold" style="text-transform: uppercase;"><?= htmlspecialchars($a['skater_name']) ?></td>
-                                            <td class="text-center"><?= htmlspecialchars($a['gender']) ?></td>
-                                            <td><?= htmlspecialchars($a['club_name']) ?></td>
+                                            <td class="text-center font-bold"><?= $no++ ?></td>
+                                            <td class="font-bold" style="text-transform: uppercase;"><?= htmlspecialchars($s['info']['nama']) ?></td>
+                                            <td class="text-center"><?= htmlspecialchars($s['info']['gender']) ?></td>
+                                            <td>
+                                                <ul style="margin: 0; padding-left: 15px; font-size: 9pt;">
+                                                    <?php foreach($s['items'] as $item): ?>
+                                                        <li><?= htmlspecialchars($item['stroke'] . ' (' . $item['age_group'] . ')') ?></li>
+                                                    <?php endforeach; ?>
+                                                </ul>
+                                            </td>
                                         </tr>
                                     <?php endforeach; ?>
                                 <?php endif; ?>
                             </tbody>
                         </table>
+                        
+                        <p style="font-size: 8pt; margin-top: 15px; text-align: justify; color: #555;">
+                            <em>* Dokumen ini adalah tanda terima resmi. Semua data atlet dan nomor lomba yang tercetak di atas telah tervalidasi dan sah mengikuti perlombaan. Harap simpan dokumen ini sebagai bukti jika terjadi perbedaan data di lapangan.</em>
+                        </p>
                     </td>
                 </tr>
             </tbody>
@@ -232,7 +296,6 @@
     <!-- SCRIPT AUTO PRINT OPTIONAL -->
     <script>
         window.onload = function() {
-            // Uncomment baris di bawah jika ingin dialog cetak langsung muncul saat halaman dibuka
             // window.print();
         };
     </script>

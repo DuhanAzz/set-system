@@ -13,7 +13,7 @@
     .text-pink-600 { color: #db2777; }
 </style>
 
-<div class="max-w-7xl mx-auto mb-6 flex items-center justify-between">
+<div class="max-w-7xl mx-auto mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
     <div class="flex items-center gap-4">
         <a href="<?= getenv('APP_URL') ?>/roll/admin/entries" class="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:bg-slate-900 hover:text-white transition shadow-sm">←</a>
         <div>
@@ -22,6 +22,12 @@
                 Klub/Kontingen: <span class="text-blue-600"><?= htmlspecialchars($clubName) ?></span>
             </p>
         </div>
+    </div>
+    
+    <div>
+        <a href="<?= getenv('APP_URL') ?>/roll/admin/entries/print_invoice?id=<?= $targetUserId ?>&event_id=<?= $eventId ?>" target="_blank" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:shadow-indigo-500/25 transition-all flex items-center">
+            <span class="mr-2">🖨️</span> Cetak Invoice / Tanda Terima
+        </a>
     </div>
 </div>
 
