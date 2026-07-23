@@ -154,10 +154,12 @@ class RollEventController extends Controller {
                 }
             }
             $entryFee = $_POST['entry_fee'] ?? 150000;
+            $maxIndividu = $_POST['max_individual_races'] ?? 2;
+            $maxTeam = $_POST['max_team_races'] ?? 1;
             $headerLogosJson = json_encode($headerLogosArray);
 
-            $stmt = $db->prepare("UPDATE roll_events SET event_name=?, event_date_start=?, event_date_end=?, event_location=?, event_city=?, race_format=?, status=?, entry_fee=?, poster_image=?, sponsor_logos=?, header_logos=? WHERE id=?");
-            $stmt->execute([$eventName, $eventDateStart, $eventDateEnd, $eventLoc, $eventCity, $raceFormat, $status, $entryFee, $posterImage, $sponsorLogosJson, $headerLogosJson, $eventId]);
+            $stmt = $db->prepare("UPDATE roll_events SET event_name=?, event_date_start=?, event_date_end=?, event_location=?, event_city=?, race_format=?, status=?, entry_fee=?, max_individual_races=?, max_team_races=?, poster_image=?, sponsor_logos=?, header_logos=? WHERE id=?");
+            $stmt->execute([$eventName, $eventDateStart, $eventDateEnd, $eventLoc, $eventCity, $raceFormat, $status, $entryFee, $maxIndividu, $maxTeam, $posterImage, $sponsorLogosJson, $headerLogosJson, $eventId]);
 
             $_SESSION['flash_message'] = "Profil Event berhasil diperbarui!";
             $_SESSION['flash_type'] = "success";
@@ -305,10 +307,11 @@ class RollEventController extends Controller {
             $distanceIds = $_POST['distance_ids'] ?? [];
             $skateClassIds = $_POST['skate_class_ids'] ?? [];
             $genders = $_POST['genders'] ?? [];
+            $maxLanes = $_POST['max_lanes'] ?? [];
 
             if (!empty($raceNumbers)) {
-                $stmtUpdate = $db->prepare("UPDATE roll_event_details SET race_number = ?, race_time = ?, age_group_id = ?, distance_id = ?, skate_class_id = ?, gender = ?, distance = ? WHERE id = ? AND event_id = ?");
-                $stmtInsert = $db->prepare("INSERT INTO roll_event_details (event_id, distance_id, age_group_id, skate_class_id, gender, race_number, race_time, distance, result_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Draft')");
+                $stmtUpdate = $db->prepare("UPDATE roll_event_details SET race_number = ?, race_time = ?, age_group_id = ?, distance_id = ?, skate_class_id = ?, gender = ?, distance = ?, max_lanes = ? WHERE id = ? AND event_id = ?");
+                $stmtInsert = $db->prepare("INSERT INTO roll_event_details (event_id, distance_id, age_group_id, skate_class_id, gender, race_number, race_time, distance, max_lanes, result_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Draft')");
                 
                 // Fetch Distances and Age Groups for validation
                 $dists = []; $ags = []; $rollers = [];
@@ -327,6 +330,7 @@ class RollEventController extends Controller {
                     $di = !empty($distanceIds[$i]) ? $distanceIds[$i] : null;
                     $sc = !empty($skateClassIds[$i]) ? $skateClassIds[$i] : null;
                     $gn = $genders[$i] ?? null;
+                    $ml = !empty($maxLanes[$i]) ? (int)$maxLanes[$i] : 6;
                     
                     if (empty($rn) || empty($rt)) {
                         $valid = false;
@@ -353,9 +357,9 @@ class RollEventController extends Controller {
                     
                     if ($valid) {
                         if (!empty($cid)) {
-                            $stmtUpdate->execute([$rn, $rt, $ag, $di, $sc, $gn, $distNameOriginal, $cid, $eventId]);
+                            $stmtUpdate->execute([$rn, $rt, $ag, $di, $sc, $gn, $distNameOriginal, $ml, $cid, $eventId]);
                         } else {
-                            $stmtInsert->execute([$eventId, $di, $ag, $sc, $gn, $rn, $rt, $distNameOriginal]);
+                            $stmtInsert->execute([$eventId, $di, $ag, $sc, $gn, $rn, $rt, $distNameOriginal, $ml]);
                         }
                     }
                 }

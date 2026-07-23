@@ -5,6 +5,16 @@
             Jarak: <span class="text-indigo-600"><?= htmlspecialchars($distanceName) ?></span>
         </p>
     </div>
+    
+    <?php if($distanceId > 0 && !empty($classes)): ?>
+    <form method="POST" action="<?= getenv('APP_URL') ?>/roll/admin/pelotons/generate_heat" onsubmit="return confirm('Apakah Anda yakin ingin menyusun ulang seri untuk KESELURUHAN KELAS pada jarak ini? Data seri sebelumnya akan tertimpa.');">
+        <input type="hidden" name="distance_id" value="<?= $distanceId ?>">
+        <input type="hidden" name="category_name" value="<?= htmlspecialchars($categoryName) ?>">
+        <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs uppercase tracking-widest py-3 px-6 rounded-xl shadow-lg transition-colors">
+            🔄 Generate All
+        </button>
+    </form>
+    <?php endif; ?>
 </div>
 
 <?php if($distanceId == 0): ?>
@@ -39,22 +49,6 @@
                         Total Pendaftar Valid: <span class="text-emerald-400"><?= $totalEntries ?> Atlet</span>
                     </p>
                 </div>
-                
-                <?php if($totalEntries > 0): ?>
-                    <form method="POST" action="<?= getenv('APP_URL') ?>/roll/admin/pelotons/generate_heat" onsubmit="return confirm('Apakah Anda yakin ingin menyusun ulang seri untuk kelas ini? Data seri sebelumnya akan tertimpa.');">
-                        <input type="hidden" name="class_id" value="<?= $cId ?>">
-                        <input type="hidden" name="distance_id" value="<?= $distanceId ?>">
-                        <input type="hidden" name="category_name" value="<?= htmlspecialchars($categoryName) ?>">
-                        
-                        <div class="flex items-center bg-slate-800 rounded-xl overflow-hidden p-1 border border-slate-700">
-                            <span class="text-[10px] font-bold text-slate-400 uppercase px-3">Max Lintasan:</span>
-                            <input type="number" name="max_lanes" value="6" min="2" max="10" class="w-16 bg-slate-700 text-white text-center text-sm font-black py-2 rounded-lg border-none focus:ring-0">
-                            <button type="submit" class="ml-2 bg-indigo-600 hover:bg-indigo-500 text-white font-black text-[10px] uppercase tracking-widest py-2 px-6 rounded-lg transition-colors">
-                                🔄 Generate All
-                            </button>
-                        </div>
-                    </form>
-                <?php endif; ?>
             </div>
 
             <!-- KONTEN SERI -->

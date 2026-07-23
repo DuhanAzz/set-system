@@ -90,6 +90,14 @@
                             <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Biaya / Kelas (Rp)</label>
                             <input type="number" name="entry_fee" value="<?= htmlspecialchars($row['entry_fee'] ?? '150000') ?>" class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-800 focus:ring-2 focus:ring-blue-500" required>
                         </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Max Individu / Atlet</label>
+                            <input type="number" name="max_individual_races" value="<?= htmlspecialchars($row['max_individual_races'] ?? '2') ?>" min="1" max="10" class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-800 focus:ring-2 focus:ring-blue-500" required>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Max Beregu / Atlet</label>
+                            <input type="number" name="max_team_races" value="<?= htmlspecialchars($row['max_team_races'] ?? '1') ?>" min="0" max="10" class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-800 focus:ring-2 focus:ring-blue-500" required>
+                        </div>
                     </div>
 
                     <!-- Gambar / Media -->
@@ -192,6 +200,7 @@
                                         <th class="p-3 w-40">KELOMPOK UMUR</th>
                                         <th class="p-3 w-40">ROLLER</th>
                                         <th class="p-3 w-32">GENDER</th>
+                                        <th class="p-3 w-24">MAX LINTASAN</th>
                                         <th class="p-3 w-24 text-center">AKSI</th>
                                     </tr>
                                 </thead>
@@ -235,6 +244,9 @@
                                                 <option value="Putri" <?= ($c['gender'] == 'Putri') ? 'selected' : '' ?>>Putri</option>
                                                 <option value="Campuran" <?= ($c['gender'] == 'Campuran') ? 'selected' : '' ?>>Campuran</option>
                                             </select>
+                                        </td>
+                                        <td class="p-2 align-top">
+                                            <input type="number" name="max_lanes[]" value="<?= htmlspecialchars($c['max_lanes'] ?? 6) ?>" min="1" max="50" required class="w-full bg-slate-50 border border-slate-200 rounded p-2 text-xs font-bold text-slate-700 text-center focus:ring-2 focus:ring-blue-500">
                                         </td>
                                         <td class="p-2 text-center align-top whitespace-nowrap">
                                             <button type="button" title="Hapus" onclick="if(confirm('Hapus kelas ini?')) window.location.href='<?= getenv('APP_URL') ?>/roll/admin/events/delete_class/<?= $c['id'] ?>'" class="text-red-500 opacity-50 hover:opacity-100 hover:text-white p-2 rounded hover:bg-red-500 transition-all font-bold text-lg h-8 w-8 inline-flex items-center justify-center">
@@ -304,6 +316,9 @@
                 <option value="Putri">Putri</option>
                 <option value="Campuran">Campuran</option>
             </select>
+        </td>
+        <td class="p-2 align-top">
+            <input type="number" name="max_lanes[]" value="6" min="1" max="50" required class="w-full bg-slate-50 border border-slate-200 rounded p-2 text-xs font-bold text-slate-700 text-center focus:ring-2 focus:ring-blue-500">
         </td>
         <td class="p-2 text-center align-top whitespace-nowrap">
             <button type="button" title="Hapus Baris" onclick="this.closest('tr').remove()" class="text-red-500 opacity-50 hover:opacity-100 hover:text-white p-2 rounded hover:bg-red-500 transition-all font-bold text-lg h-8 w-8 inline-flex items-center justify-center">
@@ -387,6 +402,18 @@ function attachPorserosiRules(row) {
 
     agSel.addEventListener('change', applyRules);
     rollerSel.addEventListener('change', applyRules);
+    
+    distSel.addEventListener('change', function() {
+        const distName = (this.options[this.selectedIndex]?.getAttribute('data-dist-name') || '').toUpperCase();
+        const maxLanesInput = row.querySelector('input[name="max_lanes[]"]');
+        if (!maxLanesInput) return;
+        
+        if (distName.includes('DTT')) maxLanesInput.value = 2;
+        else if (distName.includes('ITT')) maxLanesInput.value = 1;
+        else if (distName.includes('1000')) maxLanesInput.value = 8;
+        else if (distName.includes('ELIM') || distName.includes('POINT') || distName.includes('PTP')) maxLanesInput.value = 30;
+        else if (distName) maxLanesInput.value = 6;
+    });
 }
 
 // Attach rules to existing rows
