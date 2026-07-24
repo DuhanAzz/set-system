@@ -55,7 +55,7 @@ class RollRegistrationController extends Controller {
 
         // Fetch registered entries for THIS event and club
         $stmtEntries = $db->prepare("
-            SELECT e.id as entry_id, e.race_class_id, e.team_name,
+            SELECT e.id as entry_id, e.race_class_id, e.team_name, e.skater_id,
                    s.skater_name, s.gender,
                    a.group_name, c.category_name, skc.class_name as skate_class,
                    d.distance_name, c.race_number, c.gender as class_gender,
@@ -219,12 +219,13 @@ class RollRegistrationController extends Controller {
         }
 
         $skater_ids = isset($_POST['skater_id']) ? (is_array($_POST['skater_id']) ? $_POST['skater_id'] : [$_POST['skater_id']]) : [];
-        $race_class_id = (int)($_POST['race_class_id'] ?? 0);
+        $race_class_ids = isset($_POST['race_class_id']) ? (is_array($_POST['race_class_id']) ? $_POST['race_class_id'] : [$_POST['race_class_id']]) : [];
         $event_id     = (int)($_POST['event_id'] ?? 0);
         $club_id      = (int)($_SESSION['roll_club_id'] ?? 0);
         $team_name    = isset($_POST['team_name']) ? trim($_POST['team_name']) : null;
+        $is_team_reg  = !empty($team_name);
 
-        if (empty($skater_ids) || !$race_class_id || !$event_id) {
+        if (empty($skater_ids) || empty($race_class_ids) || !$event_id) {
             $_SESSION['flash_message'] = "Data tidak lengkap.";
             $_SESSION['flash_type'] = "error";
             header("Location: " . getenv('APP_URL') . "/roll/user/registration/index/" . $event_id);
@@ -233,78 +234,124 @@ class RollRegistrationController extends Controller {
 
         $db = Database::getInstance()->getConnection();
         
+        // Fetch event limits
+        $stmtLimit = $db->prepare("SELECT max_individual_races, max_team_races FROM roll_events WHERE id = ?");
+        $stmtLimit->execute([$event_id]);
+        $eventLimits = $stmtLimit->fetch(PDO::FETCH_ASSOC);
+        $maxIndv = $eventLimits['max_individual_races'] ?? 99;
+        $maxTeam = $eventLimits['max_team_races'] ?? 99;
+        
         $successCount = 0;
+        $failMessages = [];
+
         foreach ($skater_ids as $skater_id) {
             $skater_id = (int)$skater_id;
             
             // Pastikan atlet milik klub ini
-            $stmtOwn = $db->prepare("SELECT id FROM roll_skaters WHERE id = ? AND club_id = ?");
+            $stmtOwn = $db->prepare("SELECT skater_name FROM roll_skaters WHERE id = ? AND club_id = ?");
             $stmtOwn->execute([$skater_id, $club_id]);
-            if (!$stmtOwn->fetch()) continue;
-
-            // Cek duplikasi
-            $stmtDup = $db->prepare("SELECT id FROM roll_entries WHERE skater_id = ? AND race_class_id = ? AND event_id = ?");
-            $stmtDup->execute([$skater_id, $race_class_id, $event_id]);
-            if ($stmtDup->fetch()) continue;
+            $skater = $stmtOwn->fetch(PDO::FETCH_ASSOC);
+            if (!$skater) continue;
             
-            // Cek pindah kategori (1 atlet hanya 1 kategori: Speed/Standart/Pemula)
-            $stmtCat = $db->prepare("
-                SELECT sc.class_name 
-                FROM roll_entries e
-                JOIN roll_event_details ed ON e.race_class_id = ed.id
-                JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
-                WHERE e.skater_id = ? AND e.event_id = ? LIMIT 1
+            $skater_name = $skater['skater_name'];
+
+            // Get current counts for this skater in this event
+            $stmtCount = $db->prepare("
+                SELECT 
+                    SUM(CASE WHEN team_name IS NULL OR team_name = '' THEN 1 ELSE 0 END) as indv_count,
+                    SUM(CASE WHEN team_name IS NOT NULL AND team_name != '' THEN 1 ELSE 0 END) as team_count
+                FROM roll_entries 
+                WHERE skater_id = ? AND event_id = ?
             ");
-            $stmtCat->execute([$skater_id, $event_id]);
-            $existingCat = $stmtCat->fetchColumn();
+            $stmtCount->execute([$skater_id, $event_id]);
+            $counts = $stmtCount->fetch(PDO::FETCH_ASSOC);
+            $currIndv = (int)$counts['indv_count'];
+            $currTeam = (int)$counts['team_count'];
 
-            if ($existingCat) {
-                $stmtTargetCat = $db->prepare("
-                    SELECT sc.class_name 
-                    FROM roll_event_details ed
-                    JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
-                    WHERE ed.id = ?
-                ");
-                $stmtTargetCat->execute([$race_class_id]);
-                $targetCat = $stmtTargetCat->fetchColumn();
-                
-                $eCatStr = strtolower($existingCat);
-                $tCatStr = strtolower($targetCat);
-                
-                $eGroup = '';
-                if (strpos($eCatStr, 'speed') !== false) $eGroup = 'speed';
-                elseif (strpos($eCatStr, 'standar') !== false) $eGroup = 'standar';
-                elseif (strpos($eCatStr, 'pemula') !== false) $eGroup = 'pemula';
-                
-                $tGroup = '';
-                if (strpos($tCatStr, 'speed') !== false) $tGroup = 'speed';
-                elseif (strpos($tCatStr, 'standar') !== false) $tGroup = 'standar';
-                elseif (strpos($tCatStr, 'pemula') !== false) $tGroup = 'pemula';
-                
-                if ($eGroup && $tGroup && $eGroup !== $tGroup) {
-                    $_SESSION['flash_message'] = "Gagal mendaftar. Atlet sudah terdaftar di kategori " . strtoupper($eGroup) . " dan tidak boleh didaftarkan ke kategori " . strtoupper($tGroup) . ".";
-                    $_SESSION['flash_type'] = "error";
-                    continue; 
+            foreach ($race_class_ids as $race_class_id) {
+                $race_class_id = (int)$race_class_id;
+
+                // Check limits
+                if ($is_team_reg && $currTeam >= $maxTeam) {
+                    $failMessages[] = "$skater_name mencapai batas maksimal Team ($maxTeam).";
+                    continue; // Skip this race for this skater
                 }
-            }
+                if (!$is_team_reg && $currIndv >= $maxIndv) {
+                    $failMessages[] = "$skater_name mencapai batas maksimal Individu ($maxIndv).";
+                    continue; // Skip this race for this skater
+                }
 
-            // Ambil nama jarak
-            $stmtDist = $db->prepare("SELECT d.distance_name FROM roll_event_details c JOIN roll_ref_distances d ON c.distance_id = d.id WHERE c.id = ?");
-            $stmtDist->execute([$race_class_id]);
-            $distance = $stmtDist->fetchColumn() ?: '-';
+                // Cek duplikasi
+                $stmtDup = $db->prepare("SELECT id FROM roll_entries WHERE skater_id = ? AND race_class_id = ? AND event_id = ?");
+                $stmtDup->execute([$skater_id, $race_class_id, $event_id]);
+                if ($stmtDup->fetch()) {
+                    $failMessages[] = "$skater_name sudah terdaftar di nomor lomba ini.";
+                    continue;
+                }
+                
+                // Cek pindah kategori (1 atlet hanya 1 kategori: Speed/Standart/Pemula)
+                $stmtCat = $db->prepare("
+                    SELECT sc.class_name 
+                    FROM roll_entries e
+                    JOIN roll_event_details ed ON e.race_class_id = ed.id
+                    JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
+                    WHERE e.skater_id = ? AND e.event_id = ? LIMIT 1
+                ");
+                $stmtCat->execute([$skater_id, $event_id]);
+                $existingCat = $stmtCat->fetchColumn();
 
-            // Save
-            $stmtInsert = $db->prepare("INSERT INTO roll_entries (event_id, skater_id, race_class_id, race_distance, payment_status, team_name) VALUES (?, ?, ?, ?, 'Unpaid', ?)");
-            if ($stmtInsert->execute([$event_id, $skater_id, $race_class_id, $distance, $team_name])) {
-                $successCount++;
+                if ($existingCat) {
+                    $stmtTargetCat = $db->prepare("
+                        SELECT sc.class_name 
+                        FROM roll_event_details ed
+                        JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
+                        WHERE ed.id = ?
+                    ");
+                    $stmtTargetCat->execute([$race_class_id]);
+                    $targetCat = $stmtTargetCat->fetchColumn();
+                    
+                    $eCatStr = strtolower($existingCat);
+                    $tCatStr = strtolower($targetCat);
+                    
+                    $eGroup = '';
+                    if (strpos($eCatStr, 'speed') !== false) $eGroup = 'speed';
+                    elseif (strpos($eCatStr, 'standar') !== false) $eGroup = 'standar';
+                    elseif (strpos($eCatStr, 'pemula') !== false) $eGroup = 'pemula';
+                    
+                    $tGroup = '';
+                    if (strpos($tCatStr, 'speed') !== false) $tGroup = 'speed';
+                    elseif (strpos($tCatStr, 'standar') !== false) $tGroup = 'standar';
+                    elseif (strpos($tCatStr, 'pemula') !== false) $tGroup = 'pemula';
+                    
+                    if ($eGroup && $tGroup && $eGroup !== $tGroup) {
+                        $failMessages[] = "$skater_name tidak bisa dicampur antara " . strtoupper($eGroup) . " dan " . strtoupper($tGroup) . ".";
+                        continue; 
+                    }
+                }
+
+                // Ambil nama jarak
+                $stmtDist = $db->prepare("SELECT d.distance_name FROM roll_event_details c JOIN roll_ref_distances d ON c.distance_id = d.id WHERE c.id = ?");
+                $stmtDist->execute([$race_class_id]);
+                $distance = $stmtDist->fetchColumn() ?: '-';
+
+                // Save
+                $stmtInsert = $db->prepare("INSERT INTO roll_entries (event_id, skater_id, race_class_id, race_distance, team_name) VALUES (?, ?, ?, ?, ?)");
+                if ($stmtInsert->execute([$event_id, $skater_id, $race_class_id, $distance, $team_name])) {
+                    $successCount++;
+                    if ($is_team_reg) { $currTeam++; } else { $currIndv++; }
+                }
             }
         }
         
         if ($successCount > 0) {
-            $_SESSION['flash_message'] = "Berhasil mendaftarkan $successCount atlet ke kelas lomba.";
+            $msg = "Berhasil mendaftarkan $successCount entri.";
+            if (!empty($failMessages)) {
+                $msg .= " Namun ada beberapa gagal: " . implode(" ", array_unique($failMessages));
+            }
+            $_SESSION['flash_message'] = $msg;
             $_SESSION['flash_type'] = "success";
         } else {
-            $_SESSION['flash_message'] = "Gagal mendaftar. Pastikan data valid dan belum terdaftar di kelas yang sama.";
+            $_SESSION['flash_message'] = "Gagal mendaftar. " . (!empty($failMessages) ? implode(" ", array_unique($failMessages)) : "Pastikan data valid.");
             $_SESSION['flash_type'] = "error";
         }
 
@@ -316,11 +363,13 @@ class RollRegistrationController extends Controller {
         $club_id = (int)($_SESSION['roll_club_id'] ?? 0);
         $db = Database::getInstance()->getConnection();
 
-        // Pastikan entry milik klub ini dan masih Unpaid
+        // Pastikan entry milik klub ini dan masih Unpaid/Rejected
         $stmt = $db->prepare("
-            SELECT e.id, e.event_id FROM roll_entries e
+            SELECT e.id, e.event_id 
+            FROM roll_entries e
             JOIN roll_skaters s ON e.skater_id = s.id
-            WHERE e.id = ? AND s.club_id = ? AND e.payment_status = 'Unpaid'
+            LEFT JOIN roll_payments p ON p.club_id = s.club_id AND p.event_id = e.event_id
+            WHERE e.id = ? AND s.club_id = ? AND COALESCE(p.status, 'Unpaid') IN ('Unpaid', 'Rejected')
         ");
         $stmt->execute([$entry_id, $club_id]);
         $entry = $stmt->fetch(PDO::FETCH_ASSOC);
