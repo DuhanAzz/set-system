@@ -7,7 +7,13 @@
         </a>
         
         <div class="relative z-10 flex flex-col md:flex-row gap-6 items-start">
-            <div class="w-32 h-32 bg-slate-800 rounded-2xl flex items-center justify-center text-5xl shadow-sm border border-slate-200 shrink-0">🏅</div>
+            <div class="w-32 h-32 bg-slate-800 rounded-2xl flex items-center justify-center text-5xl shadow-sm border border-slate-200 shrink-0 overflow-hidden">
+                <?php if(!empty($event['poster_image'])): ?>
+                    <img src="<?= getenv('APP_URL') ?>/<?= htmlspecialchars($event['poster_image']) ?>" alt="Poster" class="w-full h-full object-cover">
+                <?php else: ?>
+                    🏅
+                <?php endif; ?>
+            </div>
             
             <div>
                 <h1 class="text-4xl font-black text-slate-800 uppercase italic tracking-tight leading-none"><?= htmlspecialchars($event['event_name']) ?></h1>
@@ -49,26 +55,43 @@
                 <table class="w-full text-left text-sm">
                     <thead class="bg-white border-b border-slate-200 text-[10px] font-black uppercase tracking-widest text-slate-400">
                         <tr>
-                            <th class="px-6 py-5">Nama Lomba / Jarak</th>
-                            <th class="px-6 py-5 text-center">Kategori Umur</th>
-                            <th class="px-6 py-5 text-center">Kategori Lomba</th>
+                            <th class="px-6 py-5">No. Lomba</th>
+                            <th class="px-6 py-5">Pukul</th>
+                            <th class="px-6 py-5">Jarak</th>
+                            <th class="px-6 py-5">Kelompok Umur</th>
+                            <th class="px-6 py-5">Roller</th>
+                            <th class="px-6 py-5">Putra/Putri</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         <?php foreach($raceList as $race): ?>
                         <tr class="hover:bg-slate-50 transition group">
-                            <td class="px-6 py-4 font-black text-slate-700 uppercase tracking-tight text-base">
+                            <td class="px-6 py-4 font-black text-slate-800">
+                                <?= htmlspecialchars($race['race_number'] ?: '-') ?>
+                            </td>
+                            <td class="px-6 py-4 font-bold text-slate-500 text-xs">
+                                <?= htmlspecialchars($race['race_time'] ?: '00:00') ?>
+                            </td>
+                            <td class="px-6 py-4 font-black text-slate-700 uppercase tracking-tight text-sm">
                                 <?= htmlspecialchars($race['distance_name']) ?>
                             </td>
-                            <td class="px-6 py-4 text-center">
-                                <span class="px-3 py-1.5 bg-slate-100 border border-slate-200 text-slate-600 rounded-lg text-[10px] font-black uppercase tracking-widest">
+                            <td class="px-6 py-4">
+                                <span class="px-3 py-1 bg-slate-100 border border-slate-200 text-slate-600 rounded-lg text-[10px] font-black uppercase tracking-widest whitespace-nowrap">
                                     <?= htmlspecialchars($race['group_name'] ?? 'OPEN') ?> (<?= $race['min_year'] ?>-<?= $race['max_year'] ?>)
                                 </span>
                             </td>
-                            <td class="px-6 py-4 text-center">
-                                <span class="px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border bg-blue-50 text-blue-600 border-blue-100">
-                                    <?= htmlspecialchars($race['category_name']) ?>
+                            <td class="px-6 py-4">
+                                <span class="px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border bg-blue-50 text-blue-600 border-blue-100 whitespace-nowrap">
+                                    <?= htmlspecialchars($race['skate_class_name'] ?? 'N/A') ?>
                                 </span>
+                            </td>
+                            <td class="px-6 py-4 font-bold text-slate-600 text-xs uppercase tracking-widest">
+                                <?php
+                                    $catg = strtolower($race['category_name']);
+                                    if(strpos($catg, 'putra') !== false && strpos($catg, 'putri') === false) echo '<span class="text-blue-600">Putra</span>';
+                                    elseif(strpos($catg, 'putri') !== false && strpos($catg, 'putra') === false) echo '<span class="text-pink-600">Putri</span>';
+                                    else echo htmlspecialchars($race['category_name']);
+                                ?>
                             </td>
                         </tr>
                         <?php endforeach; ?>

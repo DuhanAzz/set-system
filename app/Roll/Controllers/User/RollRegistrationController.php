@@ -162,6 +162,51 @@ class RollRegistrationController extends Controller {
             exit;
         }
 
+        // Validasi 3: Cek pindah kategori (1 atlet = 1 kategori)
+        $stmtCat = $db->prepare("
+            SELECT sc.class_name 
+            FROM roll_entries e
+            JOIN roll_event_details ed ON e.race_class_id = ed.id
+            JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
+            WHERE e.skater_id = ? AND e.event_id = ? LIMIT 1
+        ");
+        $stmtCat->execute([$skater_id, $event_id]);
+        $existingCat = $stmtCat->fetchColumn();
+
+        if ($existingCat) {
+            $eCatStr = strtolower($existingCat);
+            $tCatStr = strtolower($class['category_name'] ?? ''); // wait, $class from stmtC is category_name (putra/putri), I need class_name
+            // Wait, in AJAX, we need to query the class_name of the target race_class_id
+            $stmtTargetCat = $db->prepare("
+                SELECT sc.class_name 
+                FROM roll_event_details ed
+                JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
+                WHERE ed.id = ?
+            ");
+            $stmtTargetCat->execute([$class_id]);
+            $targetCat = $stmtTargetCat->fetchColumn();
+            
+            $tCatStr = strtolower($targetCat);
+            
+            $eGroup = '';
+            if (strpos($eCatStr, 'speed') !== false) $eGroup = 'speed';
+            elseif (strpos($eCatStr, 'standar') !== false) $eGroup = 'standar';
+            elseif (strpos($eCatStr, 'pemula') !== false) $eGroup = 'pemula';
+            
+            $tGroup = '';
+            if (strpos($tCatStr, 'speed') !== false) $tGroup = 'speed';
+            elseif (strpos($tCatStr, 'standar') !== false) $tGroup = 'standar';
+            elseif (strpos($tCatStr, 'pemula') !== false) $tGroup = 'pemula';
+            
+            if ($eGroup && $tGroup && $eGroup !== $tGroup) {
+                echo json_encode([
+                    'success' => false,
+                    'message' => "Atlet sudah terdaftar di " . strtoupper($eGroup) . ", tidak bisa didaftarkan ke " . strtoupper($tGroup) . "."
+                ]);
+                exit;
+            }
+        }
+
         // Lolos Semua
         echo json_encode(['success' => true, 'message' => 'Atlet memenuhi syarat!']);
         exit;
@@ -201,6 +246,47 @@ class RollRegistrationController extends Controller {
             $stmtDup = $db->prepare("SELECT id FROM roll_entries WHERE skater_id = ? AND race_class_id = ? AND event_id = ?");
             $stmtDup->execute([$skater_id, $race_class_id, $event_id]);
             if ($stmtDup->fetch()) continue;
+            
+            // Cek pindah kategori (1 atlet hanya 1 kategori: Speed/Standart/Pemula)
+            $stmtCat = $db->prepare("
+                SELECT sc.class_name 
+                FROM roll_entries e
+                JOIN roll_event_details ed ON e.race_class_id = ed.id
+                JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
+                WHERE e.skater_id = ? AND e.event_id = ? LIMIT 1
+            ");
+            $stmtCat->execute([$skater_id, $event_id]);
+            $existingCat = $stmtCat->fetchColumn();
+
+            if ($existingCat) {
+                $stmtTargetCat = $db->prepare("
+                    SELECT sc.class_name 
+                    FROM roll_event_details ed
+                    JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
+                    WHERE ed.id = ?
+                ");
+                $stmtTargetCat->execute([$race_class_id]);
+                $targetCat = $stmtTargetCat->fetchColumn();
+                
+                $eCatStr = strtolower($existingCat);
+                $tCatStr = strtolower($targetCat);
+                
+                $eGroup = '';
+                if (strpos($eCatStr, 'speed') !== false) $eGroup = 'speed';
+                elseif (strpos($eCatStr, 'standar') !== false) $eGroup = 'standar';
+                elseif (strpos($eCatStr, 'pemula') !== false) $eGroup = 'pemula';
+                
+                $tGroup = '';
+                if (strpos($tCatStr, 'speed') !== false) $tGroup = 'speed';
+                elseif (strpos($tCatStr, 'standar') !== false) $tGroup = 'standar';
+                elseif (strpos($tCatStr, 'pemula') !== false) $tGroup = 'pemula';
+                
+                if ($eGroup && $tGroup && $eGroup !== $tGroup) {
+                    $_SESSION['flash_message'] = "Gagal mendaftar. Atlet sudah terdaftar di kategori " . strtoupper($eGroup) . " dan tidak boleh didaftarkan ke kategori " . strtoupper($tGroup) . ".";
+                    $_SESSION['flash_type'] = "error";
+                    continue; 
+                }
+            }
 
             // Ambil nama jarak
             $stmtDist = $db->prepare("SELECT d.distance_name FROM roll_event_details c JOIN roll_ref_distances d ON c.distance_id = d.id WHERE c.id = ?");

@@ -147,15 +147,30 @@ class RollCheckoutController extends Controller {
             $unpaidEntries = $stmtUnpaid->fetchAll(PDO::FETCH_ASSOC);
 
             // Assign payment amount for display
+            $skaterFees = [];
             foreach ($unpaidEntries as &$ue) {
+                $sId = $ue['skater_id'];
                 $cName = strtolower($ue['skate_class_name'] ?? '');
                 $amount = 150000;
                 if (strpos($cName, 'speed') !== false) $amount = (float)$eventFees['fee_speed'];
                 elseif (strpos($cName, 'standar') !== false) $amount = (float)$eventFees['fee_standart'];
                 elseif (strpos($cName, 'pemula') !== false) $amount = (float)$eventFees['fee_pemula'];
                 
-                $ue['payment_amount'] = $amount;
-                $totalFee += $amount;
+                if (!isset($skaterFees[$sId]) || $amount > $skaterFees[$sId]) {
+                    $skaterFees[$sId] = $amount;
+                }
+            }
+            
+            $chargedSkaters = [];
+            foreach ($unpaidEntries as &$ue) {
+                $sId = $ue['skater_id'];
+                if (!isset($chargedSkaters[$sId])) {
+                    $ue['payment_amount'] = $skaterFees[$sId];
+                    $totalFee += $skaterFees[$sId];
+                    $chargedSkaters[$sId] = true;
+                } else {
+                    $ue['payment_amount'] = 0; // Already charged for this skater
+                }
             }
         } else {
             // Status is Pending or Paid, all entries are in history
@@ -295,7 +310,7 @@ class RollCheckoutController extends Controller {
                 if (!empty($entry_ids)) {
                     $placeholders = str_repeat('?,', count($entry_ids) - 1) . '?';
                     $stmtCls = $db->prepare("
-                        SELECT sc.class_name 
+                        SELECT e.skater_id, sc.class_name 
                         FROM roll_entries e
                         LEFT JOIN roll_event_details ed ON e.race_class_id = ed.id
                         LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
@@ -304,13 +319,20 @@ class RollCheckoutController extends Controller {
                     $stmtCls->execute($entry_ids);
                     $classesData = $stmtCls->fetchAll(PDO::FETCH_ASSOC);
                     
+                    $skaterFees = [];
                     foreach ($classesData as $row) {
+                        $sId = $row['skater_id'];
                         $cName = strtolower($row['class_name'] ?? '');
-                        if (strpos($cName, 'speed') !== false) $total_amount += (float)$eventFees['fee_speed'];
-                        elseif (strpos($cName, 'standar') !== false) $total_amount += (float)$eventFees['fee_standart'];
-                        elseif (strpos($cName, 'pemula') !== false) $total_amount += (float)$eventFees['fee_pemula'];
-                        else $total_amount += 150000;
+                        $amount = 150000;
+                        if (strpos($cName, 'speed') !== false) $amount = (float)$eventFees['fee_speed'];
+                        elseif (strpos($cName, 'standar') !== false) $amount = (float)$eventFees['fee_standart'];
+                        elseif (strpos($cName, 'pemula') !== false) $amount = (float)$eventFees['fee_pemula'];
+                        
+                        if (!isset($skaterFees[$sId]) || $amount > $skaterFees[$sId]) {
+                            $skaterFees[$sId] = $amount;
+                        }
                     }
+                    $total_amount = array_sum($skaterFees);
                 }
                 
                 // Update atau Insert ke roll_payments

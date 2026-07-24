@@ -34,7 +34,11 @@
                     <div class="absolute top-3 left-3 z-20 bg-emerald-500 text-white px-2 py-1 rounded text-[8px] font-black uppercase tracking-widest shadow-md">
                         <?= htmlspecialchars($statusLomba) ?>
                     </div>
-                    <div class="w-full h-full flex items-center justify-center text-6xl opacity-50 bg-slate-800">🏅</div>
+                    <?php if(!empty($comp['poster_image'])): ?>
+                        <img src="<?= getenv('APP_URL') ?>/<?= htmlspecialchars($comp['poster_image']) ?>" alt="Poster" class="w-full h-full object-cover">
+                    <?php else: ?>
+                        <div class="w-full h-full flex items-center justify-center text-6xl opacity-50 bg-slate-800">🏅</div>
+                    <?php endif; ?>
                 </div>
 
                 <div class="p-5 md:p-6 flex-1 flex flex-col justify-between">

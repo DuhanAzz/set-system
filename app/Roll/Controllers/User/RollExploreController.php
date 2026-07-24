@@ -45,12 +45,13 @@ class RollExploreController extends Controller {
         }
 
         $stmtClasses = $db->prepare("
-            SELECT c.*, a.group_name, a.min_year, a.max_year, d.distance_name, c.category_name
+            SELECT c.*, a.group_name, a.min_year, a.max_year, d.distance_name, c.category_name, sc.class_name as skate_class_name
             FROM roll_event_details c
             JOIN roll_ref_age_groups a ON c.age_group_id = a.id
             JOIN roll_ref_distances d ON c.distance_id = d.id
+            JOIN roll_ref_skate_classes sc ON c.skate_class_id = sc.id
             WHERE c.event_id = ?
-            ORDER BY a.min_year ASC, c.category_name ASC, d.id ASC
+            ORDER BY sc.id ASC, a.min_year ASC, c.category_name ASC, d.id ASC
         ");
         $stmtClasses->execute([$event_id]);
         $raceList = $stmtClasses->fetchAll(PDO::FETCH_ASSOC);

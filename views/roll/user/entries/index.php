@@ -77,20 +77,39 @@
                 <span class="text-5xl block mb-3 opacity-30">📝</span>
                 <p class="font-black uppercase tracking-widest text-[10px]">Belum ada atlet yang didaftarkan. Klik tombol "+ Daftar Atlet" di atas.</p>
             </div>
-        <?php else: ?>
+        <?php else: 
+            $groupedEntries = [
+                'Speed' => [],
+                'Standart' => [],
+                'Pemula' => [],
+                'Lainnya' => []
+            ];
+            foreach ($existingEntries as $ent) {
+                $c = strtolower($ent['skate_class'] ?? '');
+                if (strpos($c, 'speed') !== false) $groupedEntries['Speed'][] = $ent;
+                elseif (strpos($c, 'standar') !== false) $groupedEntries['Standart'][] = $ent;
+                elseif (strpos($c, 'pemula') !== false) $groupedEntries['Pemula'][] = $ent;
+                else $groupedEntries['Lainnya'][] = $ent;
+            }
+            
+            foreach ($groupedEntries as $katName => $entries):
+                if (empty($entries)) continue;
+        ?>
+            <div class="px-6 py-3 bg-slate-100 border-y border-slate-200 text-xs font-black uppercase tracking-widest text-slate-600">
+                Kategori <?= htmlspecialchars($katName) ?> <span class="bg-blue-600 text-white rounded-full px-2 py-0.5 ml-2 text-[10px]"><?= count($entries) ?></span>
+            </div>
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-sm">
                     <thead class="bg-slate-50 border-b border-slate-200 text-[10px] uppercase text-slate-500 tracking-wider">
                         <tr>
                             <th class="px-6 py-4">Atlet</th>
-                            <th class="px-6 py-4 text-center">Kategori</th>
                             <th class="px-6 py-4 text-center">Kelompok Umur</th>
                             <th class="px-6 py-4">Kelas / Jarak</th>
                             <th class="px-6 py-4 text-center">Hapus</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
-                        <?php foreach ($existingEntries as $ent): ?>
+                        <?php foreach ($entries as $ent): ?>
                         <tr class="hover:bg-slate-50 transition group">
                             <td class="px-6 py-4">
                                 <div class="flex items-center gap-3">
@@ -102,9 +121,6 @@
                                         <div class="text-[10px] text-slate-400 font-bold"><?= $ent['gender'] === 'M' ? 'PUTRA' : 'PUTRI' ?></div>
                                     </div>
                                 </div>
-                            </td>
-                            <td class="px-6 py-4 text-center">
-                                <span class="bg-indigo-50 text-indigo-600 border border-indigo-100 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest"><?= htmlspecialchars($ent['skate_class'] ?? '-') ?></span>
                             </td>
                             <td class="px-6 py-4 text-center">
                                 <div class="font-bold text-slate-700 text-xs uppercase"><?= htmlspecialchars($ent['group_name'] ?? '-') ?></div>
@@ -142,6 +158,7 @@
                     </tbody>
                 </table>
             </div>
+            <?php endforeach; ?>
         <?php endif; ?>
     </div>
 
