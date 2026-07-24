@@ -304,6 +304,7 @@ class RollEntryController extends Controller {
         
         $groupedSkaters = [];
         $totalTagihan = 0;
+        $skaterFees = [];
         foreach($allEntries as $ent) {
             $sId = $ent['skater_id'];
             if(!isset($groupedSkaters[$sId])) {
@@ -331,8 +332,11 @@ class RollEntryController extends Controller {
             elseif (strpos($cName, 'standar') !== false) $hargaPerNomor = (float)($eventData['fee_standart'] ?? 350000);
             elseif (strpos($cName, 'pemula') !== false) $hargaPerNomor = (float)($eventData['fee_pemula'] ?? 350000);
             
-            $totalTagihan += $hargaPerNomor;
+            if (!isset($skaterFees[$sId]) || $hargaPerNomor > $skaterFees[$sId]) {
+                $skaterFees[$sId] = $hargaPerNomor;
+            }
         }
+        $totalTagihan = array_sum($skaterFees);
         
         if(isset($payData['total_amount']) && $payData['total_amount'] > 0) {
             $totalTagihan = $payData['total_amount'];
