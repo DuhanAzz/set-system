@@ -75,9 +75,14 @@
                                             <?php endif; ?>
                                         </td>
                                         <td class="p-4 text-center">
-                                            <a href="<?= getenv('APP_URL') ?>/roll/admin/bibs/detail?club_id=<?= $c['id'] ?>" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded-lg shadow hover:shadow-blue-500/25 transition-all text-xs uppercase tracking-widest inline-flex items-center">
-                                                <span>Lihat Detail</span>
-                                            </a>
+                                            <div class="flex justify-center gap-2">
+                                                <a href="<?= getenv('APP_URL') ?>/roll/admin/bibs/print_club?club_id=<?= $c['id'] ?>" target="_blank" class="bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2 px-4 rounded-lg shadow hover:shadow-slate-200/50 transition-all text-xs uppercase tracking-widest inline-flex items-center" title="Cetak PDF">
+                                                    <span class="mr-1">🖨️</span> Cetak
+                                                </a>
+                                                <a href="<?= getenv('APP_URL') ?>/roll/admin/bibs/detail?club_id=<?= $c['id'] ?>" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded-lg shadow hover:shadow-blue-500/25 transition-all text-xs uppercase tracking-widest inline-flex items-center">
+                                                    <span>Lihat Detail</span>
+                                                </a>
+                                            </div>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>

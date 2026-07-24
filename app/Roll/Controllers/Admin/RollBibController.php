@@ -152,6 +152,49 @@ class RollBibController extends Controller {
         ]);
     }
 
+    public function print_club() {
+        $eventId = $_SESSION['roll_admin_active_event_id'] ?? 0;
+        $clubId = $_GET['club_id'] ?? 0;
+        $db = Database::getInstance()->getConnection();
+        
+        if ($eventId == 0 || $clubId == 0) {
+            die("Event ID atau Club ID tidak valid.");
+        }
+
+        // Fetch Event Name
+        $stmtEvt = $db->prepare("SELECT * FROM roll_events WHERE id = ?");
+        $stmtEvt->execute([$eventId]);
+        $event = $stmtEvt->fetch(PDO::FETCH_ASSOC);
+        
+        // Fetch Club Name
+        $stmtClub = $db->prepare("SELECT club_name FROM roll_clubs WHERE id = ?");
+        $stmtClub->execute([$clubId]);
+        $clubName = $stmtClub->fetchColumn();
+
+        // Fetch all generated bibs for this club
+        $stmt = $db->prepare("
+            SELECT DISTINCT e.bib_number, s.skater_name, s.gender, c.club_name
+            FROM roll_entries e
+            JOIN roll_skaters s ON e.skater_id = s.id
+            JOIN roll_clubs c ON s.club_id = c.id
+            WHERE e.event_id = ? AND c.id = ? AND e.bib_number IS NOT NULL
+            ORDER BY CAST(e.bib_number AS UNSIGNED) ASC
+        ");
+        $stmt->execute([$eventId, $clubId]);
+        $athletes = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        if(empty($athletes)) {
+            die("Belum ada Nomor BIB yang digenerate untuk klub ini.");
+        }
+
+        return $this->view('roll/admin/bibs/print', [
+            'event' => $event,
+            'eventName' => $event['event_name'] ?? 'Kejuaraan',
+            'athletes' => $athletes,
+            'customTitle' => 'Daftar Nomor BIB - ' . $clubName
+        ]);
+    }
+
     public function export_csv() {
         $eventId = $_SESSION['roll_admin_active_event_id'] ?? 0;
         $db = Database::getInstance()->getConnection();

@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Daftar Nomor BIB - <?= htmlspecialchars($event['event_name']) ?></title>
+    <title><?= htmlspecialchars($customTitle ?? 'Daftar Nomor BIB - ' . $event['event_name']) ?></title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         /* --- RESET & COLOR SETTINGS --- */
@@ -152,7 +152,11 @@
                                         <?php endforeach; ?>
                                         </div>
                                     <?php endif; ?>
-                                    <h1 style="margin: 0; font-size: 16pt; text-transform: uppercase;">Daftar Nomor BIB Atlet</h1>
+                                    <div style="text-align: center; margin-top: 15px; margin-bottom: 5px;">
+                                        <h2 style="margin: 0; font-size: 16pt; font-weight: bold; text-transform: uppercase;">
+                                            <?= htmlspecialchars($customTitle ?? 'Daftar Nomor BIB Keseluruhan') ?>
+                                        </h2>
+                                    </div>
                                     <p style="margin: 5px 0 0 0; font-size: 12pt; font-weight: bold; color: #333;"><?= htmlspecialchars($event['event_name']) ?></p>
                                     <?php if(!empty($event['event_date_start'])): ?>
                                         <p style="font-size: 10pt; margin: 2px 0 0 0; color: #666;">Tanggal: <?= date('d M Y', strtotime($event['event_date_start'])) ?> - <?= date('d M Y', strtotime($event['event_date_end'])) ?></p>
