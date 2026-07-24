@@ -91,74 +91,110 @@
                 elseif (strpos($c, 'pemula') !== false) $groupedEntries['Pemula'][] = $ent;
                 else $groupedEntries['Lainnya'][] = $ent;
             }
+            <div class="flex overflow-x-auto border-b border-slate-200 bg-slate-50">
+                <?php 
+                $firstActive = true; 
+                foreach ($groupedEntries as $katName => $entries): 
+                    if (empty($entries)) continue; 
+                ?>
+                    <button type="button" onclick="switchCategoryTab('tab_cat_<?= md5($katName) ?>', this)" class="kat-tab-btn px-6 py-4 font-black uppercase tracking-widest text-xs transition-colors whitespace-nowrap <?= $firstActive ? 'text-blue-600 border-b-2 border-blue-600 bg-white' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100' ?>">
+                        <?= htmlspecialchars($katName) ?>
+                        <span class="kat-tab-badge <?= $firstActive ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-600' ?> rounded-full px-2 py-0.5 ml-2 text-[10px]"><?= count($entries) ?></span>
+                    </button>
+                <?php 
+                $firstActive = false; 
+                endforeach; 
+                ?>
+            </div>
             
-            foreach ($groupedEntries as $katName => $entries):
-                if (empty($entries)) continue;
-        ?>
-            <div class="px-6 py-3 bg-slate-100 border-y border-slate-200 text-xs font-black uppercase tracking-widest text-slate-600">
-                Kategori <?= htmlspecialchars($katName) ?> <span class="bg-blue-600 text-white rounded-full px-2 py-0.5 ml-2 text-[10px]"><?= count($entries) ?></span>
+            <div class="bg-white">
+                <?php 
+                $firstActive = true; 
+                foreach ($groupedEntries as $katName => $entries): 
+                    if (empty($entries)) continue; 
+                ?>
+                <div id="tab_cat_<?= md5($katName) ?>" class="kat-tab-content <?= $firstActive ? '' : 'hidden' ?>">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm">
+                            <thead class="bg-slate-50/50 border-b border-slate-200 text-[10px] uppercase text-slate-500 tracking-wider">
+                                <tr>
+                                    <th class="px-6 py-4">Atlet</th>
+                                    <th class="px-6 py-4 text-center">Kelompok Umur</th>
+                                    <th class="px-6 py-4">Kelas / Jarak</th>
+                                    <th class="px-6 py-4 text-center">Hapus</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                <?php foreach ($entries as $ent): ?>
+                                <tr class="hover:bg-slate-50 transition group">
+                                    <td class="px-6 py-4">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2 <?= $ent['gender'] == 'M' ? 'bg-blue-50 text-blue-600 border-blue-100' : 'bg-pink-50 text-pink-600 border-pink-100' ?>">
+                                                <?= substr($ent['skater_name'], 0, 1) ?>
+                                            </div>
+                                            <div>
+                                                <div class="font-black text-slate-800 text-xs uppercase"><?= htmlspecialchars($ent['skater_name']) ?></div>
+                                                <div class="text-[10px] text-slate-400 font-bold"><?= $ent['gender'] === 'M' ? 'PUTRA' : 'PUTRI' ?></div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 text-center">
+                                        <div class="font-bold text-slate-700 text-xs uppercase"><?= htmlspecialchars($ent['group_name'] ?? '-') ?></div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="font-bold text-blue-600 text-xs uppercase">
+                                            <?php if(!empty($ent['race_number'])): ?>
+                                                <span class="bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded mr-1"><?= htmlspecialchars($ent['race_number']) ?></span>
+                                            <?php endif; ?>
+                                            <?= htmlspecialchars($ent['distance_name'] ?? $ent['race_distance'] ?? '-') ?>
+                                        </div>
+                                        <div class="text-[10px] text-slate-500 font-bold mt-1">
+                                            <?php 
+                                                $cg = $ent['class_gender'] ?? '';
+                                                if ($cg === 'Putra') echo '<span class="text-blue-600">🔵 Putra</span>';
+                                                elseif ($cg === 'Putri') echo '<span class="text-pink-600">🔴 Putri</span>';
+                                                else echo htmlspecialchars($ent['category_name'] ?? '-');
+                                            ?>
+                                            <?= !empty($ent['team_name']) ? '<span class="text-indigo-500">&bull; Tim: ' . htmlspecialchars($ent['team_name']) . '</span>' : '' ?>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 text-center">
+                                        <?php if (in_array($ent['payment_status'], ['Unpaid', 'Rejected'])): ?>
+                                        <form action="<?= getenv('APP_URL') ?>/roll/user/registration/removeEntry/<?= $ent['entry_id'] ?>" method="POST" onsubmit="return confirm('Batalkan pendaftaran ini?')">
+                                            <button type="submit" class="w-8 h-8 rounded-full bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition border border-red-200 flex items-center justify-center mx-auto">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                            </button>
+                                        </form>
+                                        <?php else: ?>
+                                        <span class="text-slate-300 text-[10px]">🔒</span>
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <?php 
+                $firstActive = false; 
+                endforeach; 
+                ?>
             </div>
-            <div class="overflow-x-auto">
-                <table class="w-full text-left text-sm">
-                    <thead class="bg-slate-50 border-b border-slate-200 text-[10px] uppercase text-slate-500 tracking-wider">
-                        <tr>
-                            <th class="px-6 py-4">Atlet</th>
-                            <th class="px-6 py-4 text-center">Kelompok Umur</th>
-                            <th class="px-6 py-4">Kelas / Jarak</th>
-                            <th class="px-6 py-4 text-center">Hapus</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-100">
-                        <?php foreach ($entries as $ent): ?>
-                        <tr class="hover:bg-slate-50 transition group">
-                            <td class="px-6 py-4">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2 <?= $ent['gender'] == 'M' ? 'bg-blue-50 text-blue-600 border-blue-100' : 'bg-pink-50 text-pink-600 border-pink-100' ?>">
-                                        <?= substr($ent['skater_name'], 0, 1) ?>
-                                    </div>
-                                    <div>
-                                        <div class="font-black text-slate-800 text-xs uppercase"><?= htmlspecialchars($ent['skater_name']) ?></div>
-                                        <div class="text-[10px] text-slate-400 font-bold"><?= $ent['gender'] === 'M' ? 'PUTRA' : 'PUTRI' ?></div>
-                                    </div>
-                                </div>
-                            </td>
-                            <td class="px-6 py-4 text-center">
-                                <div class="font-bold text-slate-700 text-xs uppercase"><?= htmlspecialchars($ent['group_name'] ?? '-') ?></div>
-                            </td>
-                            <td class="px-6 py-4">
-                                <div class="font-bold text-blue-600 text-xs uppercase">
-                                    <?php if(!empty($ent['race_number'])): ?>
-                                        <span class="bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded mr-1"><?= htmlspecialchars($ent['race_number']) ?></span>
-                                    <?php endif; ?>
-                                    <?= htmlspecialchars($ent['distance_name'] ?? $ent['race_distance'] ?? '-') ?>
-                                </div>
-                                <div class="text-[10px] text-slate-500 font-bold mt-1">
-                                    <?php 
-                                        $cg = $ent['class_gender'] ?? '';
-                                        if ($cg === 'Putra') echo '<span class="text-blue-600">🔵 Putra</span>';
-                                        elseif ($cg === 'Putri') echo '<span class="text-pink-600">🔴 Putri</span>';
-                                        else echo htmlspecialchars($ent['category_name'] ?? '-');
-                                    ?>
-                                    <?= !empty($ent['team_name']) ? '<span class="text-indigo-500">&bull; Tim: ' . htmlspecialchars($ent['team_name']) . '</span>' : '' ?>
-                                </div>
-                            </td>
-                            <td class="px-6 py-4 text-center">
-                                <?php if (in_array($ent['payment_status'], ['Unpaid', 'Rejected'])): ?>
-                                <form action="<?= getenv('APP_URL') ?>/roll/user/registration/removeEntry/<?= $ent['entry_id'] ?>" method="POST" onsubmit="return confirm('Batalkan pendaftaran ini?')">
-                                    <button type="submit" class="w-8 h-8 rounded-full bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition border border-red-200 flex items-center justify-center mx-auto">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                                    </button>
-                                </form>
-                                <?php else: ?>
-                                <span class="text-slate-300 text-[10px]">🔒</span>
-                                <?php endif; ?>
-                            </td>
-                        </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
-            <?php endforeach; ?>
+            
+            <script>
+            function switchCategoryTab(tabId, btn) {
+                document.querySelectorAll('.kat-tab-content').forEach(el => el.classList.add('hidden'));
+                document.getElementById(tabId).classList.remove('hidden');
+                
+                document.querySelectorAll('.kat-tab-btn').forEach(el => {
+                    el.className = 'kat-tab-btn px-6 py-4 font-black uppercase tracking-widest text-xs transition-colors whitespace-nowrap text-slate-500 hover:text-slate-800 hover:bg-slate-100';
+                    el.querySelector('.kat-tab-badge').className = 'kat-tab-badge bg-slate-200 text-slate-600 rounded-full px-2 py-0.5 ml-2 text-[10px]';
+                });
+                
+                btn.className = 'kat-tab-btn px-6 py-4 font-black uppercase tracking-widest text-xs transition-colors whitespace-nowrap text-blue-600 border-b-2 border-blue-600 bg-white';
+                btn.querySelector('.kat-tab-badge').className = 'kat-tab-badge bg-blue-600 text-white rounded-full px-2 py-0.5 ml-2 text-[10px]';
+            }
+            </script>
         <?php endif; ?>
     </div>
 

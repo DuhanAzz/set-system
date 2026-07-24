@@ -35,7 +35,7 @@
                         <?= htmlspecialchars($statusLomba) ?>
                     </div>
                     <?php if(!empty($comp['poster_image'])): ?>
-                        <img src="<?= getenv('APP_URL') ?>/<?= htmlspecialchars($comp['poster_image']) ?>" alt="Poster" class="w-full h-full object-cover">
+                        <img src="<?= getenv('APP_URL') ?>/uploads/logos/<?= htmlspecialchars($comp['poster_image']) ?>" alt="Poster" class="w-full h-full object-cover">
                     <?php else: ?>
                         <div class="w-full h-full flex items-center justify-center text-6xl opacity-50 bg-slate-800">🏅</div>
                     <?php endif; ?>
