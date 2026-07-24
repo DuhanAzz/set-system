@@ -49,6 +49,13 @@
             <?php
             $overallStatus = 'UNPAID';
             $statusClass = 'bg-slate-100 text-slate-600';
+            $groupedEntries = [
+                'Speed' => [],
+                'Standart' => [],
+                'Pemula' => [],
+                'Lainnya' => []
+            ];
+
             if (!empty($existingEntries)) {
                 $hasUnpaid = false;
                 $hasPending = false;
@@ -57,6 +64,12 @@
                     if ($e['payment_status'] === 'Unpaid') $hasUnpaid = true;
                     if ($e['payment_status'] === 'Pending') $hasPending = true;
                     if ($e['payment_status'] === 'Rejected') $hasRejected = true;
+
+                    $c = strtolower($e['skate_class'] ?? '');
+                    if (strpos($c, 'speed') !== false) $groupedEntries['Speed'][] = $e;
+                    elseif (strpos($c, 'standar') !== false) $groupedEntries['Standart'][] = $e;
+                    elseif (strpos($c, 'pemula') !== false) $groupedEntries['Pemula'][] = $e;
+                    else $groupedEntries['Lainnya'][] = $e;
                 }
                 if ($hasUnpaid) { $overallStatus = 'UNPAID'; $statusClass = 'bg-slate-100 text-slate-600'; }
                 elseif ($hasRejected) { $overallStatus = 'REJECTED'; $statusClass = 'bg-red-500 text-white'; }
@@ -64,11 +77,27 @@
                 else { $overallStatus = 'PAID'; $statusClass = 'bg-emerald-500 text-white'; }
             }
             ?>
-            <div class="relative z-10 flex gap-2 items-center">
+            <div class="relative z-10 flex gap-2 items-center flex-wrap justify-end">
                 <?php if(!empty($existingEntries)): ?>
-                    <span class="<?= $statusClass ?> text-xs font-black px-3 py-1 rounded-lg uppercase tracking-widest"><?= $overallStatus ?></span>
+                    <div class="flex gap-1 mr-4 bg-slate-800 p-1.5 rounded-xl border border-slate-700">
+                        <?php 
+                        $firstActive = true; 
+                        foreach ($groupedEntries as $katName => $entries): 
+                            if (empty($entries)) continue; 
+                        ?>
+                            <button type="button" onclick="switchCategoryTab('tab_cat_<?= md5($katName) ?>', this)" class="kat-tab-btn px-4 py-1.5 font-black uppercase tracking-widest text-[10px] rounded-lg transition-all whitespace-nowrap <?= $firstActive ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-white hover:bg-slate-700' ?>">
+                                <?= htmlspecialchars($katName) ?>
+                                <span class="kat-tab-badge <?= $firstActive ? 'bg-white text-blue-600' : 'bg-slate-700 text-slate-300' ?> rounded-md px-1.5 py-0.5 ml-1.5 text-[9px]"><?= count($entries) ?></span>
+                            </button>
+                        <?php 
+                        $firstActive = false; 
+                        endforeach; 
+                        ?>
+                    </div>
+
+                    <span class="<?= $statusClass ?> text-[10px] font-black px-4 py-2 rounded-xl uppercase tracking-widest"><?= $overallStatus ?></span>
                 <?php endif; ?>
-                <span class="bg-blue-600 text-white text-xs font-black px-3 py-1 rounded-lg"><?= count($existingEntries) ?> Entry</span>
+                <span class="bg-blue-600 text-white text-[10px] font-black px-4 py-2 rounded-xl"><?= count($existingEntries) ?> Entry</span>
             </div>
         </div>
 
@@ -77,35 +106,7 @@
                 <span class="text-5xl block mb-3 opacity-30">📝</span>
                 <p class="font-black uppercase tracking-widest text-[10px]">Belum ada atlet yang didaftarkan. Klik tombol "+ Daftar Atlet" di atas.</p>
             </div>
-        <?php else: 
-            $groupedEntries = [
-                'Speed' => [],
-                'Standart' => [],
-                'Pemula' => [],
-                'Lainnya' => []
-            ];
-            foreach ($existingEntries as $ent) {
-                $c = strtolower($ent['skate_class'] ?? '');
-                if (strpos($c, 'speed') !== false) $groupedEntries['Speed'][] = $ent;
-                elseif (strpos($c, 'standar') !== false) $groupedEntries['Standart'][] = $ent;
-                elseif (strpos($c, 'pemula') !== false) $groupedEntries['Pemula'][] = $ent;
-                else $groupedEntries['Lainnya'][] = $ent;
-            }
-            <div class="flex overflow-x-auto border-b border-slate-200 bg-slate-50">
-                <?php 
-                $firstActive = true; 
-                foreach ($groupedEntries as $katName => $entries): 
-                    if (empty($entries)) continue; 
-                ?>
-                    <button type="button" onclick="switchCategoryTab('tab_cat_<?= md5($katName) ?>', this)" class="kat-tab-btn px-6 py-4 font-black uppercase tracking-widest text-xs transition-colors whitespace-nowrap <?= $firstActive ? 'text-blue-600 border-b-2 border-blue-600 bg-white' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100' ?>">
-                        <?= htmlspecialchars($katName) ?>
-                        <span class="kat-tab-badge <?= $firstActive ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-600' ?> rounded-full px-2 py-0.5 ml-2 text-[10px]"><?= count($entries) ?></span>
-                    </button>
-                <?php 
-                $firstActive = false; 
-                endforeach; 
-                ?>
-            </div>
+        <?php else: ?>
             
             <div class="bg-white">
                 <?php 
@@ -187,12 +188,12 @@
                 document.getElementById(tabId).classList.remove('hidden');
                 
                 document.querySelectorAll('.kat-tab-btn').forEach(el => {
-                    el.className = 'kat-tab-btn px-6 py-4 font-black uppercase tracking-widest text-xs transition-colors whitespace-nowrap text-slate-500 hover:text-slate-800 hover:bg-slate-100';
-                    el.querySelector('.kat-tab-badge').className = 'kat-tab-badge bg-slate-200 text-slate-600 rounded-full px-2 py-0.5 ml-2 text-[10px]';
+                    el.className = 'kat-tab-btn px-4 py-1.5 font-black uppercase tracking-widest text-[10px] rounded-lg transition-all whitespace-nowrap text-slate-400 hover:text-white hover:bg-slate-700';
+                    el.querySelector('.kat-tab-badge').className = 'kat-tab-badge bg-slate-700 text-slate-300 rounded-md px-1.5 py-0.5 ml-1.5 text-[9px]';
                 });
                 
-                btn.className = 'kat-tab-btn px-6 py-4 font-black uppercase tracking-widest text-xs transition-colors whitespace-nowrap text-blue-600 border-b-2 border-blue-600 bg-white';
-                btn.querySelector('.kat-tab-badge').className = 'kat-tab-badge bg-blue-600 text-white rounded-full px-2 py-0.5 ml-2 text-[10px]';
+                btn.className = 'kat-tab-btn px-4 py-1.5 font-black uppercase tracking-widest text-[10px] rounded-lg transition-all whitespace-nowrap bg-blue-600 text-white shadow-md';
+                btn.querySelector('.kat-tab-badge').className = 'kat-tab-badge bg-white text-blue-600 rounded-md px-1.5 py-0.5 ml-1.5 text-[9px]';
             }
             </script>
         <?php endif; ?>
