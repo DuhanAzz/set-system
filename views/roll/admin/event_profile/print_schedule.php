@@ -191,17 +191,54 @@
                                     <tr>
                                         <td colspan="6" class="text-center">Belum ada jadwal perlombaan yang dibuat.</td>
                                     </tr>
-                                <?php else: ?>
-                                    <?php foreach($classes as $c): ?>
+                                <?php else: 
+                                    // Group classes by day
+                                    $scheduleByDay = [];
+                                    foreach ($classes as $c) {
+                                        if (empty($c['race_number'])) continue;
+                                        $dayDigit = (int)substr($c['race_number'], 0, 1);
+                                        if ($dayDigit === 0) $dayDigit = 1;
+                                        
+                                        if (!isset($scheduleByDay[$dayDigit])) {
+                                            $scheduleByDay[$dayDigit] = [];
+                                        }
+                                        $scheduleByDay[$dayDigit][] = $c;
+                                    }
+                                    ksort($scheduleByDay);
+                                    
+                                    foreach ($scheduleByDay as $day => $dayClasses): 
+                                        $dateStr = '';
+                                        if (!empty($event['event_date_start'])) {
+                                            try {
+                                                $dt = new DateTime($event['event_date_start']);
+                                                if ($day > 1) {
+                                                    $dt->modify("+" . ($day - 1) . " days");
+                                                }
+                                                $dateStr = $dt->format('d M Y');
+                                            } catch(Exception $e) {}
+                                        }
+                                ?>
+                                    <!-- Header Hari -->
+                                    <tr style="background-color: #e2e8f0;">
+                                        <td colspan="6" style="padding: 10px; font-weight: bold; text-align: center; font-size: 11pt; text-transform: uppercase;">
+                                            Hari Ke-<?= $day ?> <?= $dateStr ? ' - ' . $dateStr : '' ?>
+                                        </td>
+                                    </tr>
+                                    
+                                    <?php 
+                                        usort($dayClasses, fn($a, $b) => strcmp($a['race_number'], $b['race_number']));
+                                        foreach($dayClasses as $c): 
+                                    ?>
                                         <tr>
                                             <td class="text-center font-bold"><?= htmlspecialchars($c['race_number']) ?></td>
                                             <td class="text-center font-bold"><?= htmlspecialchars(date('H:i', strtotime($c['race_time'] ?? '00:00'))) ?></td>
-                                            <td class="font-bold"><?= htmlspecialchars($c['distance_name'] ?? '-') ?></td>
+                                            <td class="font-bold"><?= htmlspecialchars($c['distance_name'] ?? $c['distance'] ?? '-') ?></td>
                                             <td><?= htmlspecialchars($c['group_name'] ?? 'Umum') ?></td>
                                             <td class="font-bold text-blue-700"><?= htmlspecialchars($c['roller_name'] ?? '-') ?></td>
                                             <td><?= htmlspecialchars($c['gender'] ?? '-') ?></td>
                                         </tr>
                                     <?php endforeach; ?>
+                                <?php endforeach; ?>
                                 <?php endif; ?>
                             </tbody>
                         </table>

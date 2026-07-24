@@ -58,7 +58,7 @@ class RollRegistrationController extends Controller {
             SELECT e.id as entry_id, e.race_class_id, e.team_name,
                    s.skater_name, s.gender,
                    a.group_name, c.category_name, skc.class_name as skate_class,
-                   d.distance_name,
+                   d.distance_name, c.race_number, c.gender as class_gender,
                    COALESCE(p.status, 'Unpaid') as payment_status
             FROM roll_entries e
             JOIN roll_skaters s ON e.skater_id = s.id

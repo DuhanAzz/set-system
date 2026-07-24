@@ -54,24 +54,34 @@ class RollCheckoutController extends Controller {
             
             $status = $paymentStatus ?: 'Unpaid';
 
-            // Total atlet terdaftar (banyaknya entries)
-            $stmtCnt = $db->prepare("
-                SELECT COUNT(*) FROM roll_entries e
+            // Ambil biaya per kategori
+            $stmtFee = $db->prepare("SELECT fee_speed, fee_standart, fee_pemula FROM roll_events WHERE id = ?");
+            $stmtFee->execute([$eid]);
+            $eventFees = $stmtFee->fetch(PDO::FETCH_ASSOC) ?: ['fee_speed'=>450000, 'fee_standart'=>350000, 'fee_pemula'=>350000];
+
+            // Hitung total tagihan berdasarkan kelas masing-masing entry
+            $stmtEntries = $db->prepare("
+                SELECT sc.class_name 
+                FROM roll_entries e
                 JOIN roll_skaters s ON e.skater_id = s.id
+                JOIN roll_event_details ed ON e.race_class_id = ed.id
+                LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
                 WHERE s.club_id = ? AND e.event_id = ?
             ");
-            $stmtCnt->execute([$club_id, $eid]);
-            $entries = (int)$stmtCnt->fetchColumn();
-
-            // Entry Fee
-            $stmtFee = $db->prepare("SELECT entry_fee FROM roll_events WHERE id = ?");
-            $stmtFee->execute([$eid]);
-            $entryFee = (float)$stmtFee->fetchColumn();
+            $stmtEntries->execute([$club_id, $eid]);
+            $rows = $stmtEntries->fetchAll(PDO::FETCH_ASSOC);
+            $entries = count($rows);
             
-            if ($entryFee <= 0) $entryFee = 150000;
-
-            // Jumlah total tagihan
-            $amount = $status === 'Unpaid' || $status === 'Rejected' ? $entries * $entryFee : 0;
+            $amount = 0;
+            if ($status === 'Unpaid' || $status === 'Rejected') {
+                foreach ($rows as $r) {
+                    $cName = strtolower($r['class_name'] ?? '');
+                    if (strpos($cName, 'speed') !== false) $amount += (float)$eventFees['fee_speed'];
+                    elseif (strpos($cName, 'standar') !== false) $amount += (float)$eventFees['fee_standart'];
+                    elseif (strpos($cName, 'pemula') !== false) $amount += (float)$eventFees['fee_pemula'];
+                    else $amount += 150000;
+                }
+            }
 
             $bills[] = [
                 'id'         => $eid,
@@ -111,11 +121,10 @@ class RollCheckoutController extends Controller {
         $paymentStatus = $stmtStatus->fetchColumn();
         $status = $paymentStatus ?: 'Unpaid';
 
-        // Entry Fee
-        $stmtFee = $db->prepare("SELECT entry_fee FROM roll_events WHERE id = ?");
+        // Entry Fee per kategori
+        $stmtFee = $db->prepare("SELECT fee_speed, fee_standart, fee_pemula FROM roll_events WHERE id = ?");
         $stmtFee->execute([$event_id]);
-        $entryFee = (float)$stmtFee->fetchColumn();
-        if ($entryFee <= 0) $entryFee = 150000;
+        $eventFees = $stmtFee->fetch(PDO::FETCH_ASSOC) ?: ['fee_speed'=>450000, 'fee_standart'=>350000, 'fee_pemula'=>350000];
 
         $unpaidEntries = [];
         $historyEntries = [];
@@ -124,13 +133,14 @@ class RollCheckoutController extends Controller {
         if ($status === 'Unpaid' || $status === 'Rejected') {
             // All entries are unpaid
             $stmtUnpaid = $db->prepare("
-                SELECT e.*, s.skater_name, ev.event_name, d.distance_name, a.group_name
+                SELECT e.*, s.skater_name, ev.event_name, d.distance_name, a.group_name, sc.class_name as skate_class_name
                 FROM roll_entries e
                 JOIN roll_skaters s ON e.skater_id = s.id
                 JOIN roll_events ev ON e.event_id = ev.id
                 LEFT JOIN roll_event_details ed ON e.race_class_id = ed.id
                 LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
                 LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id
+                LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
                 WHERE s.club_id = ? AND e.event_id = ?
             ");
             $stmtUnpaid->execute([$club_id, $event_id]);

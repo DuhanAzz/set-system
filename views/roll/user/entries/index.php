@@ -110,9 +110,19 @@
                                 <div class="font-bold text-slate-700 text-xs uppercase"><?= htmlspecialchars($ent['group_name'] ?? '-') ?></div>
                             </td>
                             <td class="px-6 py-4">
-                                <div class="font-bold text-blue-600 text-xs uppercase"><?= htmlspecialchars($ent['distance_name'] ?? $ent['race_distance'] ?? '-') ?></div>
-                                <div class="text-[10px] text-slate-500 font-bold">
-                                    <?= htmlspecialchars($ent['category_name'] ?? '-') ?> 
+                                <div class="font-bold text-blue-600 text-xs uppercase">
+                                    <?php if(!empty($ent['race_number'])): ?>
+                                        <span class="bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded mr-1"><?= htmlspecialchars($ent['race_number']) ?></span>
+                                    <?php endif; ?>
+                                    <?= htmlspecialchars($ent['distance_name'] ?? $ent['race_distance'] ?? '-') ?>
+                                </div>
+                                <div class="text-[10px] text-slate-500 font-bold mt-1">
+                                    <?php 
+                                        $cg = $ent['class_gender'] ?? '';
+                                        if ($cg === 'Putra') echo '<span class="text-blue-600">🔵 Putra</span>';
+                                        elseif ($cg === 'Putri') echo '<span class="text-pink-600">🔴 Putri</span>';
+                                        else echo htmlspecialchars($ent['category_name'] ?? '-');
+                                    ?>
                                     <?= !empty($ent['team_name']) ? '<span class="text-indigo-500">&bull; Tim: ' . htmlspecialchars($ent['team_name']) . '</span>' : '' ?>
                                 </div>
                             </td>
@@ -321,11 +331,19 @@ function filterClasses() {
             // Check age group
             if (age >= parseInt(c.min_year) && age <= parseInt(c.max_year)) {
                 // Check gender
-                const catGender = c.category_name.toLowerCase();
+                // Check gender
+                const catGender = (c.gender || '').toLowerCase();
                 if ((catGender === 'putra' && gender === 'M') || (catGender === 'putri' && gender === 'F') || catGender === 'campuran') {
                     const opt = document.createElement('option');
                     opt.value = c.id;
-                    opt.text = c.group_name + ' - ' + c.distance_name + ' (' + c.category_name + ')';
+                    
+                    // Format: "104 - 500m +D - KU A - Speed - Putra"
+                    let genderDisplay = c.gender;
+                    if (c.gender === 'Putra') genderDisplay = '🔵 Putra';
+                    if (c.gender === 'Putri') genderDisplay = '🔴 Putri';
+                    
+                    let raceNumber = c.race_number ? c.race_number + ' - ' : '';
+                    opt.text = raceNumber + c.distance_name + ' - ' + c.group_name + ' - ' + c.class_name + ' - ' + genderDisplay;
                     classSelect.appendChild(opt);
                     validCount++;
                 }

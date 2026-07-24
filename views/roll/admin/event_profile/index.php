@@ -31,13 +31,13 @@
             <div class="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center">
                 <div>
                     <h1 class="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-300 tracking-tight uppercase">Setup Kejuaraan</h1>
-                    <p class="text-slate-500 mt-2 font-medium">Pengaturan Profil dan Kelas Lomba</p>
+                    <p class="text-slate-500 mt-2 font-medium">Pengaturan Profil Utama</p>
                 </div>
                 <?php if(!empty($row)): ?>
                 <div class="mt-4 md:mt-0 flex flex-wrap gap-2 md:gap-4">
-                    <a href="<?= getenv('APP_URL') ?>/roll/admin/events/print_schedule" target="_blank" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:shadow-indigo-500/25 transition-all flex items-center">
-                        <span class="mr-2">🖨️</span> Cetak Jadwal & Kelas
-                    </a>
+                    <button type="button" onclick="document.getElementById('profile-form').submit()" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:shadow-blue-500/25 transition-all flex items-center uppercase tracking-widest text-sm">
+                        <span class="mr-2">💾</span> Simpan Profil & Gambar
+                    </button>
                 </div>
                 <?php endif; ?>
             </div>
@@ -55,7 +55,7 @@
             <!-- Profil Kejuaraan -->
             <div class="bg-slate-50/50 rounded-2xl border border-slate-200/50 shadow-xl backdrop-blur-sm p-6 w-full">
                 <h3 class="text-lg font-bold text-slate-800 uppercase tracking-widest mb-4 border-b border-slate-200 pb-2">Profil Utama</h3>
-                <form action="<?= getenv('APP_URL') ?>/roll/admin/events/update_profile" method="POST" enctype="multipart/form-data" class="space-y-6">
+                <form id="profile-form" action="<?= getenv('APP_URL') ?>/roll/admin/events/update_profile" method="POST" enctype="multipart/form-data" class="space-y-6">
                     <input type="hidden" name="event_id" value="<?= $row['id'] ?>">
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -87,16 +87,28 @@
                             </select>
                         </div>
                         <div>
-                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Biaya / Kelas (Rp)</label>
-                            <input type="number" name="entry_fee" value="<?= htmlspecialchars($row['entry_fee'] ?? '150000') ?>" class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-800 focus:ring-2 focus:ring-blue-500" required>
-                        </div>
-                        <div>
                             <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Max Individu / Atlet</label>
                             <input type="number" name="max_individual_races" value="<?= htmlspecialchars($row['max_individual_races'] ?? '2') ?>" min="1" max="10" class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-800 focus:ring-2 focus:ring-blue-500" required>
                         </div>
                         <div>
                             <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Max Beregu / Atlet</label>
                             <input type="number" name="max_team_races" value="<?= htmlspecialchars($row['max_team_races'] ?? '1') ?>" min="0" max="10" class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-800 focus:ring-2 focus:ring-blue-500" required>
+                        </div>
+                    </div>
+
+                    <!-- Kategori Biaya Lomba -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6 pt-4 border-t border-slate-200">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Biaya Speed (Rp)</label>
+                            <input type="number" name="fee_speed" value="<?= htmlspecialchars($row['fee_speed'] ?? '450000') ?>" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 text-slate-800 focus:ring-2 focus:ring-fuchsia-500 font-bold text-fuchsia-700" required>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Biaya Standart (Rp)</label>
+                            <input type="number" name="fee_standart" value="<?= htmlspecialchars($row['fee_standart'] ?? '350000') ?>" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 text-slate-800 focus:ring-2 focus:ring-amber-500 font-bold text-amber-600" required>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Biaya Pemula (Rp)</label>
+                            <input type="number" name="fee_pemula" value="<?= htmlspecialchars($row['fee_pemula'] ?? '350000') ?>" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 text-slate-800 focus:ring-2 focus:ring-emerald-500 font-bold text-emerald-600" required>
                         </div>
                     </div>
 
@@ -181,257 +193,7 @@
                     </div>
                 </form>
                 
-                <!-- Kelas Lomba -->
-            <div class="bg-slate-50/50 rounded-2xl border border-slate-200/50 shadow-xl backdrop-blur-sm w-full flex flex-col">
-                <div class="p-6 border-b border-slate-200/50 flex justify-between items-center bg-white rounded-t-2xl">
-                    <h3 class="text-lg font-bold text-slate-800 uppercase tracking-widest">Manajemen Kelas & Jadwal Lomba</h3>
-                </div>
-                
-                <div class="p-6 flex-1 overflow-auto">
-                    <form action="<?= getenv('APP_URL') ?>/roll/admin/events/bulk_update_schedule" method="POST">
-                        <input type="hidden" name="event_id" value="<?= $row['id'] ?>">
-                        <div class="overflow-x-auto bg-white rounded-xl border border-slate-200 shadow-sm mb-6">
-                            <table class="w-full text-left text-sm text-slate-600">
-                                <thead class="bg-slate-50 border-b border-slate-200 text-[10px] uppercase font-black tracking-wider text-slate-400">
-                                    <tr>
-                                        <th class="p-3 w-24">NO. LOMBA</th>
-                                        <th class="p-3 w-32">PUKUL</th>
-                                        <th class="p-3 w-40">JARAK LOMBA</th>
-                                        <th class="p-3 w-40">KELOMPOK UMUR</th>
-                                        <th class="p-3 w-40">ROLLER</th>
-                                        <th class="p-3 w-32">GENDER</th>
-                                        <th class="p-3 w-24">MAX LINTASAN</th>
-                                        <th class="p-3 w-24 text-center">AKSI</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="schedule-matrix" class="divide-y divide-slate-100">
-                                    <?php foreach($classes as $c): ?>
-                                    <tr class="hover:bg-slate-50 transition-colors group">
-                                        <td class="p-2 align-top">
-                                            <input type="hidden" name="class_ids[]" value="<?= $c['id'] ?>">
-                                            <input type="text" name="race_numbers[]" value="<?= htmlspecialchars($c['race_number'] ?? '') ?>" placeholder="101" required class="w-full bg-slate-50 border border-slate-200 rounded p-2 text-xs font-bold text-slate-700 text-center focus:ring-2 focus:ring-blue-500">
-                                        </td>
-                                        <td class="p-2 align-top">
-                                            <input type="time" name="race_times[]" value="<?= htmlspecialchars($c['race_time'] ?? '') ?>" required class="w-full bg-slate-50 border border-slate-200 rounded p-2 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-blue-500">
-                                        </td>
-                                        <td class="p-2 align-top">
-                                            <select name="distance_ids[]" class="distance-select w-full bg-slate-50 border border-slate-200 rounded p-2 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-blue-500">
-                                                <option value="">- Jarak -</option>
-                                                <?php foreach($distances as $dist): ?>
-                                                    <option value="<?= $dist['id'] ?>" data-dist-name="<?= htmlspecialchars($dist['distance_name']) ?>" <?= ($c['distance_id'] == $dist['id']) ? 'selected' : '' ?>><?= htmlspecialchars($dist['distance_name']) ?></option>
-                                                <?php endforeach; ?>
-                                            </select>
-                                        </td>
-                                        <td class="p-2 align-top">
-                                            <select name="age_group_ids[]" class="age-group-select w-full bg-slate-50 border border-slate-200 rounded p-2 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-blue-500">
-                                                <option value="">Umum</option>
-                                                <?php foreach($ageGroups as $ag): ?>
-                                                    <option value="<?= $ag['id'] ?>" data-ag-name="<?= htmlspecialchars($ag['group_name']) ?>" <?= ($c['age_group_id'] == $ag['id']) ? 'selected' : '' ?>><?= htmlspecialchars($ag['group_name']) ?></option>
-                                                <?php endforeach; ?>
-                                            </select>
-                                        </td>
-                                        <td class="p-2 align-top">
-                                            <select name="skate_class_ids[]" class="roller-select w-full bg-slate-50 border border-slate-200 rounded p-2 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-blue-500">
-                                                <option value="">- Roller -</option>
-                                                <?php foreach($skateClasses as $sc): ?>
-                                                    <option value="<?= $sc['id'] ?>" data-roller-name="<?= htmlspecialchars($sc['class_name']) ?>" <?= ($c['skate_class_id'] == $sc['id']) ? 'selected' : '' ?>><?= htmlspecialchars($sc['class_name']) ?></option>
-                                                <?php endforeach; ?>
-                                            </select>
-                                        </td>
-                                        <td class="p-2 align-top">
-                                            <select name="genders[]" class="w-full bg-slate-50 border border-slate-200 rounded p-2 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-blue-500">
-                                                <option value="Putra" <?= ($c['gender'] == 'Putra') ? 'selected' : '' ?>>Putra</option>
-                                                <option value="Putri" <?= ($c['gender'] == 'Putri') ? 'selected' : '' ?>>Putri</option>
-                                                <option value="Campuran" <?= ($c['gender'] == 'Campuran') ? 'selected' : '' ?>>Campuran</option>
-                                            </select>
-                                        </td>
-                                        <td class="p-2 align-top">
-                                            <input type="number" name="max_lanes[]" value="<?= htmlspecialchars($c['max_lanes'] ?? 6) ?>" min="1" max="50" required class="w-full bg-slate-50 border border-slate-200 rounded p-2 text-xs font-bold text-slate-700 text-center focus:ring-2 focus:ring-blue-500">
-                                        </td>
-                                        <td class="p-2 text-center align-top whitespace-nowrap">
-                                            <button type="button" title="Hapus" onclick="if(confirm('Hapus kelas ini?')) window.location.href='<?= getenv('APP_URL') ?>/roll/admin/events/delete_class/<?= $c['id'] ?>'" class="text-red-500 opacity-50 hover:opacity-100 hover:text-white p-2 rounded hover:bg-red-500 transition-all font-bold text-lg h-8 w-8 inline-flex items-center justify-center">
-                                                &times;
-                                            </button>
-                                        </td>
-                                    </tr>
-                                    <?php endforeach; ?>
-                                </tbody>
-                            </table>
-                        </div>
-
-                        <div class="mb-6">
-                            <button type="button" onclick="addScheduleRow()" class="bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 hover:border-indigo-300 font-bold py-3 px-6 rounded-xl shadow-sm transition-all text-sm w-full border-dashed flex justify-center items-center gap-2">
-                                <span class="text-xl">+</span> TAMBAH BARIS JADWAL
-                            </button>
-                        </div>
-                        
-                        <div class="flex justify-end pt-4 border-t border-slate-200/50">
-                            <button type="submit" onclick="return validateClasses()" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-10 rounded-xl shadow-lg hover:shadow-blue-500/30 transition-all uppercase tracking-widest text-sm flex items-center gap-2">
-                                💾 Simpan Semua Jadwal
-                            </button>
-                        </div>
-                    </form>
-                </div>
             </div>
         <?php endif; ?>
     </div>
 </div>
-
-<template id="row-template">
-    <tr class="hover:bg-slate-50 transition-colors group">
-        <td class="p-2 align-top">
-            <input type="hidden" name="class_ids[]" value="">
-            <input type="text" name="race_numbers[]" value="" placeholder="101" required class="w-full bg-slate-50 border border-slate-200 rounded p-2 text-xs font-bold text-slate-700 text-center focus:ring-2 focus:ring-blue-500">
-        </td>
-        <td class="p-2 align-top">
-            <input type="time" name="race_times[]" value="" required class="w-full bg-slate-50 border border-slate-200 rounded p-2 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-blue-500">
-        </td>
-        <td class="p-2 align-top">
-            <select name="distance_ids[]" class="distance-select w-full bg-slate-50 border border-slate-200 rounded p-2 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-blue-500">
-                <option value="">- Jarak -</option>
-                <?php foreach($distances as $dist): ?>
-                    <option value="<?= $dist['id'] ?>" data-dist-name="<?= htmlspecialchars($dist['distance_name']) ?>"><?= htmlspecialchars($dist['distance_name']) ?></option>
-                <?php endforeach; ?>
-            </select>
-        </td>
-        <td class="p-2 align-top">
-            <select name="age_group_ids[]" class="age-group-select w-full bg-slate-50 border border-slate-200 rounded p-2 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-blue-500">
-                <option value="">Umum</option>
-                <?php foreach($ageGroups as $ag): ?>
-                    <option value="<?= $ag['id'] ?>" data-ag-name="<?= htmlspecialchars($ag['group_name']) ?>"><?= htmlspecialchars($ag['group_name']) ?></option>
-                <?php endforeach; ?>
-            </select>
-        </td>
-        <td class="p-2 align-top">
-            <select name="skate_class_ids[]" class="roller-select w-full bg-slate-50 border border-slate-200 rounded p-2 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-blue-500">
-                <option value="">- Roller -</option>
-                <?php foreach($skateClasses as $sc): ?>
-                    <option value="<?= $sc['id'] ?>" data-roller-name="<?= htmlspecialchars($sc['class_name']) ?>"><?= htmlspecialchars($sc['class_name']) ?></option>
-                <?php endforeach; ?>
-            </select>
-        </td>
-        <td class="p-2 align-top">
-            <select name="genders[]" class="w-full bg-slate-50 border border-slate-200 rounded p-2 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-blue-500">
-                <option value="Putra" selected>Putra</option>
-                <option value="Putri">Putri</option>
-                <option value="Campuran">Campuran</option>
-            </select>
-        </td>
-        <td class="p-2 align-top">
-            <input type="number" name="max_lanes[]" value="6" min="1" max="50" required class="w-full bg-slate-50 border border-slate-200 rounded p-2 text-xs font-bold text-slate-700 text-center focus:ring-2 focus:ring-blue-500">
-        </td>
-        <td class="p-2 text-center align-top whitespace-nowrap">
-            <button type="button" title="Hapus Baris" onclick="this.closest('tr').remove()" class="text-red-500 opacity-50 hover:opacity-100 hover:text-white p-2 rounded hover:bg-red-500 transition-all font-bold text-lg h-8 w-8 inline-flex items-center justify-center">
-                &times;
-            </button>
-        </td>
-    </tr>
-</template>
-
-<script>
-function attachPorserosiRules(row) {
-    if(!row) return;
-    const agSel = row.querySelector('.age-group-select');
-    const rollerSel = row.querySelector('.roller-select');
-    const distSel = row.querySelector('.distance-select');
-    
-    function applyRules() {
-        const agName = agSel.options[agSel.selectedIndex]?.getAttribute('data-ag-name') || '';
-        const rollerName = rollerSel.options[rollerSel.selectedIndex]?.getAttribute('data-roller-name') || '';
-        
-        const isSpeed = rollerName.toUpperCase().includes('SPEED');
-        const isStandar = rollerName.toUpperCase().includes('STANDART') || rollerName.toUpperCase().includes('STANDAR');
-        const isPemula = rollerName.toUpperCase().includes('PEMULA');
-        
-        const isKuA = agName.toUpperCase().includes('KU A');
-        const isKuB = agName.toUpperCase().includes('KU B');
-        const isKuC = agName.toUpperCase().includes('KU C');
-        const isKuD = agName.toUpperCase().includes('KU D');
-        const isJunior = agName.toUpperCase().includes('JUNIOR');
-        const isSenior = agName.toUpperCase().includes('SENIOR');
-        
-        // Porserosi Rules:
-        Array.from(distSel.options).forEach(opt => {
-            const distName = (opt.getAttribute('data-dist-name') || '').toUpperCase();
-            if (!distName) return; // Skip default empty option
-            
-            let shouldDisable = true; // Default disable, then enable based on allowed list
-            
-            if (isSpeed) {
-                // Speed: DTT 200, 500+D, 1000m, Elim, PTP
-                if (distName.includes('DTT') && distName.includes('200')) shouldDisable = false;
-                if (distName.includes('500') && distName.includes('+D')) shouldDisable = false;
-                if (distName.includes('1000') && !distName.includes('POINT') && !distName.includes('ELIMINASI')) shouldDisable = false;
-                
-                // Eliminasi Rules
-                if (distName.includes('ELIMINASI')) {
-                    if ((isKuA || isKuB) && distName.includes('3000')) shouldDisable = false;
-                    if ((isKuC || isKuD) && distName.includes('5000')) shouldDisable = false;
-                    if ((isJunior || isSenior) && distName.includes('10.000')) shouldDisable = false;
-                }
-                
-                // PTP / Point to Point Rules
-                if (distName.includes('PTP') || distName.includes('POINT')) {
-                    if ((isKuC || isKuD) && distName.includes('3000')) shouldDisable = false;
-                    if ((isJunior || isSenior) && distName.includes('5000')) shouldDisable = false;
-                    // Note: if there is a 10k point race as well, adjust as needed.
-                }
-            } else if (isStandar) {
-                // Standar: 300, 500, 1000
-                if (distName.includes('300') && !distName.includes('3000')) shouldDisable = false;
-                if (distName.includes('500') && !distName.includes('+D') && !distName.includes('5000')) shouldDisable = false;
-                if (distName.includes('1000') && !distName.includes('10.000')) shouldDisable = false;
-            } else if (isPemula) {
-                // Pemula: 100m, 200m
-                if (distName.includes('100') && !distName.includes('1000')) shouldDisable = false;
-                if (distName.includes('200')) shouldDisable = false;
-            } else {
-                // Jika roller belum dipilih, aktifkan semua sementara (atau disable semua)
-                shouldDisable = false; 
-            }
-            
-            // Allow ITT 100m explicitly only for Speed Senior (Assuming ITT is Speed)
-            if (distName.includes('ITT 100') && isSenior && isSpeed) {
-                shouldDisable = false;
-            }
-            
-            opt.disabled = shouldDisable;
-            if (shouldDisable && opt.selected) distSel.value = ''; // Reset if selected is now disabled
-        });
-    }
-
-    agSel.addEventListener('change', applyRules);
-    rollerSel.addEventListener('change', applyRules);
-    
-    distSel.addEventListener('change', function() {
-        const distName = (this.options[this.selectedIndex]?.getAttribute('data-dist-name') || '').toUpperCase();
-        const maxLanesInput = row.querySelector('input[name="max_lanes[]"]');
-        if (!maxLanesInput) return;
-        
-        if (distName.includes('DTT')) maxLanesInput.value = 2;
-        else if (distName.includes('ITT')) maxLanesInput.value = 1;
-        else if (distName.includes('1000')) maxLanesInput.value = 8;
-        else if (distName.includes('ELIM') || distName.includes('POINT') || distName.includes('PTP')) maxLanesInput.value = 30;
-        else if (distName) maxLanesInput.value = 6;
-    });
-}
-
-// Attach rules to existing rows
-document.querySelectorAll('tbody#schedule-matrix tr').forEach(row => {
-    attachPorserosiRules(row);
-    // Trigger initial state
-    const agSel = row.querySelector('.age-group-select');
-    if(agSel) agSel.dispatchEvent(new Event('change'));
-});
-
-function addScheduleRow() {
-    const template = document.getElementById('row-template');
-    const tbody = document.getElementById('schedule-matrix');
-    const clone = template.content.cloneNode(true);
-    
-    // Attach event listeners to new row
-    attachPorserosiRules(clone.querySelector('tr'));
-    
-    tbody.appendChild(clone);
-}
-</script>

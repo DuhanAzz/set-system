@@ -191,7 +191,15 @@ class RollEntryController extends Controller {
         // KELOMPOKKAN PER ATLET
         $groupedSkaters = [];
         $totalTagihan = 0;
-        $hargaPerNomor = isset($eventData['entry_fee']) && $eventData['entry_fee'] > 0 ? $eventData['entry_fee'] : 150000;
+        // Check which class it belongs to
+        $stmtCls = $db->prepare("SELECT sc.class_name FROM roll_event_details ed LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id=sc.id WHERE ed.id=?");
+        $stmtCls->execute([$raceClassId]);
+        $cName = strtolower($stmtCls->fetchColumn() ?: '');
+        
+        $hargaPerNomor = 150000;
+        if (strpos($cName, 'speed') !== false) $hargaPerNomor = (float)($eventData['fee_speed'] ?? 450000);
+        elseif (strpos($cName, 'standar') !== false) $hargaPerNomor = (float)($eventData['fee_standart'] ?? 350000);
+        elseif (strpos($cName, 'pemula') !== false) $hargaPerNomor = (float)($eventData['fee_pemula'] ?? 350000);
         
         foreach($allEntries as $ent) {
             $sId = $ent['skater_id'];
@@ -273,7 +281,15 @@ class RollEntryController extends Controller {
         
         $groupedSkaters = [];
         $totalTagihan = 0;
-        $hargaPerNomor = isset($eventData['entry_fee']) && $eventData['entry_fee'] > 0 ? $eventData['entry_fee'] : 150000;
+        // Check which class it belongs to
+        $stmtCls = $db->prepare("SELECT sc.class_name FROM roll_event_details ed LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id=sc.id WHERE ed.id=?");
+        $stmtCls->execute([$raceClassId]);
+        $cName = strtolower($stmtCls->fetchColumn() ?: '');
+        
+        $hargaPerNomor = 150000;
+        if (strpos($cName, 'speed') !== false) $hargaPerNomor = (float)($eventData['fee_speed'] ?? 450000);
+        elseif (strpos($cName, 'standar') !== false) $hargaPerNomor = (float)($eventData['fee_standart'] ?? 350000);
+        elseif (strpos($cName, 'pemula') !== false) $hargaPerNomor = (float)($eventData['fee_pemula'] ?? 350000);
         
         foreach($allEntries as $ent) {
             $sId = $ent['skater_id'];

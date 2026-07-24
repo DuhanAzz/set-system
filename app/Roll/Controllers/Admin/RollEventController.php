@@ -70,6 +70,62 @@ class RollEventController extends Controller {
         ]);
     }
 
+    public function classes() {
+        $db = Database::getInstance()->getConnection();
+        $uid = $_SESSION['roll_user_id'];
+        
+        $eventId = $_GET['id'] ?? 0;
+        if ($eventId) {
+            $_SESSION['roll_admin_active_event_id'] = $eventId;
+        } else {
+            $eventId = $_SESSION['roll_admin_active_event_id'] ?? 0;
+            if (!$eventId) {
+                $stmtEvent = $db->prepare("SELECT id FROM roll_events WHERE user_id = ? ORDER BY id DESC LIMIT 1");
+                $stmtEvent->execute([$uid]);
+                $lastEvent = $stmtEvent->fetch(PDO::FETCH_ASSOC);
+                if ($lastEvent) {
+                    $eventId = $lastEvent['id'];
+                    $_SESSION['roll_admin_active_event_id'] = $eventId;
+                }
+            }
+        }
+
+        $row = [];
+        $classes = [];
+        if ($eventId > 0) {
+            $stmt = $db->prepare("SELECT * FROM roll_events WHERE id = ? AND user_id = ?");
+            $stmt->execute([$eventId, $uid]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            $stmtClass = $db->prepare("SELECT ed.*, d.distance_name, a.group_name, sc.class_name as roller_name
+                                       FROM roll_event_details ed 
+                                       LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id 
+                                       LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id 
+                                       LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
+                                       WHERE ed.event_id = ?");
+            $stmtClass->execute([$eventId]);
+            $classes = $stmtClass->fetchAll(PDO::FETCH_ASSOC);
+        }
+
+        $distances = [];
+        $ageGroups = [];
+        $skateClasses = [];
+        try {
+            $distances = $db->query("SELECT * FROM roll_ref_distances ORDER BY id ASC")->fetchAll(PDO::FETCH_ASSOC);
+            $ageGroups = $db->query("SELECT * FROM roll_ref_age_groups ORDER BY min_year ASC")->fetchAll(PDO::FETCH_ASSOC);
+            $skateClasses = $db->query("SELECT * FROM roll_ref_skate_classes ORDER BY id ASC")->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Exception $e) {}
+
+        return $this->view('roll/admin/event_profile/classes', [
+            'row' => $row,
+            'classes' => $classes,
+            'distances' => $distances,
+            'ageGroups' => $ageGroups,
+            'skateClasses' => $skateClasses,
+            'eventId' => $eventId
+        ]);
+    }
+
     public function update_profile() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $db = Database::getInstance()->getConnection();
@@ -153,13 +209,15 @@ class RollEventController extends Controller {
                     }
                 }
             }
-            $entryFee = $_POST['entry_fee'] ?? 150000;
+            $feeSpeed = $_POST['fee_speed'] ?? 450000;
+            $feeStandart = $_POST['fee_standart'] ?? 350000;
+            $feePemula = $_POST['fee_pemula'] ?? 350000;
             $maxIndividu = $_POST['max_individual_races'] ?? 2;
             $maxTeam = $_POST['max_team_races'] ?? 1;
             $headerLogosJson = json_encode($headerLogosArray);
 
-            $stmt = $db->prepare("UPDATE roll_events SET event_name=?, event_date_start=?, event_date_end=?, event_location=?, event_city=?, race_format=?, status=?, entry_fee=?, max_individual_races=?, max_team_races=?, poster_image=?, sponsor_logos=?, header_logos=? WHERE id=?");
-            $stmt->execute([$eventName, $eventDateStart, $eventDateEnd, $eventLoc, $eventCity, $raceFormat, $status, $entryFee, $maxIndividu, $maxTeam, $posterImage, $sponsorLogosJson, $headerLogosJson, $eventId]);
+            $stmt = $db->prepare("UPDATE roll_events SET event_name=?, event_date_start=?, event_date_end=?, event_location=?, event_city=?, race_format=?, status=?, fee_speed=?, fee_standart=?, fee_pemula=?, max_individual_races=?, max_team_races=?, poster_image=?, sponsor_logos=?, header_logos=? WHERE id=?");
+            $stmt->execute([$eventName, $eventDateStart, $eventDateEnd, $eventLoc, $eventCity, $raceFormat, $status, $feeSpeed, $feeStandart, $feePemula, $maxIndividu, $maxTeam, $posterImage, $sponsorLogosJson, $headerLogosJson, $eventId]);
 
             $_SESSION['flash_message'] = "Profil Event berhasil diperbarui!";
             $_SESSION['flash_type'] = "success";
@@ -282,6 +340,92 @@ class RollEventController extends Controller {
         
         header("Location: " . getenv('APP_URL') . "/roll/admin/events/profile?id=" . $eventId);
         exit;
+    }
+
+    public function saveMatrix() {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $db = Database::getInstance()->getConnection();
+            $eventId = $_POST['event_id'] ?? 0;
+            $uid = $_SESSION['roll_user_id'];
+
+            // Verify Ownership
+            $stmtCek = $db->prepare("SELECT id FROM roll_events WHERE id = ? AND user_id = ?");
+            $stmtCek->execute([$eventId, $uid]);
+            if (!$stmtCek->fetch()) {
+                $_SESSION['flash_message'] = "Akses ditolak!";
+                $_SESSION['flash_type'] = "error";
+                header("Location: " . getenv('APP_URL') . "/roll/admin/events");
+                exit;
+            }
+
+            $matrix = $_POST['matrix'] ?? [];
+
+            // Fetch distances
+            $dists = [];
+            foreach($db->query("SELECT id, distance_name FROM roll_ref_distances")->fetchAll() as $d) {
+                $dists[$d['id']] = $d['distance_name'];
+            }
+
+            // Get existing classes
+            $existing = $db->prepare("SELECT id, skate_class_id, age_group_id, distance_id, gender FROM roll_event_details WHERE event_id = ?");
+            $existing->execute([$eventId]);
+            $currentClasses = $existing->fetchAll(PDO::FETCH_ASSOC);
+
+            $keptIds = [];
+
+            // Prepare statements
+            $stmtUpdate = $db->prepare("UPDATE roll_event_details SET race_number = ?, distance = ? WHERE id = ?");
+            $stmtInsert = $db->prepare("INSERT INTO roll_event_details (event_id, skate_class_id, age_group_id, distance_id, gender, race_number, race_time, distance, max_lanes, result_status) VALUES (?, ?, ?, ?, ?, ?, '00:00', ?, 6, 'Draft')");
+
+            foreach ($matrix as $sc_id => $ag_data) {
+                foreach ($ag_data as $ag_id => $dist_data) {
+                    foreach ($dist_data as $dist_id => $race_number) {
+                        $race_number = trim($race_number);
+                        if ($race_number === '') continue;
+
+                        $distName = $dists[$dist_id] ?? '';
+
+                        // Create for both Putra and Putri
+                        foreach (['Putra', 'Putri'] as $gender) {
+                            $foundId = null;
+                            foreach ($currentClasses as $c) {
+                                if ($c['skate_class_id'] == $sc_id && $c['age_group_id'] == $ag_id && $c['distance_id'] == $dist_id && $c['gender'] == $gender) {
+                                    $foundId = $c['id'];
+                                    break;
+                                }
+                            }
+
+                            if ($foundId) {
+                                $stmtUpdate->execute([$race_number, $distName, $foundId]);
+                                $keptIds[] = $foundId;
+                            } else {
+                                $stmtInsert->execute([$eventId, $sc_id, $ag_id, $dist_id, $gender, $race_number, $distName]);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Delete classes that are no longer in the matrix
+            if (!empty($currentClasses)) {
+                $toDelete = [];
+                foreach ($currentClasses as $c) {
+                    if (!in_array($c['id'], $keptIds)) {
+                        $toDelete[] = $c['id'];
+                    }
+                }
+                if (!empty($toDelete)) {
+                    $placeholders = implode(',', array_fill(0, count($toDelete), '?'));
+                    $stmtDel = $db->prepare("DELETE FROM roll_event_details WHERE id IN ($placeholders)");
+                    $stmtDel->execute($toDelete);
+                }
+            }
+
+            $_SESSION['flash_message'] = "Matriks Kelas Lomba berhasil disimpan!";
+            $_SESSION['flash_type'] = "success";
+            header("Location: " . getenv('APP_URL') . "/roll/admin/events/classes?id=" . $eventId);
+            exit;
+        }
     }
 
     public function bulk_update_schedule() {

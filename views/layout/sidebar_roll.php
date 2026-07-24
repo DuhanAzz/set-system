@@ -144,10 +144,22 @@ if (!function_exists('isGroupActive')) {
          ?>
 
          <!-- GROUP 1: Setup Kejuaraan -->
-         <a href="<?= getenv('APP_URL') ?>/roll/admin/events" class="<?= (strpos($req,"admin/events")!==false) ? $activeLink : $baseLink ?>">
-            <span class="w-6 text-xl mr-3 text-center opacity-80">⚙️</span>
-            <span class="font-bold text-[11px] tracking-widest uppercase">Setup Kejuaraan</span>
-         </a>
+         <?php $setupActive = isGroupActive($req, ['admin/events']); ?>
+         <button onclick="toggleSidebarDropdown('dd-setup')" class="<?= $setupActive ? $dropdownBtnActive : $dropdownBtnBase ?>">
+            <div class="flex items-center">
+               <span class="w-6 text-xl mr-3 text-center opacity-80">⚙️</span>
+               <span class="font-bold text-[11px] tracking-widest uppercase">Setup Kejuaraan</span>
+            </div>
+            <span id="icon-dd-setup" class="transform transition-transform text-xs <?= $setupActive ? 'rotate-180' : '' ?>">▼</span>
+         </button>
+         <div id="dd-setup" class="bg-[#0b1120] py-2 <?= $setupActive ? '' : 'hidden' ?>">
+             <?php if ($activeEventId > 0): ?>
+             <a href="<?= getenv('APP_URL') ?>/roll/admin/events/profile?id=<?= $activeEventId ?>" class="<?= (strpos($req,"admin/events/profile")!==false) ? $childActiveLink : $childBaseLink ?>">Pengaturan Profil</a>
+             <a href="<?= getenv('APP_URL') ?>/roll/admin/events/classes?id=<?= $activeEventId ?>" class="<?= (strpos($req,"admin/events/classes")!==false) ? $childActiveLink : $childBaseLink ?>">Kelas Lomba</a>
+             <?php else: ?>
+             <a href="<?= getenv('APP_URL') ?>/roll/admin/events" class="<?= (strpos($req,"admin/events")!==false) ? $childActiveLink : $childBaseLink ?>">Daftar Kejuaraan</a>
+             <?php endif; ?>
+         </div>
 
          <!-- GROUP 2: Pendaftaran dan BIB -->
          <?php $bibActive = isGroupActive($req, ['admin/entries', 'admin/bibs']); ?>
