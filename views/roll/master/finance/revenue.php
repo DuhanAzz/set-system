@@ -27,7 +27,6 @@
                 <thead class="bg-slate-50 text-slate-500 text-xs uppercase font-black tracking-wider">
                     <tr>
                         <th class="px-6 py-4">TANGGAL</th>
-                        <th class="px-6 py-4">ATLET</th>
                         <th class="px-6 py-4">KLUB</th>
                         <th class="px-6 py-4">EVENT</th>
                         <th class="px-6 py-4">AMOUNT</th>
@@ -37,7 +36,7 @@
                 <tbody class="divide-y divide-slate-100">
                     <?php if (empty($transactions)): ?>
                         <tr>
-                            <td colspan="6" class="px-6 py-8 text-center text-slate-400">Belum ada data transaksi.</td>
+                            <td colspan="5" class="px-6 py-8 text-center text-slate-400">Belum ada data transaksi.</td>
                         </tr>
                     <?php else: ?>
                         <?php foreach($transactions as $t): 
@@ -47,8 +46,7 @@
                         ?>
                         <tr class="hover:bg-slate-50 transition">
                             <td class="px-6 py-4 font-medium"><?= date('d M Y, H:i', strtotime($t['created_at'])) ?></td>
-                            <td class="px-6 py-4 font-bold text-slate-800"><?= htmlspecialchars($t['skater_name']) ?></td>
-                            <td class="px-6 py-4"><?= htmlspecialchars($t['club_name'] ?? '-') ?></td>
+                            <td class="px-6 py-4 font-bold text-slate-800"><?= htmlspecialchars($t['club_name'] ?? '-') ?></td>
                             <td class="px-6 py-4"><?= htmlspecialchars($t['event_name']) ?></td>
                             <td class="px-6 py-4 font-bold">Rp <?= number_format($t['payment_amount'], 0, ',', '.') ?></td>
                             <td class="px-6 py-4">

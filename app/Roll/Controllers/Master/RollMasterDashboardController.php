@@ -55,7 +55,7 @@ class RollMasterDashboardController extends Controller {
             $stats['entries'] = $countActive;
 
             try {
-                $stats['revenue'] = $pdo->query("SELECT SUM(amount) FROM roll_payments WHERE status = 'Paid'")->fetchColumn() ?: 0;
+                $stats['revenue'] = $pdo->query("SELECT SUM(total_amount) FROM roll_payments WHERE status = 'Paid'")->fetchColumn() ?: 0;
             } catch (\Exception $e) {}
 
             try {

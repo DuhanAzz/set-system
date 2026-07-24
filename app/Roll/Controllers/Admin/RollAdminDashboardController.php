@@ -74,14 +74,20 @@ class RollAdminDashboardController extends Controller {
             $stmtClub->execute([$eventId]);
             $stats['clubs'] = $stmtClub->fetchColumn();
 
-            // Pending Payments (Kolom payment_status sudah dihapus di schema base)
-            $stats['pending'] = 0;
+            // Pending Payments
+            $stmtPending = $db->prepare("SELECT COUNT(*) FROM roll_payments WHERE event_id = ? AND status = 'Pending'");
+            $stmtPending->execute([$eventId]);
+            $stats['pending'] = $stmtPending->fetchColumn() ?: 0;
 
-            // Paid (Kolom payment_status sudah dihapus di schema base)
-            $stats['paid'] = 0;
+            // Paid
+            $stmtPaid = $db->prepare("SELECT COUNT(*) FROM roll_payments WHERE event_id = ? AND status = 'Paid'");
+            $stmtPaid->execute([$eventId]);
+            $stats['paid'] = $stmtPaid->fetchColumn() ?: 0;
 
-            // Revenue (Kolom payment_amount sudah dihapus di schema base)
-            $stats['revenue'] = 0;
+            // Revenue
+            $stmtRevenue = $db->prepare("SELECT SUM(total_amount) FROM roll_payments WHERE event_id = ? AND status = 'Paid'");
+            $stmtRevenue->execute([$eventId]);
+            $stats['revenue'] = $stmtRevenue->fetchColumn() ?: 0;
 
             // Top 5 Clubs for Chart
             $stmtChart = $db->prepare("

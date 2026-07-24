@@ -96,7 +96,7 @@ class RollEntryController extends Controller {
             foreach ($listData as &$row) {
                 if (empty($row['amount']) || $row['amount'] <= 0) {
                     $stmtEntries = $db->prepare("
-                        SELECT sc.class_name 
+                        SELECT s.id as skater_id, sc.class_name 
                         FROM roll_entries e
                         JOIN roll_skaters s ON e.skater_id = s.id
                         JOIN roll_event_details ed ON e.race_class_id = ed.id
@@ -106,15 +106,20 @@ class RollEntryController extends Controller {
                     $stmtEntries->execute([$row['club_id'], $targetEventId]);
                     $entriesData = $stmtEntries->fetchAll(PDO::FETCH_ASSOC);
                     
-                    $amount = 0;
+                    $skaterFees = [];
                     foreach ($entriesData as $ent) {
+                        $sId = $ent['skater_id'];
                         $cName = strtolower($ent['class_name'] ?? '');
-                        if (strpos($cName, 'speed') !== false) $amount += (float)$eventFees['fee_speed'];
-                        elseif (strpos($cName, 'standar') !== false) $amount += (float)$eventFees['fee_standart'];
-                        elseif (strpos($cName, 'pemula') !== false) $amount += (float)$eventFees['fee_pemula'];
-                        else $amount += 150000;
+                        $fee = 150000;
+                        if (strpos($cName, 'speed') !== false) $fee = (float)$eventFees['fee_speed'];
+                        elseif (strpos($cName, 'standar') !== false) $fee = (float)$eventFees['fee_standart'];
+                        elseif (strpos($cName, 'pemula') !== false) $fee = (float)$eventFees['fee_pemula'];
+                        
+                        if (!isset($skaterFees[$sId]) || $fee > $skaterFees[$sId]) {
+                            $skaterFees[$sId] = $fee;
+                        }
                     }
-                    $row['amount'] = $amount;
+                    $row['amount'] = array_sum($skaterFees);
                 }
             }
         } catch (\PDOException $e) {

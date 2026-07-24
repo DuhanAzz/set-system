@@ -21,39 +21,26 @@ class RollMasterFinanceController extends Controller {
     public function revenue() {
         $db = Database::getInstance()->getConnection();
 
-        // Ambil Data Transaksi
+        // Ambil Data Transaksi (dari tabel payments)
         $stmt = $db->query("
             SELECT 
-                e.id, 'paid' as status, 50000 as payment_amount, e.created_at, e.race_distance,
-                s.skater_name as skater_name,
-                c.club_name as club_name,
+                p.id, p.status, p.total_amount as payment_amount, p.created_at,
+                c.club_name,
                 ev.event_name
-            FROM roll_entries e
-            JOIN roll_skaters s ON e.skater_id = s.id
-            LEFT JOIN roll_clubs c ON s.club_id = c.id
-            JOIN roll_events ev ON e.event_id = ev.id
-            ORDER BY e.created_at DESC
+            FROM roll_payments p
+            JOIN roll_clubs c ON p.club_id = c.id
+            JOIN roll_events ev ON p.event_id = ev.id
+            ORDER BY p.created_at DESC
         ");
         $transactions = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         // Hitung Total Pendapatan
         $totalPendapatan = 0;
         foreach ($transactions as $t) {
-            if ($t['status'] === 'paid') {
+            if ($t['status'] === 'Paid') {
                 $totalPendapatan += $t['payment_amount'];
             }
         }
-
-        // --- MENGHITUNG PENDAPATAN PER BULAN (UNTUK GRAFIK) ---
-        $stmtChart = $db->query("
-            SELECT 
-                DATE_FORMAT(created_at, '%b %Y') as month_name, 
-                SUM(50000) as total_revenue
-            FROM roll_entries 
-            GROUP BY YEAR(created_at), MONTH(created_at)
-            ORDER BY YEAR(created_at) ASC, MONTH(created_at) ASC
-            LIMIT 12
-        ");
 
         $this->view('roll/master/finance/revenue', [
             'transactions' => $transactions,

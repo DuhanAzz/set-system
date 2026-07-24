@@ -46,7 +46,7 @@ class MasterController extends Controller {
             $revenueSwim = 0;
             $revenueRoll = 0;
             try { $revenueSwim = (int)$pdo->query("SELECT SUM(amount) FROM swim_payments WHERE status = 'Paid'")->fetchColumn(); } catch(Exception $e) {}
-            try { $revenueRoll = (int)$pdo->query("SELECT SUM(amount) FROM roll_payments WHERE status = 'Paid'")->fetchColumn(); } catch(Exception $e) {}
+            try { $revenueRoll = (int)$pdo->query("SELECT SUM(total_amount) FROM roll_payments WHERE status = 'Paid'")->fetchColumn(); } catch(Exception $e) {}
             $stats['revenue'] = $revenueSwim + $revenueRoll;
             $stats['revenue_swim'] = $revenueSwim;
             $stats['revenue_roll'] = $revenueRoll;
