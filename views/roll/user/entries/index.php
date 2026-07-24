@@ -120,6 +120,7 @@
                             <thead class="bg-slate-50/50 border-b border-slate-200 text-[10px] uppercase text-slate-500 tracking-wider">
                                 <tr>
                                     <th class="px-6 py-4">Atlet</th>
+                                    <th class="px-6 py-4 text-center">Gender</th>
                                     <th class="px-6 py-4 text-center">Kelompok Umur</th>
                                     <th class="px-6 py-4">Kelas / Jarak</th>
                                     <th class="px-6 py-4 text-center">Hapus</th>
@@ -133,10 +134,12 @@
                                             <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2 <?= $ent['gender'] == 'M' ? 'bg-blue-50 text-blue-600 border-blue-100' : 'bg-pink-50 text-pink-600 border-pink-100' ?>">
                                                 <?= substr($ent['skater_name'], 0, 1) ?>
                                             </div>
-                                            <div>
-                                                <div class="font-black text-slate-800 text-xs uppercase"><?= htmlspecialchars($ent['skater_name']) ?></div>
-                                                <div class="text-[10px] text-slate-400 font-bold"><?= $ent['gender'] === 'M' ? 'PUTRA' : 'PUTRI' ?></div>
-                                            </div>
+                                            <div class="font-black text-slate-800 text-xs uppercase"><?= htmlspecialchars($ent['skater_name']) ?></div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 text-center">
+                                        <div class="font-bold text-[10px] uppercase tracking-widest <?= $ent['gender'] == 'M' ? 'text-blue-600 bg-blue-50 px-2 py-1 rounded-md inline-block' : 'text-pink-600 bg-pink-50 px-2 py-1 rounded-md inline-block' ?>">
+                                            <?= $ent['gender'] === 'M' ? 'PUTRA' : 'PUTRI' ?>
                                         </div>
                                     </td>
                                     <td class="px-6 py-4 text-center">
@@ -144,20 +147,13 @@
                                     </td>
                                     <td class="px-6 py-4">
                                         <div class="font-bold text-blue-600 text-xs uppercase">
-                                            <?php if(!empty($ent['race_number'])): ?>
-                                                <span class="bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded mr-1"><?= htmlspecialchars($ent['race_number']) ?></span>
-                                            <?php endif; ?>
-                                            <?= htmlspecialchars($ent['distance_name'] ?? $ent['race_distance'] ?? '-') ?>
+                                            <?= !empty($ent['race_number']) ? htmlspecialchars($ent['race_number']) . ' - ' : '' ?><?= htmlspecialchars($ent['distance_name'] ?? $ent['race_distance'] ?? '-') ?>
                                         </div>
-                                        <div class="text-[10px] text-slate-500 font-bold mt-1">
-                                            <?php 
-                                                $cg = $ent['class_gender'] ?? '';
-                                                if ($cg === 'Putra') echo '<span class="text-blue-600">🔵 Putra</span>';
-                                                elseif ($cg === 'Putri') echo '<span class="text-pink-600">🔴 Putri</span>';
-                                                else echo htmlspecialchars($ent['category_name'] ?? '-');
-                                            ?>
-                                            <?= !empty($ent['team_name']) ? '<span class="text-indigo-500">&bull; Tim: ' . htmlspecialchars($ent['team_name']) . '</span>' : '' ?>
+                                        <?php if (!empty($ent['team_name'])): ?>
+                                        <div class="text-[10px] text-indigo-500 font-bold mt-1">
+                                            &bull; Tim: <?= htmlspecialchars($ent['team_name']) ?>
                                         </div>
+                                        <?php endif; ?>
                                     </td>
                                     <td class="px-6 py-4 text-center">
                                         <?php if (in_array($ent['payment_status'], ['Unpaid', 'Rejected'])): ?>
