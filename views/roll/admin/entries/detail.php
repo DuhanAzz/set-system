@@ -54,11 +54,11 @@
 
             <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Bukti Upload</h3>
             <?php if(!empty($payData['payment_proof'])): ?>
-                <a href="<?= getenv('APP_URL') ?>/<?= htmlspecialchars($payData['payment_proof']) ?>" target="_blank" class="block group relative rounded-xl overflow-hidden border border-slate-200 bg-slate-100 aspect-video flex items-center justify-center cursor-pointer shadow-sm mb-4">
+                <a href="<?= getenv('APP_URL') ?>/uploads/payments/<?= htmlspecialchars($payData['payment_proof']) ?>" target="_blank" class="block group relative rounded-xl overflow-hidden border border-slate-200 bg-slate-100 aspect-video flex items-center justify-center cursor-pointer shadow-sm mb-4">
                     <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white font-bold text-[10px] uppercase backdrop-blur-sm">Lihat File</div>
                     <?php $ext = pathinfo($payData['payment_proof'], PATHINFO_EXTENSION); ?>
                     <?php if(in_array(strtolower($ext), ['jpg','jpeg','png'])): ?>
-                        <img src="<?= getenv('APP_URL') ?>/<?= htmlspecialchars($payData['payment_proof']) ?>" class="object-cover w-full h-full">
+                        <img src="<?= getenv('APP_URL') ?>/uploads/payments/<?= htmlspecialchars($payData['payment_proof']) ?>" class="object-cover w-full h-full">
                     <?php else: ?>
                         <span class="text-4xl">📄</span>
                     <?php endif; ?>

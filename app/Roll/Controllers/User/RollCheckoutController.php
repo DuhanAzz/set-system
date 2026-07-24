@@ -204,13 +204,14 @@ class RollCheckoutController extends Controller {
         } else {
             // Status is Pending or Paid, all entries are in history
             $stmtHistory = $db->prepare("
-                SELECT e.*, s.skater_name, ev.event_name, d.distance_name, a.group_name
+                SELECT e.*, s.skater_name, ev.event_name, d.distance_name, a.group_name, sc.class_name as skate_class_name
                 FROM roll_entries e
                 JOIN roll_skaters s ON e.skater_id = s.id
                 JOIN roll_events ev ON e.event_id = ev.id
                 LEFT JOIN roll_event_details ed ON e.race_class_id = ed.id
                 LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
                 LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id
+                LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
                 WHERE s.club_id = ? AND e.event_id = ?
                 ORDER BY e.id DESC
             ");
@@ -218,8 +219,42 @@ class RollCheckoutController extends Controller {
             $historyEntries = $stmtHistory->fetchAll(PDO::FETCH_ASSOC);
 
             // Assign payment amount for display
+            $skaterCats = [];
             foreach ($historyEntries as &$he) {
-                $he['payment_amount'] = $entryFee;
+                $cName = strtolower($he['skate_class_name'] ?? '');
+                if (strpos($cName, 'speed') !== false) $skaterCats[$he['skater_id']]['speed'] = true;
+                elseif (strpos($cName, 'standar') !== false) $skaterCats[$he['skater_id']]['standar'] = true;
+                elseif (strpos($cName, 'pemula') !== false) $skaterCats[$he['skater_id']]['pemula'] = true;
+            }
+
+            $skaterFees = [];
+            foreach ($skaterCats as $sId => $cats) {
+                $amount = 0;
+                if (isset($cats['speed'])) $amount = (float)$eventFees['fee_speed'];
+                else {
+                    if (isset($cats['standar'])) $amount += (float)$eventFees['fee_standart'];
+                    if (isset($cats['pemula'])) {
+                        if (isset($cats['standar']) && empty($eventFees['allow_pemula_standart_mix'])) {
+                            $amount = max((float)$eventFees['fee_standart'], (float)$eventFees['fee_pemula']);
+                        } else {
+                            $amount += (float)$eventFees['fee_pemula'];
+                        }
+                    }
+                }
+                if ($amount == 0) $amount = 150000;
+                $skaterFees[$sId] = $amount;
+            }
+            
+            $chargedSkaters = [];
+            foreach ($historyEntries as &$he) {
+                $sId = $he['skater_id'];
+                if (!isset($chargedSkaters[$sId])) {
+                    $he['payment_amount'] = $skaterFees[$sId];
+                    $totalFee += $skaterFees[$sId];
+                    $chargedSkaters[$sId] = true;
+                } else {
+                    $he['payment_amount'] = 0; // Already charged for this skater
+                }
             }
         }
 
