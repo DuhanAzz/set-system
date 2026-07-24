@@ -228,6 +228,7 @@ class RollEventController extends Controller {
             header("Location: " . getenv('APP_URL') . "/roll/admin/events");
             exit;
         }
+    }
     public function storeClass() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $db = Database::getInstance()->getConnection();

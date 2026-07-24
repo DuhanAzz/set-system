@@ -227,7 +227,9 @@ class RollCheckoutController extends Controller {
             $summaryCounts = ['Speed' => 0, 'Standart' => 0, 'Pemula' => 0, 'Team' => 0, 'Lainnya' => 0];
             $calcEntries = ($status === 'Unpaid' || $status === 'Rejected') ? $unpaidEntries : $historyEntries;
             
+            $skaterCatsSummary = [];
             foreach ($calcEntries as $e) {
+                $sId = $e['skater_id'];
                 $c = strtolower($e['skate_class_name'] ?? '');
                 $dName = strtolower($e['distance_name'] ?? '');
                 
@@ -237,13 +239,32 @@ class RollCheckoutController extends Controller {
                         $teamSet[$tKey] = true;
                         $summaryCounts['Team']++;
                     }
-                } elseif (strpos($c, 'speed') !== false) {
-                    $summaryCounts['Speed']++;
-                } elseif (strpos($c, 'standar') !== false) {
-                    $summaryCounts['Standart']++;
-                } elseif (strpos($c, 'pemula') !== false) {
-                    $summaryCounts['Pemula']++;
                 } else {
+                    if (strpos($c, 'speed') !== false) $skaterCatsSummary[$sId]['speed'] = true;
+                    elseif (strpos($c, 'standar') !== false) $skaterCatsSummary[$sId]['standar'] = true;
+                    elseif (strpos($c, 'pemula') !== false) $skaterCatsSummary[$sId]['pemula'] = true;
+                    else $skaterCatsSummary[$sId]['lainnya'] = true;
+                }
+            }
+            
+            foreach ($skaterCatsSummary as $sId => $cats) {
+                if (isset($cats['speed'])) $summaryCounts['Speed']++;
+                else {
+                    if (isset($cats['standar'])) {
+                        $summaryCounts['Standart']++;
+                    }
+                    if (isset($cats['pemula'])) {
+                        if (isset($cats['standar']) && empty($eventFees['allow_pemula_standart_mix'])) {
+                            if ((float)$eventFees['fee_pemula'] > (float)$eventFees['fee_standart']) {
+                                $summaryCounts['Pemula']++;
+                                $summaryCounts['Standart']--;
+                            }
+                        } else {
+                            $summaryCounts['Pemula']++;
+                        }
+                    }
+                }
+                if (isset($cats['lainnya']) && !isset($cats['speed']) && !isset($cats['standar']) && !isset($cats['pemula'])) {
                     $summaryCounts['Lainnya']++;
                 }
             }

@@ -64,7 +64,10 @@
                 $assignedNames = [];
 
                 foreach ($existingEntries as &$e) {
-                    if (empty($e['team_name'])) {
+                    $dName = strtolower($e['distance_name'] ?? '');
+                    $isTeamEvent = (strpos($dName, 'relay') !== false || strpos($dName, 'team') !== false || strpos($dName, 'pair') !== false);
+                    
+                    if ($isTeamEvent && empty($e['team_name'])) {
                         if (!isset($assignedNames[$e['race_class_id']])) {
                             $assignedNames[$e['race_class_id']] = $coolNames[$nameIndex % count($coolNames)];
                             $nameIndex++;
@@ -147,7 +150,7 @@
                                 <thead class="bg-indigo-50/50 border-b border-indigo-200 text-[10px] uppercase text-indigo-500 tracking-wider">
                                     <tr>
                                         <th class="px-6 py-4">Nama Tim</th>
-                                        <th class="px-6 py-4">Nomor Lomba</th>
+                                        <th class="px-6 py-4">Kategori & Nomor Lomba</th>
                                         <th class="px-6 py-4 text-center">Kelompok Umur</th>
                                         <th class="px-6 py-4">Anggota Tim</th>
                                     </tr>
@@ -170,6 +173,7 @@
                                         </td>
                                         <td class="px-6 py-4">
                                             <div class="font-bold text-blue-600 text-xs uppercase mt-1">
+                                                <div class="text-[9px] font-bold text-slate-500 uppercase mb-0.5 bg-slate-100 inline-block px-1.5 py-0.5 rounded"><?= htmlspecialchars($firstEnt['skate_class'] ?? '-') ?></div><br>
                                                 <?= !empty($firstEnt['race_number']) ? htmlspecialchars($firstEnt['race_number']) . ' - ' : '' ?><?= htmlspecialchars($firstEnt['distance_name'] ?? $firstEnt['race_distance'] ?? '-') ?>
                                             </div>
                                         </td>
@@ -210,7 +214,6 @@
                         <?php else: ?>
                             <table class="w-full text-left text-sm">
                                 <thead class="bg-slate-50/50 border-b border-slate-200 text-[10px] uppercase text-slate-500 tracking-wider">
-                                    <tr>
                                         <th class="px-6 py-4">Atlet</th>
                                         <th class="px-6 py-4 text-center">Gender</th>
                                         <th class="px-6 py-4 text-center">Kelompok Umur</th>
