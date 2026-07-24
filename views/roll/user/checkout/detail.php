@@ -21,34 +21,76 @@
                         <p class="text-center py-10 text-slate-400 text-xs italic font-bold">Belum ada peserta yang memiliki tagihan.</p>
                     <?php else: ?>
                         
-                        <?php if(!empty($unpaidEntries)): ?>
+                        <?php 
+                        $groupedUnpaid = [];
+                        if(!empty($unpaidEntries)) {
+                            foreach($unpaidEntries as $ue) {
+                                $sId = $ue['skater_id'];
+                                if(!isset($groupedUnpaid[$sId])) {
+                                    $groupedUnpaid[$sId] = [
+                                        'name' => $ue['skater_name'],
+                                        'amount' => 0,
+                                        'entries' => []
+                                    ];
+                                }
+                                $groupedUnpaid[$sId]['amount'] += $ue['payment_amount'];
+                                $groupedUnpaid[$sId]['entries'][] = $ue;
+                            }
+                        }
+                        
+                        $groupedHistory = [];
+                        if(!empty($historyEntries)) {
+                            foreach($historyEntries as $he) {
+                                $sId = $he['skater_id'];
+                                if(!isset($groupedHistory[$sId])) {
+                                    $groupedHistory[$sId] = [
+                                        'name' => $he['skater_name'],
+                                        'amount' => 0,
+                                        'entries' => []
+                                    ];
+                                }
+                                $groupedHistory[$sId]['amount'] += $he['payment_amount'];
+                                $groupedHistory[$sId]['entries'][] = $he;
+                            }
+                        }
+                        ?>
+
+                        <?php if(!empty($groupedUnpaid)): ?>
                             <h3 class="text-[10px] font-black text-red-500 uppercase tracking-widest mt-2 mb-2 border-b border-slate-100 pb-1">Belum Dibayar</h3>
-                            <?php foreach($unpaidEntries as $ue): ?>
-                            <div class="flex justify-between items-center p-4 bg-red-50/50 rounded-2xl border border-red-100 hover:border-red-200 transition">
-                                <div>
-                                    <p class="text-[10px] font-black text-slate-800 uppercase mb-0.5"><?= htmlspecialchars($ue['skater_name'] ?? '') ?></p>
-                                    <p class="text-xs font-bold text-blue-600 uppercase italic"><?= htmlspecialchars(($ue['group_name'] ?? '') . ' - ' . ($ue['distance_name'] ?? '')) ?></p>
-                                </div>
-                                <div class="text-right">
-                                    <p class="text-xs font-black text-slate-800">Rp <?= number_format($ue['payment_amount'] ?? 0, 0, ',', '.') ?></p>
+                            <?php foreach($groupedUnpaid as $sId => $g): ?>
+                            <div class="p-4 bg-red-50/50 rounded-2xl border border-red-100 hover:border-red-200 transition relative">
+                                <div class="absolute top-4 right-4">
                                     <p class="text-[9px] font-bold text-red-500 uppercase"><?= htmlspecialchars($paymentStatus) ?></p>
                                 </div>
+                                <p class="text-[10px] font-black text-slate-800 uppercase mb-2"><?= htmlspecialchars($g['name']) ?></p>
+                                <div class="mb-3 pl-2 border-l-2 border-red-200">
+                                    <?php foreach($g['entries'] as $ent): ?>
+                                    <p class="text-[11px] font-bold text-blue-600 uppercase italic leading-snug">
+                                        <?= htmlspecialchars(($ent['group_name'] ?? '') . ' - ' . ($ent['distance_name'] ?? '')) ?>
+                                    </p>
+                                    <?php endforeach; ?>
+                                </div>
+                                <p class="text-xs font-black text-slate-800">Rp <?= number_format($g['amount'], 0, ',', '.') ?></p>
                             </div>
                             <?php endforeach; ?>
                         <?php endif; ?>
 
-                        <?php if(!empty($historyEntries)): ?>
+                        <?php if(!empty($groupedHistory)): ?>
                             <h3 class="text-[10px] font-black text-emerald-500 uppercase tracking-widest mt-6 mb-2 border-b border-slate-100 pb-1">Riwayat (Pending/Paid)</h3>
-                            <?php foreach($historyEntries as $he): ?>
-                            <div class="flex justify-between items-center p-4 bg-emerald-50/50 rounded-2xl border border-emerald-100 hover:border-emerald-200 transition opacity-80">
-                                <div>
-                                    <p class="text-[10px] font-black text-slate-800 uppercase mb-0.5"><?= htmlspecialchars($he['skater_name'] ?? '') ?></p>
-                                    <p class="text-xs font-bold text-slate-500 uppercase italic"><?= htmlspecialchars(($he['group_name'] ?? '') . ' - ' . ($he['distance_name'] ?? '')) ?></p>
-                                </div>
-                                <div class="text-right">
-                                    <p class="text-xs font-black text-slate-800">Rp <?= number_format($he['payment_amount'] ?? 0, 0, ',', '.') ?></p>
+                            <?php foreach($groupedHistory as $sId => $g): ?>
+                            <div class="p-4 bg-emerald-50/50 rounded-2xl border border-emerald-100 hover:border-emerald-200 transition opacity-80 relative">
+                                <div class="absolute top-4 right-4">
                                     <p class="text-[9px] font-bold <?= $paymentStatus == 'Paid' ? 'text-emerald-600' : 'text-amber-500' ?> uppercase"><?= htmlspecialchars($paymentStatus) ?></p>
                                 </div>
+                                <p class="text-[10px] font-black text-slate-800 uppercase mb-2"><?= htmlspecialchars($g['name']) ?></p>
+                                <div class="mb-3 pl-2 border-l-2 border-emerald-200">
+                                    <?php foreach($g['entries'] as $ent): ?>
+                                    <p class="text-[11px] font-bold text-slate-500 uppercase italic leading-snug">
+                                        <?= htmlspecialchars(($ent['group_name'] ?? '') . ' - ' . ($ent['distance_name'] ?? '')) ?>
+                                    </p>
+                                    <?php endforeach; ?>
+                                </div>
+                                <p class="text-xs font-black text-slate-800">Rp <?= number_format($g['amount'], 0, ',', '.') ?></p>
                             </div>
                             <?php endforeach; ?>
                         <?php endif; ?>
