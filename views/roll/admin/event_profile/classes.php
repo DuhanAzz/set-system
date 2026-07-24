@@ -65,7 +65,7 @@
                 $speedDistNames = ['ITT 100m', 'ITT 200m', 'DTT 200m', '500m +D', '1000m', '3000m Eliminasi', '5000m Eliminasi', '10.000m Eliminasi', '3000m PTP', '5000m PTP', 'Pair 500m', 'Relay 3000m', 'TTT'];
 
                 $stdKuNames = ['Ku A (< 7 Thn)', 'Ku B (8-9 Thn)', 'Ku C (10-11 Thn)', 'Ku D (12-14 Thn)'];
-                $stdDistNames = ['300m', '500m', '1000m', 'Relay 1000m', 'Relay 3000m'];
+                $stdDistNames = ['300m', '500m', '1000m', 'Relay 1000m', 'Relay 1800m'];
                 
                 $pemulaKuNames = ['Ku I (< 7 Thn)', 'Ku II (7-9 Thn)', 'Ku III (> 9 Thn)'];
                 $pemulaDistNames = ['100m', '200m'];

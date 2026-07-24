@@ -63,25 +63,32 @@
                             <?php if (!empty($summaryCounts['Speed'])): ?>
                             <div class="bg-slate-50 border border-slate-200 p-3 rounded-xl text-center">
                                 <p class="text-[10px] text-slate-500 uppercase font-bold">Speed</p>
-                                <p class="text-lg font-black text-fuchsia-600"><?= $summaryCounts['Speed'] ?> <span class="text-[10px]">Nomor</span></p>
+                                <p class="text-lg font-black text-fuchsia-600"><?= $summaryCounts['Speed'] ?> <span class="text-[10px]">Atlet</span></p>
+                                <p class="text-[9px] font-bold text-slate-400 mt-1"><?= $summaryCounts['Speed'] ?> x Rp <?= number_format($event['fee_speed'] ?? 0, 0, ',', '.') ?></p>
+                                <p class="text-xs font-black text-fuchsia-700 mt-0.5">Rp <?= number_format($summaryCounts['Speed'] * ($event['fee_speed'] ?? 0), 0, ',', '.') ?></p>
                             </div>
                             <?php endif; ?>
                             <?php if (!empty($summaryCounts['Standart'])): ?>
                             <div class="bg-slate-50 border border-slate-200 p-3 rounded-xl text-center">
                                 <p class="text-[10px] text-slate-500 uppercase font-bold">Standart</p>
-                                <p class="text-lg font-black text-amber-500"><?= $summaryCounts['Standart'] ?> <span class="text-[10px]">Nomor</span></p>
+                                <p class="text-lg font-black text-amber-500"><?= $summaryCounts['Standart'] ?> <span class="text-[10px]">Atlet</span></p>
+                                <p class="text-[9px] font-bold text-slate-400 mt-1"><?= $summaryCounts['Standart'] ?> x Rp <?= number_format($event['fee_standart'] ?? 0, 0, ',', '.') ?></p>
+                                <p class="text-xs font-black text-amber-600 mt-0.5">Rp <?= number_format($summaryCounts['Standart'] * ($event['fee_standart'] ?? 0), 0, ',', '.') ?></p>
                             </div>
                             <?php endif; ?>
                             <?php if (!empty($summaryCounts['Pemula'])): ?>
                             <div class="bg-slate-50 border border-slate-200 p-3 rounded-xl text-center">
                                 <p class="text-[10px] text-slate-500 uppercase font-bold">Pemula</p>
-                                <p class="text-lg font-black text-emerald-500"><?= $summaryCounts['Pemula'] ?> <span class="text-[10px]">Nomor</span></p>
+                                <p class="text-lg font-black text-emerald-500"><?= $summaryCounts['Pemula'] ?> <span class="text-[10px]">Atlet</span></p>
+                                <p class="text-[9px] font-bold text-slate-400 mt-1"><?= $summaryCounts['Pemula'] ?> x Rp <?= number_format($event['fee_pemula'] ?? 0, 0, ',', '.') ?></p>
+                                <p class="text-xs font-black text-emerald-600 mt-0.5">Rp <?= number_format($summaryCounts['Pemula'] * ($event['fee_pemula'] ?? 0), 0, ',', '.') ?></p>
                             </div>
                             <?php endif; ?>
                             <?php if (!empty($summaryCounts['Team'])): ?>
                             <div class="bg-slate-50 border border-slate-200 p-3 rounded-xl text-center">
                                 <p class="text-[10px] text-slate-500 uppercase font-bold">Team Relay / Pair</p>
                                 <p class="text-lg font-black text-indigo-500"><?= $summaryCounts['Team'] ?> <span class="text-[10px]">Tim</span></p>
+                                <p class="text-[9px] font-bold text-slate-400 mt-1">Gratis (Termasuk)</p>
                             </div>
                             <?php endif; ?>
                         </div>
