@@ -40,6 +40,11 @@
                             <div class="flex items-center gap-1.5"><span class="text-sm">📅</span> <?= !empty($e['event_date_start']) && $e['event_date_start'] != '0000-00-00' ? date('d M Y', strtotime($e['event_date_start'])) : 'TBA' ?></div>
                             <div class="flex items-center gap-1.5 line-clamp-1"><span class="text-sm">📍</span> <?= htmlspecialchars($e['event_location'] ?? 'TBA') ?></div>
                         </div>
+                        <div class="mb-4">
+                            <a href="<?= getenv('APP_URL') ?>/roll/pengumuman/print_bib?event_id=<?= $e['event_id'] ?>" target="_blank" class="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[10px] font-black uppercase tracking-widest transition shadow-sm border border-slate-200">
+                                <span>🖨️</span> Cetak No BIB
+                            </a>
+                        </div>
                     </div>
 
                     <div class="mt-4 flex justify-end">
