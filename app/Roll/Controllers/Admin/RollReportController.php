@@ -51,7 +51,7 @@ class RollReportController extends Controller {
 
         // MVP Tally Calculation
         $stmtMVP = $db->prepare("
-            SELECT s.id, s.skater_name, s.date_of_birth, c.club_name,
+            SELECT s.id, s.skater_name, s.birth_date, c.club_name,
                 SUM(CASE WHEN r.finish_position = 1 THEN 1 ELSE 0 END) as gold,
                 SUM(CASE WHEN r.finish_position = 2 THEN 1 ELSE 0 END) as silver,
                 SUM(CASE WHEN r.finish_position = 3 THEN 1 ELSE 0 END) as bronze,
@@ -70,7 +70,7 @@ class RollReportController extends Controller {
               AND ed.result_status = 'Published' 
               AND e.status = 'Finished'
             GROUP BY s.id
-            ORDER BY gold DESC, silver DESC, bronze DESC, s.date_of_birth DESC, total_defeated DESC, s.skater_name ASC
+            ORDER BY gold DESC, silver DESC, bronze DESC, s.birth_date DESC, total_defeated DESC, s.skater_name ASC
             LIMIT 10
         ");
         $stmtMVP->execute([$eventId]);
