@@ -41,10 +41,11 @@ class RollRegistrationController extends Controller {
         $classes = [];
         if ($event) {
             $stmtClasses = $db->prepare("
-                SELECT c.*, a.group_name, a.min_year, a.max_year, d.distance_name
+                SELECT c.*, a.group_name, a.min_year, a.max_year, d.distance_name, skc.class_name, skc.id as class_cat_id
                 FROM roll_event_details c
                 JOIN roll_ref_age_groups a ON c.age_group_id = a.id
                 JOIN roll_ref_distances d ON c.distance_id = d.id
+                JOIN roll_ref_skate_classes skc ON c.skate_class_id = skc.id
                 WHERE c.event_id = ?
                 ORDER BY a.min_year ASC, c.category_name ASC, d.id ASC
             ");
@@ -54,9 +55,9 @@ class RollRegistrationController extends Controller {
 
         // Fetch registered entries for THIS event and club
         $stmtEntries = $db->prepare("
-            SELECT e.id as entry_id, e.race_class_id,
+            SELECT e.id as entry_id, e.race_class_id, e.team_name,
                    s.skater_name, s.gender,
-                   a.group_name, c.category_name,
+                   a.group_name, c.category_name, skc.class_name as skate_class,
                    d.distance_name,
                    COALESCE(p.status, 'Unpaid') as payment_status
             FROM roll_entries e
@@ -64,6 +65,7 @@ class RollRegistrationController extends Controller {
             LEFT JOIN roll_event_details c ON e.race_class_id = c.id
             LEFT JOIN roll_ref_age_groups a ON c.age_group_id = a.id
             LEFT JOIN roll_ref_distances d ON c.distance_id = d.id
+            LEFT JOIN roll_ref_skate_classes skc ON c.skate_class_id = skc.id
             LEFT JOIN roll_payments p ON p.club_id = s.club_id AND p.event_id = e.event_id
             WHERE s.club_id = ? AND e.event_id = ?
             ORDER BY s.skater_name ASC
@@ -71,8 +73,8 @@ class RollRegistrationController extends Controller {
         $stmtEntries->execute([$club_id, $event_id]);
         $existingEntries = $stmtEntries->fetchAll(PDO::FETCH_ASSOC);
 
-        $hasUnpaid = !empty(array_filter($existingEntries, fn($e) => $e['payment_status'] === 'Unpaid'));
-        $isLocked  = !empty($existingEntries) && !$hasUnpaid; // Semua sudah Pending/Paid
+        $isEditable = !empty(array_filter($existingEntries, fn($e) => in_array($e['payment_status'], ['Unpaid', 'Rejected'])));
+        $isLocked  = !empty($existingEntries) && !$isEditable; // Terkunci hanya jika semua Pending/Paid
 
         return $this->view('roll/user/entries/index', [
             'athletes'        => $athletes,
@@ -171,12 +173,13 @@ class RollRegistrationController extends Controller {
             exit;
         }
 
-        $skater_id    = (int)($_POST['skater_id'] ?? 0);
+        $skater_ids = isset($_POST['skater_id']) ? (is_array($_POST['skater_id']) ? $_POST['skater_id'] : [$_POST['skater_id']]) : [];
         $race_class_id = (int)($_POST['race_class_id'] ?? 0);
         $event_id     = (int)($_POST['event_id'] ?? 0);
         $club_id      = (int)($_SESSION['roll_club_id'] ?? 0);
+        $team_name    = isset($_POST['team_name']) ? trim($_POST['team_name']) : null;
 
-        if (!$skater_id || !$race_class_id || !$event_id) {
+        if (empty($skater_ids) || !$race_class_id || !$event_id) {
             $_SESSION['flash_message'] = "Data tidak lengkap.";
             $_SESSION['flash_type'] = "error";
             header("Location: " . getenv('APP_URL') . "/roll/user/registration/index/" . $event_id);
@@ -184,39 +187,38 @@ class RollRegistrationController extends Controller {
         }
 
         $db = Database::getInstance()->getConnection();
+        
+        $successCount = 0;
+        foreach ($skater_ids as $skater_id) {
+            $skater_id = (int)$skater_id;
+            
+            // Pastikan atlet milik klub ini
+            $stmtOwn = $db->prepare("SELECT id FROM roll_skaters WHERE id = ? AND club_id = ?");
+            $stmtOwn->execute([$skater_id, $club_id]);
+            if (!$stmtOwn->fetch()) continue;
 
-        // Pastikan atlet milik klub ini
-        $stmtOwn = $db->prepare("SELECT id FROM roll_skaters WHERE id = ? AND club_id = ?");
-        $stmtOwn->execute([$skater_id, $club_id]);
-        if (!$stmtOwn->fetch()) {
-            $_SESSION['flash_message'] = "Atlet tidak valid.";
-            $_SESSION['flash_type'] = "error";
-            header("Location: " . getenv('APP_URL') . "/roll/user/registration/index/" . $event_id);
-            exit;
+            // Cek duplikasi
+            $stmtDup = $db->prepare("SELECT id FROM roll_entries WHERE skater_id = ? AND race_class_id = ? AND event_id = ?");
+            $stmtDup->execute([$skater_id, $race_class_id, $event_id]);
+            if ($stmtDup->fetch()) continue;
+
+            // Ambil nama jarak
+            $stmtDist = $db->prepare("SELECT d.distance_name FROM roll_event_details c JOIN roll_ref_distances d ON c.distance_id = d.id WHERE c.id = ?");
+            $stmtDist->execute([$race_class_id]);
+            $distance = $stmtDist->fetchColumn() ?: '-';
+
+            // Save
+            $stmtInsert = $db->prepare("INSERT INTO roll_entries (event_id, skater_id, race_class_id, race_distance, payment_status, team_name) VALUES (?, ?, ?, ?, 'Unpaid', ?)");
+            if ($stmtInsert->execute([$event_id, $skater_id, $race_class_id, $distance, $team_name])) {
+                $successCount++;
+            }
         }
-
-        // Cek duplikasi
-        $stmtDup = $db->prepare("SELECT id FROM roll_entries WHERE skater_id = ? AND race_class_id = ? AND event_id = ?");
-        $stmtDup->execute([$skater_id, $race_class_id, $event_id]);
-        if ($stmtDup->fetch()) {
-            $_SESSION['flash_message'] = "Atlet ini sudah terdaftar di kelas lomba tersebut.";
-            $_SESSION['flash_type'] = "error";
-            header("Location: " . getenv('APP_URL') . "/roll/user/registration/index/" . $event_id);
-            exit;
-        }
-
-        // Ambil nama jarak
-        $stmtDist = $db->prepare("SELECT d.distance_name FROM roll_event_details c JOIN roll_ref_distances d ON c.distance_id = d.id WHERE c.id = ?");
-        $stmtDist->execute([$race_class_id]);
-        $distance = $stmtDist->fetchColumn() ?: '-';
-
-        try {
-            $stmt = $db->prepare("INSERT INTO roll_entries (event_id, skater_id, race_class_id, race_distance, payment_status) VALUES (?, ?, ?, ?, 'Unpaid')");
-            $stmt->execute([$event_id, $skater_id, $race_class_id, $distance]);
-            $_SESSION['flash_message'] = "Atlet berhasil didaftarkan!";
+        
+        if ($successCount > 0) {
+            $_SESSION['flash_message'] = "Berhasil mendaftarkan $successCount atlet ke kelas lomba.";
             $_SESSION['flash_type'] = "success";
-        } catch (\Exception $e) {
-            $_SESSION['flash_message'] = "Terjadi kesalahan: " . $e->getMessage();
+        } else {
+            $_SESSION['flash_message'] = "Gagal mendaftar. Pastikan data valid dan belum terdaftar di kelas yang sama.";
             $_SESSION['flash_type'] = "error";
         }
 

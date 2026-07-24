@@ -40,28 +40,21 @@ class RollCheckoutController extends Controller {
             exit;
         }
 
-        // Jika hanya 1 event, langsung ke detail
-        if (count($eventRows) === 1) {
-            header("Location: " . getenv('APP_URL') . "/roll/user/checkout/detail/" . $eventRows[0]['event_id']);
-            exit;
-        }
+        // Hapus auto-redirect agar user selalu melihat riwayat / daftar transaksi
 
         // Bangun struktur $bills identik dengan swim checkout
         $bills = [];
         foreach ($eventRows as $ev) {
             $eid = $ev['event_id'];
 
-            // Jumlah total tagihan (sum payment_amount untuk yang Unpaid)
-            $stmtAmt = $db->prepare("
-                SELECT SUM(e.payment_amount)
-                FROM roll_entries e
-                JOIN roll_skaters s ON e.skater_id = s.id
-                WHERE s.club_id = ? AND e.event_id = ? AND e.payment_status = 'Unpaid'
-            ");
-            $stmtAmt->execute([$club_id, $eid]);
-            $amount = (float)$stmtAmt->fetchColumn();
+            // Status: dari roll_payments
+            $stmtStat = $db->prepare("SELECT status FROM roll_payments WHERE club_id = ? AND event_id = ?");
+            $stmtStat->execute([$club_id, $eid]);
+            $paymentStatus = $stmtStat->fetchColumn();
+            
+            $status = $paymentStatus ?: 'Unpaid';
 
-            // Total atlet terdaftar
+            // Total atlet terdaftar (banyaknya entries)
             $stmtCnt = $db->prepare("
                 SELECT COUNT(*) FROM roll_entries e
                 JOIN roll_skaters s ON e.skater_id = s.id
@@ -70,18 +63,15 @@ class RollCheckoutController extends Controller {
             $stmtCnt->execute([$club_id, $eid]);
             $entries = (int)$stmtCnt->fetchColumn();
 
-            // Status: Unpaid jika ada yang belum bayar, Pending jika ada pending, Paid jika semua lunas
-            $stmtStat = $db->prepare("
-                SELECT payment_status FROM roll_entries e
-                JOIN roll_skaters s ON e.skater_id = s.id
-                WHERE s.club_id = ? AND e.event_id = ?
-            ");
-            $stmtStat->execute([$club_id, $eid]);
-            $statuses = $stmtStat->fetchAll(PDO::FETCH_COLUMN);
+            // Entry Fee
+            $stmtFee = $db->prepare("SELECT entry_fee FROM roll_events WHERE id = ?");
+            $stmtFee->execute([$eid]);
+            $entryFee = (float)$stmtFee->fetchColumn();
+            
+            if ($entryFee <= 0) $entryFee = 150000;
 
-            $status = 'Paid';
-            if (in_array('Unpaid', $statuses)) $status = 'Unpaid';
-            elseif (in_array('Pending', $statuses)) $status = 'Pending';
+            // Jumlah total tagihan
+            $amount = $status === 'Unpaid' || $status === 'Rejected' ? $entries * $entryFee : 0;
 
             $bills[] = [
                 'id'         => $eid,
@@ -115,50 +105,70 @@ class RollCheckoutController extends Controller {
             exit;
         }
 
-        // Get unpaid entries
-        $stmtUnpaid = $db->prepare("
-            SELECT e.*, s.skater_name, ev.event_name
-            FROM roll_entries e
-            JOIN roll_skaters s ON e.skater_id = s.id
-            JOIN roll_events ev ON e.event_id = ev.id
-            WHERE s.club_id = ? AND e.event_id = ? AND e.payment_status = 'Unpaid'
-        ");
-        
-        try {
-            $stmtUnpaid->execute([$club_id, $event_id]);
-            $unpaidEntries = $stmtUnpaid->fetchAll(PDO::FETCH_ASSOC);
-        } catch (\Exception $e) {
-            // Fallback if payment_status doesn't exist
-            $unpaidEntries = [];
-        }
+        // Get payment status for the club in this event
+        $stmtStatus = $db->prepare("SELECT status FROM roll_payments WHERE club_id = ? AND event_id = ?");
+        $stmtStatus->execute([$club_id, $event_id]);
+        $paymentStatus = $stmtStatus->fetchColumn();
+        $status = $paymentStatus ?: 'Unpaid';
 
-        $totalFee = 0;
-        foreach ($unpaidEntries as $ue) {
-            $totalFee += (float)($ue['payment_amount'] ?? 0);
-        }
+        // Entry Fee
+        $stmtFee = $db->prepare("SELECT entry_fee FROM roll_events WHERE id = ?");
+        $stmtFee->execute([$event_id]);
+        $entryFee = (float)$stmtFee->fetchColumn();
+        if ($entryFee <= 0) $entryFee = 150000;
 
-        // Get pending/paid entries history
+        $unpaidEntries = [];
         $historyEntries = [];
-        try {
-            $stmtHistory = $db->prepare("
-                SELECT e.*, s.skater_name, ev.event_name
+        $totalFee = 0;
+
+        if ($status === 'Unpaid' || $status === 'Rejected') {
+            // All entries are unpaid
+            $stmtUnpaid = $db->prepare("
+                SELECT e.*, s.skater_name, ev.event_name, d.distance_name, a.group_name
                 FROM roll_entries e
                 JOIN roll_skaters s ON e.skater_id = s.id
                 JOIN roll_events ev ON e.event_id = ev.id
-                WHERE s.club_id = ? AND e.event_id = ? AND e.payment_status IN ('Pending', 'Paid')
+                LEFT JOIN roll_event_details ed ON e.race_class_id = ed.id
+                LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
+                LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id
+                WHERE s.club_id = ? AND e.event_id = ?
+            ");
+            $stmtUnpaid->execute([$club_id, $event_id]);
+            $unpaidEntries = $stmtUnpaid->fetchAll(PDO::FETCH_ASSOC);
+
+            // Assign payment amount for display
+            foreach ($unpaidEntries as &$ue) {
+                $ue['payment_amount'] = $entryFee;
+                $totalFee += $entryFee;
+            }
+        } else {
+            // Status is Pending or Paid, all entries are in history
+            $stmtHistory = $db->prepare("
+                SELECT e.*, s.skater_name, ev.event_name, d.distance_name, a.group_name
+                FROM roll_entries e
+                JOIN roll_skaters s ON e.skater_id = s.id
+                JOIN roll_events ev ON e.event_id = ev.id
+                LEFT JOIN roll_event_details ed ON e.race_class_id = ed.id
+                LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
+                LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id
+                WHERE s.club_id = ? AND e.event_id = ?
                 ORDER BY e.id DESC
             ");
             $stmtHistory->execute([$club_id, $event_id]);
             $historyEntries = $stmtHistory->fetchAll(PDO::FETCH_ASSOC);
-        } catch (\Exception $e) {
-            // Fallback
+
+            // Assign payment amount for display
+            foreach ($historyEntries as &$he) {
+                $he['payment_amount'] = $entryFee;
+            }
         }
 
         return $this->view('roll/user/checkout/detail', [
             'event' => $event,
             'unpaidEntries' => $unpaidEntries,
             'historyEntries' => $historyEntries,
-            'totalFee' => $totalFee
+            'totalFee' => $totalFee,
+            'paymentStatus' => $status
         ]);
     }
 
@@ -260,17 +270,25 @@ class RollCheckoutController extends Controller {
             try {
                 $db->beginTransaction();
                 
-                // Update the payment status for all selected entries to Pending
-                // And save the proof_file (we might need a roll_payments table, or save it in roll_entries)
-                $stmtUpdate = $db->prepare("UPDATE roll_entries SET payment_status = 'Pending', payment_proof = ? WHERE id = ?");
+                // Hitung total tagihan
+                $stmtFee = $db->prepare("SELECT entry_fee FROM roll_events WHERE id = ?");
+                $stmtFee->execute([$event_id]);
+                $entryFee = (float)$stmtFee->fetchColumn();
+                if ($entryFee <= 0) $entryFee = 150000;
                 
-                foreach ($entry_ids as $id) {
-                    // Double check it belongs to the club
-                    $stmtCheck = $db->prepare("SELECT s.club_id FROM roll_entries e JOIN roll_skaters s ON e.skater_id = s.id WHERE e.id = ?");
-                    $stmtCheck->execute([$id]);
-                    if ($stmtCheck->fetchColumn() == $club_id) {
-                        $stmtUpdate->execute([$proof_file, $id]);
-                    }
+                $total_amount = count($entry_ids) * $entryFee;
+                
+                // Update atau Insert ke roll_payments
+                $stmtCheck = $db->prepare("SELECT id FROM roll_payments WHERE club_id = ? AND event_id = ?");
+                $stmtCheck->execute([$club_id, $event_id]);
+                $payId = $stmtCheck->fetchColumn();
+                
+                if ($payId) {
+                    $stmtUpdate = $db->prepare("UPDATE roll_payments SET status = 'Pending', payment_proof = ?, total_amount = ? WHERE id = ?");
+                    $stmtUpdate->execute([$proof_file, $total_amount, $payId]);
+                } else {
+                    $stmtInsert = $db->prepare("INSERT INTO roll_payments (club_id, event_id, total_amount, payment_proof, status) VALUES (?, ?, ?, ?, 'Pending')");
+                    $stmtInsert->execute([$club_id, $event_id, $total_amount, $proof_file]);
                 }
 
                 $db->commit();

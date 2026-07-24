@@ -27,11 +27,11 @@
                             <div class="flex justify-between items-center p-4 bg-red-50/50 rounded-2xl border border-red-100 hover:border-red-200 transition">
                                 <div>
                                     <p class="text-[10px] font-black text-slate-800 uppercase mb-0.5"><?= htmlspecialchars($ue['skater_name'] ?? '') ?></p>
-                                    <p class="text-xs font-bold text-blue-600 uppercase italic"><?= htmlspecialchars($ue['race_distance']) ?></p>
+                                    <p class="text-xs font-bold text-blue-600 uppercase italic"><?= htmlspecialchars(($ue['group_name'] ?? '') . ' - ' . ($ue['distance_name'] ?? '')) ?></p>
                                 </div>
                                 <div class="text-right">
                                     <p class="text-xs font-black text-slate-800">Rp <?= number_format($ue['payment_amount'] ?? 0, 0, ',', '.') ?></p>
-                                    <p class="text-[9px] font-bold text-red-500 uppercase">Unpaid</p>
+                                    <p class="text-[9px] font-bold text-red-500 uppercase"><?= htmlspecialchars($paymentStatus) ?></p>
                                 </div>
                             </div>
                             <?php endforeach; ?>
@@ -43,11 +43,11 @@
                             <div class="flex justify-between items-center p-4 bg-emerald-50/50 rounded-2xl border border-emerald-100 hover:border-emerald-200 transition opacity-80">
                                 <div>
                                     <p class="text-[10px] font-black text-slate-800 uppercase mb-0.5"><?= htmlspecialchars($he['skater_name'] ?? '') ?></p>
-                                    <p class="text-xs font-bold text-slate-500 uppercase italic"><?= htmlspecialchars($he['race_distance']) ?></p>
+                                    <p class="text-xs font-bold text-slate-500 uppercase italic"><?= htmlspecialchars(($he['group_name'] ?? '') . ' - ' . ($he['distance_name'] ?? '')) ?></p>
                                 </div>
                                 <div class="text-right">
                                     <p class="text-xs font-black text-slate-800">Rp <?= number_format($he['payment_amount'] ?? 0, 0, ',', '.') ?></p>
-                                    <p class="text-[9px] font-bold <?= $he['payment_status'] == 'Paid' ? 'text-emerald-600' : 'text-amber-500' ?> uppercase"><?= htmlspecialchars($he['payment_status']) ?></p>
+                                    <p class="text-[9px] font-bold <?= $paymentStatus == 'Paid' ? 'text-emerald-600' : 'text-amber-500' ?> uppercase"><?= htmlspecialchars($paymentStatus) ?></p>
                                 </div>
                             </div>
                             <?php endforeach; ?>
