@@ -63,10 +63,10 @@ class RollEntryController extends Controller {
             }
         }
 
-        // Fetch entry fee
-        $stmtFee = $db->prepare("SELECT entry_fee FROM roll_events WHERE id = ?");
+        // Fetch entry fees for dynamic calculation
+        $stmtFee = $db->prepare("SELECT fee_speed, fee_standart, fee_pemula FROM roll_events WHERE id = ?");
         $stmtFee->execute([$targetEventId]);
-        $eventFee = $stmtFee->fetchColumn() ?: 150000;
+        $eventFees = $stmtFee->fetch(PDO::FETCH_ASSOC) ?: ['fee_speed'=>450000, 'fee_standart'=>350000, 'fee_pemula'=>350000];
 
         // Query List Klub & Payments
         try {
@@ -95,7 +95,26 @@ class RollEntryController extends Controller {
             // Calculate dynamic amount if not paid/set
             foreach ($listData as &$row) {
                 if (empty($row['amount']) || $row['amount'] <= 0) {
-                    $row['amount'] = $row['total_entries'] * $eventFee;
+                    $stmtEntries = $db->prepare("
+                        SELECT sc.class_name 
+                        FROM roll_entries e
+                        JOIN roll_skaters s ON e.skater_id = s.id
+                        JOIN roll_event_details ed ON e.race_class_id = ed.id
+                        LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
+                        WHERE s.club_id = ? AND e.event_id = ?
+                    ");
+                    $stmtEntries->execute([$row['club_id'], $targetEventId]);
+                    $entriesData = $stmtEntries->fetchAll(PDO::FETCH_ASSOC);
+                    
+                    $amount = 0;
+                    foreach ($entriesData as $ent) {
+                        $cName = strtolower($ent['class_name'] ?? '');
+                        if (strpos($cName, 'speed') !== false) $amount += (float)$eventFees['fee_speed'];
+                        elseif (strpos($cName, 'standar') !== false) $amount += (float)$eventFees['fee_standart'];
+                        elseif (strpos($cName, 'pemula') !== false) $amount += (float)$eventFees['fee_pemula'];
+                        else $amount += 150000;
+                    }
+                    $row['amount'] = $amount;
                 }
             }
         } catch (\PDOException $e) {
@@ -176,7 +195,7 @@ class RollEntryController extends Controller {
         $payData = $stmtPay->fetch(PDO::FETCH_ASSOC);
         
         // AMBIL SEMUA ENTRI ATLET DARI KLUB INI
-        $sqlEntries = "SELECT s.id as skater_id, s.skater_name, s.gender, s.birth_date, a.group_name, d.distance_name, ed.category_name, ed.distance
+        $sqlEntries = "SELECT s.id as skater_id, s.skater_name, s.gender, s.birth_date, a.group_name, d.distance_name, ed.category_name, ed.distance, e.race_class_id
                        FROM roll_entries e
                        JOIN roll_skaters s ON e.skater_id = s.id
                        LEFT JOIN roll_event_details ed ON e.race_class_id = ed.id
@@ -191,16 +210,6 @@ class RollEntryController extends Controller {
         // KELOMPOKKAN PER ATLET
         $groupedSkaters = [];
         $totalTagihan = 0;
-        // Check which class it belongs to
-        $stmtCls = $db->prepare("SELECT sc.class_name FROM roll_event_details ed LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id=sc.id WHERE ed.id=?");
-        $stmtCls->execute([$raceClassId]);
-        $cName = strtolower($stmtCls->fetchColumn() ?: '');
-        
-        $hargaPerNomor = 150000;
-        if (strpos($cName, 'speed') !== false) $hargaPerNomor = (float)($eventData['fee_speed'] ?? 450000);
-        elseif (strpos($cName, 'standar') !== false) $hargaPerNomor = (float)($eventData['fee_standart'] ?? 350000);
-        elseif (strpos($cName, 'pemula') !== false) $hargaPerNomor = (float)($eventData['fee_pemula'] ?? 350000);
-        
         foreach($allEntries as $ent) {
             $sId = $ent['skater_id'];
             if(!isset($groupedSkaters[$sId])) {
@@ -220,6 +229,15 @@ class RollEntryController extends Controller {
                 'stroke' => $ent['category_name'] ?: $ent['distance_name'],
                 'age_group' => $ent['group_name']
             ];
+            
+            $stmtCls = $db->prepare("SELECT sc.class_name FROM roll_event_details ed LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id=sc.id WHERE ed.id=?");
+            $stmtCls->execute([$ent['race_class_id']]);
+            $cName = strtolower($stmtCls->fetchColumn() ?: '');
+            
+            $hargaPerNomor = 150000;
+            if (strpos($cName, 'speed') !== false) $hargaPerNomor = (float)($eventData['fee_speed'] ?? 450000);
+            elseif (strpos($cName, 'standar') !== false) $hargaPerNomor = (float)($eventData['fee_standart'] ?? 350000);
+            elseif (strpos($cName, 'pemula') !== false) $hargaPerNomor = (float)($eventData['fee_pemula'] ?? 350000);
             
             $groupedSkaters[$sId]['subtotal'] += $hargaPerNomor;
             $totalTagihan += $hargaPerNomor;
@@ -267,7 +285,7 @@ class RollEntryController extends Controller {
         $stmtPay->execute([$eventId, $targetClubId]);
         $payData = $stmtPay->fetch(PDO::FETCH_ASSOC);
         
-        $sqlEntries = "SELECT s.id as skater_id, s.skater_name, s.gender, a.group_name, d.distance_name, ed.category_name, ed.distance
+        $sqlEntries = "SELECT s.id as skater_id, s.skater_name, s.gender, a.group_name, d.distance_name, ed.category_name, ed.distance, e.race_class_id
                        FROM roll_entries e
                        JOIN roll_skaters s ON e.skater_id = s.id
                        LEFT JOIN roll_event_details ed ON e.race_class_id = ed.id
@@ -281,16 +299,6 @@ class RollEntryController extends Controller {
         
         $groupedSkaters = [];
         $totalTagihan = 0;
-        // Check which class it belongs to
-        $stmtCls = $db->prepare("SELECT sc.class_name FROM roll_event_details ed LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id=sc.id WHERE ed.id=?");
-        $stmtCls->execute([$raceClassId]);
-        $cName = strtolower($stmtCls->fetchColumn() ?: '');
-        
-        $hargaPerNomor = 150000;
-        if (strpos($cName, 'speed') !== false) $hargaPerNomor = (float)($eventData['fee_speed'] ?? 450000);
-        elseif (strpos($cName, 'standar') !== false) $hargaPerNomor = (float)($eventData['fee_standart'] ?? 350000);
-        elseif (strpos($cName, 'pemula') !== false) $hargaPerNomor = (float)($eventData['fee_pemula'] ?? 350000);
-        
         foreach($allEntries as $ent) {
             $sId = $ent['skater_id'];
             if(!isset($groupedSkaters[$sId])) {
@@ -302,11 +310,22 @@ class RollEntryController extends Controller {
                     'items' => []
                 ];
             }
+            
             $groupedSkaters[$sId]['items'][] = [
                 'distance' => $ent['distance'],
                 'stroke' => $ent['category_name'] ?: $ent['distance_name'],
                 'age_group' => $ent['group_name']
             ];
+            
+            $stmtCls = $db->prepare("SELECT sc.class_name FROM roll_event_details ed LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id=sc.id WHERE ed.id=?");
+            $stmtCls->execute([$ent['race_class_id']]);
+            $cName = strtolower($stmtCls->fetchColumn() ?: '');
+            
+            $hargaPerNomor = 150000;
+            if (strpos($cName, 'speed') !== false) $hargaPerNomor = (float)($eventData['fee_speed'] ?? 450000);
+            elseif (strpos($cName, 'standar') !== false) $hargaPerNomor = (float)($eventData['fee_standart'] ?? 350000);
+            elseif (strpos($cName, 'pemula') !== false) $hargaPerNomor = (float)($eventData['fee_pemula'] ?? 350000);
+            
             $totalTagihan += $hargaPerNomor;
         }
         
