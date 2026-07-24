@@ -124,6 +124,22 @@
                         </label>
                     </div>
 
+                    <!-- Rekening Pembayaran -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6 pt-4 border-t border-slate-200">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Nama Bank</label>
+                            <input type="text" name="bank_name" value="<?= htmlspecialchars($row['bank_name'] ?? '') ?>" placeholder="Misal: BCA" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 text-slate-800 focus:ring-2 focus:ring-blue-500 font-bold" required>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Nomor Rekening</label>
+                            <input type="text" name="bank_account" value="<?= htmlspecialchars($row['bank_account'] ?? '') ?>" placeholder="Misal: 1234567890" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 text-slate-800 focus:ring-2 focus:ring-blue-500 font-bold" required>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Atas Nama</label>
+                            <input type="text" name="bank_account_name" value="<?= htmlspecialchars($row['bank_account_name'] ?? '') ?>" placeholder="Misal: Budi Santoso" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 text-slate-800 focus:ring-2 focus:ring-blue-500 font-bold" required>
+                        </div>
+                    </div>
+
                     <!-- Gambar / Media -->
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-slate-200">
                         <h4 class="text-sm font-bold text-slate-800 uppercase tracking-widest mb-2">Poster Kompetisi</h4>

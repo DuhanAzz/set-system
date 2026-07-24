@@ -1,3 +1,4 @@
+
 <div class="max-w-7xl mx-auto font-sans">
 
     <?php if (isset($_SESSION['flash_message'])): ?>

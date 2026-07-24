@@ -56,9 +56,41 @@
                     <?php endif; ?>
                 </div>
 
-                <div class="mt-6 pt-6 border-t-2 border-dashed border-slate-200 flex justify-between items-center">
-                    <p class="text-sm font-black text-slate-800 uppercase italic">Total Tagihan (Belum Lunas)</p>
-                    <p class="text-3xl font-black text-blue-600 tracking-tighter">Rp <?= number_format($totalFee, 0, ',', '.') ?></p>
+                <div class="mt-6 pt-6 border-t-2 border-dashed border-slate-200">
+                    <div class="mb-4">
+                        <p class="text-xs font-black text-slate-800 uppercase italic mb-2">Ringkasan Tagihan</p>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <?php if (!empty($summaryCounts['Speed'])): ?>
+                            <div class="bg-slate-50 border border-slate-200 p-3 rounded-xl text-center">
+                                <p class="text-[10px] text-slate-500 uppercase font-bold">Speed</p>
+                                <p class="text-lg font-black text-fuchsia-600"><?= $summaryCounts['Speed'] ?> <span class="text-[10px]">Nomor</span></p>
+                            </div>
+                            <?php endif; ?>
+                            <?php if (!empty($summaryCounts['Standart'])): ?>
+                            <div class="bg-slate-50 border border-slate-200 p-3 rounded-xl text-center">
+                                <p class="text-[10px] text-slate-500 uppercase font-bold">Standart</p>
+                                <p class="text-lg font-black text-amber-500"><?= $summaryCounts['Standart'] ?> <span class="text-[10px]">Nomor</span></p>
+                            </div>
+                            <?php endif; ?>
+                            <?php if (!empty($summaryCounts['Pemula'])): ?>
+                            <div class="bg-slate-50 border border-slate-200 p-3 rounded-xl text-center">
+                                <p class="text-[10px] text-slate-500 uppercase font-bold">Pemula</p>
+                                <p class="text-lg font-black text-emerald-500"><?= $summaryCounts['Pemula'] ?> <span class="text-[10px]">Nomor</span></p>
+                            </div>
+                            <?php endif; ?>
+                            <?php if (!empty($summaryCounts['Team'])): ?>
+                            <div class="bg-slate-50 border border-slate-200 p-3 rounded-xl text-center">
+                                <p class="text-[10px] text-slate-500 uppercase font-bold">Team Relay / Pair</p>
+                                <p class="text-lg font-black text-indigo-500"><?= $summaryCounts['Team'] ?> <span class="text-[10px]">Tim</span></p>
+                            </div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-between items-center">
+                        <p class="text-sm font-black text-slate-800 uppercase italic">Total Tagihan (Belum Lunas)</p>
+                        <p class="text-3xl font-black text-blue-600 tracking-tighter">Rp <?= number_format($totalFee, 0, ',', '.') ?></p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -77,9 +109,9 @@
                         <div class="bg-blue-50 border border-blue-100 p-4 rounded-2xl">
                             <p class="text-[10px] font-bold text-blue-800 uppercase tracking-widest mb-2">Instruksi Pembayaran</p>
                             <p class="text-[10px] text-blue-600 leading-relaxed font-medium italic mb-2">Silakan transfer sesuai total tagihan ke rekening berikut:</p>
-                            <p class="font-black text-blue-900 text-sm">BCA</p>
-                            <p class="font-mono text-lg font-bold text-blue-700 tracking-wider my-1">08762514</p>
-                            <p class="text-xs font-bold text-blue-600">a.n Panitia Pendaftaran</p>
+                            <p class="font-black text-blue-900 text-sm"><?= htmlspecialchars($event['bank_name'] ?? 'BCA') ?></p>
+                            <p class="font-mono text-lg font-bold text-blue-700 tracking-wider my-1"><?= htmlspecialchars($event['bank_account'] ?? '08762514') ?></p>
+                            <p class="text-xs font-bold text-blue-600">a.n <?= htmlspecialchars($event['bank_account_name'] ?? 'Panitia Pendaftaran') ?></p>
                         </div>
 
                         <div>
