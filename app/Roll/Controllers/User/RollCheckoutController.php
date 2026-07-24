@@ -148,8 +148,14 @@ class RollCheckoutController extends Controller {
 
             // Assign payment amount for display
             foreach ($unpaidEntries as &$ue) {
-                $ue['payment_amount'] = $entryFee;
-                $totalFee += $entryFee;
+                $cName = strtolower($ue['skate_class_name'] ?? '');
+                $amount = 150000;
+                if (strpos($cName, 'speed') !== false) $amount = (float)$eventFees['fee_speed'];
+                elseif (strpos($cName, 'standar') !== false) $amount = (float)$eventFees['fee_standart'];
+                elseif (strpos($cName, 'pemula') !== false) $amount = (float)$eventFees['fee_pemula'];
+                
+                $ue['payment_amount'] = $amount;
+                $totalFee += $amount;
             }
         } else {
             // Status is Pending or Paid, all entries are in history
@@ -281,12 +287,31 @@ class RollCheckoutController extends Controller {
                 $db->beginTransaction();
                 
                 // Hitung total tagihan
-                $stmtFee = $db->prepare("SELECT entry_fee FROM roll_events WHERE id = ?");
+                $stmtFee = $db->prepare("SELECT fee_speed, fee_standart, fee_pemula FROM roll_events WHERE id = ?");
                 $stmtFee->execute([$event_id]);
-                $entryFee = (float)$stmtFee->fetchColumn();
-                if ($entryFee <= 0) $entryFee = 150000;
+                $eventFees = $stmtFee->fetch(PDO::FETCH_ASSOC) ?: ['fee_speed'=>450000, 'fee_standart'=>350000, 'fee_pemula'=>350000];
                 
-                $total_amount = count($entry_ids) * $entryFee;
+                $total_amount = 0;
+                if (!empty($entry_ids)) {
+                    $placeholders = str_repeat('?,', count($entry_ids) - 1) . '?';
+                    $stmtCls = $db->prepare("
+                        SELECT sc.class_name 
+                        FROM roll_entries e
+                        LEFT JOIN roll_event_details ed ON e.race_class_id = ed.id
+                        LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
+                        WHERE e.id IN ($placeholders)
+                    ");
+                    $stmtCls->execute($entry_ids);
+                    $classesData = $stmtCls->fetchAll(PDO::FETCH_ASSOC);
+                    
+                    foreach ($classesData as $row) {
+                        $cName = strtolower($row['class_name'] ?? '');
+                        if (strpos($cName, 'speed') !== false) $total_amount += (float)$eventFees['fee_speed'];
+                        elseif (strpos($cName, 'standar') !== false) $total_amount += (float)$eventFees['fee_standart'];
+                        elseif (strpos($cName, 'pemula') !== false) $total_amount += (float)$eventFees['fee_pemula'];
+                        else $total_amount += 150000;
+                    }
+                }
                 
                 // Update atau Insert ke roll_payments
                 $stmtCheck = $db->prepare("SELECT id FROM roll_payments WHERE club_id = ? AND event_id = ?");
