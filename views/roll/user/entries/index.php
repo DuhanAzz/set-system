@@ -403,7 +403,7 @@
                     </select>
                 </div>
                 <div class="mb-4">
-                    <label class="block text-[10px] font-bold text-slate-700 mb-1.5 uppercase tracking-widest">Pilih Atlet <span class="text-red-500">*</span></label>
+                    <label id="lbl_pilih_atlet" class="block text-[10px] font-bold text-slate-700 mb-1.5 uppercase tracking-widest">Pilih Atlet <span class="text-red-500">*</span></label>
                     
                     <select id="relay_athlete_dropdown" disabled class="w-full text-xs font-bold bg-white border border-slate-300 rounded-xl px-4 py-3 text-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none transition-shadow mb-2" onchange="addRelayAthlete()">
                         <option value="">- Pilih Atlet -</option>
@@ -435,6 +435,8 @@ const eventYear = parseInt('<?= date('Y', strtotime($event['event_date_start']))
 const allClasses = <?= json_encode($classes) ?>;
 const existingEntriesData = <?= json_encode($existingEntries) ?>;
 const maxTeamRaces = <?= (int)($event['max_team_races'] ?? 99) ?>;
+const allowPemulaStandarMix = <?= !empty($event['allow_pemula_standart_mix']) ? 'true' : 'false' ?>;
+let currentTeamSize = 3;
 
 function closeModal() { document.getElementById('modal-entry').classList.add('hidden'); }
 
@@ -510,7 +512,14 @@ function filterClasses() {
         else if (tCatStr.includes('standar')) targetGroup = 'standar';
         else if (tCatStr.includes('pemula')) targetGroup = 'pemula';
 
-        if (eGroup && targetGroup && eGroup !== targetGroup) return;
+        if (eGroup && targetGroup && eGroup !== targetGroup) {
+            if (allowPemulaStandarMix) {
+                const isMixable = (eGroup === 'pemula' || eGroup === 'standar') && (targetGroup === 'pemula' || targetGroup === 'standar');
+                if (!isMixable) return;
+            } else {
+                return;
+            }
+        }
 
         if (c.class_cat_id == catId) {
             // Check age group
@@ -719,6 +728,8 @@ function filterRelayAthletes() {
     let targetGroup = '';
     const catClass = allClasses.find(c => c.id == classId);
     if (catClass) {
+        currentTeamSize = parseInt(catClass.team_size) || 3;
+        document.getElementById('lbl_pilih_atlet').innerHTML = 'Pilih Atlet (Max ' + currentTeamSize + ') <span class="text-red-500">*</span>';
         const tCatStr = (catClass.class_name || '').toLowerCase();
         if (tCatStr.includes('speed')) targetGroup = 'speed';
         else if (tCatStr.includes('standar')) targetGroup = 'standar';
@@ -746,7 +757,15 @@ function filterRelayAthletes() {
             else if (eCatStr.includes('standar')) eGroup = 'standar';
             else if (eCatStr.includes('pemula')) eGroup = 'pemula';
         }
-        let categoryMatch = !(eGroup && targetGroup && eGroup !== targetGroup);
+        let categoryMatch = true;
+        if (eGroup && targetGroup && eGroup !== targetGroup) {
+            if (allowPemulaStandarMix) {
+                const isMixable = (eGroup === 'pemula' || eGroup === 'standar') && (targetGroup === 'pemula' || targetGroup === 'standar');
+                if (!isMixable) categoryMatch = false;
+            } else {
+                categoryMatch = false;
+            }
+        }
         
         // Cek limit & duplikasi spesifik class
         const isAlreadyInThisClass = existingEntriesData.some(e => e.skater_id == sId && e.race_class_id == classId);
@@ -775,10 +794,10 @@ function addRelayAthlete() {
     
     const selectedList = document.getElementById('relay_selected_list');
     
-    // Check if already reached max 3
-    if (selectedList.children.length >= 3) {
+    // Check if already reached max size
+    if (selectedList.children.length >= currentTeamSize) {
         dropdown.value = '';
-        alert('Maksimal 3 atlet untuk tim Relay.');
+        alert('Maksimal ' + currentTeamSize + ' atlet untuk tim ini.');
         return;
     }
     
@@ -828,7 +847,7 @@ function validateRelaySelection() {
     const btn = document.getElementById('btn_submit_relay');
     const dropdown = document.getElementById('relay_athlete_dropdown');
     
-    if (count >= 3) {
+    if (count >= currentTeamSize) {
         btn.disabled = false;
         btn.className = 'w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl font-black text-xs shadow-md transition-all uppercase tracking-widest cursor-pointer';
         dropdown.disabled = true;

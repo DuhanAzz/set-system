@@ -112,6 +112,18 @@
                         </div>
                     </div>
 
+                    <!-- Kategori Campuran -->
+                    <div class="flex flex-col md:flex-row items-start md:items-center justify-between p-4 bg-indigo-50 border border-indigo-100 rounded-xl mb-6">
+                        <div>
+                            <h4 class="text-sm font-bold text-indigo-900">Izinkan Atlet Pemula Ikut Kelas Standar</h4>
+                            <p class="text-[10px] font-bold text-indigo-700/80 uppercase tracking-wider mt-1">Jika aktif, atlet pemula dapat mendaftar di kelas standar sekaligus (akan dikenakan biaya 2x). Atlet Speed tetap tidak bisa turun kelas.</p>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer mt-4 md:mt-0">
+                            <input type="checkbox" name="allow_pemula_standart_mix" value="1" class="sr-only peer" <?= !empty($row['allow_pemula_standart_mix']) ? 'checked' : '' ?>>
+                            <div class="w-14 h-7 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[4px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-indigo-600 shadow-inner"></div>
+                        </label>
+                    </div>
+
                     <!-- Gambar / Media -->
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-slate-200">
                         <h4 class="text-sm font-bold text-slate-800 uppercase tracking-widest mb-2">Poster Kompetisi</h4>

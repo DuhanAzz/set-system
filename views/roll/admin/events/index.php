@@ -90,6 +90,16 @@
                                 <option value="Speed">Speed</option>
                             </select>
                         </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2" title="Kapasitas Max Tim Per Heat (Untuk Individu biarkan 6, Relay/Team sesuaikan aturan)">Max Heat (Lanes)</label>
+                                <input type="number" name="max_lanes" value="6" min="1" max="20" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-emerald-500" required>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2" title="Jumlah Atlet per 1 Tim (Untuk lomba individu isi 1)">Team Size</label>
+                                <input type="number" name="team_size" value="1" min="1" max="10" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-emerald-500" required>
+                            </div>
+                        </div>
                         <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-4 rounded-lg shadow-lg hover:shadow-emerald-500/25 transition-all mt-4">+ Tambah Kelas</button>
                     </form>
                 </div>
@@ -108,6 +118,7 @@
                                 <th class="p-4 font-bold">Kategori</th>
                                 <th class="p-4 font-bold">Kelompok Umur</th>
                                 <th class="p-4 font-bold">Jarak</th>
+                                <th class="p-4 font-bold text-center">Size/Lanes</th>
                                 <th class="p-4 font-bold text-right">Aksi</th>
                             </tr>
                         </thead>
@@ -121,6 +132,10 @@
                                     <td class="p-4 font-bold <?= $c['category_name']=='Speed'?'text-fuchsia-400':'text-amber-400' ?>"><?= htmlspecialchars($c['category_name']) ?></td>
                                     <td class="p-4 text-white font-medium"><?= htmlspecialchars($c['group_name']) ?></td>
                                     <td class="p-4 text-white"><?= htmlspecialchars($c['distance_name']) ?></td>
+                                    <td class="p-4 text-slate-400 text-center text-xs">
+                                        <span class="bg-slate-800 px-2 py-1 rounded" title="Team Size">👥 <?= $c['team_size'] ?></span>
+                                        <span class="bg-slate-800 px-2 py-1 rounded ml-1" title="Max Lanes / Heat">🏁 <?= $c['max_lanes'] ?></span>
+                                    </td>
                                     <td class="p-4 text-right">
                                         <form action="<?= getenv('APP_URL') ?>/roll/admin/events/deleteClass/<?= $c['id'] ?>" method="POST" onsubmit="return confirm('Hapus kelas lomba ini?');">
                                             <button type="submit" class="text-red-400 hover:text-red-300 font-bold text-xs uppercase tracking-wider px-3 py-1 bg-red-900/20 rounded hover:bg-red-900/40 transition">Hapus</button>
