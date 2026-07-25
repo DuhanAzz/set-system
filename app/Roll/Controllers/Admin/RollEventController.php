@@ -97,7 +97,9 @@ class RollEventController extends Controller {
             $stmt->execute([$eventId, $uid]);
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
-            $stmtClass = $db->prepare("SELECT ed.*, d.distance_name, a.group_name, sc.class_name as roller_name
+            $stmtClass = $db->prepare("SELECT ed.*, d.distance_name, a.group_name, sc.class_name as roller_name,
+                                        (SELECT COUNT(DISTINCT heat_name) FROM roll_pelotons p WHERE p.race_class_id = ed.id) as total_heats,
+                                        (SELECT COUNT(e.skater_id) FROM roll_entries e JOIN roll_skaters s ON e.skater_id = s.id JOIN roll_payments pay ON pay.club_id = s.club_id AND pay.event_id = e.event_id WHERE e.race_class_id = ed.id AND pay.status = 'Paid') as total_athletes
                                        FROM roll_event_details ed 
                                        LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id 
                                        LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id 
@@ -124,6 +126,126 @@ class RollEventController extends Controller {
             'skateClasses' => $skateClasses,
             'eventId' => $eventId
         ]);
+    }
+
+    public function generate_schedule_time() {
+        header('Content-Type: application/json');
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') exit;
+        if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+            echo json_encode(['success' => false, 'message' => 'Unauthorized']); exit;
+        }
+
+        $db = Database::getInstance()->getConnection();
+        $eventId = $_SESSION['roll_admin_active_event_id'] ?? 0;
+        if ($eventId == 0) {
+            echo json_encode(['success' => false, 'message' => 'Invalid Event']); exit;
+        }
+
+        $startTimes = $_POST['start_times'] ?? []; // Array of day => "HH:MM"
+        $breakStartTimes = $_POST['break_start_times'] ?? [];
+        $breakEndTimes = $_POST['break_end_times'] ?? [];
+
+        try {
+            $db->beginTransaction();
+
+            $stmtCls = $db->prepare("
+                SELECT ed.*, d.distance_name, a.group_name, sc.class_name as roller_name
+                FROM roll_event_details ed 
+                LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id 
+                LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id 
+                LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
+                WHERE ed.event_id = ? AND ed.race_number IS NOT NULL AND ed.race_number != ''
+            ");
+            $stmtCls->execute([$eventId]);
+            $classes = $stmtCls->fetchAll(PDO::FETCH_ASSOC);
+
+            // Group by day
+            $scheduleByDay = [];
+            foreach ($classes as $c) {
+                $dayDigit = (int)substr($c['race_number'], 0, 1);
+                if ($dayDigit === 0) $dayDigit = 1;
+                $scheduleByDay[$dayDigit][] = $c;
+            }
+            ksort($scheduleByDay);
+
+            $stmtHeats = $db->prepare("SELECT COUNT(DISTINCT heat_name) FROM roll_pelotons WHERE event_id = ? AND race_class_id = ?");
+            $stmtUpdate = $db->prepare("UPDATE roll_event_details SET race_time = ? WHERE id = ?");
+
+            foreach ($scheduleByDay as $day => $dayClasses) {
+                if (empty($startTimes[$day])) continue; 
+                
+                $currentTimestamp = strtotime($startTimes[$day]);
+                $breakStartTs = !empty($breakStartTimes[$day]) ? strtotime($breakStartTimes[$day]) : 0;
+                $breakEndTs = !empty($breakEndTimes[$day]) ? strtotime($breakEndTimes[$day]) : 0;
+                
+                // Sort classes by numeric race number first, then string to properly sequence
+                usort($dayClasses, function($a, $b) {
+                    $numA = (int)preg_replace('/[^0-9]/', '', $a['race_number']);
+                    $numB = (int)preg_replace('/[^0-9]/', '', $b['race_number']);
+                    if ($numA === $numB) return strcmp($a['race_number'], $b['race_number']);
+                    return $numA - $numB;
+                });
+
+                $prevGender = null;
+                $prevKu = null;
+
+                foreach ($dayClasses as $idx => $c) {
+                    // Buffer Check
+                    if ($idx > 0) {
+                        $buffer = 5; 
+                        if ($c['distance_name'] === $dayClasses[$idx-1]['distance_name'] && $c['roller_name'] === $dayClasses[$idx-1]['roller_name']) {
+                            if ($c['gender'] !== $prevGender) $buffer = 2; 
+                            elseif ($c['group_name'] !== $prevKu) $buffer = 2; 
+                        }
+                        $currentTimestamp += ($buffer * 60);
+                    }
+
+                    $stmtHeats->execute([$eventId, $c['id']]);
+                    $heatsCount = (int)$stmtHeats->fetchColumn();
+                    if ($heatsCount === 0) $heatsCount = 1; 
+
+                    $dName = strtolower($c['distance_name'] ?? '');
+                    $rName = strtolower($c['roller_name'] ?? '');
+                    
+                    $minPerHeat = 2; 
+                    if (strpos($dName, '200m dtt') !== false || strpos($dName, '200 dtt') !== false) $minPerHeat = 1.5;
+                    elseif (strpos($dName, '300m') !== false) $minPerHeat = 2;
+                    elseif (strpos($dName, '500m +d') !== false || strpos($dName, '500m+d') !== false) $minPerHeat = 2;
+                    elseif (strpos($dName, '500m') !== false) $minPerHeat = ($rName == 'speed') ? 2 : 3;
+                    elseif (strpos($dName, '1000m') !== false) $minPerHeat = ($rName == 'speed') ? 3 : 3.5;
+                    elseif (strpos($dName, 'team sprint') !== false) $minPerHeat = 3;
+                    elseif (strpos($dName, 'eliminasi') !== false || strpos($dName, 'ptp') !== false) $minPerHeat = 10;
+                    elseif (strpos($dName, 'relay') !== false) $minPerHeat = 3;
+                    elseif (strpos($dName, '100m') !== false || strpos($dName, '200m') !== false) $minPerHeat = 1.5;
+
+                    $totalMinutes = ceil($heatsCount * $minPerHeat);
+
+                    if ($breakStartTs > 0 && $breakEndTs > $breakStartTs) {
+                        $projectedEnd = $currentTimestamp + ($totalMinutes * 60);
+                        if ($projectedEnd > $breakStartTs && $currentTimestamp < $breakEndTs) {
+                            $currentTimestamp = $breakEndTs;
+                        }
+                    }
+
+                    $startTimeStr = date('H:i', $currentTimestamp);
+                    $currentTimestamp += ($totalMinutes * 60);
+                    $endTimeStr = date('H:i', $currentTimestamp);
+
+                    $raceTimeStr = $startTimeStr . ' - ' . $endTimeStr;
+                    $stmtUpdate->execute([$raceTimeStr, $c['id']]);
+
+                    $prevGender = $c['gender'];
+                    $prevKu = $c['group_name'];
+                }
+            }
+
+            $db->commit();
+            echo json_encode(['success' => true, 'message' => 'Jadwal Waktu berhasil dikalkulasi dan disimpan!']);
+        } catch (\Exception $e) {
+            $db->rollBack();
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        }
+        exit;
     }
 
     public function update_profile() {

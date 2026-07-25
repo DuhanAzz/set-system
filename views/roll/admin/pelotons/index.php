@@ -1,7 +1,12 @@
 <div class="max-w-7xl mx-auto mb-6 flex flex-col lg:flex-row justify-between items-start gap-6">
     <div>
-        <h1 class="text-4xl font-black uppercase tracking-tighter italic text-slate-900 leading-none">Penyusunan Seri & Lintasan</h1>
-        <p class="text-sm text-slate-500 font-bold uppercase tracking-widest mt-2">Daftar Seluruh Nomor Perlombaan</p>
+        <a href="<?= getenv('APP_URL') ?>/roll/admin/pelotons/category?type=<?= urlencode($type ?? 'Speed') ?>" class="inline-flex items-center text-indigo-600 hover:text-indigo-800 font-bold text-xs uppercase tracking-widest mb-4 transition-colors">
+            <span class="mr-2">←</span> Kembali ke Kategori <?= htmlspecialchars($type ?? 'Speed') ?>
+        </a>
+        <h1 class="text-4xl font-black uppercase tracking-tighter italic text-slate-900 leading-none">Seri & Lintasan</h1>
+        <p class="text-sm text-slate-500 font-bold uppercase tracking-widest mt-2">
+            Kategori <?= htmlspecialchars($type ?? 'Semua') ?> - Jarak <?= htmlspecialchars($distance ?? 'Semua') ?>
+        </p>
     </div>
     
     <?php 

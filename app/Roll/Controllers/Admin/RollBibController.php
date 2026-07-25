@@ -93,7 +93,7 @@ class RollBibController extends Controller {
             JOIN roll_clubs c ON s.club_id = c.id
             JOIN roll_payments p ON c.id = p.club_id AND p.event_id = e.event_id
             WHERE e.event_id = ? AND p.status = 'Paid'
-            ORDER BY p.created_at ASC, s.gender ASC, s.skater_name ASC
+            ORDER BY p.created_at ASC, c.club_name ASC, s.gender ASC, s.skater_name ASC
         ");
         $stmt->execute([$eventId]);
         $skaters = $stmt->fetchAll(PDO::FETCH_ASSOC);

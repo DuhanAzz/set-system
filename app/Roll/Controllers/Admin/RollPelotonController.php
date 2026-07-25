@@ -16,8 +16,8 @@ class RollPelotonController extends Controller {
         }
     }
 
-    public function index() {
-        $db = Database::getInstance()->getConnection();
+    public function category() {
+        $db = \App\Core\Database::getInstance()->getConnection();
         $eventId = $_SESSION['roll_admin_active_event_id'] ?? 0;
 
         if ($eventId == 0) {
@@ -27,10 +27,44 @@ class RollPelotonController extends Controller {
             exit;
         }
 
+        $type = $_GET['type'] ?? 'Speed';
+
+        // Fetch unique distances for this category
+        $sqlDistances = "SELECT DISTINCT d.distance_name, d.id as distance_id
+                       FROM roll_event_details ed 
+                       JOIN roll_ref_distances d ON ed.distance_id = d.id 
+                       JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
+                       WHERE ed.event_id = ? AND sc.class_name = ?
+                       ORDER BY d.id ASC";
+        
+        $stmtDistances = $db->prepare($sqlDistances);
+        $stmtDistances->execute([$eventId, $type]);
+        $distances = $stmtDistances->fetchAll(\PDO::FETCH_ASSOC);
+
+        return $this->view('roll/admin/pelotons/category', [
+            'type' => $type,
+            'distances' => $distances,
+            'eventId' => $eventId
+        ]);
+    }
+
+    public function index() {
+        $db = \App\Core\Database::getInstance()->getConnection();
+        $eventId = $_SESSION['roll_admin_active_event_id'] ?? 0;
+
+        if ($eventId == 0) {
+            $_SESSION['flash_message'] = "Pilih Event terlebih dahulu!";
+            $_SESSION['flash_type'] = "warning";
+            header("Location: " . getenv('APP_URL') . "/roll/admin/dashboard");
+            exit;
+        }
+
+        $type = $_GET['type'] ?? '';
+        $distance = $_GET['distance'] ?? '';
+
         $classes = [];
         $entriesByClass = [];
 
-        // Fetch all classes for this event ordered by race_number
         $sqlClasses = "SELECT ed.id as class_id, ed.race_number, ed.category_name, d.distance_name, a.group_name, sc.class_name as roller_name,
                        (SELECT COUNT(*) FROM roll_entries e 
                         JOIN roll_skaters s ON e.skater_id = s.id
@@ -40,28 +74,37 @@ class RollPelotonController extends Controller {
                        LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id 
                        LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id 
                        LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
-                       WHERE ed.event_id = ? 
-                       ORDER BY CAST(ed.race_number AS UNSIGNED) ASC, ed.race_number ASC";
+                       WHERE ed.event_id = ?";
+                       
+        $params = [$eventId];
+        
+        if (!empty($type)) {
+            $sqlClasses .= " AND sc.class_name = ?";
+            $params[] = $type;
+        }
+        if (!empty($distance)) {
+            $sqlClasses .= " AND d.distance_name = ?";
+            $params[] = $distance;
+        }
+        
+        $sqlClasses .= " ORDER BY CAST(ed.race_number AS UNSIGNED) ASC, ed.race_number ASC";
         
         $stmtClasses = $db->prepare($sqlClasses);
-        $stmtClasses->execute([$eventId]);
-        $classes = $stmtClasses->fetchAll(PDO::FETCH_ASSOC);
+        $stmtClasses->execute($params);
+        $classes = $stmtClasses->fetchAll(\PDO::FETCH_ASSOC);
 
-        // Fetch aggregate data for each class
         foreach ($classes as &$cls) {
             $cId = $cls['class_id'];
-            $stmtHeats = $db->prepare("
-                SELECT COUNT(DISTINCT heat_name) as total_heats 
-                FROM roll_pelotons 
-                WHERE event_id = ? AND race_class_id = ?
-            ");
+            $stmtHeats = $db->prepare("SELECT COUNT(DISTINCT heat_name) as total_heats FROM roll_pelotons WHERE event_id = ? AND race_class_id = ?");
             $stmtHeats->execute([$eventId, $cId]);
             $cls['total_heats'] = $stmtHeats->fetchColumn();
         }
 
         return $this->view('roll/admin/pelotons/index', [
-            'eventId' => $eventId,
-            'classes' => $classes
+            'classes' => $classes,
+            'type' => $type,
+            'distance' => $distance,
+            'eventId' => $eventId
         ]);
     }
     public function generateAll() {
@@ -259,32 +302,208 @@ class RollPelotonController extends Controller {
 
         // Fetch heats/entries
         $stmtEntries = $db->prepare("
-            SELECT e.skater_id, s.skater_name, s.gender, c.club_name, e.bib_number, p.heat_name, p.start_grid
+            SELECT e.skater_id, s.skater_name, s.gender, c.club_name, e.bib_number, p.heat_name, p.start_grid, p.round
             FROM roll_entries e
             JOIN roll_skaters s ON e.skater_id = s.id
             LEFT JOIN roll_clubs c ON s.club_id = c.id
             LEFT JOIN roll_pelotons p ON e.skater_id = p.skater_id AND p.race_class_id = e.race_class_id AND p.event_id = e.event_id
             JOIN roll_payments pay ON pay.club_id = s.club_id AND pay.event_id = e.event_id
             WHERE e.event_id = ? AND e.race_class_id = ? AND pay.status = 'Paid'
-            ORDER BY p.heat_name ASC, p.start_grid ASC, s.skater_name ASC
+            ORDER BY p.round ASC, p.heat_name ASC, p.start_grid ASC, s.skater_name ASC
         ");
         $stmtEntries->execute([$eventId, $classId]);
         
-        $heats = [];
+        $heatsByRound = [
+            'Kualifikasi' => [],
+            'Perempat Final' => [],
+            'Semi Final' => [],
+            'Final' => []
+        ];
         $unseeded = [];
+        
         foreach ($stmtEntries->fetchAll(PDO::FETCH_ASSOC) as $ent) {
             if (empty($ent['heat_name'])) {
-                $unseeded[] = $ent;
+                // To avoid duplicate unseeded entries if somehow they appear multiple times, though LEFT JOIN on empty right side is 1 row
+                $unseeded[$ent['skater_id']] = $ent;
             } else {
-                $heats[$ent['heat_name']][] = $ent;
+                $round = $ent['round'] ?? 'Kualifikasi';
+                $heatsByRound[$round][$ent['heat_name']][] = $ent;
             }
         }
+        
+        // Remove keys from unseeded to make it a list
+        $unseeded = array_values($unseeded);
 
         return $this->view('roll/admin/pelotons/detail', [
             'classData' => $classData,
-            'heats' => $heats,
+            'classId' => $classId,
+            'heatsByRound' => $heatsByRound,
             'unseeded' => $unseeded
         ]);
+    }
+
+    public function generate_custom() {
+        header('Content-Type: application/json');
+        
+        if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+            echo json_encode(['success' => false, 'message' => 'Unauthorized']); 
+            exit;
+        }
+
+        $classId = (int)($_POST['class_id'] ?? 0);
+        $eventId = $_SESSION['roll_admin_active_event_id'] ?? 0;
+        $round = $_POST['round'] ?? 'Kualifikasi';
+        $algorithm = $_POST['algorithm'] ?? 'random';
+        $maxPerHeat = (int)($_POST['max_per_heat'] ?? 6);
+
+        if ($classId == 0 || $eventId == 0) {
+            echo json_encode(['success' => false, 'message' => 'Invalid parameters']);
+            exit;
+        }
+
+        $db = Database::getInstance()->getConnection();
+
+        try {
+            $db->beginTransaction();
+
+            // Proteksi: Cek hasil babak sebelumnya jika algoritma membutuhkan data ranking
+            if (in_array($algorithm, ['winner', 'descending'])) {
+                if ($round === 'Kualifikasi') {
+                    throw new \Exception("Algoritma Winner/Descending tidak bisa digunakan untuk babak Kualifikasi karena belum ada catatan waktu sebelumnya.");
+                }
+
+                // Cari babak sebelumnya yang sudah ada hasil resmi
+                $stmtCheckResult = $db->prepare("
+                    SELECT skater_id, finish_time_ms, finish_position 
+                    FROM roll_event_results 
+                    WHERE event_id = ? AND race_class_id = ? AND round != ? AND is_official = 1
+                    ORDER BY finish_time_ms ASC, finish_position ASC
+                ");
+                $stmtCheckResult->execute([$eventId, $classId, $round]);
+                $prevResults = $stmtCheckResult->fetchAll(PDO::FETCH_ASSOC);
+
+                if (empty($prevResults)) {
+                    throw new \Exception("Gagal: Hasil babak sebelumnya belum diinput atau belum disahkan (is_official).");
+                }
+            }
+
+            // 1. Bersihkan data pelotons khusus untuk event, class, dan BABAK ini saja
+            $stmtDelete = $db->prepare("DELETE FROM roll_pelotons WHERE event_id = ? AND race_class_id = ? AND round = ?");
+            $stmtDelete->execute([$eventId, $classId, $round]);
+
+            // Tarik seluruh atlet Valid (Paid)
+            $stmtAthletes = $db->prepare("
+                SELECT e.skater_id, s.club_id
+                FROM roll_entries e
+                JOIN roll_skaters s ON e.skater_id = s.id
+                JOIN roll_payments pay ON pay.club_id = s.club_id AND pay.event_id = e.event_id
+                WHERE e.event_id = ? AND e.race_class_id = ? AND pay.status = 'Paid'
+            ");
+            $stmtAthletes->execute([$eventId, $classId]);
+            $allAthletes = $stmtAthletes->fetchAll(PDO::FETCH_ASSOC);
+
+            if (empty($allAthletes)) {
+                throw new \Exception("Tidak ada atlet yang valid (Paid) di kelas ini.");
+            }
+
+            $flatAthletes = [];
+            
+            // LOGIC PENGURUTAN ATLET BERDASARKAN ALGORITMA
+            if ($algorithm === 'random' || $algorithm === 'serpentine') {
+                // Keduanya butuh sebaran berdasarkan klub (Club Distribution)
+                $clubGroups = [];
+                foreach ($allAthletes as $a) {
+                    $cId = $a['club_id'] ?? 0;
+                    if (!isset($clubGroups[$cId])) $clubGroups[$cId] = [];
+                    $clubGroups[$cId][] = $a['skater_id'];
+                }
+
+                uasort($clubGroups, function($a, $b) { return count($b) - count($a); });
+
+                foreach ($clubGroups as $members) {
+                    if ($algorithm === 'random') shuffle($members); // Acak internal klub
+                    foreach ($members as $m) {
+                        $flatAthletes[] = $m;
+                    }
+                }
+            } else {
+                // Winner & Descending
+                // Susun $flatAthletes berdasarkan urutan dari $prevResults
+                
+                // Ambil daftar ID atlet dari hasil sebelumnya
+                $rankedIds = array_column($prevResults, 'skater_id');
+                
+                // Filter allAthletes yang ada di rankedIds
+                foreach ($rankedIds as $rId) {
+                    // Pastikan atlet ini memang terdaftar di kelas ini
+                    $valid = array_filter($allAthletes, function($a) use ($rId) { return $a['skater_id'] == $rId; });
+                    if (!empty($valid)) {
+                        $flatAthletes[] = $rId;
+                    }
+                }
+                
+                // Jika Descending, balik urutannya (tercepat jadi di belakang)
+                if ($algorithm === 'descending') {
+                    $flatAthletes = array_reverse($flatAthletes);
+                }
+            }
+
+            $totalAthletes = count($flatAthletes);
+            $totalHeats = ceil($totalAthletes / $maxPerHeat);
+            $heatsAssigned = array_fill(1, $totalHeats, []);
+
+            // DISTRIBUSI KE HEAT
+            for ($i = 0; $i < $totalAthletes; $i++) {
+                $skaterId = $flatAthletes[$i];
+                
+                if ($algorithm === 'serpentine' || $algorithm === 'winner' || $algorithm === 'descending') {
+                    // Snake System
+                    $roundIdx = floor($i / $totalHeats);
+                    $rem = $i % $totalHeats;
+                    
+                    if ($roundIdx % 2 == 0) {
+                        $targetHeat = $rem + 1; // Maju
+                    } else {
+                        $targetHeat = $totalHeats - $rem; // Mundur
+                    }
+                } else {
+                    // Random (Distributed) - Simple Round Robin
+                    $targetHeat = ($i % $totalHeats) + 1;
+                }
+                
+                $heatsAssigned[$targetHeat][] = $skaterId;
+            }
+
+            // SIMPAN KE DB
+            $stmtInsert = $db->prepare("
+                INSERT INTO roll_pelotons (event_id, skater_id, race_class_id, heat_name, start_grid, round)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ");
+
+            foreach ($heatsAssigned as $heatIndex => $members) {
+                $heatName = "Seri " . $heatIndex;
+                $grid = 1;
+                foreach ($members as $skaterId) {
+                    $stmtInsert->execute([
+                        $eventId,
+                        $skaterId,
+                        $classId,
+                        $heatName,
+                        $grid,
+                        $round
+                    ]);
+                    $grid++;
+                }
+            }
+
+            $db->commit();
+            echo json_encode(['success' => true, 'message' => 'Berhasil membuat ' . $totalHeats . ' Seri pada babak ' . $round]);
+
+        } catch (\Exception $e) {
+            $db->rollBack();
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        }
+        exit;
     }
 
     public function generate_heat() {

@@ -177,12 +177,18 @@ if (!function_exists('isGroupActive')) {
 
          <!-- GROUP 3: Penyusunan Seri & Lintasan -->
          <?php $a2Active = isGroupActive($req, ['admin/pelotons']); ?>
-         <a href="<?= getenv('APP_URL') ?>/roll/admin/pelotons" class="<?= $a2Active ? $dropdownBtnActive : $dropdownBtnBase ?>">
+         <button onclick="toggleSidebarDropdown('dd-peloton')" class="<?= $a2Active ? $dropdownBtnActive : $dropdownBtnBase ?>">
             <div class="flex items-center">
                <span class="w-6 text-xl mr-3 text-center opacity-80">🛼</span>
-               <span class="font-bold text-[11px] tracking-widest uppercase">Penyusunan Seri & Lintasan</span>
+               <span class="font-bold text-[11px] tracking-widest uppercase">Seri & Lintasan</span>
             </div>
-         </a>
+            <span id="icon-dd-peloton" class="transform transition-transform text-xs <?= $a2Active ? 'rotate-180' : '' ?>">▼</span>
+         </button>
+         <div id="dd-peloton" class="bg-[#0b1120] py-2 <?= $a2Active ? '' : 'hidden' ?>">
+             <a href="<?= getenv('APP_URL') ?>/roll/admin/pelotons/category?type=Speed" class="<?= (strpos($req,"admin/pelotons/category")!==false && (urldecode($_GET['type']??'') == 'Speed')) ? $childActiveLink : $childBaseLink ?>">⚡ Speed</a>
+             <a href="<?= getenv('APP_URL') ?>/roll/admin/pelotons/category?type=Standart" class="<?= (strpos($req,"admin/pelotons/category")!==false && (urldecode($_GET['type']??'') == 'Standart' || urldecode($_GET['type']??'') == 'Standar')) ? $childActiveLink : $childBaseLink ?>">🏃 Standart</a>
+             <a href="<?= getenv('APP_URL') ?>/roll/admin/pelotons/category?type=Pemula" class="<?= (strpos($req,"admin/pelotons/category")!==false && (urldecode($_GET['type']??'') == 'Pemula')) ? $childActiveLink : $childBaseLink ?>">🛼 Pemula</a>
+         </div>
 
          <!-- GROUP 3: Hasil & Laporan -->
          <?php $a3Active = isGroupActive($req, ['admin/results', 'admin/reports']); ?>

@@ -262,6 +262,84 @@ $pemulaKUs = array_filter($ageGroups, fn($a) => in_array($a['group_name'], $pemu
 <?php if (!empty($scheduleByDay)): ?>
 <div class="mt-8 bg-white rounded-2xl border border-slate-200/50 shadow-xl overflow-hidden">
     <div class="p-6 border-b border-slate-200 bg-slate-50 flex justify-between items-center">
+        <h3 class="text-lg font-bold text-slate-800 uppercase tracking-widest">⚙️ Pengaturan Durasi & Generate Jadwal</h3>
+    </div>
+    <div class="p-6">
+        <form id="formGenTime" onsubmit="generateScheduleTime(event)" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <?php foreach ($scheduleByDay as $day => $dayClasses): 
+                    $dateStr = '';
+                    if (!empty($row['event_date_start'])) {
+                        try {
+                            $dt = new DateTime($row['event_date_start']);
+                            if ($day > 1) {
+                                $dt->modify("+" . ($day - 1) . " days");
+                            }
+                            $dateStr = $dt->format('d M Y');
+                        } catch(Exception $e) {}
+                    }
+                ?>
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-widest mb-2 border-b border-slate-200 pb-2">Hari Ke-<?= $day ?> <?= $dateStr ? '('.$dateStr.')' : '' ?></label>
+                    <div>
+                        <p class="text-[10px] text-slate-500 font-bold mb-1">Waktu Mulai Acara</p>
+                        <input type="time" name="start_times[<?= $day ?>]" class="w-full rounded-lg border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm" value="07:30" required>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-200 border-dashed">
+                        <div>
+                            <p class="text-[10px] text-slate-500 font-bold mb-1">Mulai Istirahat</p>
+                            <input type="time" name="break_start_times[<?= $day ?>]" class="w-full rounded-lg border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm" value="11:30">
+                        </div>
+                        <div>
+                            <p class="text-[10px] text-slate-500 font-bold mb-1">Selesai Istirahat</p>
+                            <input type="time" name="break_end_times[<?= $day ?>]" class="w-full rounded-lg border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm" value="13:00">
+                        </div>
+                    </div>
+                </div>
+                <?php endforeach; ?>
+            </div>
+            
+            <div class="flex justify-end pt-4 border-t border-slate-100">
+                <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-8 rounded-xl shadow-lg transition-all uppercase tracking-widest text-sm flex items-center gap-2">
+                    ⚡ Generate Waktu
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+async function generateScheduleTime(e) {
+    e.preventDefault();
+    const btn = e.target.querySelector('button[type="submit"]');
+    btn.innerHTML = 'Memproses...';
+    btn.disabled = true;
+    
+    try {
+        const fd = new FormData(e.target);
+        const res = await fetch(`<?= getenv('APP_URL') ?>/roll/admin/events/generate_schedule_time`, {
+            method: 'POST',
+            body: fd
+        });
+        const data = await res.json();
+        
+        if (data.success) {
+            alert('Sukses: ' + data.message);
+            window.location.reload();
+        } else {
+            alert('Gagal: ' + data.message);
+        }
+    } catch(err) {
+        alert('Terjadi kesalahan jaringan.');
+    } finally {
+        btn.innerHTML = '⚡ Generate Waktu';
+        btn.disabled = false;
+    }
+}
+</script>
+
+<div class="mt-8 bg-white rounded-2xl border border-slate-200/50 shadow-xl overflow-hidden">
+    <div class="p-6 border-b border-slate-200 bg-slate-50 flex justify-between items-center">
         <h3 class="text-lg font-bold text-slate-800 uppercase tracking-widest">Jadwal Lomba Tergenerate</h3>
     </div>
     
@@ -286,11 +364,14 @@ $pemulaKUs = array_filter($ageGroups, fn($a) => in_array($a['group_name'], $pemu
                 <table class="w-full text-left text-sm text-slate-600">
                     <thead class="bg-slate-50 border-b border-slate-200 text-[10px] uppercase font-black tracking-wider text-slate-400">
                         <tr>
+                            <th class="p-3">Waktu (Pukul)</th>
+                            <th class="p-3 text-center">Heat</th>
                             <th class="p-3">No. Lomba</th>
                             <th class="p-3">Jarak</th>
                             <th class="p-3">Kelompok Umur</th>
                             <th class="p-3">Kategori</th>
                             <th class="p-3">Gender</th>
+                            <th class="p-3 text-center">Peserta</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
@@ -299,6 +380,10 @@ $pemulaKUs = array_filter($ageGroups, fn($a) => in_array($a['group_name'], $pemu
                         foreach ($dayClasses as $c): 
                         ?>
                         <tr class="hover:bg-slate-50">
+                            <td class="p-3 font-black text-indigo-600"><?= htmlspecialchars($c['race_time'] ?? '-') ?></td>
+                            <td class="p-3 text-center font-bold text-slate-700">
+                                <span class="bg-emerald-50 text-emerald-700 px-2 py-1 rounded text-xs"><?= (int)($c['total_heats'] ?? 0) ?></span>
+                            </td>
                             <td class="p-3 font-bold text-slate-800"><?= htmlspecialchars($c['race_number']) ?></td>
                             <td class="p-3 text-blue-600 font-bold uppercase"><?= htmlspecialchars($c['distance_name'] ?? $c['distance']) ?></td>
                             <td class="p-3 font-bold text-slate-700 uppercase"><?= htmlspecialchars($c['group_name'] ?? '-') ?></td>
@@ -311,6 +396,9 @@ $pemulaKUs = array_filter($ageGroups, fn($a) => in_array($a['group_name'], $pemu
                                 <?php else: ?>
                                     <?= htmlspecialchars($c['gender']) ?>
                                 <?php endif; ?>
+                            </td>
+                            <td class="p-3 text-center font-bold text-slate-700">
+                                <span class="bg-indigo-50 text-indigo-700 px-2 py-1 rounded text-xs"><?= (int)($c['total_athletes'] ?? 0) ?></span>
                             </td>
                         </tr>
                         <?php endforeach; ?>
