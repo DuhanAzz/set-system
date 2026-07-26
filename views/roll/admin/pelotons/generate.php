@@ -57,7 +57,8 @@ document.addEventListener('DOMContentLoaded', function() {
         addLog("Processing: " + className + "...");
 
         try {
-            const response = await fetch("<?= getenv('APP_URL') ?>/roll/admin/pelotons/process?class_id=" + cls.class_id);
+            const url = `<?= getenv('APP_URL') ?>/roll/admin/pelotons/process?class_id=${cls.class_id}&round=<?= urlencode($round) ?>&algorithm=<?= urlencode($algorithm) ?>&max_lanes=<?= urlencode($maxLanes) ?>`;
+            const response = await fetch(url);
             const data = await response.json();
             
             if (data.success) {

@@ -175,16 +175,17 @@ if (!function_exists('isGroupActive')) {
              <a href="<?= getenv('APP_URL') ?>/roll/admin/bibs" class="<?= (strpos($req,"admin/bibs")!==false) ? $childActiveLink : $childBaseLink ?>">Manage BIB</a>
          </div>
 
-         <!-- GROUP 3: Penyusunan Seri & Lintasan -->
+         <!-- GROUP 3: Seeding & Racebook -->
          <?php $a2Active = isGroupActive($req, ['admin/pelotons']); ?>
          <button onclick="toggleSidebarDropdown('dd-peloton')" class="<?= $a2Active ? $dropdownBtnActive : $dropdownBtnBase ?>">
             <div class="flex items-center">
                <span class="w-6 text-xl mr-3 text-center opacity-80">🛼</span>
-               <span class="font-bold text-[11px] tracking-widest uppercase">Seri & Lintasan</span>
+               <span class="font-bold text-[11px] tracking-widest uppercase">Seeding & Racebook</span>
             </div>
             <span id="icon-dd-peloton" class="transform transition-transform text-xs <?= $a2Active ? 'rotate-180' : '' ?>">▼</span>
          </button>
          <div id="dd-peloton" class="bg-[#0b1120] py-2 <?= $a2Active ? '' : 'hidden' ?>">
+             <a href="<?= getenv('APP_URL') ?>/roll/admin/pelotons/global" class="<?= (strpos($req,"admin/pelotons/global")!==false) ? $childActiveLink : $childBaseLink ?>">⚙️ Generate & Print</a>
              <a href="<?= getenv('APP_URL') ?>/roll/admin/pelotons/category?type=Speed" class="<?= (strpos($req,"admin/pelotons/category")!==false && (urldecode($_GET['type']??'') == 'Speed')) ? $childActiveLink : $childBaseLink ?>">⚡ Speed</a>
              <a href="<?= getenv('APP_URL') ?>/roll/admin/pelotons/category?type=Standart" class="<?= (strpos($req,"admin/pelotons/category")!==false && (urldecode($_GET['type']??'') == 'Standart' || urldecode($_GET['type']??'') == 'Standar')) ? $childActiveLink : $childBaseLink ?>">🏃 Standart</a>
              <a href="<?= getenv('APP_URL') ?>/roll/admin/pelotons/category?type=Pemula" class="<?= (strpos($req,"admin/pelotons/category")!==false && (urldecode($_GET['type']??'') == 'Pemula')) ? $childActiveLink : $childBaseLink ?>">🛼 Pemula</a>
