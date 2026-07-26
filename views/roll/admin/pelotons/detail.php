@@ -27,16 +27,7 @@ if ($isStartingList) {
         </a>
     </div>
     
-    <?php if($isHeat): ?>
-    <!-- TAB BABAK — Hanya untuk mekanisme HEAT -->
-    <div class="flex bg-slate-200 rounded-xl p-1 gap-1" id="round-tabs">
-        <?php foreach(['Kualifikasi', 'Perempat Final', 'Semi Final', 'Final'] as $idx => $rnd): ?>
-            <button type="button" onclick="switchRound('<?= $rnd ?>')" class="tab-btn px-4 py-2 text-xs font-bold uppercase tracking-widest rounded-lg transition <?= $idx === 0 ? 'bg-white shadow text-indigo-600' : 'text-slate-500 hover:text-slate-800' ?>" data-target="<?= $rnd ?>">
-                <?= $rnd ?>
-            </button>
-        <?php endforeach; ?>
-    </div>
-    <?php else: ?>
+    <?php if(!$isHeat): ?>
     <!-- BADGE MEKANISME — Untuk Starting List -->
     <div class="flex items-center gap-2">
         <?php if($raceType === 'time_trial'): ?>
@@ -55,78 +46,6 @@ if ($isStartingList) {
         <span>🖨️</span> Cetak
     </button>
 </div>
-
-<?php if($isHeat): ?>
-<!-- ============================================================ -->
-<!-- GENERATOR PANEL — Mekanisme HEAT (Tab Babak + Algoritma) -->
-<!-- ============================================================ -->
-<div class="max-w-7xl mx-auto mb-6 bg-white p-5 rounded-2xl shadow-sm border border-slate-200 print:hidden" id="generator-panel">
-    <h3 class="text-sm font-black uppercase tracking-widest mb-4 border-b pb-2 flex items-center justify-between">
-        <span>⚙️ Generate Seri: <span id="generator-round-label" class="text-indigo-600">Kualifikasi</span></span>
-    </h3>
-    <form id="formGenerateHeat" class="flex flex-wrap items-end gap-4" onsubmit="generateCustom(event)">
-        <input type="hidden" id="gen_class_id" value="<?= $classId ?>">
-        <input type="hidden" id="gen_round" value="Kualifikasi">
-        
-        <div class="flex-1 min-w-[200px]">
-            <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Algoritma Seeding</label>
-            <select id="gen_algorithm" class="w-full border-slate-200 rounded-xl text-sm focus:ring-indigo-500 focus:border-indigo-500">
-                <option value="random">Acak Terdistribusi (Distributed Random)</option>
-                <option value="serpentine">Serpentine Mode (Snake)</option>
-                <option value="winner">Winner Mode (Seeded by Result)</option>
-                <option value="descending">Descending Mode (Reverse Seeded)</option>
-            </select>
-        </div>
-        
-        <div class="w-24">
-            <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Max/Seri</label>
-            <input type="number" id="gen_max" value="6" min="1" max="100" class="w-full border-slate-200 rounded-xl text-sm focus:ring-indigo-500 focus:border-indigo-500">
-        </div>
-        
-        <button type="submit" class="bg-indigo-600 text-white px-6 py-2.5 rounded-xl font-bold text-sm uppercase tracking-widest hover:bg-indigo-500 transition shadow">
-            Generate ⚡
-        </button>
-    </form>
-</div>
-<?php else: ?>
-<!-- ============================================================ -->
-<!-- GENERATOR PANEL — Mekanisme STARTING LIST (Sederhana) -->
-<!-- ============================================================ -->
-<div class="max-w-7xl mx-auto mb-6 bg-white p-5 rounded-2xl shadow-sm border border-slate-200 print:hidden">
-    <form id="formGenerateHeat" class="flex flex-wrap items-center justify-between gap-4" onsubmit="generateCustom(event)">
-        <input type="hidden" id="gen_class_id" value="<?= $classId ?>">
-        <input type="hidden" id="gen_round" value="Kualifikasi">
-        <input type="hidden" id="gen_algorithm" value="random">
-        <input type="hidden" id="gen_max" value="999">
-
-        <div class="flex items-center gap-3">
-            <span class="text-lg"><?= $raceType === 'time_trial' ? '⏱️' : '📋' ?></span>
-            <div>
-                <h3 class="text-sm font-black uppercase tracking-widest">
-                    <?= $raceType === 'time_trial' ? 'Urutan Pemanggilan Time Trial' : 'Starting List (Langsung Final)' ?>
-                </h3>
-                <p class="text-[10px] text-slate-500 font-bold">Klik tombol untuk mengacak ulang urutan daftar peserta.</p>
-            </div>
-        </div>
-        
-        <div class="flex items-end gap-4">
-            <?php if($raceType === 'endurance'): ?>
-            <div class="w-32">
-                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Limit (Split Grup)</label>
-                <input type="number" id="gen_max" value="50" min="10" max="999" class="w-full border-slate-200 rounded-xl text-sm focus:ring-indigo-500 focus:border-indigo-500">
-            </div>
-            <?php else: ?>
-                <input type="hidden" id="gen_max" value="999">
-            <?php endif; ?>
-            
-            <button type="submit" class="bg-indigo-600 text-white px-6 py-2.5 rounded-xl font-bold text-sm uppercase tracking-widest hover:bg-indigo-500 transition shadow">
-                🔄 Acak Ulang Urutan
-            </button>
-        </div>
-    </form>
-</div>
-<?php endif; ?>
-
 
 <!-- KERTAS A4 PREVIEW -->
 <div class="w-full max-w-[210mm] min-h-[297mm] bg-white mx-auto shadow-2xl p-[10mm] sm:p-[15mm] text-black print:shadow-none print:p-0 print:m-0 print:w-auto">
@@ -148,27 +67,31 @@ if ($isStartingList) {
 
     <?php if($isHeat): ?>
     <!-- ============================================================ -->
-    <!-- KONTEN HEAT: Tab per babak dengan tabel per seri -->
+    <!-- KONTEN HEAT: List per babak berurutan ke bawah -->
     <!-- ============================================================ -->
-    <?php foreach(['Kualifikasi', 'Perempat Final', 'Semi Final', 'Final'] as $idx => $rnd): 
-        $roundHeats = $heatsByRound[$rnd] ?? [];
+    <?php 
+        $hasAnyHeat = false;
+        foreach(['Kualifikasi', 'Perempat Final', 'Semi Final', 'Final'] as $rnd):
+            $roundHeats = $heatsByRound[$rnd] ?? [];
+            if(!empty($roundHeats)) $hasAnyHeat = true;
+        endforeach;
     ?>
-    <div class="round-content <?= $idx === 0 ? 'block' : 'hidden print:hidden' ?>" id="content-<?= str_replace(' ', '', $rnd) ?>">
-        <div class="text-center mb-6">
-            <h3 class="text-lg font-black text-slate-700 uppercase tracking-widest bg-slate-200 inline-block px-4 py-1 rounded-full">BABAK <?= $rnd ?></h3>
+    
+    <?php if(!$hasAnyHeat): ?>
+        <div class="text-center py-20 opacity-50">
+            <span class="text-5xl block mb-4 grayscale">🎲</span>
+            <p class="text-sm font-black text-slate-500 uppercase tracking-widest">Belum ada seri pada kelas ini</p>
         </div>
-
-        <?php if(empty($roundHeats)): ?>
-            <div class="text-center py-20 opacity-50">
-                <span class="text-5xl block mb-4 grayscale">🎲</span>
-                <p class="text-sm font-black text-slate-500 uppercase tracking-widest">Belum ada seri pada babak ini</p>
-                <?php if($rnd === 'Kualifikasi' && !empty($unseeded)): ?>
-                    <p class="text-xs font-bold text-slate-400 mt-2">Terdapat <?= count($unseeded) ?> atlet Unseeded. Silakan Generate Seri.</p>
-                <?php else: ?>
-                    <p class="text-xs font-bold text-slate-400 mt-2">Silakan Generate Seri jika atlet berhak melaju ke babak ini.</p>
-                <?php endif; ?>
+    <?php else: ?>
+        <?php foreach(['Kualifikasi', 'Perempat Final', 'Semi Final', 'Final'] as $rnd): 
+            $roundHeats = $heatsByRound[$rnd] ?? [];
+            if(empty($roundHeats)) continue; // Hanya tampilkan babak yang memiliki seri
+        ?>
+        <div class="mb-10">
+            <div class="text-center mb-6">
+                <h3 class="text-lg font-black text-slate-700 uppercase tracking-widest bg-slate-200 inline-block px-4 py-1 rounded-full">BABAK <?= $rnd ?></h3>
             </div>
-        <?php else: ?>
+            
             
             <?php foreach($roundHeats as $heatName => $members): ?>
                 <div class="mb-10 page-break-inside-avoid">
@@ -200,9 +123,9 @@ if ($isStartingList) {
                 </div>
             <?php endforeach; ?>
 
-        <?php endif; ?>
-    </div>
-    <?php endforeach; ?>
+        </div>
+        <?php endforeach; ?>
+    <?php endif; ?>
 
     <?php else: ?>
     <!-- ============================================================ -->
@@ -212,15 +135,11 @@ if ($isStartingList) {
         <div class="text-center py-20 opacity-50">
             <span class="text-5xl block mb-4 grayscale">📋</span>
             <p class="text-sm font-black text-slate-500 uppercase tracking-widest">Belum ada data starting list</p>
-            <p class="text-xs font-bold text-slate-400 mt-2">Klik "Acak Ulang Urutan" untuk menyusun daftar peserta.</p>
         </div>
     <?php else: ?>
         <?php 
-        // Deteksi jika ada split grup (dari heat_name)
-        // Karena Kualifikasi kita flat-kan, kita bisa iterasi $heatsByRound['Kualifikasi'] jika ada.
         $startingHeats = $heatsByRound['Kualifikasi'] ?? [];
         if(empty($startingHeats) && !empty($unseeded)) {
-            // Jika belum di generate, treat as 1 group
             $startingHeats['Draft'] = $unseeded;
         }
         ?>
@@ -281,94 +200,5 @@ if ($isStartingList) {
     main { padding: 0 !important; margin: 0 !important; width: 100% !important; }
     .page-break-inside-avoid { page-break-inside: avoid; }
     * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-    .round-content:not(.block) { display: none !important; }
-    .round-content.block { display: block !important; }
 }
 </style>
-
-<script>
-<?php if($isHeat): ?>
-function switchRound(roundName) {
-    document.getElementById('generator-round-label').innerText = roundName;
-    document.getElementById('gen_round').value = roundName;
-    
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-        if (btn.dataset.target === roundName) {
-            btn.classList.add('bg-white', 'shadow', 'text-indigo-600');
-            btn.classList.remove('text-slate-500', 'hover:text-slate-800');
-        } else {
-            btn.classList.remove('bg-white', 'shadow', 'text-indigo-600');
-            btn.classList.add('text-slate-500', 'hover:text-slate-800');
-        }
-    });
-
-    const contentId = 'content-' + roundName.replace(/\s+/g, '');
-    document.querySelectorAll('.round-content').forEach(content => {
-        if (content.id === contentId) {
-            content.classList.remove('hidden', 'print:hidden');
-            content.classList.add('block');
-        } else {
-            content.classList.remove('block');
-            content.classList.add('hidden', 'print:hidden');
-        }
-    });
-}
-<?php endif; ?>
-
-async function generateCustom(e) {
-    e.preventDefault();
-    
-    const classId = document.getElementById('gen_class_id').value;
-    const round = document.getElementById('gen_round').value;
-    const algorithm = document.getElementById('gen_algorithm').value;
-    const maxPerHeat = document.getElementById('gen_max').value;
-    
-    <?php if($isHeat): ?>
-    if(!confirm(`Yakin ingin men-generate seri untuk babak ${round} menggunakan algoritma ${algorithm}? Data ${round} sebelumnya (jika ada) akan tertimpa.`)) {
-        return;
-    }
-    <?php else: ?>
-    if(!confirm('Yakin ingin mengacak ulang urutan starting list? Urutan sebelumnya akan tertimpa.')) {
-        return;
-    }
-    <?php endif; ?>
-    
-    const btn = e.target.querySelector('button[type="submit"]');
-    const originalText = btn.innerHTML;
-    btn.innerHTML = 'Memproses...';
-    btn.disabled = true;
-    
-    try {
-        const fd = new FormData();
-        fd.append('class_id', classId);
-        fd.append('round', round);
-        fd.append('algorithm', algorithm);
-        fd.append('max_per_heat', maxPerHeat);
-        
-        const res = await fetch(`<?= getenv('APP_URL') ?>/roll/admin/pelotons/generate_custom`, {
-            method: 'POST',
-            body: fd
-        });
-        
-        const data = await res.json();
-        
-        if (data.success) {
-            <?php if($isHeat): ?>
-            alert('Sukses: ' + data.message);
-            <?php else: ?>
-            alert('Starting list berhasil diperbarui!');
-            <?php endif; ?>
-            window.location.reload();
-        } else {
-            alert('Gagal: ' + data.message);
-            btn.innerHTML = originalText;
-            btn.disabled = false;
-        }
-    } catch(err) {
-        alert('Terjadi kesalahan jaringan.');
-        console.error(err);
-        btn.innerHTML = originalText;
-        btn.disabled = false;
-    }
-}
-</script>

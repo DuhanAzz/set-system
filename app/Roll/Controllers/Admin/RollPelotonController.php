@@ -73,11 +73,56 @@ class RollPelotonController extends Controller {
         $stmt3->execute([$eventId]);
         $hasGenerated = (int)$stmt3->fetchColumn() > 0;
 
+        // Ambil daftar kelas untuk ditampilkan di bagian Generate Seri (dikelompokkan per kategori alat)
+        $stmtClasses = $db->prepare("
+            SELECT ed.id as class_id, ed.race_number, ed.category_name, d.distance_name, a.group_name, sc.class_name as roller_name, ed.gender,
+            (SELECT COUNT(*) FROM roll_entries e 
+             JOIN roll_skaters s ON e.skater_id = s.id
+             JOIN roll_payments pay ON pay.club_id = s.club_id AND pay.event_id = e.event_id
+             WHERE e.race_class_id = ed.id AND pay.status = 'Paid') as total_entries
+            FROM roll_event_details ed 
+            LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id 
+            LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id 
+            LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
+            WHERE ed.event_id = ?
+            ORDER BY sc.id ASC, CAST(ed.race_number AS UNSIGNED) ASC, ed.race_number ASC
+        ");
+        $stmtClasses->execute([$eventId]);
+        $allClasses = $stmtClasses->fetchAll(\PDO::FETCH_ASSOC);
+
+        $groupedClasses = [];
+        foreach ($allClasses as $cls) {
+            $cat = $cls['roller_name'] ?: 'Lainnya';
+            $rn = $cls['race_number'];
+            
+            if (!isset($groupedClasses[$cat][$rn])) {
+                $groupedClasses[$cat][$rn] = [
+                    'race_number' => $rn,
+                    'group_name' => $cls['group_name'],
+                    'distance_name' => $cls['distance_name'],
+                    'category_name' => $cls['category_name'],
+                    'total_entries' => 0,
+                    'classes' => [],
+                    'genders' => []
+                ];
+            }
+            
+            $groupedClasses[$cat][$rn]['classes'][] = $cls['class_id'];
+            $groupedClasses[$cat][$rn]['total_entries'] += (int)$cls['total_entries'];
+            
+            // Format gender label
+            $gLabel = $cls['gender'] === 'Male' ? 'Pa' : ($cls['gender'] === 'Female' ? 'Pi' : 'Mix');
+            if (!in_array($gLabel, $groupedClasses[$cat][$rn]['genders'])) {
+                $groupedClasses[$cat][$rn]['genders'][] = $gLabel;
+            }
+        }
+
         return $this->view('roll/admin/pelotons/global', [
             'eventId' => $eventId,
             'totalPaidAthletes' => $totalPaidAthletes,
             'totalClasses' => $totalClasses,
-            'hasGenerated' => $hasGenerated
+            'hasGenerated' => $hasGenerated,
+            'groupedClasses' => $groupedClasses
         ]);
     }
 
@@ -230,6 +275,7 @@ class RollPelotonController extends Controller {
         $roundName = $_GET['round'] ?? 'Kualifikasi';
         $algorithm = $_GET['algorithm'] ?? 'distributed';
         $maxLanesParam = (int)($_GET['max_lanes'] ?? 0);
+        $overrideMechanism = $_GET['override_mechanism'] ?? '';
 
         if ($classId == 0 || $eventId == 0) {
             echo json_encode(['success' => false, 'message' => 'Invalid parameters']);
@@ -245,18 +291,27 @@ class RollPelotonController extends Controller {
             $stmtDelete = $db->prepare("DELETE FROM roll_pelotons WHERE event_id = ? AND race_class_id = ? AND round = ?");
             $stmtDelete->execute([$eventId, $classId, $roundName]);
 
-            // 2. Tentukan maxLanes
-            if ($maxLanesParam > 0) {
-                $maxLanes = $maxLanesParam;
-            } else {
-                $stmtInfo = $db->prepare("SELECT max_lanes FROM roll_event_details WHERE id = ?");
+            // 2. Tentukan maxLanes dan Mekanisme
+            $mechanism = $overrideMechanism;
+            if (empty($mechanism)) {
+                $stmtInfo = $db->prepare("SELECT d.distance_name, ed.max_lanes FROM roll_event_details ed LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id WHERE ed.id = ?");
                 $stmtInfo->execute([$classId]);
                 $info = $stmtInfo->fetch(PDO::FETCH_ASSOC);
-                
                 if (!$info) throw new \Exception("Kelas tidak ditemukan");
-                $maxLanes = (int)($info['max_lanes'] ?? 0);
-                if ($maxLanes <= 0) $maxLanes = 6; // Default standard max lanes
+                
+                $mechResult = self::getMechanism($info['distance_name'] ?? '');
+                $mechanism = $mechResult['mechanism'];
+                
+                if ($maxLanesParam > 0) {
+                    $maxLanes = $maxLanesParam;
+                } else {
+                    $maxLanes = (int)($info['max_lanes'] ?? 0);
+                }
+            } else {
+                $maxLanes = $maxLanesParam;
             }
+
+            if ($maxLanes <= 0) $maxLanes = 6; // Default standard max lanes
 
             // 3. Tarik atlet 
             // Untuk saat ini, asumsikan semua atlet Paid masuk (ke depannya jika babak = Final, filter berdasarkan hasil babak sebelumnya)
@@ -307,7 +362,13 @@ class RollPelotonController extends Controller {
                 }
 
                 // 5. Hitung jumlah Seri (Heats)
-                $totalHeats = ceil($totalAthletes / $maxLanes);
+                if ($mechanism === 'starting_list') {
+                    $totalHeats = 1;
+                    $maxLanes = $totalAthletes; // 1 heat contains everyone
+                } else {
+                    $totalHeats = ceil($totalAthletes / $maxLanes);
+                }
+                
                 $heatsAssigned = array_fill(1, $totalHeats, []);
 
                 // 6. Metode Serpentine untuk menempatkan atlet ke heat
@@ -333,11 +394,13 @@ class RollPelotonController extends Controller {
                 ");
 
                 foreach ($heatsAssigned as $heatIndex => $members) {
-                    $heatName = "Seri " . $heatIndex;
+                    $heatName = ($mechanism === 'starting_list') ? "Final" : "Seri " . $heatIndex;
                     $grid = 1;
                     
-                    // Acak posisi lintasan di dalam Seri
-                    shuffle($members);
+                    // Jika mechanism heat dan algorithm terdistribusi, acak lagi di dalam seri
+                    if ($mechanism === 'heat') {
+                        shuffle($members);
+                    }
                     
                     foreach ($members as $skaterId) {
                         $stmtInsert->execute([
