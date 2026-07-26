@@ -79,7 +79,15 @@ class RollPelotonController extends Controller {
             (SELECT COUNT(*) FROM roll_entries e 
              JOIN roll_skaters s ON e.skater_id = s.id
              JOIN roll_payments pay ON pay.club_id = s.club_id AND pay.event_id = e.event_id
-             WHERE e.race_class_id = ed.id AND pay.status = 'Paid') as total_entries
+             WHERE e.race_class_id = ed.id AND pay.status = 'Paid') as total_entries,
+            (SELECT COUNT(*) FROM roll_entries e 
+             JOIN roll_skaters s ON e.skater_id = s.id
+             JOIN roll_payments pay ON pay.club_id = s.club_id AND pay.event_id = e.event_id
+             WHERE e.race_class_id = ed.id AND pay.status = 'Paid' AND s.gender IN ('Male', 'L', 'Man', 'Putra', 'Pa')) as total_pa_entries,
+            (SELECT COUNT(*) FROM roll_entries e 
+             JOIN roll_skaters s ON e.skater_id = s.id
+             JOIN roll_payments pay ON pay.club_id = s.club_id AND pay.event_id = e.event_id
+             WHERE e.race_class_id = ed.id AND pay.status = 'Paid' AND s.gender IN ('Female', 'P', 'Woman', 'Putri', 'Pi')) as total_pi_entries
             FROM roll_event_details ed 
             LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id 
             LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id 
@@ -102,20 +110,37 @@ class RollPelotonController extends Controller {
                     'distance_name' => $cls['distance_name'],
                     'category_name' => $cls['category_name'],
                     'total_entries' => 0,
+                    'total_pa' => 0,
+                    'total_pi' => 0,
                     'classes' => [],
                     'genders' => []
                 ];
             }
             
+            $entries = (int)$cls['total_entries'];
             $groupedClasses[$cat][$rn]['classes'][] = $cls['class_id'];
-            $groupedClasses[$cat][$rn]['total_entries'] += (int)$cls['total_entries'];
+            $groupedClasses[$cat][$rn]['total_entries'] += $entries;
+            
+            $groupedClasses[$cat][$rn]['total_pa'] += (int)$cls['total_pa_entries'];
+            $groupedClasses[$cat][$rn]['total_pi'] += (int)$cls['total_pi_entries'];
             
             // Format gender label
-            $gLabel = $cls['gender'] === 'Male' ? 'Pa' : ($cls['gender'] === 'Female' ? 'Pi' : 'Mix');
+            $gLabel = $cls['gender'] === 'Male' ? 'Pa' : ($cls['gender'] === 'Female' ? 'Pi' : 'Pa & Pi');
             if (!in_array($gLabel, $groupedClasses[$cat][$rn]['genders'])) {
                 $groupedClasses[$cat][$rn]['genders'][] = $gLabel;
             }
         }
+
+        // Urutkan kategori secara eksplisit: Speed, Standard, Pemula, Lainnya
+        $catOrder = ['Speed' => 1, 'Standard' => 2, 'Standart' => 2, 'Pemula' => 3];
+        uksort($groupedClasses, function($a, $b) use ($catOrder) {
+            $orderA = $catOrder[$a] ?? 99;
+            $orderB = $catOrder[$b] ?? 99;
+            if ($orderA === $orderB) {
+                return strcmp($a, $b);
+            }
+            return $orderA <=> $orderB;
+        });
 
         return $this->view('roll/admin/pelotons/global', [
             'eventId' => $eventId,

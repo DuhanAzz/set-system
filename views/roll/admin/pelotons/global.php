@@ -176,7 +176,7 @@
                 <div class="space-y-3 pl-2">
                     <?php foreach($classes as $rn => $clsGroup): 
                         $raceNum = str_pad($rn, 3, '0', STR_PAD_LEFT);
-                        $genderLabel = implode('&', $clsGroup['genders']);
+                        $genderLabel = implode(' & ', $clsGroup['genders']);
                         
                         // Deteksi default mekanisme
                         // Jika kategori mengandung kata 'Pemula', maka paksa jadi starting_list
@@ -196,7 +196,12 @@
                                         <?= htmlspecialchars($clsGroup['distance_name']) ?> - <?= htmlspecialchars($clsGroup['group_name']) ?> <?= $genderLabel ?>
                                     </div>
                                     <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5 flex items-center gap-2">
-                                        <span class="bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded">Total: <?= (int)$clsGroup['total_entries'] ?> Atlet</span>
+                                        <span class="bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded">
+                                            Total: <?= (int)$clsGroup['total_entries'] ?> Atlet 
+                                            <?php if((int)$clsGroup['total_pa'] > 0 || (int)$clsGroup['total_pi'] > 0): ?>
+                                                (Pa: <?= (int)$clsGroup['total_pa'] ?>, Pi: <?= (int)$clsGroup['total_pi'] ?>)
+                                            <?php endif; ?>
+                                        </span>
                                     </div>
                                 </div>
                             </div>
