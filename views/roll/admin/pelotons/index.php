@@ -35,7 +35,7 @@
                 <span class="text-lg">🔥</span>
                 <div>
                     <span class="text-xs font-black uppercase tracking-widest">Metode: HEAT (Sistem Berjenjang)</span>
-                    <p class="text-[10px] text-orange-500 font-medium mt-0.5">Peserta dipecah ke Heat/Seri. Lolos babak demi babak (Kualifikasi → Final).</p>
+                    <p class="text-[10px] text-orange-500 font-medium mt-0.5">Peserta dipecah ke Heat. Lolos babak demi babak (Kualifikasi → Final).</p>
                 </div>
             </div>
         <?php elseif($pageRaceType === 'time_trial'): ?>
@@ -106,7 +106,7 @@
                     <?php if($hasHeats): ?>
                         <div class="flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-lg border border-emerald-100">
                             <span class="text-sm">✅</span>
-                            <span class="text-[10px] font-black uppercase tracking-widest"><?= $cls['total_heats'] ?? 0 ?> Seri</span>
+                            <span class="text-[10px] font-black uppercase tracking-widest"><?= $cls['total_heats'] ?? 0 ?> Heat</span>
                         </div>
                     <?php else: ?>
                         <div class="flex items-center gap-1.5 bg-amber-50 text-amber-700 px-3 py-1.5 rounded-lg border border-amber-200">

@@ -53,7 +53,7 @@ if ($isStartingList) {
     <!-- HEADER SURAT -->
     <div class="text-center mb-8 border-b-4 border-double border-black pb-4">
         <h1 class="text-2xl font-black uppercase tracking-widest mb-1">
-            <?= $isHeat ? 'Daftar Seri Perlombaan' : ($raceType === 'time_trial' ? 'Starting Order — Time Trial' : 'Starting List — Langsung Final') ?>
+            <?= $isHeat ? 'Daftar Heat Perlombaan' : ($raceType === 'time_trial' ? 'Starting Order — Time Trial' : 'Starting List — Langsung Final') ?>
         </h1>
         <h2 class="text-lg font-bold text-slate-700 uppercase italic">
             <?= htmlspecialchars($classData['group_name']) ?> | 
@@ -80,12 +80,12 @@ if ($isStartingList) {
     <?php if(!$hasAnyHeat): ?>
         <div class="text-center py-20 opacity-50">
             <span class="text-5xl block mb-4 grayscale">🎲</span>
-            <p class="text-sm font-black text-slate-500 uppercase tracking-widest">Belum ada seri pada kelas ini</p>
+            <p class="text-sm font-black text-slate-500 uppercase tracking-widest">Belum ada heat pada kelas ini</p>
         </div>
     <?php else: ?>
         <?php foreach(['Kualifikasi', 'Perempat Final', 'Semi Final', 'Final'] as $rnd): 
             $roundHeats = $heatsByRound[$rnd] ?? [];
-            if(empty($roundHeats)) continue; // Hanya tampilkan babak yang memiliki seri
+            if(empty($roundHeats)) continue; // Hanya tampilkan babak yang memiliki heat
         ?>
         <div class="mb-10">
             <div class="text-center mb-6">

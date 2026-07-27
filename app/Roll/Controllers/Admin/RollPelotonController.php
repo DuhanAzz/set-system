@@ -23,7 +23,10 @@ class RollPelotonController extends Controller {
      * Menentukan mekanisme lomba berdasarkan distance_name.
      * @return array ['mechanism' => 'heat'|'starting_list', 'race_type' => 'sprint'|'endurance'|'time_trial']
      */
-    public static function getMechanism(string $distanceName): array {
+    public static function getMechanism(string $distanceName, string $rollerName = ''): array {
+        if (stripos($rollerName, 'Pemula') !== false) {
+            return ['mechanism' => 'starting_list', 'race_type' => 'endurance'];
+        }
         if (in_array($distanceName, self::$TIME_TRIAL_DISTANCES)) {
             return ['mechanism' => 'starting_list', 'race_type' => 'time_trial'];
         }
@@ -75,7 +78,7 @@ class RollPelotonController extends Controller {
 
         // Ambil daftar kelas untuk ditampilkan di bagian Generate Seri (dikelompokkan per kategori alat)
         $stmtClasses = $db->prepare("
-            SELECT ed.id as class_id, ed.race_number, ed.category_name, d.distance_name, a.group_name, sc.class_name as roller_name, ed.gender,
+            SELECT ed.id as class_id, ed.race_number, ed.category_name, d.distance_name, a.group_name, sc.class_name as roller_name, ed.gender, ed.max_lanes,
             (SELECT COUNT(*) FROM roll_entries e 
              JOIN roll_skaters s ON e.skater_id = s.id
              JOIN roll_payments pay ON pay.club_id = s.club_id AND pay.event_id = e.event_id
@@ -109,6 +112,7 @@ class RollPelotonController extends Controller {
                     'group_name' => $cls['group_name'],
                     'distance_name' => $cls['distance_name'],
                     'category_name' => $cls['category_name'],
+                    'max_lanes' => $cls['max_lanes'] > 0 ? (int)$cls['max_lanes'] : 6,
                     'total_entries' => 0,
                     'total_pa' => 0,
                     'total_pi' => 0,
@@ -235,7 +239,7 @@ class RollPelotonController extends Controller {
             $cls['total_heats'] = $stmtHeats->fetchColumn();
 
             // Klasifikasi mekanisme
-            $mech = self::getMechanism($cls['distance_name'] ?? '');
+            $mech = self::getMechanism($cls['distance_name'] ?? '', $cls['roller_name'] ?? '');
             $cls['mechanism'] = $mech['mechanism'];
             $cls['race_type'] = $mech['race_type'];
         }
@@ -319,12 +323,12 @@ class RollPelotonController extends Controller {
             // 2. Tentukan maxLanes dan Mekanisme
             $mechanism = $overrideMechanism;
             if (empty($mechanism)) {
-                $stmtInfo = $db->prepare("SELECT d.distance_name, ed.max_lanes FROM roll_event_details ed LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id WHERE ed.id = ?");
+                $stmtInfo = $db->prepare("SELECT d.distance_name, ed.max_lanes, sc.class_name as roller_name FROM roll_event_details ed LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id WHERE ed.id = ?");
                 $stmtInfo->execute([$classId]);
                 $info = $stmtInfo->fetch(PDO::FETCH_ASSOC);
                 if (!$info) throw new \Exception("Kelas tidak ditemukan");
                 
-                $mechResult = self::getMechanism($info['distance_name'] ?? '');
+                $mechResult = self::getMechanism($info['distance_name'] ?? '', $info['roller_name'] ?? '');
                 $mechanism = $mechResult['mechanism'];
                 
                 if ($maxLanesParam > 0) {
@@ -337,6 +341,12 @@ class RollPelotonController extends Controller {
             }
 
             if ($maxLanes <= 0) $maxLanes = 6; // Default standard max lanes
+
+            // Simpan max_lanes yang dipilih agar dipertahankan saat reload
+            if ($maxLanes > 0 && $maxLanesParam > 0) {
+                $stmtUpdate = $db->prepare("UPDATE roll_event_details SET max_lanes = ? WHERE id = ?");
+                $stmtUpdate->execute([$maxLanes, $classId]);
+            }
 
             // 3. Tarik atlet 
             // Untuk saat ini, asumsikan semua atlet Paid masuk (ke depannya jika babak = Final, filter berdasarkan hasil babak sebelumnya)
@@ -419,7 +429,7 @@ class RollPelotonController extends Controller {
                 ");
 
                 foreach ($heatsAssigned as $heatIndex => $members) {
-                    $heatName = ($mechanism === 'starting_list') ? "Final" : "Seri " . $heatIndex;
+                    $heatName = ($mechanism === 'starting_list') ? "Final" : "Heat " . $heatIndex;
                     $grid = 1;
                     
                     // Jika mechanism heat dan algorithm terdistribusi, acak lagi di dalam seri
@@ -485,7 +495,7 @@ class RollPelotonController extends Controller {
         if (!$classData) die("Kelas tidak ditemukan.");
 
         // Klasifikasi mekanisme
-        $mech = self::getMechanism($classData['distance_name'] ?? '');
+        $mech = self::getMechanism($classData['distance_name'] ?? '', $classData['roller_name'] ?? '');
 
         // Fetch heats/entries
         $stmtEntries = $db->prepare("
@@ -515,6 +525,15 @@ class RollPelotonController extends Controller {
                 $round = $ent['round'] ?? 'Kualifikasi';
                 $heatsByRound[$round][$ent['heat_name']][] = $ent;
             }
+        }
+        
+        // Cek apakah mekanisme di-override menjadi starting_list saat generate
+        // Ciri-cirinya: ada heat_name 'Final' di round 'Kualifikasi'
+        if (!empty($heatsByRound['Kualifikasi']['Final'])) {
+            $mech['mechanism'] = 'starting_list';
+        } elseif (!empty($heatsByRound['Kualifikasi']) && empty($heatsByRound['Kualifikasi']['Final'])) {
+            // Jika ada seri di kualifikasi tapi bukan Final (misal Seri 1), maka pasti mechanism-nya heat
+            $mech['mechanism'] = 'heat';
         }
         
         $unseeded = array_values($unseeded);
@@ -668,7 +687,7 @@ class RollPelotonController extends Controller {
             ");
 
             foreach ($heatsAssigned as $heatIndex => $members) {
-                $heatName = "Seri " . $heatIndex;
+                $heatName = "Heat " . $heatIndex;
                 $grid = 1;
                 foreach ($members as $skaterId) {
                     $stmtInsert->execute([
@@ -684,7 +703,7 @@ class RollPelotonController extends Controller {
             }
 
             $db->commit();
-            echo json_encode(['success' => true, 'message' => 'Berhasil membuat ' . $totalHeats . ' Seri pada babak ' . $round]);
+            echo json_encode(['success' => true, 'message' => 'Berhasil membuat ' . $totalHeats . ' Heat pada babak ' . $round]);
 
         } catch (\Exception $e) {
             $db->rollBack();

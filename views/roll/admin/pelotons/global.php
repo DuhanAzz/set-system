@@ -150,7 +150,7 @@
     <div class="flex items-center justify-between border-b pb-4 mb-6">
         <div>
             <h2 class="text-xl font-black uppercase tracking-widest text-slate-800 flex items-center gap-2">
-                <span>⚙️</span> Daftar Kelas & Generate Seri
+                <span>⚙️</span> Daftar Kelas & Generate Heat
             </h2>
             <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Dikelompokkan berdasarkan kategori (Speed, Standard, Pemula)</p>
         </div>
@@ -161,7 +161,7 @@
             <input type="hidden" name="max_lanes" value="6">
             <button type="submit" class="bg-slate-800 hover:bg-slate-900 text-white font-bold uppercase tracking-widest text-xs py-3 px-5 rounded-xl transition-all shadow-md flex items-center gap-2">
                 <span class="text-sm">⚡</span>
-                <span>Generate Seluruh Seri</span>
+                <span>Generate Seluruh Heat</span>
             </button>
         </form>
     </div>
@@ -214,9 +214,9 @@
                                     </select>
                                 </div>
                                 <div class="flex flex-col gap-1 w-16 input-max-lanes <?= $defaultMech === 'starting_list' ? 'hidden' : '' ?>">
-                                    <input type="number" name="max_lanes" value="6" min="1" max="50" class="border-slate-300 rounded-lg text-xs font-bold text-slate-700 py-1.5 px-2 text-center focus:ring-indigo-500" title="Max Peserta per Heat">
+                                    <input type="number" name="max_lanes" value="<?= (int)$clsGroup['max_lanes'] ?>" min="1" max="50" class="border-slate-300 rounded-lg text-xs font-bold text-slate-700 py-1.5 px-2 text-center focus:ring-indigo-500" title="Max Peserta per Heat">
                                 </div>
-                                <button type="submit" class="btn-generate-single bg-indigo-100 hover:bg-indigo-200 text-indigo-700 p-2 rounded-lg transition-colors flex items-center gap-1" title="Generate Seri Kelas Ini">
+                                <button type="submit" class="btn-generate-single bg-indigo-100 hover:bg-indigo-200 text-indigo-700 p-2 rounded-lg transition-colors flex items-center gap-1" title="Generate Heat Kelas Ini">
                                     <span class="text-sm">⚡</span>
                                     <span class="text-xs font-bold uppercase tracking-widest hidden sm:inline">Gen</span>
                                 </button>

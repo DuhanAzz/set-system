@@ -241,7 +241,7 @@ class RollResultController extends Controller {
                         $stmtUpdateOthers = $db->prepare("UPDATE roll_entries SET status = 'Eliminated' WHERE event_id = ? AND race_class_id = ? AND skater_id NOT IN ($passed_str)");
                         $stmtUpdateOthers->execute([$eventId, $race_class_id]);
 
-                        $_SESSION['flash_message'] = "Penyisihan selesai! " . count($passed_skater_ids) . " atlet lolos (Qualified). Silakan kembali ke menu Seri untuk mengenerate Final.";
+                        $_SESSION['flash_message'] = "Penyisihan selesai! " . count($passed_skater_ids) . " atlet lolos (Qualified). Silakan kembali ke menu Heat untuk mengenerate Final.";
                     }
 
                     $_SESSION['flash_type'] = "success";
