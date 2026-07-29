@@ -18,7 +18,7 @@ try {
     $pdo = new PDO("mysql:host=$host;dbname=$db;charset=utf8mb4", $user, $pass);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     
-    $sqlFile = __DIR__ . '/../migration_to_swim.sql';
+    $sqlFile = __DIR__ . '/../migration_to_swim.txt';
     if (!file_exists($sqlFile)) {
         die("SQL file not found at: " . $sqlFile);
     }
