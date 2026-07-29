@@ -141,7 +141,7 @@ foreach ($rawData as $row) {
         
         $scheduleByDay[$dayDigit][] = [
             'race_number' => $row['race_number'],
-            'race_time'   => date('H:i', strtotime($row['race_time'] ?? '00:00')),
+            'race_time'   => $row['race_time'] ?? '00:00',
             'distance_name' => $row['distance_name'],
             'group_name'  => $row['group_name'],
             'roller_name' => $row['roller_name'],
@@ -317,7 +317,7 @@ if ($cc['klub']) $activeColumnsCount++;
                                 <thead>
                                     <tr>
                                         <th style="width: 80px;">No. Lomba</th>
-                                        <th style="width: 80px;">Pukul</th>
+                                        <th style="width: 110px; white-space: nowrap;">Pukul</th>
                                         <th>Jarak</th>
                                         <th>Kelompok Umur</th>
                                         <th>Roller</th>
@@ -383,7 +383,7 @@ if ($cc['klub']) $activeColumnsCount++;
                                                 ?>
                                                 <tr style="background-color: #f1f5f9;">
                                                     <td class="text-center font-bold">#<?= htmlspecialchars($racesStr) ?></td>
-                                                    <td class="text-center font-bold"><?= htmlspecialchars($timeStr) ?></td>
+                                                    <td class="text-center font-bold" style="white-space: nowrap;"><?= htmlspecialchars($timeStr) ?></td>
                                                     <td class="font-bold"><?= htmlspecialchars($distStr) ?></td>
                                                     <td><?= htmlspecialchars($kuStr) ?></td>
                                                     <td class="font-bold text-blue-700">PEMULA</td>
@@ -407,7 +407,7 @@ if ($cc['klub']) $activeColumnsCount++;
                                                     ?>
                                                     <tr>
                                                         <td class="text-center font-bold">#<?= htmlspecialchars($c['race_number']) ?></td>
-                                                        <td class="text-center font-bold"><?= htmlspecialchars($c['race_time']) ?></td>
+                                                        <td class="text-center font-bold" style="white-space: nowrap;"><?= htmlspecialchars($c['race_time']) ?></td>
                                                         <td class="font-bold"><?= htmlspecialchars($c['distance_name']) ?></td>
                                                         <td><?= htmlspecialchars($c['group_name']) ?></td>
                                                         <td class="font-bold"><?= htmlspecialchars($c['roller_name']) ?></td>

@@ -179,7 +179,7 @@
                             <thead>
                                 <tr>
                                     <th class="text-center" style="width: 80px;">No. Lomba</th>
-                                    <th class="text-center" style="width: 80px;">Pukul</th>
+                                    <th class="text-center" style="width: 110px; white-space: nowrap;">Pukul</th>
                                     <th>Jarak</th>
                                     <th>Kelompok Umur</th>
                                     <th>Roller</th>
@@ -255,7 +255,7 @@
                                             ?>
                                             <tr style="background-color: #f1f5f9;">
                                                 <td class="text-center font-bold"><?= htmlspecialchars($racesStr) ?></td>
-                                                <td class="text-center font-bold"><?= htmlspecialchars($timeStr) ?></td>
+                                                <td class="text-center font-bold" style="white-space: nowrap;"><?= htmlspecialchars($timeStr) ?></td>
                                                 <td class="font-bold"><?= htmlspecialchars($distStr) ?></td>
                                                 <td><?= htmlspecialchars($kuStr) ?></td>
                                                 <td class="font-bold text-blue-700">PEMULA</td>
@@ -279,7 +279,7 @@
                                                 ?>
                                                 <tr>
                                                     <td class="text-center font-bold"><?= htmlspecialchars($c['race_number']) ?></td>
-                                                    <td class="text-center font-bold"><?= htmlspecialchars(date('H:i', strtotime($c['race_time'] ?? '00:00'))) ?></td>
+                                                    <td class="text-center font-bold" style="white-space: nowrap;"><?= htmlspecialchars($c['race_time'] ?? '-') ?></td>
                                                     <td class="font-bold"><?= htmlspecialchars($c['distance_name'] ?? $c['distance'] ?? '-') ?></td>
                                                     <td><?= htmlspecialchars($c['group_name'] ?? 'Umum') ?></td>
                                                     <td class="font-bold text-blue-700"><?= htmlspecialchars($c['roller_name'] ?? '-') ?></td>
