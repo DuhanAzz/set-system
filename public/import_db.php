@@ -38,10 +38,22 @@ try {
         try {
             $pdo->exec($fullQuery);
         } catch (PDOException $e) {
-            // Tangkap error untuk query spesifik ini
+            $msg = $e->getMessage();
             preg_match('/`([^`]+)`/', $fullQuery, $matches);
             $tableName = $matches[1] ?? 'unknown_table';
-            die("<h2>DB Error pada tabel: <strong>$tableName</strong></h2><p>" . $e->getMessage() . "</p><p>Query snippet: " . substr($fullQuery, 0, 150) . "...</p>");
+            
+            // Auto-heal missing created_at column
+            if (strpos($msg, "Unknown column 'created_at'") !== false) {
+                try {
+                    $pdo->exec("ALTER TABLE `$tableName` ADD COLUMN `created_at` timestamp NOT NULL DEFAULT current_timestamp()");
+                    $pdo->exec($fullQuery); // Retry
+                    continue;
+                } catch (PDOException $e2) {
+                    die("<h2>Gagal auto-fix tabel: <strong>$tableName</strong></h2><p>" . $e2->getMessage() . "</p>");
+                }
+            }
+            
+            die("<h2>DB Error pada tabel: <strong>$tableName</strong></h2><p>" . $msg . "</p><p>Query snippet: " . substr($fullQuery, 0, 150) . "...</p>");
         }
     }
     
