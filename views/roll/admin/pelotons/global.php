@@ -220,6 +220,10 @@
                                     <span class="text-sm">⚡</span>
                                     <span class="text-xs font-bold uppercase tracking-widest hidden sm:inline">Gen</span>
                                 </button>
+                                <a href="<?= getenv('APP_URL') ?>/roll/admin/pelotons/detail?class_id=<?= $clsGroup['classes'][0] ?>" target="_blank" class="bg-emerald-100 hover:bg-emerald-200 text-emerald-700 p-2 rounded-lg transition-colors flex items-center gap-1" title="Lihat Detail Seri">
+                                    <span class="text-sm">👁️</span>
+                                    <span class="text-xs font-bold uppercase tracking-widest hidden sm:inline">View</span>
+                                </a>
                             </form>
                         </div>
                     <?php endforeach; ?>
@@ -242,6 +246,20 @@ document.addEventListener('DOMContentLoaded', function() {
             } else {
                 maxLanesContainer.classList.add('hidden');
             }
+        });
+    });
+
+    // Save and Restore Checkbox state for Print Configuration
+    const printCheckboxes = document.querySelectorAll('input[type="checkbox"][name^="cfg_"], input[type="checkbox"][name^="col_"], input[type="checkbox"][name="show_schedule_auto"]');
+    printCheckboxes.forEach(cb => {
+        // Restore from localStorage
+        const saved = localStorage.getItem('roll_print_config_' + cb.name);
+        if (saved !== null) {
+            cb.checked = (saved === 'true');
+        }
+        // Save on change
+        cb.addEventListener('change', function() {
+            localStorage.setItem('roll_print_config_' + this.name, this.checked);
         });
     });
 
