@@ -294,5 +294,52 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+
+    // ----------------------------------------------------------------------
+    // STATE PERSISTENCE (Menyimpan form ke localStorage agar tidak reset)
+    // ----------------------------------------------------------------------
+    const STORAGE_KEY = 'global_racebook_state';
+    let savedState = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+
+    // Restore state
+    // 1. Checkboxes for Print PDF
+    document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+        if(savedState[cb.name] !== undefined) {
+            cb.checked = savedState[cb.name];
+        }
+        cb.addEventListener('change', () => {
+            savedState[cb.name] = cb.checked;
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(savedState));
+        });
+    });
+
+    // 2. Select and Input for Class Generation
+    document.querySelectorAll('.form-generate-single').forEach((form, index) => {
+        const mechSelect = form.querySelector('[name="override_mechanism"]');
+        const maxLanesInput = form.querySelector('[name="max_lanes"]');
+        
+        // Buat ID unik berdasarkan raceNum / dataset
+        const uniqueId = form.dataset.classIds; 
+        
+        if (savedState['mech_' + uniqueId]) {
+            mechSelect.value = savedState['mech_' + uniqueId];
+            // Trigger change untuk toggle visibility maxLanes
+            mechSelect.dispatchEvent(new Event('change'));
+        }
+        
+        if (savedState['maxlanes_' + uniqueId]) {
+            maxLanesInput.value = savedState['maxlanes_' + uniqueId];
+        }
+
+        mechSelect.addEventListener('change', () => {
+            savedState['mech_' + uniqueId] = mechSelect.value;
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(savedState));
+        });
+
+        maxLanesInput.addEventListener('input', () => {
+            savedState['maxlanes_' + uniqueId] = maxLanesInput.value;
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(savedState));
+        });
+    });
 });
 </script>
