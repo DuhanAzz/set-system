@@ -180,11 +180,30 @@ class RollEventController extends Controller {
                 
                 // Sort classes by numeric race number first, then string to properly sequence
                 usort($dayClasses, function($a, $b) {
-                    $numA = (int)preg_replace('/[^0-9]/', '', $a['race_number']);
-                    $numB = (int)preg_replace('/[^0-9]/', '', $b['race_number']);
-                    if ($numA === $numB) return strcmp($a['race_number'], $b['race_number']);
-                    return $numA - $numB;
+                    $cmp = strnatcmp($a['race_number'], $b['race_number']);
+                    if ($cmp === 0) {
+                        return strcmp($a['gender'] ?? '', $b['gender'] ?? '');
+                    }
+                    return $cmp;
                 });
+
+                $pemulaDurationHours = isset($_POST['pemula_duration']) ? (float)$_POST['pemula_duration'] : 0;
+                $totalPemulaHeats = 0;
+                if ($pemulaDurationHours > 0) {
+                    foreach ($dayClasses as $c) {
+                        $rName = strtolower($c['roller_name'] ?? '');
+                        $groupName = strtolower($c['group_name'] ?? '');
+                        if (strpos($rName, 'pemula') !== false || strpos($groupName, 'pemula') !== false) {
+                            $stmtHeats->execute([$eventId, $c['id']]);
+                            $hc = (int)$stmtHeats->fetchColumn();
+                            $totalPemulaHeats += ($hc === 0 ? 1 : $hc);
+                        }
+                    }
+                }
+                $calculatedPemulaMinPerHeat = 1.5; // Default if not overridden
+                if ($pemulaDurationHours > 0 && $totalPemulaHeats > 0) {
+                    $calculatedPemulaMinPerHeat = ($pemulaDurationHours * 60) / $totalPemulaHeats;
+                }
 
                 $prevGender = null;
                 $prevKu = null;
@@ -206,17 +225,27 @@ class RollEventController extends Controller {
 
                     $dName = strtolower($c['distance_name'] ?? '');
                     $rName = strtolower($c['roller_name'] ?? '');
+                    $groupName = strtolower($c['group_name'] ?? '');
                     
+                    $isPemula = (strpos($rName, 'pemula') !== false || strpos($groupName, 'pemula') !== false);
+
                     $minPerHeat = 2; 
-                    if (strpos($dName, '200m dtt') !== false || strpos($dName, '200 dtt') !== false) $minPerHeat = 1.5;
-                    elseif (strpos($dName, '300m') !== false) $minPerHeat = 2;
-                    elseif (strpos($dName, '500m +d') !== false || strpos($dName, '500m+d') !== false) $minPerHeat = 2;
-                    elseif (strpos($dName, '500m') !== false) $minPerHeat = ($rName == 'speed') ? 2 : 3;
-                    elseif (strpos($dName, '1000m') !== false) $minPerHeat = ($rName == 'speed') ? 3 : 3.5;
-                    elseif (strpos($dName, 'team sprint') !== false) $minPerHeat = 3;
-                    elseif (strpos($dName, 'eliminasi') !== false || strpos($dName, 'ptp') !== false) $minPerHeat = 10;
-                    elseif (strpos($dName, 'relay') !== false) $minPerHeat = 3;
-                    elseif (strpos($dName, '100m') !== false || strpos($dName, '200m') !== false) $minPerHeat = 1.5;
+                    if ($isPemula && $pemulaDurationHours > 0) {
+                        $minPerHeat = $calculatedPemulaMinPerHeat;
+                    } elseif ($isPemula) {
+                        if (strpos($dName, '100m') !== false || strpos($dName, '200m') !== false) $minPerHeat = 1.5;
+                        else $minPerHeat = 2;
+                    } else {
+                        if (strpos($dName, '200m dtt') !== false || strpos($dName, '200 dtt') !== false) $minPerHeat = 1.5;
+                        elseif (strpos($dName, '300m') !== false) $minPerHeat = 2;
+                        elseif (strpos($dName, '500m +d') !== false || strpos($dName, '500m+d') !== false) $minPerHeat = 2;
+                        elseif (strpos($dName, '500m') !== false) $minPerHeat = ($rName == 'speed') ? 2 : 3;
+                        elseif (strpos($dName, '1000m') !== false) $minPerHeat = ($rName == 'speed') ? 3 : 3.5;
+                        elseif (strpos($dName, 'team sprint') !== false) $minPerHeat = 3;
+                        elseif (strpos($dName, 'eliminasi') !== false || strpos($dName, 'ptp') !== false) $minPerHeat = 10;
+                        elseif (strpos($dName, 'relay') !== false) $minPerHeat = 3;
+                        elseif (strpos($dName, '100m') !== false || strpos($dName, '200m') !== false) $minPerHeat = 1.5;
+                    }
 
                     $totalMinutes = ceil($heatsCount * $minPerHeat);
 

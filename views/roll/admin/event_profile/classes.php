@@ -299,7 +299,11 @@ $pemulaKUs = array_filter($ageGroups, fn($a) => in_array($a['group_name'], $pemu
                 <?php endforeach; ?>
             </div>
             
-            <div class="flex justify-end pt-4 border-t border-slate-100">
+            <div class="flex justify-between items-center pt-4 border-t border-slate-100">
+                <div class="flex items-center gap-3">
+                    <label class="text-sm font-bold text-slate-700">Total Durasi Pemula (Jam):</label>
+                    <input type="number" step="0.1" min="0" name="pemula_duration" placeholder="Otomatis" class="rounded-lg border-slate-300 w-28 text-sm focus:border-indigo-500 focus:ring-indigo-500" value="">
+                </div>
                 <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-8 rounded-xl shadow-lg transition-all uppercase tracking-widest text-sm flex items-center gap-2">
                     ⚡ Generate Waktu
                 </button>
@@ -309,6 +313,19 @@ $pemulaKUs = array_filter($ageGroups, fn($a) => in_array($a['group_name'], $pemu
 </div>
 
 <script>
+document.addEventListener('DOMContentLoaded', function() {
+    const timeInputs = document.querySelectorAll('#formGenTime input[type="time"], #formGenTime input[type="number"]');
+    timeInputs.forEach(input => {
+        const saved = localStorage.getItem('roll_gen_time_' + input.name);
+        if (saved) {
+            input.value = saved;
+        }
+        input.addEventListener('change', function() {
+            localStorage.setItem('roll_gen_time_' + input.name, this.value);
+        });
+    });
+});
+
 async function generateScheduleTime(e) {
     e.preventDefault();
     const btn = e.target.querySelector('button[type="submit"]');
@@ -376,7 +393,13 @@ async function generateScheduleTime(e) {
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         <?php 
-                        usort($dayClasses, fn($a, $b) => strcmp($a['race_number'], $b['race_number']));
+                        usort($dayClasses, function($a, $b) {
+                            $cmp = strnatcmp($a['race_number'], $b['race_number']);
+                            if ($cmp === 0) {
+                                return strcmp($a['gender'] ?? '', $b['gender'] ?? '');
+                            }
+                            return $cmp;
+                        });
                         foreach ($dayClasses as $c): 
                         ?>
                         <tr class="hover:bg-slate-50">
