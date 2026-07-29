@@ -42,7 +42,7 @@ try {
             preg_match('/`([^`]+)`/', $fullQuery, $matches);
             $tableName = $matches[1] ?? 'unknown_table';
             
-            // Auto-heal missing created_at column
+            // 1. Auto-heal missing created_at column
             if (strpos($msg, "Unknown column 'created_at'") !== false) {
                 try {
                     $pdo->exec("ALTER TABLE `$tableName` ADD COLUMN `created_at` timestamp NOT NULL DEFAULT current_timestamp()");
@@ -51,6 +51,12 @@ try {
                 } catch (PDOException $e2) {
                     die("<h2>Gagal auto-fix tabel: <strong>$tableName</strong></h2><p>" . $e2->getMessage() . "</p>");
                 }
+            }
+            
+            // 2. Skip missing tables (Table doesn't exist)
+            if (strpos($msg, "doesn't exist") !== false || strpos($msg, "Base table or view not found") !== false) {
+                echo "<p style='color:orange'>Warning: Tabel <strong>$tableName</strong> dilewati karena tidak ada di sistem baru.</p>";
+                continue;
             }
             
             die("<h2>DB Error pada tabel: <strong>$tableName</strong></h2><p>" . $msg . "</p><p>Query snippet: " . substr($fullQuery, 0, 150) . "...</p>");
