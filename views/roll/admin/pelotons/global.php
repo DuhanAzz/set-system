@@ -263,8 +263,37 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Handle AJAX form submission for single class generation
+    // Handle AJAX form submission for single class generation and State Preservation
     document.querySelectorAll('.form-generate-single').forEach(form => {
+        const classIds = form.getAttribute('data-class-ids');
+        const mechSelect = form.querySelector('.mech-select');
+        const lanesInput = form.querySelector('input[name="max_lanes"]');
+        
+        // Restore state
+        const savedMech = localStorage.getItem('roll_mech_' + classIds);
+        if (savedMech) {
+            mechSelect.value = savedMech;
+            // Trigger change to update UI (hide/show lanes)
+            mechSelect.dispatchEvent(new Event('change'));
+        }
+        
+        const savedLanes = localStorage.getItem('roll_lanes_' + classIds);
+        if (savedLanes) {
+            lanesInput.value = savedLanes;
+        }
+        
+        // Save state on change
+        if (mechSelect) {
+            mechSelect.addEventListener('change', function() {
+                localStorage.setItem('roll_mech_' + classIds, this.value);
+            });
+        }
+        if (lanesInput) {
+            lanesInput.addEventListener('change', function() {
+                localStorage.setItem('roll_lanes_' + classIds, this.value);
+            });
+        }
+
         form.addEventListener('submit', async function(e) {
             e.preventDefault();
             
