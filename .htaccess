@@ -3,7 +3,12 @@ RewriteEngine On
 # Arahkan domain utama (root) ke folder public/
 RewriteRule ^$ public/index.php [L]
 
-# Jika file atau folder tidak ada di root, arahkan ke public/index.php
+# Redirect file statis (gambar, css, js, uploads) secara otomatis ke dalam public/ jika file-nya ada
+RewriteCond %{DOCUMENT_ROOT}/public/$1 -f [OR]
+RewriteCond %{DOCUMENT_ROOT}/public/$1 -d
+RewriteRule ^(.*)$ public/$1 [L]
+
+# Jika file statis tidak ada, atau halaman dinamis, arahkan ke index.php
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^(.*)$ public/index.php?url=$1 [QSA,L]
