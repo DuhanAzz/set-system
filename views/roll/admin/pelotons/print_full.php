@@ -87,7 +87,7 @@ $sponsors = !empty($eventInfo['sponsor_logos']) ? json_decode($eventInfo['sponso
 
 // Ambil seluruh data perlombaan & peloton yang berpartisipasi
 $sqlAll = "SELECT 
-            c.id as class_id, a.group_name, sc.class_name as roller_name, d.distance_name, c.gender, c.race_number,
+            c.id as class_id, a.group_name, sc.class_name as roller_name, d.distance_name, c.gender, c.race_number, c.race_time,
             p.round, p.heat_name, p.start_grid, 
             e.bib_number, s.skater_name, cl.club_name
            FROM roll_event_details c
@@ -141,10 +141,11 @@ foreach ($rawData as $row) {
         
         $scheduleByDay[$dayDigit][] = [
             'race_number' => $row['race_number'],
-            'race_time'   => '08:00', // Roll belum menyimpan jam spesifik di db
+            'race_time'   => date('H:i', strtotime($row['race_time'] ?? '00:00')),
             'distance_name' => $row['distance_name'],
             'group_name'  => $row['group_name'],
             'roller_name' => $row['roller_name'],
+            'raw_gender'  => $row['gender'],
             'gender'      => strtoupper($row['gender'] === 'pa' ? 'Putra' : ($row['gender'] === 'pi' ? 'Putri' : $row['gender']))
         ];
     }
@@ -343,8 +344,13 @@ if ($cc['klub']) $activeColumnsCount++;
                                         </tr>
                                         <?php 
                                             // Urutkan ulang berdasarkan race_number dalam array hari tersebut agar teratur
+                                            // dan Putra (PA) terlebih dahulu sebelum Putri (PI) jika race number sama
                                             usort($dayClasses, function($a, $b) {
-                                                return strcmp($a['race_number'], $b['race_number']);
+                                                $cmp = strnatcmp($a['race_number'], $b['race_number']);
+                                                if ($cmp === 0) {
+                                                    return strcmp($a['raw_gender'] ?? '', $b['raw_gender'] ?? '');
+                                                }
+                                                return $cmp;
                                             });
                                             foreach($dayClasses as $c): 
                                         ?>

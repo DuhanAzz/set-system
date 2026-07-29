@@ -226,7 +226,13 @@
                                     </tr>
                                     
                                     <?php 
-                                        usort($dayClasses, fn($a, $b) => strcmp($a['race_number'], $b['race_number']));
+                                        usort($dayClasses, function($a, $b) {
+                                            $cmp = strnatcmp($a['race_number'], $b['race_number']);
+                                            if ($cmp === 0) {
+                                                return strcmp($a['gender'] ?? '', $b['gender'] ?? '');
+                                            }
+                                            return $cmp;
+                                        });
                                         foreach($dayClasses as $c): 
                                     ?>
                                         <tr>
