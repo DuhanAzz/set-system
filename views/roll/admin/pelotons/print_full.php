@@ -99,7 +99,7 @@ $sqlAll = "SELECT
            JOIN roll_skaters s ON p.skater_id = s.id
            LEFT JOIN roll_clubs cl ON s.club_id = cl.id
            WHERE c.event_id = ?
-           ORDER BY CAST(c.race_number AS UNSIGNED) ASC, p.round ASC, p.heat_name ASC, p.start_grid ASC";
+           ORDER BY CAST(c.race_number AS UNSIGNED) ASC, c.gender ASC, p.round ASC, p.heat_name ASC, p.start_grid ASC";
 
 $stmtAll = $db->prepare($sqlAll);
 $stmtAll->execute([$eventId]);
@@ -134,10 +134,12 @@ foreach ($rawData as $row) {
         // Simpan data jadwal agar sinkron urutannya
         $scheduleData[] = [
             'no' => $row['race_number'],
+            'jam' => '08:00', 
             'tgl_display' => strtoupper($dateRange),
-            'uraian' => $row['roller_name'] . ' ' . $row['distance_name'],
-            'kategori' => $row['group_name'] . ' ' . strtoupper($row['gender']),
-            'babak' => ($mechData['mechanism'] === 'heat') ? 'KUALIFIKASI - FINAL' : 'LANGSUNG FINAL'
+            'jarak' => $row['distance_name'],
+            'kategori' => $row['group_name'],
+            'roller' => $row['roller_name'],
+            'gender' => strtoupper($row['gender'] === 'pa' ? 'Putra' : ($row['gender'] === 'pi' ? 'Putri' : $row['gender']))
         ];
     }
     
@@ -186,7 +188,7 @@ if ($cc['klub']) $activeColumnsCount++;
         .full-page { 
             position: relative; width: 210mm; height: 297mm; margin: 0 auto;
             z-index: 99999; background: white; display: flex; justify-content: center; align-items: center; overflow: hidden;
-            margin-bottom: -35mm; 
+            page-break-after: always;
         }
         .full-page-img { width: 100%; height: 100%; object-fit: fill; }
         
@@ -294,21 +296,25 @@ if ($cc['klub']) $activeColumnsCount++;
                             <table class="schedule-table">
                                 <thead>
                                     <tr>
-                                        <th style="width:10%; text-align:center">RACE NO</th>
-                                        <th style="width:40%">URAIAN ACARA</th>
-                                        <th style="width:35%">KATEGORI</th>
-                                        <th style="width:15%; text-align:right">BABAK</th>
+                                        <th style="width:10%; text-align:center">NO. LOMBA</th>
+                                        <th style="width:10%; text-align:center">PUKUL</th>
+                                        <th style="width:20%">JARAK</th>
+                                        <th style="width:25%">KELOMPOK UMUR</th>
+                                        <th style="width:20%">ROLLER</th>
+                                        <th style="width:15%">PUTRA/PUTRI</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <?php $lastDate = ''; foreach($scheduleData as $sch): if ($sch['tgl_display'] !== $lastDate): ?>
-                                        <tr><td colspan="4" class="schedule-date-header"><?= $sch['tgl_display'] ?></td></tr>
+                                        <tr><td colspan="6" class="schedule-date-header"><?= $sch['tgl_display'] ?></td></tr>
                                     <?php $lastDate = $sch['tgl_display']; endif; ?>
                                     <tr>
                                         <td style="text-align:center;">#<?= $sch['no'] ?></td>
-                                        <td><?= $sch['uraian'] ?></td>
+                                        <td style="text-align:center;"><?= $sch['jam'] ?></td>
+                                        <td><?= $sch['jarak'] ?></td>
                                         <td><?= $sch['kategori'] ?></td>
-                                        <td style="text-align:right;"><?= $sch['babak'] ?></td>
+                                        <td><?= $sch['roller'] ?></td>
+                                        <td><?= $sch['gender'] ?></td>
                                     </tr>
                                     <?php endforeach; ?>
                                 </tbody>
