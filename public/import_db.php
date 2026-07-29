@@ -24,7 +24,26 @@ try {
     }
     
     $sql = file_get_contents($sqlFile);
-    $pdo->exec($sql);
+    // Pisahkan query berdasarkan 'REPLACE INTO'
+    $queries = explode('REPLACE INTO', $sql);
+    
+    // Eksekusi awalan (SET SQL_MODE dll)
+    $pdo->exec(array_shift($queries));
+    
+    foreach ($queries as $q) {
+        $q = trim($q);
+        if (empty($q)) continue;
+        
+        $fullQuery = "REPLACE INTO " . $q;
+        try {
+            $pdo->exec($fullQuery);
+        } catch (PDOException $e) {
+            // Tangkap error untuk query spesifik ini
+            preg_match('/`([^`]+)`/', $fullQuery, $matches);
+            $tableName = $matches[1] ?? 'unknown_table';
+            die("<h2>DB Error pada tabel: <strong>$tableName</strong></h2><p>" . $e->getMessage() . "</p><p>Query snippet: " . substr($fullQuery, 0, 150) . "...</p>");
+        }
+    }
     
     echo "<h1>MIGRATION SUCCESSFUL!</h1>";
     echo "<p>Data dari database lama telah berhasil disalin ke tabel baru (swim_...).</p>";
