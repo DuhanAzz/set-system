@@ -3,33 +3,37 @@
 
 use App\Roll\Controllers\Admin\RollPelotonController;
 
-// === KONFIGURASI TAMPILAN ===
+// === LOGIKA CONFIG ===
+$usePost = ($_SERVER['REQUEST_METHOD'] === 'POST');
+// Anggap form sudah di-submit jika POST atau jika ada cfg_date / print_trigger
+$isSubmitted = $usePost || isset($_REQUEST['print_trigger']) || isset($_REQUEST['cfg_event_name']) || isset($_REQUEST['col_lane']);
+
 $pc = [
-    'show_date'       => isset($_REQUEST['cfg_date']),
-    'show_event_name' => isset($_REQUEST['cfg_event_name']),
-    'show_group'      => isset($_REQUEST['cfg_group']),
-    'show_gender'     => isset($_REQUEST['cfg_gender']),
-    'show_distance'   => isset($_REQUEST['cfg_distance']),
+    'show_date'       => $isSubmitted ? isset($_REQUEST['cfg_date']) : true,
+    'show_event_name' => $isSubmitted ? isset($_REQUEST['cfg_event_name']) : true,
+    'show_group'      => $isSubmitted ? isset($_REQUEST['cfg_group']) : true,
+    'show_gender'     => $isSubmitted ? isset($_REQUEST['cfg_gender']) : true,
+    'show_distance'   => $isSubmitted ? isset($_REQUEST['cfg_distance']) : true,
 ];
 
 $cc = [
-    'lane'  => isset($_REQUEST['col_lane']),
-    'bib'   => isset($_REQUEST['col_bib']),
-    'nama'  => isset($_REQUEST['col_nama']),
-    'klub'  => isset($_REQUEST['col_klub']),
+    'lane'  => $isSubmitted ? isset($_REQUEST['col_lane']) : true,
+    'bib'   => $isSubmitted ? isset($_REQUEST['col_bib']) : true,
+    'nama'  => $isSubmitted ? isset($_REQUEST['col_nama']) : true,
+    'klub'  => $isSubmitted ? isset($_REQUEST['col_klub']) : true,
 ];
 
 // Handle Image Uploads
 $scheduleImage = null;
-if (!empty($_FILES['schedule_image']['tmp_name'])) {
+if ($usePost && !empty($_FILES['schedule_image']['tmp_name'])) {
     $imgData = file_get_contents($_FILES['schedule_image']['tmp_name']);
     $scheduleImage = 'data:' . $_FILES['schedule_image']['type'] . ';base64,' . base64_encode($imgData);
 }
 
-$showScheduleAuto = isset($_REQUEST['show_schedule_auto']) && empty($scheduleImage);
+$showScheduleAuto = ($isSubmitted ? isset($_REQUEST['show_schedule_auto']) : false) && empty($scheduleImage);
 
 $coverImage = null;
-if (!empty($_FILES['cover_image']['tmp_name'])) {
+if ($usePost && !empty($_FILES['cover_image']['tmp_name'])) {
     $imgData = file_get_contents($_FILES['cover_image']['tmp_name']);
     $coverImage = 'data:' . $_FILES['cover_image']['type'] . ';base64,' . base64_encode($imgData);
 }
@@ -51,9 +55,16 @@ if (!$eventInfo) {
 $eventName = strtoupper($eventInfo['event_name']);
 $eventCity = strtoupper($eventInfo['event_city']);
 $eventDate = date('d F Y', strtotime($eventInfo['event_date_start']));
-if (!empty($eventInfo['event_date_end']) && $eventInfo['event_date_end'] != '0000-00-00') {
-    $eventDate .= ' - ' . date('d F Y', strtotime($eventInfo['event_date_end']));
+if (!empty($eventInfo['event_date_end']) && $eventInfo['event_date_end'] != '0000-00-00' && $eventInfo['event_date_end'] != $eventInfo['event_date_start']) {
+    $dateRange = date('d', strtotime($eventInfo['event_date_start'])) . ' - ' . date('d F Y', strtotime($eventInfo['event_date_end']));
+} else {
+    $dateRange = $eventDate;
 }
+$dateRange = strtoupper($dateRange);
+
+$loc = $eventInfo['event_location'] ?? '-';
+if (!empty($eventInfo['event_city'])) $loc .= ' - ' . $eventInfo['event_city'];
+$venueName = strtoupper($loc);
 
 $rawHeader = !empty($eventInfo['header_logos']) ? json_decode($eventInfo['header_logos'], true) : [];
 $headerLogos = ['left' => [], 'center' => [], 'right' => []];
@@ -61,6 +72,15 @@ if (isset($rawHeader[0]) && !is_array($rawHeader[0])) {
     $headerLogos['left'] = $rawHeader;
 } else {
     $headerLogos = array_merge($headerLogos, $rawHeader);
+}
+
+$logoLeft = null;
+if (!empty($headerLogos['left'][0])) {
+    $logoLeft = getenv('APP_URL') . '/' . ltrim(str_replace('public/', '', $headerLogos['left'][0]), '/');
+}
+$logoRight = null;
+if (!empty($headerLogos['right'][0])) {
+    $logoRight = getenv('APP_URL') . '/' . ltrim(str_replace('public/', '', $headerLogos['right'][0]), '/');
 }
 
 $sponsors = !empty($eventInfo['sponsor_logos']) ? json_decode($eventInfo['sponsor_logos'], true) : [];
@@ -102,19 +122,21 @@ foreach ($rawData as $row) {
         
         $fullBook[$cid] = [
             'meta' => [
-                'race_number' => $row['race_number'],
-                'judul' => empty($judulParts) ? "RACE " . $row['race_number'] : implode(" | ", $judulParts),
-                'mechanism' => $mechData['mechanism'],
-                'race_type' => $mechData['race_type']
+                'nomor'       => $row['race_number'],
+                'judul'       => empty($judulParts) ? "RACE " . $row['race_number'] : implode(" - ", $judulParts),
+                'mechanism'   => $mechData['mechanism'],
+                'race_type'   => $mechData['race_type'],
+                'jadwal'      => $dateRange
             ],
             'rounds' => []
         ];
         
+        // Simpan data jadwal agar sinkron urutannya
         $scheduleData[] = [
             'no' => $row['race_number'],
+            'tgl_display' => strtoupper($dateRange),
+            'uraian' => $row['roller_name'] . ' ' . $row['distance_name'],
             'kategori' => $row['group_name'] . ' ' . strtoupper($row['gender']),
-            'kelas' => $row['roller_name'],
-            'jarak' => $row['distance_name'],
             'babak' => ($mechData['mechanism'] === 'heat') ? 'KUALIFIKASI - FINAL' : 'LANGSUNG FINAL'
         ];
     }
@@ -137,7 +159,17 @@ foreach ($rawData as $row) {
     ];
 }
 
-// === RENDER VIEW ===
+if ($showScheduleAuto) {
+    usort($scheduleData, function($a, $b) { return (int)$a['no'] - (int)$b['no']; });
+}
+
+// Active Columns for Colspan
+$activeColumnsCount = 0;
+if ($cc['lane']) $activeColumnsCount++;
+if ($cc['bib']) $activeColumnsCount++;
+if ($cc['nama']) $activeColumnsCount++;
+if ($cc['klub']) $activeColumnsCount++;
+
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -146,329 +178,219 @@ foreach ($rawData as $row) {
     <title>Cetak Full Race Book - Roller Skating</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        /* --- RESET & COLOR SETTINGS --- */
-        * { box-sizing: border-box; }
+        * { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+        body { margin: 0; padding: 0; font-family: 'Arial Narrow', Arial, sans-serif; background: #ccc; }
         
-        body {
-            margin: 0; padding: 0;
-            background-color: #525659;
-            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-            font-size: 10pt;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-            color-adjust: exact !important;
-        }
-
-        /* --- STRUKTUR KERTAS (A4) --- */
-        .sheet {
-            width: 210mm;
-            min-height: 297mm;
-            background: white;
-            margin: 30px auto;
-            /* Padding atas 8mm, Kiri-Kanan 8mm, Bawah 5mm agar area lebih luas */
-            padding: 8mm 8mm 5mm 8mm; 
-            position: relative;
-            box-shadow: 0 0 15px rgba(0,0,0,0.5);
-            display: flex;
-            flex-direction: column;
-        }
-
-        /* --- HEADER (KOP SURAT) --- */
-        .kop-surat { width: 100%; border: none; margin-bottom: 20px; border-bottom: 3px double #000; padding-bottom: 10px; margin-top: 0; }
-        .kop-surat td { padding: 0; border: none; }
+        .page-wrapper { background: white; width: 210mm; margin: 20px auto; padding: 0 10mm; min-height: 297mm; position: relative; }
         
-        /* --- MAIN TABLE --- */
-        table.master-layout { width: 100%; border: none; border-collapse: collapse; flex-grow: 1; }
-        table.master-layout > thead > tr > td { padding: 0; border: none; }
-        table.master-layout > tbody > tr > td { padding: 0; border: none; }
-        table.master-layout > tfoot > tr > td { padding: 0; border: none; }
-
-        /* --- STYLING BUKU LOMBA --- */
-        .heat-header {
-            display: flex; justify-content: space-between; align-items: flex-end; 
-            border-bottom: 1px dashed #000; margin-bottom: 8px; padding-bottom: 4px;
+        .full-page { 
+            position: relative; width: 210mm; height: 297mm; margin: 0 auto;
+            z-index: 99999; background: white; display: flex; justify-content: center; align-items: center; overflow: hidden;
+            margin-bottom: -35mm; 
         }
+        .full-page-img { width: 100%; height: 100%; object-fit: fill; }
         
-        table.race-table { width: 100%; border-collapse: collapse; margin-bottom: 25px; page-break-inside: avoid; }
-        table.race-table th, table.race-table td { border: 1px solid #000; padding: 6px; text-align: left; font-size: 10pt; }
-        table.race-table th { background-color: #f0f0f0; font-weight: bold; text-transform: uppercase; font-size: 9pt; }
-        table.race-table td.text-center { text-align: center; }
+        /* HEADER FIXED */
+        .header-fixed { position: fixed; top: 0; left: 0; right: 0; height: 35mm; background: white; border-bottom: 3px double #000; display: grid; grid-template-columns: 110px 1fr 110px; align-items: flex-end; padding: 5px 10mm 3px 10mm; z-index: 999; }
+        .header-center { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; text-align: center; line-height: 1.2; color: #000; }
+        .header-line-1 { font-size: 14pt; font-weight: 900; text-transform: uppercase; margin-bottom: 2px; }
+        .header-line-2 { font-size: 9pt; font-weight: bold; text-transform: uppercase; }
+        .header-line-3 { font-size: 9pt; font-weight: bold; text-transform: uppercase; }
+        .header-line-4 { height: 3px; } 
+        .header-line-5 { font-size: 18pt; font-weight: 900; text-transform: uppercase; letter-spacing: 2px; color: #000; margin-top: 2px; margin-bottom: 0px; line-height: 1; }
+        .logo-img { max-height: 100px; max-width: 100%; object-fit: contain; margin-bottom: 2px; }
         
-        .race-title-box {
-            background-color: #000; color: #fff; padding: 4px 10px; 
-            font-weight: bold; font-size: 10pt; text-transform: uppercase; 
-            display: inline-block; border-radius: 4px 4px 0 0;
-            margin-bottom: 5px;
+        .footer-fixed { position: fixed; bottom: 0; left: 0; right: 0; height: 20mm; background: white; border-top: 2px double #000; display: flex; justify-content: center; align-items: center; padding: 0 10mm; z-index: 999; }
+        
+        /* SPACER */
+        .layout-table { width: 100%; border-collapse: collapse; border: none; }
+        .layout-header-space { height: 40mm; } 
+        .layout-footer-space { height: 22mm; }
+        
+        /* SCHEDULE TABEL STYLE */
+        .schedule-title { text-align:center; font-size:14pt; font-weight:900; margin-bottom:15px; text-transform:uppercase; font-family: 'Arial Narrow', sans-serif; text-decoration: underline; }
+        .schedule-table { width: 100%; border-collapse: collapse; border: none; font-family: 'Courier New', Courier, monospace; font-size: 8pt; }
+        .schedule-table th { border: none; border-bottom: 1px solid #000; text-align: left; padding: 2px 4px; text-transform: uppercase; font-weight: bold; }
+        .schedule-table td { border: none; padding: 1px 4px; vertical-align: top; font-weight: bold !important; }
+        .schedule-date-header { border-bottom: 1px dashed #000; font-weight: 900 !important; font-size: 9pt; padding-top: 8px !important; }
+        
+        /* EVENT HEADER */
+        .event-header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #000; padding-bottom: 2px; margin-bottom: 8px; margin-top: 15px; page-break-inside: avoid; }
+        .eh-left-group { display: flex; flex-direction: column; gap: 2px; min-width: 120px; }
+        .eh-number { font-size: 10pt; font-weight: 900; background: #000; color: #fff; display: inline-block; padding: 2px 8px; border-radius: 4px 4px 0 0; align-self: flex-start; }
+        .eh-date { font-size: 8pt; font-weight: bold; color: #555; }
+        .eh-center { flex-grow: 1; text-align: center; }
+        .eh-title { font-size: 14pt; font-weight: 900; text-transform: uppercase; color: #000; font-style: italic; }
+        .eh-right { min-width: 120px; text-align: right; font-size: 10pt; font-weight: 900; color: #000; }
+        
+        /* DATA TABLE */
+        .heat-title { font-size: 10pt; font-weight: 900; text-transform: uppercase; margin-bottom: 4px; margin-top: 10px; border-bottom: 1px dashed #000; padding-bottom: 2px; }
+        .data-table { width: 100%; border-collapse: collapse; margin-bottom: 15px; page-break-inside: avoid; }
+        .data-table th { border: 1px solid #000; background-color: #eee; padding: 4px; text-align: left; font-size: 9pt; font-weight: bold; text-transform: uppercase; }
+        .data-table td { border: 1px solid #000; padding: 4px; font-size: 9pt; vertical-align: middle; }
+        .data-table th.col-ln, .data-table td.col-ln { width: 40px; text-align: center; font-weight: bold; }
+        .data-table th.col-bib, .data-table td.col-bib { width: 60px; text-align: center; font-weight: bold; }
+        .data-table th.col-nama { width: 40%; }
+        
+        /* ROUND TITLE */
+        .round-title {
+            background-color: #e2e8f0; color: #1e293b; text-align: center; padding: 4px; margin-top: 10px; margin-bottom: 5px; font-weight: bold; font-size: 9pt; text-transform: uppercase; page-break-inside: avoid;
         }
 
-        /* --- FOOTER --- */
-        .sponsor-footer {
-            margin-top: auto; /* Push to bottom in flex container */
-            text-align: center;
-            border-top: 1px dashed #ccc;
-            padding-top: 10px;
-            width: 100%;
-        }
-        .sponsor-footer img { 
-            height: 35px; /* Sedikit dikecilkan agar hemat ruang di footer */
-            width: auto; 
-            object-fit: contain;
-            margin: 0 10px;
-        }
-
-        .btn-print {
-            position: fixed; top: 20px; right: 20px; z-index: 9999;
-            background: #0f172a; color: white; border: none; padding: 12px 24px;
-            border-radius: 8px; font-weight: bold; cursor: pointer;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3); text-transform: uppercase;
-            transition: transform 0.2s ease;
-        }
-        .btn-close {
-            position: fixed; top: 20px; right: 180px; z-index: 9999;
-            background: #475569; color: white; border: none; padding: 12px 24px;
-            border-radius: 8px; font-weight: bold; cursor: pointer;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3); text-transform: uppercase;
-            transition: transform 0.2s ease;
-        }
-        .btn-print:hover, .btn-close:hover { transform: scale(1.05); }
-
+        .btn-print { position: fixed; top: 20px; right: 20px; z-index: 999999; background: #0f172a; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-weight: bold; cursor: pointer; text-transform: uppercase; }
+        .btn-close { position: fixed; top: 20px; right: 180px; z-index: 999999; background: #475569; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-weight: bold; cursor: pointer; text-transform: uppercase; }
+        
         @media print {
             body { background: white; margin: 0; }
-            .sheet {
-                margin: 0; box-shadow: none; border: none; display: block;
-                position: static !important; /* CRITICAL: ensures fixed footer anchors to the page */
-                page-break-after: always;
-            }
-            .sheet:last-child { page-break-after: auto; }
-            .sponsor-footer {
-                position: fixed;
-                bottom: 0;
-                left: 8mm; /* Sesuaikan dengan padding kertas */
-                right: 8mm;
-                width: auto;
-                background: white;
-                margin-top: 0;
-                padding-bottom: 5mm; /* Jarak ke ujung bawah kertas */
-                z-index: 1000;
-            }
-            .footer-spacer {
-                display: block;
-                height: 80px; /* Jarak kosong di akhir tabel agar tidak tertimpa footer fixed */
-            }
-            .btn-print, .btn-close { display: none; }
-            /* Matikan margin bawaan browser agar menggunakan padding dari .sheet */
-            @page { margin: 0; size: A4; }
-            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-            .page-break-inside-avoid { page-break-inside: avoid; }
+            .page-wrapper { margin: 0; box-shadow: none; border: none; width: 100%; padding: 0 10mm; }
+            .btn-print, .btn-close { display: none !important; }
+            @page { margin: 0; size: auto; }
+            .schedule-section { page-break-after: always; }
         }
     </style>
+    <script>
+        window.onload = function() {
+            <?php if(isset($_REQUEST['print_trigger'])): ?>
+            setTimeout(function() { window.print(); }, 1000);
+            <?php endif; ?>
+        };
+    </script>
 </head>
 <body>
-
-    <!-- TOMBOL KENDALI CETAK (Hanya tampil di layar) -->
-    <button onclick="window.print()" class="btn-print"><i class="fas fa-print"></i> Print PDF / Cetak</button>
+    
+    <button onclick="window.print()" class="btn-print"><i class="fas fa-print"></i> Print PDF</button>
     <button onclick="window.close()" class="btn-close"><i class="fas fa-times"></i> Tutup</button>
 
-    <?php if($coverImage): ?>
-    <!-- HALAMAN COVER OPTIONAL -->
-    <div class="sheet" style="align-items: center; justify-content: center; text-align: center;">
-        <h1 style="font-size: 36pt; font-weight: bold; text-transform: uppercase; margin-bottom: 30px;">RACE BOOK</h1>
-        <img src="<?= $coverImage ?>" style="max-width: 80%; max-height: 500px; object-fit: contain; border: 5px solid #eee; border-radius: 10px; box-shadow: 0 10px 20px rgba(0,0,0,0.1);">
-        <div style="margin-top: 40px; background: #222; color: #fff; padding: 20px 40px; border-radius: 15px;">
-            <h2 style="font-size: 20pt; margin: 0 0 10px 0; color: #ffd700; text-transform: uppercase;"><?= htmlspecialchars($eventName) ?></h2>
-            <p style="font-size: 12pt; margin: 0; font-weight: bold; text-transform: uppercase;"><?= htmlspecialchars($eventCity) ?> | <?= $eventDate ?></p>
+    <?php if ($coverImage): ?><div class="full-page"><img src="<?= $coverImage ?>" class="full-page-img"></div><?php endif; ?>
+    <?php if ($scheduleImage): ?><div class="full-page"><img src="<?= $scheduleImage ?>" class="full-page-img"></div><?php endif; ?>
+
+    <div class="header-fixed">
+        <div style="text-align: left;"><?php if($logoLeft): ?><img src="<?= $logoLeft ?>" class="logo-img"><?php endif; ?></div>
+        <div class="header-center">
+            <div class="header-line-1"><?= htmlspecialchars($eventName) ?></div>
+            <div class="header-line-2"><?= htmlspecialchars($venueName) ?></div>
+            <div class="header-line-3"><?= htmlspecialchars($dateRange) ?></div>
+            <div class="header-line-4"></div>
+            <div class="header-line-5">RACE BOOK</div>
         </div>
+        <div style="text-align: right;"><?php if($logoRight): ?><img src="<?= $logoRight ?>" class="logo-img"><?php endif; ?></div>
     </div>
+
+    <div class="footer-fixed">
+        <?php if(!empty($sponsors)): foreach($sponsors as $img): ?>
+            <img src="<?= getenv('APP_URL') . '/' . ltrim(str_replace('public/', '', $img), '/') ?>" style="height:45px; margin:0 10px;">
+        <?php endforeach; endif; ?>
+    </div>
+
+    <?php if ($showScheduleAuto && empty($scheduleImage) && !empty($scheduleData)): ?>
+        <div class="page-wrapper schedule-section">
+            <table class="layout-table">
+                <thead><tr><td><div class="layout-header-space"></div></td></tr></thead>
+                <tfoot><tr><td><div class="layout-footer-space"></div></td></tr></tfoot>
+                <tbody>
+                    <tr>
+                        <td>
+                            <div class="schedule-title">SUSUNAN ACARA (ORDER OF EVENTS)</div>
+                            <table class="schedule-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width:10%; text-align:center">RACE NO</th>
+                                        <th style="width:40%">URAIAN ACARA</th>
+                                        <th style="width:35%">KATEGORI</th>
+                                        <th style="width:15%; text-align:right">BABAK</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php $lastDate = ''; foreach($scheduleData as $sch): if ($sch['tgl_display'] !== $lastDate): ?>
+                                        <tr><td colspan="4" class="schedule-date-header"><?= $sch['tgl_display'] ?></td></tr>
+                                    <?php $lastDate = $sch['tgl_display']; endif; ?>
+                                    <tr>
+                                        <td style="text-align:center;">#<?= $sch['no'] ?></td>
+                                        <td><?= $sch['uraian'] ?></td>
+                                        <td><?= $sch['kategori'] ?></td>
+                                        <td style="text-align:right;"><?= $sch['babak'] ?></td>
+                                    </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
     <?php endif; ?>
 
-    <!-- HALAMAN RACE BOOK UTAMA DENGAN REPEATING HEADER/FOOTER -->
-    <div class="sheet">
-        <!-- Master table layout to enforce repeating headers and footers -->
-        <table class="master-layout">
-            
-            <!-- REPEATING HEADER -->
-            <thead>
-                <tr>
-                    <td>
-                        <table class="kop-surat">
-                            <tr>
-                                <td style="width: 25%; text-align: left; vertical-align: middle;">
-                                    <?php if(!empty($headerLogos['left'])): ?>
-                                        <?php foreach($headerLogos['left'] as $logo): ?>
-                                            <img src="<?= getenv('APP_URL') ?>/<?= ltrim(str_replace('public/', '', $logo), '/') ?>" style="height: 60px; max-width: 100px; object-fit: contain; margin-right: 5px;">
-                                        <?php endforeach; ?>
-                                    <?php endif; ?>
-                                </td>
-                                <td style="width: 50%; text-align: center; vertical-align: middle;">
-                                    <?php if(!empty($headerLogos['center'])): ?>
-                                        <div style="margin-bottom: 10px;">
-                                        <?php foreach($headerLogos['center'] as $logo): ?>
-                                            <img src="<?= getenv('APP_URL') ?>/<?= ltrim(str_replace('public/', '', $logo), '/') ?>" style="height: 60px; max-width: 100px; object-fit: contain; margin: 0 5px;">
-                                        <?php endforeach; ?>
-                                        </div>
-                                    <?php endif; ?>
-                                    <h1 style="margin: 0; font-size: 16pt; text-transform: uppercase;">STARTING LIST RACE BOOK</h1>
-                                    
-                                    <?php if($pc['show_event_name']): ?>
-                                        <p style="margin: 5px 0 0 0; font-size: 12pt; font-weight: bold; color: #333;"><?= htmlspecialchars($eventName) ?></p>
-                                    <?php endif; ?>
-                                    
-                                    <?php if($pc['show_date']): ?>
-                                        <p style="font-size: 10pt; margin: 2px 0 0 0; color: #666;">Tanggal: <?= $eventDate ?></p>
-                                    <?php endif; ?>
-                                </td>
-                                <td style="width: 25%; text-align: right; vertical-align: middle;">
-                                    <?php if(!empty($headerLogos['right'])): ?>
-                                        <?php foreach($headerLogos['right'] as $logo): ?>
-                                            <img src="<?= getenv('APP_URL') ?>/<?= ltrim(str_replace('public/', '', $logo), '/') ?>" style="height: 60px; max-width: 100px; object-fit: contain; margin-left: 5px;">
-                                        <?php endforeach; ?>
-                                    <?php endif; ?>
-                                </td>
-                            </tr>
-                        </table>
-                    </td>
-                </tr>
-            </thead>
-
-            <!-- MAIN CONTENT -->
+    <div class="page-wrapper">
+        <table class="layout-table">
+            <thead><tr><td><div class="layout-header-space"></div></td></tr></thead>
+            <tfoot><tr><td><div class="layout-footer-space"></div></td></tr></tfoot>
             <tbody>
                 <tr>
                     <td>
-                        <?php 
-                        if(empty($fullBook)){
-                            echo "<div style='text-align:center; padding:50px; color:#999;'><h3 style='font-size:16pt;'>Belum ada data Race Book</h3></div>";
-                        }
-                        
-                        foreach($fullBook as $cid => $classData): 
-                            $meta = $classData['meta'];
-                            $isHeat = ($meta['mechanism'] === 'heat');
-                            $isTimeTrial = ($meta['race_type'] === 'time_trial');
-                            $raceNumStr = str_pad($meta['race_number'], 3, '0', STR_PAD_LEFT);
-                        ?>
-                        
-                        <div class="page-break-inside-avoid" style="margin-bottom: 25px;">
-                            <!-- HEADER KELAS -->
-                            <div style="border-bottom: 3px solid #000; padding-bottom: 8px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: flex-end;">
-                                <div>
-                                    <div class="race-title-box">
-                                        RACE <?= $raceNumStr ?>
+                        <?php if(empty($fullBook)): ?>
+                            <div style="text-align:center; padding: 50px; font-weight:bold;">BELUM ADA DATA RACE BOOK</div>
+                        <?php else: ?>
+                            <?php foreach($fullBook as $cid => $data): 
+                                $meta = $data['meta'];
+                                $isHeat = ($meta['mechanism'] === 'heat');
+                                $isTimeTrial = ($meta['race_type'] === 'time_trial');
+                                $raceNumStr = str_pad($meta['nomor'], 3, '0', STR_PAD_LEFT);
+                            ?>
+                                <div class="event-header">
+                                    <div class="eh-left-group">
+                                        <div class="eh-number">RACE <?= $raceNumStr ?></div>
+                                        <?php if($pc['show_date']): ?><div class="eh-date"><?= $meta['jadwal'] ?></div><?php endif; ?>
                                     </div>
-                                    <h2 style="margin: 0; font-size: 14pt; font-weight: bold; text-transform: uppercase; font-style: italic; color: #111;">
-                                        <?= htmlspecialchars($meta['judul']) ?>
-                                    </h2>
-                                    <div style="font-size: 8pt; font-weight: bold; color: #666; text-transform: uppercase; margin-top: 4px;">
-                                        Sistem: <?= $isHeat ? 'Penyisihan Berjenjang (Heat)' : ($isTimeTrial ? 'Time Trial' : 'Langsung Final') ?>
-                                    </div>
+                                    <div class="eh-center"><div class="eh-title"><?= $meta['judul'] ?></div></div>
+                                    <div class="eh-right"><?= $isHeat ? 'PENYISIHAN (HEAT)' : ($isTimeTrial ? 'TIME TRIAL' : 'LANGSUNG FINAL') ?></div>
                                 </div>
-                            </div>
 
-                            <!-- LOOPING BABAK -->
-                            <?php foreach($classData['rounds'] as $rndName => $heats): ?>
-                                
-                                <?php if($isHeat && count($classData['rounds']) > 1): ?>
-                                <div style="background-color: #e2e8f0; color: #1e293b; text-align: center; padding: 4px; margin-bottom: 10px; font-weight: bold; font-size: 9pt; text-transform: uppercase;">
-                                    BABAK <?= htmlspecialchars($rndName) ?>
-                                </div>
-                                <?php endif; ?>
+                                <?php foreach($data['rounds'] as $rndName => $heats): ?>
+                                    
+                                    <?php if($isHeat && count($data['rounds']) > 1): ?>
+                                        <div class="round-title">BABAK <?= htmlspecialchars($rndName) ?></div>
+                                    <?php endif; ?>
 
-                                <!-- LOOPING HEAT / GRUP -->
-                                <?php foreach($heats as $heatName => $members): ?>
-                                    <div class="page-break-inside-avoid">
+                                    <?php foreach($heats as $heatName => $members): ?>
                                         <?php if($isHeat || count($heats) > 1): ?>
-                                        <div class="heat-header">
-                                            <h3 style="margin: 0; font-size: 11pt; font-weight: bold; text-transform: uppercase;"><?= htmlspecialchars($heatName) ?></h3>
-                                            <span style="font-size: 8pt; font-weight: bold; text-transform: uppercase; color: #666;">Total: <?= count($members) ?> Atlet</span>
-                                        </div>
+                                            <div class="heat-title"><?= htmlspecialchars($heatName) ?> <span style="font-size: 8pt; color: #666; font-weight: normal; margin-left: 10px;">(<?= count($members) ?> Atlet)</span></div>
                                         <?php endif; ?>
 
-                                        <table class="race-table">
+                                        <table class="data-table">
                                             <thead>
                                                 <tr>
-                                                    <?php if($cc['lane']): ?>
-                                                        <th class="text-center" style="width: 50px;">
-                                                            <?= $isTimeTrial ? 'Urut' : 'Lane' ?>
-                                                        </th>
-                                                    <?php endif; ?>
-                                                    
-                                                    <?php if($cc['bib']): ?>
-                                                        <th class="text-center" style="width: 70px;">No. BIB</th>
-                                                    <?php endif; ?>
-                                                    
-                                                    <?php if($cc['nama']): ?>
-                                                        <th>Nama Atlet</th>
-                                                    <?php endif; ?>
-                                                    
-                                                    <?php if($cc['klub']): ?>
-                                                        <th>Klub / Kontingen</th>
-                                                    <?php endif; ?>
-                                                    
-                                                    <?php if($isTimeTrial || !$isHeat): ?>
-                                                        <th class="text-center" style="width: 120px;">Waktu / Hasil</th>
-                                                    <?php else: ?>
-                                                        <th class="text-center" style="width: 100px;">Lolos / Rank</th>
-                                                    <?php endif; ?>
+                                                    <?php if($cc['lane']): ?><th class="col-ln"><?= $isTimeTrial ? 'URUT' : 'LANE' ?></th><?php endif; ?>
+                                                    <?php if($cc['bib']): ?><th class="col-bib">NO. BIB</th><?php endif; ?>
+                                                    <?php if($cc['nama']): ?><th class="col-nama">NAMA ATLET</th><?php endif; ?>
+                                                    <?php if($cc['klub']): ?><th>KLUB / KONTINGEN</th><?php endif; ?>
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                <?php foreach($members as $idx => $m): ?>
-                                                    <tr>
-                                                        <?php if($cc['lane']): ?>
-                                                            <td class="text-center font-bold"><?= $m['start_grid'] ?></td>
-                                                        <?php endif; ?>
-                                                        
-                                                        <?php if($cc['bib']): ?>
-                                                            <td class="text-center font-bold" style="background-color: #fafafa;"><?= htmlspecialchars($m['bib_number'] ?? '-') ?></td>
-                                                        <?php endif; ?>
-                                                        
-                                                        <?php if($cc['nama']): ?>
-                                                            <td style="font-weight: bold; text-transform: uppercase;"><?= htmlspecialchars($m['skater_name']) ?></td>
-                                                        <?php endif; ?>
-                                                        
-                                                        <?php if($cc['klub']): ?>
-                                                            <td style="color: #444; font-size: 9pt;"><?= htmlspecialchars($m['club_name']) ?></td>
-                                                        <?php endif; ?>
-                                                        
-                                                        <td class="text-center" style="color: #ccc;">
-                                                            <?= ($isTimeTrial || !$isHeat) ? '___:___.___ ' : '____' ?>
-                                                        </td>
-                                                    </tr>
+                                                <?php foreach($members as $m): ?>
+                                                <tr>
+                                                    <?php if($cc['lane']): ?><td class="col-ln"><?= $m['start_grid'] ?></td><?php endif; ?>
+                                                    <?php if($cc['bib']): ?><td class="col-bib"><?= htmlspecialchars($m['bib_number'] ?? '-') ?></td><?php endif; ?>
+                                                    <?php if($cc['nama']): ?><td class="col-nama" style="font-weight: bold;"><?= htmlspecialchars($m['skater_name']) ?></td><?php endif; ?>
+                                                    <?php if($cc['klub']): ?><td><?= htmlspecialchars($m['club_name'] ?? '-') ?></td><?php endif; ?>
+                                                </tr>
                                                 <?php endforeach; ?>
+                                                <?php if(empty($members)): ?>
+                                                <tr>
+                                                    <td colspan="<?= $activeColumnsCount ?>" style="text-align: center; padding: 10px; color: #888;">&lt;Belum ada atlet&gt;</td>
+                                                </tr>
+                                                <?php endif; ?>
                                             </tbody>
                                         </table>
-                                    </div>
-                                <?php endforeach; // heats ?>
+                                    <?php endforeach; ?>
+                                <?php endforeach; ?>
                                 
-                            <?php endforeach; // rounds ?>
-                        </div>
-                        
-                        <?php endforeach; // fullBook ?>
-
+                                <div style="height: 10px;"></div>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
                     </td>
                 </tr>
             </tbody>
-
-            <!-- REPEATING FOOTER SPACER -->
-            <tfoot>
-                <tr>
-                    <td>
-                        <div class="footer-spacer"></div>
-                    </td>
-                </tr>
-            </tfoot>
         </table>
-
-        <!-- ACTUAL FIXED FOOTER -->
-        <?php if(!empty($sponsors)): ?>
-        <div class="sponsor-footer">
-            <p style="font-size: 8pt; color: #888; margin: 0 0 5px 0; text-transform: uppercase; font-weight: bold; letter-spacing: 2px;">Supported By</p>
-            <div style="display: flex; flex-wrap: wrap; justify-content: center; align-items: center;">
-                <?php foreach($sponsors as $sponsor): ?>
-                    <img src="<?= getenv('APP_URL') ?>/<?= ltrim(str_replace('public/', '', $sponsor), '/') ?>" alt="Sponsor">
-                <?php endforeach; ?>
-            </div>
-        </div>
-        <?php endif; ?>
     </div>
-
 </body>
 </html>
