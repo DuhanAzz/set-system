@@ -1,4 +1,9 @@
 RewriteEngine On
+
+# Arahkan domain utama (root) ke folder public/
+RewriteRule ^$ public/index.php [L]
+
+# Jika file atau folder tidak ada di root, arahkan ke public/index.php
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^(.*)$ public/index.php?url=$1 [QSA,L]
