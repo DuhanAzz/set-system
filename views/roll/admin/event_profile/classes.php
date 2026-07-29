@@ -400,31 +400,87 @@ async function generateScheduleTime(e) {
                             }
                             return $cmp;
                         });
-                        foreach ($dayClasses as $c): 
+
+                        $pemulaGroup = [];
+                        $renderPemulaGroup = function($group) {
+                            if (empty($group)) return;
+                            $time = $group[0]['race_time'] ?? '-';
+                            $heats = 0; $athletes = 0;
+                            $races = []; $dists = []; $kus = []; $genders = [];
+                            foreach ($group as $g) {
+                                $heats += (int)($g['total_heats'] ?? 0);
+                                $athletes += (int)($g['total_athletes'] ?? 0);
+                                $races[] = $g['race_number'];
+                                $dist = $g['distance_name'] ?? $g['distance'];
+                                if ($dist) $dists[] = $dist;
+                                if ($g['group_name']) $kus[] = $g['group_name'];
+                                $gn = $g['gender'] === 'Putra' ? '🔵 Putra' : ($g['gender'] === 'Putri' ? '🔴 Putri' : $g['gender']);
+                                if ($gn) $genders[] = $gn;
+                            }
+                            $racesStr = implode(' & ', array_unique($races));
+                            $distStr = implode(' & ', array_unique($dists));
+                            $kuStr = implode(', ', array_unique($kus));
+                            $genderStr = implode(' & ', array_unique($genders));
+                            ?>
+                            <tr class="hover:bg-slate-50 bg-blue-50/30">
+                                <td class="p-3 font-black text-indigo-600"><?= htmlspecialchars($time) ?></td>
+                                <td class="p-3 text-center font-bold text-slate-700">
+                                    <span class="bg-emerald-50 text-emerald-700 px-2 py-1 rounded text-xs"><?= $heats ?></span>
+                                </td>
+                                <td class="p-3 font-bold text-slate-800"><?= htmlspecialchars($racesStr) ?></td>
+                                <td class="p-3 text-blue-600 font-bold uppercase"><?= htmlspecialchars($distStr) ?></td>
+                                <td class="p-3 font-bold text-slate-700 uppercase"><?= htmlspecialchars($kuStr) ?></td>
+                                <td class="p-3 text-xs uppercase font-bold tracking-widest text-slate-500">PEMULA</td>
+                                <td class="p-3 text-xs font-bold"><?= $genderStr ?></td>
+                                <td class="p-3 text-center font-bold text-slate-700">
+                                    <span class="bg-indigo-50 text-indigo-700 px-2 py-1 rounded text-xs"><?= $athletes ?></span>
+                                </td>
+                            </tr>
+                            <?php
+                        };
+
+                        foreach ($dayClasses as $c) {
+                            $rName = strtolower($c['roller_name'] ?? '');
+                            $groupName = strtolower($c['group_name'] ?? '');
+                            $isPemula = (strpos($rName, 'pemula') !== false || strpos($groupName, 'pemula') !== false);
+
+                            if ($isPemula) {
+                                $pemulaGroup[] = $c;
+                            } else {
+                                if (!empty($pemulaGroup)) {
+                                    $renderPemulaGroup($pemulaGroup);
+                                    $pemulaGroup = [];
+                                }
+                                ?>
+                                <tr class="hover:bg-slate-50">
+                                    <td class="p-3 font-black text-indigo-600"><?= htmlspecialchars($c['race_time'] ?? '-') ?></td>
+                                    <td class="p-3 text-center font-bold text-slate-700">
+                                        <span class="bg-emerald-50 text-emerald-700 px-2 py-1 rounded text-xs"><?= (int)($c['total_heats'] ?? 0) ?></span>
+                                    </td>
+                                    <td class="p-3 font-bold text-slate-800"><?= htmlspecialchars($c['race_number']) ?></td>
+                                    <td class="p-3 text-blue-600 font-bold uppercase"><?= htmlspecialchars($c['distance_name'] ?? $c['distance']) ?></td>
+                                    <td class="p-3 font-bold text-slate-700 uppercase"><?= htmlspecialchars($c['group_name'] ?? '-') ?></td>
+                                    <td class="p-3 text-xs uppercase font-bold tracking-widest text-slate-500"><?= htmlspecialchars($c['roller_name'] ?? '-') ?></td>
+                                    <td class="p-3 text-xs font-bold">
+                                        <?php if ($c['gender'] === 'Putra'): ?>
+                                            <span class="text-blue-600 bg-blue-50 px-2 py-1 rounded">🔵 Putra</span>
+                                        <?php elseif ($c['gender'] === 'Putri'): ?>
+                                            <span class="text-pink-600 bg-pink-50 px-2 py-1 rounded">🔴 Putri</span>
+                                        <?php else: ?>
+                                            <?= htmlspecialchars($c['gender']) ?>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="p-3 text-center font-bold text-slate-700">
+                                        <span class="bg-indigo-50 text-indigo-700 px-2 py-1 rounded text-xs"><?= (int)($c['total_athletes'] ?? 0) ?></span>
+                                    </td>
+                                </tr>
+                                <?php
+                            }
+                        }
+                        if (!empty($pemulaGroup)) {
+                            $renderPemulaGroup($pemulaGroup);
+                        }
                         ?>
-                        <tr class="hover:bg-slate-50">
-                            <td class="p-3 font-black text-indigo-600"><?= htmlspecialchars($c['race_time'] ?? '-') ?></td>
-                            <td class="p-3 text-center font-bold text-slate-700">
-                                <span class="bg-emerald-50 text-emerald-700 px-2 py-1 rounded text-xs"><?= (int)($c['total_heats'] ?? 0) ?></span>
-                            </td>
-                            <td class="p-3 font-bold text-slate-800"><?= htmlspecialchars($c['race_number']) ?></td>
-                            <td class="p-3 text-blue-600 font-bold uppercase"><?= htmlspecialchars($c['distance_name'] ?? $c['distance']) ?></td>
-                            <td class="p-3 font-bold text-slate-700 uppercase"><?= htmlspecialchars($c['group_name'] ?? '-') ?></td>
-                            <td class="p-3 text-xs uppercase font-bold tracking-widest text-slate-500"><?= htmlspecialchars($c['roller_name'] ?? '-') ?></td>
-                            <td class="p-3 text-xs font-bold">
-                                <?php if ($c['gender'] === 'Putra'): ?>
-                                    <span class="text-blue-600 bg-blue-50 px-2 py-1 rounded">🔵 Putra</span>
-                                <?php elseif ($c['gender'] === 'Putri'): ?>
-                                    <span class="text-pink-600 bg-pink-50 px-2 py-1 rounded">🔴 Putri</span>
-                                <?php else: ?>
-                                    <?= htmlspecialchars($c['gender']) ?>
-                                <?php endif; ?>
-                            </td>
-                            <td class="p-3 text-center font-bold text-slate-700">
-                                <span class="bg-indigo-50 text-indigo-700 px-2 py-1 rounded text-xs"><?= (int)($c['total_athletes'] ?? 0) ?></span>
-                            </td>
-                        </tr>
-                        <?php endforeach; ?>
                     </tbody>
                 </table>
             </div>

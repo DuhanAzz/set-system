@@ -188,28 +188,35 @@ class RollEventController extends Controller {
                 });
 
                 $pemulaDurationHours = isset($_POST['pemula_duration']) ? (float)$_POST['pemula_duration'] : 0;
-                $totalPemulaHeats = 0;
-                if ($pemulaDurationHours > 0) {
-                    foreach ($dayClasses as $c) {
-                        $rName = strtolower($c['roller_name'] ?? '');
-                        $groupName = strtolower($c['group_name'] ?? '');
-                        if (strpos($rName, 'pemula') !== false || strpos($groupName, 'pemula') !== false) {
-                            $stmtHeats->execute([$eventId, $c['id']]);
-                            $hc = (int)$stmtHeats->fetchColumn();
-                            $totalPemulaHeats += ($hc === 0 ? 1 : $hc);
-                        }
-                    }
-                }
-                $calculatedPemulaMinPerHeat = 1.5; // Default if not overridden
-                if ($pemulaDurationHours > 0 && $totalPemulaHeats > 0) {
-                    $calculatedPemulaMinPerHeat = ($pemulaDurationHours * 60) / $totalPemulaHeats;
-                }
+                $pemulaBlockAssigned = false;
+                $pemulaRaceTimeStr = '';
 
                 $prevGender = null;
                 $prevKu = null;
 
                 foreach ($dayClasses as $idx => $c) {
-                    // Buffer Check
+                    $dName = strtolower($c['distance_name'] ?? '');
+                    $rName = strtolower($c['roller_name'] ?? '');
+                    $groupName = strtolower($c['group_name'] ?? '');
+                    
+                    $isPemula = (strpos($rName, 'pemula') !== false || strpos($groupName, 'pemula') !== false);
+
+                    if ($isPemula && $pemulaDurationHours > 0) {
+                        if (!$pemulaBlockAssigned) {
+                            $startTimeStr = date('H:i', $currentTimestamp);
+                            $currentTimestamp += ($pemulaDurationHours * 3600);
+                            $endTimeStr = date('H:i', $currentTimestamp);
+                            $pemulaRaceTimeStr = $startTimeStr . ' - ' . $endTimeStr;
+                            $pemulaBlockAssigned = true;
+                        }
+                        
+                        $stmtUpdate->execute([$pemulaRaceTimeStr, $c['id']]);
+                        $prevGender = $c['gender'];
+                        $prevKu = $c['group_name'];
+                        continue;
+                    }
+
+                    // Buffer Check for non-pemula
                     if ($idx > 0) {
                         $buffer = 5; 
                         if ($c['distance_name'] === $dayClasses[$idx-1]['distance_name'] && $c['roller_name'] === $dayClasses[$idx-1]['roller_name']) {
@@ -223,16 +230,8 @@ class RollEventController extends Controller {
                     $heatsCount = (int)$stmtHeats->fetchColumn();
                     if ($heatsCount === 0) $heatsCount = 1; 
 
-                    $dName = strtolower($c['distance_name'] ?? '');
-                    $rName = strtolower($c['roller_name'] ?? '');
-                    $groupName = strtolower($c['group_name'] ?? '');
-                    
-                    $isPemula = (strpos($rName, 'pemula') !== false || strpos($groupName, 'pemula') !== false);
-
                     $minPerHeat = 2; 
-                    if ($isPemula && $pemulaDurationHours > 0) {
-                        $minPerHeat = $calculatedPemulaMinPerHeat;
-                    } elseif ($isPemula) {
+                    if ($isPemula) {
                         if (strpos($dName, '100m') !== false || strpos($dName, '200m') !== false) $minPerHeat = 1.5;
                         else $minPerHeat = 2;
                     } else {

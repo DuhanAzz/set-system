@@ -352,17 +352,74 @@ if ($cc['klub']) $activeColumnsCount++;
                                                 }
                                                 return $cmp;
                                             });
-                                            foreach($dayClasses as $c): 
+                                            
+                                            $pemulaGroup = [];
+                                            $renderPemulaGroupFull = function($group) {
+                                                if (empty($group)) return;
+                                                $time = $group[0]['race_time'] ?? '00:00';
+                                                $timeStr = (strpos($time, '-') !== false) ? $time : date('H:i', strtotime($time));
+                                                $races = []; $dists = []; $kus = []; $genders = [];
+                                                foreach ($group as $g) {
+                                                    $races[] = $g['race_number'];
+                                                    $dist = $g['distance_name'] ?? $g['distance'] ?? '-';
+                                                    if ($dist !== '-') $dists[] = $dist;
+                                                    if ($g['group_name']) $kus[] = $g['group_name'];
+                                                    // In print_full, raw_gender is sometimes used, but 'gender' holds the text (e.g. 'Putra', 'Putri')
+                                                    // Sometimes $g['gender'] is 'Putra', sometimes 'Pa'. Let's normalize it to Putra / Putri.
+                                                    $gnStr = $g['gender'] ?? '';
+                                                    if (stripos($gnStr, 'putra') !== false || stripos($gnStr, 'pa') !== false) {
+                                                        $gn = 'Putra';
+                                                    } elseif (stripos($gnStr, 'putri') !== false || stripos($gnStr, 'pi') !== false) {
+                                                        $gn = 'Putri';
+                                                    } else {
+                                                        $gn = $gnStr;
+                                                    }
+                                                    if ($gn) $genders[] = $gn;
+                                                }
+                                                $racesStr = implode(' & ', array_unique($races));
+                                                $distStr = implode(' & ', array_unique($dists));
+                                                $kuStr = implode(', ', array_unique($kus));
+                                                $genderStr = implode(' & ', array_unique($genders));
+                                                ?>
+                                                <tr style="background-color: #f1f5f9;">
+                                                    <td class="text-center font-bold">#<?= htmlspecialchars($racesStr) ?></td>
+                                                    <td class="text-center font-bold"><?= htmlspecialchars($timeStr) ?></td>
+                                                    <td class="font-bold"><?= htmlspecialchars($distStr) ?></td>
+                                                    <td><?= htmlspecialchars($kuStr) ?></td>
+                                                    <td class="font-bold text-blue-700">PEMULA</td>
+                                                    <td><?= htmlspecialchars($genderStr) ?></td>
+                                                </tr>
+                                                <?php
+                                            };
+                                            
+                                            foreach($dayClasses as $c) {
+                                                $rName = strtolower($c['roller_name'] ?? '');
+                                                $groupName = strtolower($c['group_name'] ?? '');
+                                                $isPemula = (strpos($rName, 'pemula') !== false || strpos($groupName, 'pemula') !== false);
+                                                
+                                                if ($isPemula) {
+                                                    $pemulaGroup[] = $c;
+                                                } else {
+                                                    if (!empty($pemulaGroup)) {
+                                                        $renderPemulaGroupFull($pemulaGroup);
+                                                        $pemulaGroup = [];
+                                                    }
+                                                    ?>
+                                                    <tr>
+                                                        <td class="text-center font-bold">#<?= htmlspecialchars($c['race_number']) ?></td>
+                                                        <td class="text-center font-bold"><?= htmlspecialchars($c['race_time']) ?></td>
+                                                        <td class="font-bold"><?= htmlspecialchars($c['distance_name']) ?></td>
+                                                        <td><?= htmlspecialchars($c['group_name']) ?></td>
+                                                        <td class="font-bold"><?= htmlspecialchars($c['roller_name']) ?></td>
+                                                        <td><?= htmlspecialchars($c['gender']) ?></td>
+                                                    </tr>
+                                                    <?php
+                                                }
+                                            }
+                                            if (!empty($pemulaGroup)) {
+                                                $renderPemulaGroupFull($pemulaGroup);
+                                            }
                                         ?>
-                                            <tr>
-                                                <td class="text-center font-bold">#<?= htmlspecialchars($c['race_number']) ?></td>
-                                                <td class="text-center font-bold"><?= htmlspecialchars($c['race_time']) ?></td>
-                                                <td class="font-bold"><?= htmlspecialchars($c['distance_name']) ?></td>
-                                                <td><?= htmlspecialchars($c['group_name']) ?></td>
-                                                <td class="font-bold"><?= htmlspecialchars($c['roller_name']) ?></td>
-                                                <td><?= htmlspecialchars($c['gender']) ?></td>
-                                            </tr>
-                                        <?php endforeach; ?>
                                     <?php endforeach; ?>
                                 </tbody>
                             </table>

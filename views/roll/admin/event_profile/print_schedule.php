@@ -233,17 +233,65 @@
                                             }
                                             return $cmp;
                                         });
-                                        foreach($dayClasses as $c): 
+
+                                        $pemulaGroup = [];
+                                        $renderPemulaGroupPrint = function($group) {
+                                            if (empty($group)) return;
+                                            $time = $group[0]['race_time'] ?? '00:00';
+                                            $timeStr = (strpos($time, '-') !== false) ? $time : date('H:i', strtotime($time));
+                                            $races = []; $dists = []; $kus = []; $genders = [];
+                                            foreach ($group as $g) {
+                                                $races[] = $g['race_number'];
+                                                $dist = $g['distance_name'] ?? $g['distance'] ?? '-';
+                                                if ($dist !== '-') $dists[] = $dist;
+                                                if ($g['group_name']) $kus[] = $g['group_name'];
+                                                $gn = $g['gender'] === 'Putra' ? 'Putra' : ($g['gender'] === 'Putri' ? 'Putri' : $g['gender']);
+                                                if ($gn) $genders[] = $gn;
+                                            }
+                                            $racesStr = implode(' & ', array_unique($races));
+                                            $distStr = implode(' & ', array_unique($dists));
+                                            $kuStr = implode(', ', array_unique($kus));
+                                            $genderStr = implode(' & ', array_unique($genders));
+                                            ?>
+                                            <tr style="background-color: #f1f5f9;">
+                                                <td class="text-center font-bold"><?= htmlspecialchars($racesStr) ?></td>
+                                                <td class="text-center font-bold"><?= htmlspecialchars($timeStr) ?></td>
+                                                <td class="font-bold"><?= htmlspecialchars($distStr) ?></td>
+                                                <td><?= htmlspecialchars($kuStr) ?></td>
+                                                <td class="font-bold text-blue-700">PEMULA</td>
+                                                <td><?= htmlspecialchars($genderStr) ?></td>
+                                            </tr>
+                                            <?php
+                                        };
+
+                                        foreach($dayClasses as $c) {
+                                            $rName = strtolower($c['roller_name'] ?? '');
+                                            $groupName = strtolower($c['group_name'] ?? '');
+                                            $isPemula = (strpos($rName, 'pemula') !== false || strpos($groupName, 'pemula') !== false);
+
+                                            if ($isPemula) {
+                                                $pemulaGroup[] = $c;
+                                            } else {
+                                                if (!empty($pemulaGroup)) {
+                                                    $renderPemulaGroupPrint($pemulaGroup);
+                                                    $pemulaGroup = [];
+                                                }
+                                                ?>
+                                                <tr>
+                                                    <td class="text-center font-bold"><?= htmlspecialchars($c['race_number']) ?></td>
+                                                    <td class="text-center font-bold"><?= htmlspecialchars(date('H:i', strtotime($c['race_time'] ?? '00:00'))) ?></td>
+                                                    <td class="font-bold"><?= htmlspecialchars($c['distance_name'] ?? $c['distance'] ?? '-') ?></td>
+                                                    <td><?= htmlspecialchars($c['group_name'] ?? 'Umum') ?></td>
+                                                    <td class="font-bold text-blue-700"><?= htmlspecialchars($c['roller_name'] ?? '-') ?></td>
+                                                    <td><?= htmlspecialchars($c['gender'] ?? '-') ?></td>
+                                                </tr>
+                                                <?php
+                                            }
+                                        }
+                                        if (!empty($pemulaGroup)) {
+                                            $renderPemulaGroupPrint($pemulaGroup);
+                                        }
                                     ?>
-                                        <tr>
-                                            <td class="text-center font-bold"><?= htmlspecialchars($c['race_number']) ?></td>
-                                            <td class="text-center font-bold"><?= htmlspecialchars(date('H:i', strtotime($c['race_time'] ?? '00:00'))) ?></td>
-                                            <td class="font-bold"><?= htmlspecialchars($c['distance_name'] ?? $c['distance'] ?? '-') ?></td>
-                                            <td><?= htmlspecialchars($c['group_name'] ?? 'Umum') ?></td>
-                                            <td class="font-bold text-blue-700"><?= htmlspecialchars($c['roller_name'] ?? '-') ?></td>
-                                            <td><?= htmlspecialchars($c['gender'] ?? '-') ?></td>
-                                        </tr>
-                                    <?php endforeach; ?>
                                 <?php endforeach; ?>
                                 <?php endif; ?>
                             </tbody>
