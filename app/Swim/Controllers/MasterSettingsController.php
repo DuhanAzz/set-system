@@ -116,6 +116,7 @@ class MasterSettingsController extends Controller {
         if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update_text'])) {
             try {
                 $heroTitle = $_POST['hero_title'];
+                $heroSub   = $_POST['hero_subtitle'];
                 $running   = $_POST['running_text'];
                 $infoTitle = $_POST['info_title'];
                 $infoText  = $_POST['info_text'];
@@ -131,6 +132,7 @@ class MasterSettingsController extends Controller {
 
                 $sql = "UPDATE swim_site_settings SET 
                         hero_title = ?, 
+                        hero_subtitle = ?,
                         running_text = ?, 
                         info_title = ?, 
                         info_text = ?,
@@ -143,7 +145,7 @@ class MasterSettingsController extends Controller {
                 
                 $stmt = $pdo->prepare($sql);
                 $stmt->execute([
-                    $heroTitle, $running, $infoTitle, $infoText, $siteDesc, 
+                    $heroTitle, $heroSub, $running, $infoTitle, $infoText, $siteDesc, 
                     $email, $wa, $ig, $fb
                 ]);
                     
