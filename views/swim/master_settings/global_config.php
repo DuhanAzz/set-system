@@ -1,5 +1,6 @@
-
-
+<?php 
+// FILE: views/swim/master/settings/global_config.php
+?>
 <div class="font-sans relative">
     
     <div class="mb-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -9,22 +10,30 @@
             </h1>
             <p class="text-sm text-slate-500 font-medium mt-1">Pusat kendali kebijakan operasional, keamanan, dan komunikasi massal.</p>
         </div>
-        <div class="bg-slate-200 px-4 py-2 rounded-lg text-xs font-bold text-slate-600 flex items-center gap-2">
-            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            System Status: Online
+        
+        <!-- Tambahan Tab Navigasi agar bisa pindah antar halaman Settings -->
+        <div class="bg-white p-1 rounded-xl shadow-sm border border-slate-200 flex">
+            <a href="<?= getenv('APP_URL') ?>/swim/master/settings/public_page" class="px-4 py-2 rounded-lg text-[10px] font-black uppercase transition text-slate-400 hover:bg-slate-50">Landing Page</a>
+            <a href="<?= getenv('APP_URL') ?>/swim/master/settings/global_config" class="px-4 py-2 rounded-lg text-[10px] font-black uppercase transition bg-slate-900 text-white shadow-md">Global Config</a>
         </div>
     </div>
 
-    <?php if(isset($_SESSION['msg'])): ?>
+    <?php if (isset($_SESSION['flash_message'])): ?>
         <div class="p-4 mb-8 rounded-xl text-sm font-bold border flex items-center gap-3 shadow-sm animate-fade-in-down
-            <?= $_SESSION['msg_type'] == 'success' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-700 border-red-200' ?>">
-            <?= htmlspecialchars($_SESSION['msg']) ?>
+            <?= $_SESSION['flash_type'] == 'success' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-700 border-red-200' ?>">
+            <?= htmlspecialchars($_SESSION['flash_message']) ?>
         </div>
-        <?php unset($_SESSION['msg'], $_SESSION['msg_type']); ?>
+        <?php unset($_SESSION['flash_message'], $_SESSION['flash_type']); ?>
     <?php endif; ?>
 
     <form method="POST" class="grid grid-cols-1 xl:grid-cols-3 gap-8">
         <input type="hidden" name="save_config" value="1">
+        
+        <div class="xl:col-span-3 mb-2">
+            <label class="block text-[10px] font-black text-slate-500 uppercase mb-2">Nama Aplikasi</label>
+            <input type="text" name="app_name" value="<?= htmlspecialchars($config['app_name'] ?? 'SET ROLL SYSTEM') ?>" class="w-full md:w-1/3 px-4 py-3 border border-slate-200 rounded-xl font-bold text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none">
+            <p class="text-[10px] text-slate-400 mt-2 italic">Akan tampil di tab browser dan teks logo aplikasi.</p>
+        </div>
 
         <div class="xl:col-span-2 space-y-8">
             
@@ -42,7 +51,7 @@
                             <div class="flex items-center justify-between mb-2">
                                 <h4 class="font-bold text-indigo-900">Registrasi Klub Baru</h4>
                                 <label class="relative inline-flex items-center cursor-pointer">
-                                    <input type="checkbox" name="allow_register" value="1" class="sr-only peer" <?= ($config['allow_register'] ?? 1) == 1 ? 'checked' : '' ?>>
+                                    <input type="checkbox" name="allow_register" value="1" class="sr-only peer" <?= (isset($config['allow_register']) && $config['allow_register'] == 1) ? 'checked' : '' ?>>
                                     <div class="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
                                 </label>
                             </div>
@@ -58,7 +67,7 @@
                             <div class="flex items-center justify-between mb-2">
                                 <h4 class="font-bold text-red-900">Maintenance Mode</h4>
                                 <label class="relative inline-flex items-center cursor-pointer">
-                                    <input type="checkbox" name="maintenance_mode" value="1" class="sr-only peer" <?= ($config['maintenance_mode'] ?? 0) == 1 ? 'checked' : '' ?>>
+                                    <input type="checkbox" name="maintenance_mode" value="1" class="sr-only peer" <?= (isset($config['maintenance_mode']) && $config['maintenance_mode'] == 1) ? 'checked' : '' ?>>
                                     <div class="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600"></div>
                                 </label>
                             </div>
@@ -80,7 +89,7 @@
                     <div class="flex items-center gap-2 bg-white/30 px-3 py-1 rounded-full">
                         <span class="text-[10px] font-bold text-amber-900">Tampilkan ke User?</span>
                         <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" name="show_announcement" value="1" class="sr-only peer" <?= ($config['show_announcement'] ?? 0) == 1 ? 'checked' : '' ?>>
+                            <input type="checkbox" name="show_announcement" value="1" class="sr-only peer" <?= (isset($config['show_announcement']) && $config['show_announcement'] == 1) ? 'checked' : '' ?>>
                             <div class="w-9 h-5 bg-amber-200/50 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-700"></div>
                         </label>
                     </div>
