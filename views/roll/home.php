@@ -270,9 +270,9 @@ $eventFallbackImg = !empty($s['event_fallback_image']) ? rtrim(getenv('APP_URL')
 
     <footer class="bg-[#0F172A] text-white pt-20 pb-10 border-t-4 border-orange-600">
         <div class="max-w-screen-xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-12 mb-16 text-center md:text-left">
-            <div class="md:col-span-1 border-r border-slate-800 pr-10">
-                <h2 class="text-2xl font-black text-white italic tracking-tighter uppercase mb-6"><?= htmlspecialchars($appName) ?></h2>
-                <p class="text-slate-400 text-sm leading-relaxed mb-6 font-medium">
+            <div>
+                <img src="<?= getenv('APP_URL') ?>/img/logo.png" class="h-16 mx-auto md:mx-0 mb-6 grayscale brightness-200 opacity-80">
+                <p class="text-slate-400 text-sm leading-relaxed font-medium">
                     <?= nl2br(htmlspecialchars($siteDesc)) ?>
                 </p>
             </div>
