@@ -20,8 +20,8 @@
             </form>
 
             <div class="flex gap-1 bg-white p-1 rounded-xl shadow-sm border border-slate-200">
-                <a href="index.php?role=user" class="px-4 py-2 rounded-lg text-[10px] font-black uppercase transition <?= $targetRole == 'user' ? 'bg-slate-900 text-white shadow-md' : 'text-slate-400 hover:bg-slate-50' ?>">Klub</a>
-                <a href="index.php?role=admin" class="px-4 py-2 rounded-lg text-[10px] font-black uppercase transition <?= $targetRole == 'admin' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-50' ?>">EO / Event</a>
+                <a href="?role=user" class="px-4 py-2 rounded-lg text-[10px] font-black uppercase transition <?= $targetRole == 'user' ? 'bg-slate-900 text-white shadow-md' : 'text-slate-400 hover:bg-slate-50' ?>">Klub</a>
+                <a href="?role=admin" class="px-4 py-2 rounded-lg text-[10px] font-black uppercase transition <?= $targetRole == 'admin' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-50' ?>">EO / Event</a>
             </div>
         </div>
     </div>

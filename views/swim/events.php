@@ -60,7 +60,7 @@ $linkFB       = $s['link_facebook'] ?? '';
                     <a href="<?= getenv('APP_URL') ?>/swim/results" class="nav-link">Hasil Lomba</a> 
                     <a href="<?= getenv('APP_URL') ?>/swim#instruction" class="nav-link text-yellow-400">Panduan</a>
                 </div>
-                <div class="flex items-center border-l border-white/20 pl-10">
+                <div class="hidden lg:flex items-center border-l border-white/20 pl-10">
                     <?php if(isset($_SESSION['user_id'])): 
                         $dashLink = getenv('APP_URL') . '/src/user/dashboard.php';
                         if($_SESSION['role'] == 'master') $dashLink = getenv('APP_URL') . '/src/master/dashboard.php';
@@ -71,7 +71,30 @@ $linkFB       = $s['link_facebook'] ?? '';
                         <a href="<?= getenv('APP_URL') ?>/swim/login" class="bg-blue-600 hover:bg-blue-700 text-white px-10 py-3 rounded-full font-black text-xs uppercase tracking-widest shadow-xl transition transform hover:scale-105">Login / Daftar</a>
                     <?php endif; ?>
                 </div>
+
+                <!-- Hamburger Button (Mobile Only) -->
+                <button id="mobile-menu-btn" class="lg:hidden text-white hover:text-blue-400 focus:outline-none ml-auto z-[60] relative">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                </button>
             </div>
+        </div>
+
+        <!-- Mobile Menu Container -->
+        <div id="mobile-menu" class="fixed inset-0 bg-slate-900/95 backdrop-blur-sm z-[55] hidden flex-col pt-32 px-10 transition-all duration-300 transform translate-x-full">
+            <a href="<?= getenv('APP_URL') ?>/swim" class="mobile-nav-link text-2xl font-black text-white uppercase tracking-widest mb-6 hover:text-blue-400 border-b border-slate-800 pb-4 block">Home</a>
+            <a href="<?= getenv('APP_URL') ?>/swim/events" class="mobile-nav-link text-2xl font-black text-white uppercase tracking-widest mb-6 hover:text-blue-400 border-b border-slate-800 pb-4 block">Jadwal Lomba</a>
+            <a href="<?= getenv('APP_URL') ?>/swim/results" class="mobile-nav-link text-2xl font-black text-white uppercase tracking-widest mb-6 hover:text-blue-400 border-b border-slate-800 pb-4 block">Hasil Lomba</a>
+            <a href="<?= getenv('APP_URL') ?>/swim#instruction" class="mobile-nav-link text-2xl font-black text-white uppercase tracking-widest mb-8 hover:text-blue-400 border-b border-slate-800 pb-4 block">Panduan</a>
+            
+            <?php if(isset($_SESSION['user_id'])): 
+                $dashLink = getenv('APP_URL') . '/src/user/dashboard.php';
+                if($_SESSION['role'] == 'master') $dashLink = getenv('APP_URL') . '/src/master/dashboard.php';
+                if($_SESSION['role'] == 'admin') $dashLink = getenv('APP_URL') . '/src/admin/dashboard.php';
+            ?>
+                <a href="<?= $dashLink ?>" class="bg-blue-600 text-white text-center py-4 rounded-xl font-black uppercase tracking-widest shadow-xl hover:bg-blue-700 block w-full">Dashboard</a>
+            <?php else: ?>
+                <a href="<?= getenv('APP_URL') ?>/swim/login" class="bg-blue-600 text-white text-center py-4 rounded-xl font-black uppercase tracking-widest shadow-xl hover:bg-blue-700 block w-full">Login / Daftar</a>
+            <?php endif; ?>
         </div>
     </nav>
 
@@ -234,23 +257,36 @@ $linkFB       = $s['link_facebook'] ?? '';
     </footer>
 
     <script>
-        // PRELOADER & NAVBAR
+        // PRELOADER
         document.addEventListener('DOMContentLoaded', () => {
             const liquid = document.getElementById('liquid-level');
             const textPerc = document.getElementById('load-perc');
             const preloader = document.getElementById('preloader');
             let progress = 0;
+            const duration = 1000;
+            const intervalTime = 30;
+            const step = 100 / (duration / intervalTime);
+            
             const interval = setInterval(() => {
-                progress += Math.floor(Math.random() * 20) + 10;
-                if (progress >= 100) { 
-                    progress = 100; clearInterval(interval); 
-                    setTimeout(() => { preloader.classList.add('loader-finish'); }, 400); 
+                progress += step;
+                if (progress >= 100) progress = 100;
+                
+                if (liquid) liquid.style.top = (100 - progress) + '%';
+                if (textPerc) textPerc.innerText = Math.floor(progress) + '%';
+                
+                if (progress === 100) {
+                    clearInterval(interval);
+                    setTimeout(() => { 
+                        if (preloader) {
+                            preloader.classList.add('loader-finish'); 
+                            setTimeout(() => preloader.remove(), 600);
+                        }
+                    }, 200); 
                 }
-                if(liquid) liquid.style.top = (100 - progress) + '%'; 
-                if(textPerc) textPerc.innerText = progress + '%';
-            }, 60);
+            }, intervalTime);
         });
 
+        // NAVBAR SCROLL EFFECT
         const navbar = document.getElementById('navbar');
         const logo = document.getElementById('nav-logo');
         window.addEventListener('scroll', () => { 
@@ -262,6 +298,33 @@ $linkFB       = $s['link_facebook'] ?? '';
                 if(logo) logo.classList.replace('h-16', 'h-24'); 
             }
         });
+
+        // MOBILE MENU TOGGLE
+        const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+        const mobileMenu = document.getElementById('mobile-menu');
+        const mobileNavLinks = document.querySelectorAll('.mobile-nav-link');
+        
+        if(mobileMenuBtn && mobileMenu) {
+            mobileMenuBtn.addEventListener('click', () => {
+                if (mobileMenu.classList.contains('hidden')) {
+                    mobileMenu.classList.remove('hidden');
+                    setTimeout(() => { mobileMenu.classList.remove('translate-x-full'); }, 10);
+                    mobileMenuBtn.innerHTML = '<svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>';
+                } else {
+                    mobileMenu.classList.add('translate-x-full');
+                    setTimeout(() => { mobileMenu.classList.add('hidden'); }, 300);
+                    mobileMenuBtn.innerHTML = '<svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>';
+                }
+            });
+
+            mobileNavLinks.forEach(link => {
+                link.addEventListener('click', () => {
+                    mobileMenu.classList.add('translate-x-full');
+                    setTimeout(() => { mobileMenu.classList.add('hidden'); }, 300);
+                    mobileMenuBtn.innerHTML = '<svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>';
+                });
+            });
+        }
     </script>
 </body>
 </html>
