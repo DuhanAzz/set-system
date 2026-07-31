@@ -580,10 +580,10 @@ class RollPelotonController extends Controller {
 
                 // Cari babak sebelumnya yang sudah ada hasil resmi
                 $stmtCheckResult = $db->prepare("
-                    SELECT skater_id, finish_time_ms, finish_position 
+                    SELECT skater_id, time, rank 
                     FROM roll_event_results 
                     WHERE event_id = ? AND race_class_id = ? AND round != ? AND is_official = 1
-                    ORDER BY finish_time_ms ASC, finish_position ASC
+                    ORDER BY CASE WHEN status = 'OK' THEN 0 ELSE 1 END ASC, rank IS NULL, rank ASC, time ASC
                 ");
                 $stmtCheckResult->execute([$eventId, $classId, $round]);
                 $prevResults = $stmtCheckResult->fetchAll(PDO::FETCH_ASSOC);

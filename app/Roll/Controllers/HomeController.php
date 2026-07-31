@@ -198,7 +198,7 @@ class HomeController extends Controller {
             JOIN roll_skaters s ON r.skater_id = s.id
             LEFT JOIN roll_clubs c ON s.club_id = c.id
             WHERE r.event_id = ?
-            ORDER BY r.heat_name ASC, r.finish_time_ms ASC
+            ORDER BY r.heat_name ASC, CASE WHEN r.status = 'OK' THEN 0 ELSE 1 END ASC, r.rank IS NULL, r.rank ASC, r.time ASC
         ");
         $stmtRes->execute([$event_id]);
         $rawResults = $stmtRes->fetchAll(PDO::FETCH_ASSOC);

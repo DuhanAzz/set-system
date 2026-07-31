@@ -31,17 +31,18 @@ class RollReportController extends Controller {
         // Gold = finish_position 1, Silver = 2, Bronze = 3. Grouped by club_id
         $stmtTally = $db->prepare("
             SELECT c.id, c.club_name,
-                SUM(CASE WHEN r.finish_position = 1 THEN 1 ELSE 0 END) as gold,
-                SUM(CASE WHEN r.finish_position = 2 THEN 1 ELSE 0 END) as silver,
-                SUM(CASE WHEN r.finish_position = 3 THEN 1 ELSE 0 END) as bronze
+                SUM(CASE WHEN r.rank = 1 THEN 1 ELSE 0 END) as gold,
+                SUM(CASE WHEN r.rank = 2 THEN 1 ELSE 0 END) as silver,
+                SUM(CASE WHEN r.rank = 3 THEN 1 ELSE 0 END) as bronze
             FROM roll_event_results r
             JOIN roll_skaters s ON r.skater_id = s.id
             JOIN roll_clubs c ON s.club_id = c.id
             JOIN roll_event_details ed ON r.race_class_id = ed.id
             JOIN roll_entries e ON r.skater_id = e.skater_id AND r.race_class_id = e.race_class_id
             WHERE r.event_id = ? 
-              AND r.finish_position IN (1, 2, 3) 
-              AND ed.result_status = 'Published' 
+              AND r.rank IN (1, 2, 3) 
+              AND r.status = 'OK'
+              AND r.is_official = 1
               AND e.status = 'Finished'
             GROUP BY c.id
             ORDER BY gold DESC, silver DESC, bronze DESC, c.club_name ASC
@@ -52,13 +53,13 @@ class RollReportController extends Controller {
         // MVP Tally Calculation
         $stmtMVP = $db->prepare("
             SELECT s.id, s.skater_name, s.birth_date, c.club_name,
-                SUM(CASE WHEN r.finish_position = 1 THEN 1 ELSE 0 END) as gold,
-                SUM(CASE WHEN r.finish_position = 2 THEN 1 ELSE 0 END) as silver,
-                SUM(CASE WHEN r.finish_position = 3 THEN 1 ELSE 0 END) as bronze,
-                SUM(CASE WHEN r.finish_position = 1 THEN (
+                SUM(CASE WHEN r.rank = 1 THEN 1 ELSE 0 END) as gold,
+                SUM(CASE WHEN r.rank = 2 THEN 1 ELSE 0 END) as silver,
+                SUM(CASE WHEN r.rank = 3 THEN 1 ELSE 0 END) as bronze,
+                SUM(CASE WHEN r.rank = 1 THEN (
                     SELECT COUNT(r2.id) - 1
                     FROM roll_event_results r2 
-                    WHERE r2.race_class_id = r.race_class_id AND r2.event_id = r.event_id
+                    WHERE r2.race_class_id = r.race_class_id AND r2.event_id = r.event_id AND r2.status = 'OK'
                 ) ELSE 0 END) as total_defeated
             FROM roll_event_results r
             JOIN roll_skaters s ON r.skater_id = s.id
@@ -66,8 +67,9 @@ class RollReportController extends Controller {
             JOIN roll_event_details ed ON r.race_class_id = ed.id
             JOIN roll_entries e ON r.skater_id = e.skater_id AND r.race_class_id = e.race_class_id
             WHERE r.event_id = ? 
-              AND r.finish_position IN (1, 2, 3) 
-              AND ed.result_status = 'Published' 
+              AND r.rank IN (1, 2, 3) 
+              AND r.status = 'OK'
+              AND r.is_official = 1
               AND e.status = 'Finished'
             GROUP BY s.id
             ORDER BY gold DESC, silver DESC, bronze DESC, s.birth_date DESC, total_defeated DESC, s.skater_name ASC
@@ -140,17 +142,18 @@ class RollReportController extends Controller {
         // Tally
         $stmtTally = $db->prepare("
             SELECT c.id, c.club_name,
-                SUM(CASE WHEN r.finish_position = 1 THEN 1 ELSE 0 END) as gold,
-                SUM(CASE WHEN r.finish_position = 2 THEN 1 ELSE 0 END) as silver,
-                SUM(CASE WHEN r.finish_position = 3 THEN 1 ELSE 0 END) as bronze
+                SUM(CASE WHEN r.rank = 1 THEN 1 ELSE 0 END) as gold,
+                SUM(CASE WHEN r.rank = 2 THEN 1 ELSE 0 END) as silver,
+                SUM(CASE WHEN r.rank = 3 THEN 1 ELSE 0 END) as bronze
             FROM roll_event_results r
             JOIN roll_skaters s ON r.skater_id = s.id
             JOIN roll_clubs c ON s.club_id = c.id
             JOIN roll_event_details ed ON r.race_class_id = ed.id
             JOIN roll_entries e ON r.skater_id = e.skater_id AND r.race_class_id = e.race_class_id
             WHERE r.event_id = ? 
-              AND r.finish_position IN (1, 2, 3) 
-              AND ed.result_status = 'Published' 
+              AND r.rank IN (1, 2, 3) 
+              AND r.status = 'OK'
+              AND r.is_official = 1
               AND e.status = 'Finished'
             GROUP BY c.id
             ORDER BY gold DESC, silver DESC, bronze DESC, c.club_name ASC
@@ -167,8 +170,8 @@ class RollReportController extends Controller {
             JOIN roll_event_details ed ON r.race_class_id = ed.id
             LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
             LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id
-            WHERE r.event_id = ? AND ed.result_status = 'Published'
-            ORDER BY a.min_age ASC, d.distance ASC, r.finish_position ASC, r.finish_time_ms ASC
+            WHERE r.event_id = ? AND r.is_official = 1
+            ORDER BY a.min_age ASC, d.distance ASC, CASE WHEN r.status = 'OK' THEN 0 ELSE 1 END ASC, r.rank IS NULL, r.rank ASC, r.time ASC
         ");
         $stmtRes->execute([$eventId]);
         $results = $stmtRes->fetchAll(PDO::FETCH_ASSOC);

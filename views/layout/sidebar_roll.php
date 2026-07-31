@@ -201,7 +201,7 @@ if (!function_exists('isGroupActive')) {
             <span id="icon-dd-hasil" class="transform transition-transform text-xs <?= $a3Active ? 'rotate-180' : '' ?>">▼</span>
          </button>
          <div id="dd-hasil" class="bg-[#0b1120] py-2 <?= $a3Active ? '' : 'hidden' ?>">
-             <a href="<?= getenv('APP_URL') ?>/roll/admin/results" class="<?= (strpos($req,"admin/results")!==false) ? $childActiveLink : $childBaseLink ?>">Live Timing & DQ</a>
+             <a href="<?= getenv('APP_URL') ?>/roll/admin/results" class="<?= (strpos($req,"admin/results")!==false) ? $childActiveLink : $childBaseLink ?>">Live Timing & Hasil</a>
              <a href="<?= getenv('APP_URL') ?>/roll/admin/reports" class="<?= (strpos($req,"admin/reports")!==false) ? $childActiveLink : $childBaseLink ?>">Klasemen Medali & Cetak</a>
          </div>
 
