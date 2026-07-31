@@ -1,3 +1,6 @@
+<?php 
+// FILE: views/swim/master/settings/public_page.php
+?>
 <div class="font-sans">
     
     <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
@@ -5,10 +8,26 @@
             <h1 class="text-3xl font-black text-slate-800 uppercase tracking-tight">Editor Halaman Depan</h1>
             <p class="text-sm text-slate-500 font-medium">Kontrol konten visual, teks, dan kontak website.</p>
         </div>
-        <a href="../../../public/index.php" target="_blank" class="bg-slate-800 text-white px-6 py-3 rounded-full font-bold text-xs hover:bg-slate-900 shadow-xl transition transform hover:scale-105 flex items-center gap-2">
-            <span>👁️</span> Lihat Website
-        </a>
+        <div class="flex gap-2">
+            <!-- Tambahan Tab Navigasi agar bisa pindah antar halaman Settings -->
+            <div class="bg-white p-1 rounded-xl shadow-sm border border-slate-200 flex">
+                <a href="<?= getenv('APP_URL') ?>/swim/master/settings/public_page" class="px-4 py-2 rounded-lg text-[10px] font-black uppercase transition bg-slate-900 text-white shadow-md">Landing Page</a>
+                <a href="<?= getenv('APP_URL') ?>/swim/master/settings/global_config" class="px-4 py-2 rounded-lg text-[10px] font-black uppercase transition text-slate-400 hover:bg-slate-50">Global Config</a>
+            </div>
+            
+            <a href="<?= getenv('APP_URL') ?>/roll" target="_blank" class="bg-slate-800 text-white px-6 py-3 rounded-full font-bold text-xs hover:bg-slate-900 shadow-xl transition transform hover:scale-105 flex items-center gap-2">
+                <span>👁️</span> Lihat Website
+            </a>
+        </div>
     </div>
+
+    <?php if (isset($_SESSION['flash_message'])): ?>
+        <div class="p-4 mb-8 rounded-xl text-sm font-bold border flex items-center gap-3 shadow-sm animate-fade-in-down
+            <?= $_SESSION['flash_type'] == 'success' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-700 border-red-200' ?>">
+            <?= htmlspecialchars($_SESSION['flash_message']) ?>
+        </div>
+        <?php unset($_SESSION['flash_message'], $_SESSION['flash_type']); ?>
+    <?php endif; ?>
 
     <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
         
@@ -26,6 +45,11 @@
                         <div class="mb-5">
                             <label class="block text-[10px] font-black text-slate-500 uppercase mb-1 tracking-wider">Judul Utama (Hero)</label>
                             <input type="text" name="hero_title" value="<?= htmlspecialchars($settings['hero_title'] ?? '') ?>" class="w-full px-4 py-3 border border-slate-200 rounded-xl font-bold text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none">
+                        </div>
+
+                        <div class="mb-5">
+                            <label class="block text-[10px] font-black text-slate-500 uppercase mb-1 tracking-wider">Subtitle Hero</label>
+                            <input type="text" name="hero_subtitle" value="<?= htmlspecialchars($settings['hero_subtitle'] ?? '') ?>" class="w-full px-4 py-3 border border-slate-200 rounded-xl font-bold text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none">
                         </div>
 
                         <div class="mb-5">
@@ -83,6 +107,9 @@
                 </div>
             </div>
 
+        </div>
+
+        <div class="xl:col-span-2 space-y-8">
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                 <div class="bg-slate-800 px-6 py-4 border-b border-slate-700">
                     <h3 class="text-white font-black text-sm uppercase tracking-wider flex items-center gap-2">
@@ -99,89 +126,50 @@
                                 </div>
                                 <input name="slide_image" type="file" class="hidden" onchange="this.form.submit()" accept="image/*" />
                             </label>
-                        </div> 
-                        <p class="text-center text-[10px] text-slate-400 mt-3 font-bold uppercase">Format: JPG, PNG, WEBP (Max 2MB)</p>
+                        </div>
                     </form>
                 </div>
             </div>
-        </div>
 
-        <div class="xl:col-span-2">
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden min-h-[600px] flex flex-col">
-                <div class="bg-slate-50 px-6 py-4 border-b border-slate-200 flex justify-between items-center">
-                    <h3 class="font-black text-slate-700 text-sm uppercase tracking-wider">Galeri Slider Aktif</h3>
-                    <span class="bg-blue-100 text-blue-600 py-1 px-3 rounded-full text-[10px] font-black"><?= count($slides) ?> Foto</span>
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="bg-slate-100 px-6 py-4 border-b border-slate-200 flex justify-between items-center">
+                    <h3 class="text-slate-700 font-black text-sm uppercase tracking-wider flex items-center gap-2">
+                        <span>📷</span> Galeri Slider Aktif
+                    </h3>
+                    <span class="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold"><?= count($slides) ?> Foto</span>
                 </div>
-                
-                <?php if(empty($slides)): ?>
-                    <div class="flex-1 flex flex-col items-center justify-center text-slate-300 p-10">
-                        <div class="text-6xl mb-4">📷</div>
-                        <p class="font-bold text-sm">Belum ada slide gambar.</p>
-                    </div>
-                <?php else: ?>
-                    <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6 content-start">
-                        <?php foreach($slides as $s): ?>
-                        <div class="relative group rounded-xl overflow-hidden shadow-sm hover:shadow-2xl transition-all duration-300 border border-slate-100 bg-slate-900">
-                            <div class="aspect-video">
-                                <?php $src = (strpos($s['image_path'], 'http') === 0) ? $s['image_path'] : rtrim(getenv('APP_URL'), '/') . "/uploads/hero/" . ltrim(str_replace('img/hero/', '', $s['image_path']), '/'); ?>
-                                <img src="<?= htmlspecialchars($src) ?>" class="w-full h-full object-cover opacity-90 group-hover:opacity-60 transition duration-500 transform group-hover:scale-110">
-                            </div>
-                            
-                            <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition duration-300">
-                                <form method="POST" class="delete-form">
-                                    <input type="hidden" name="delete_id" value="<?= $s['id'] ?>">
-                                    <button type="button" class="btn-delete bg-red-600 text-white px-5 py-2 rounded-full font-bold text-xs uppercase tracking-wider shadow-lg hover:bg-red-700 hover:scale-105 transition transform flex items-center gap-2">
-                                        <span>🗑</span> Hapus
-                                    </button>
-                                </form>
-                            </div>
-                            
-                            <div class="absolute top-3 left-3 bg-black/50 backdrop-blur-sm text-white text-[9px] font-bold px-2 py-1 rounded">
-                                #<?= $s['id'] ?>
-                            </div>
+                <div class="p-6">
+                    <?php if (empty($slides)): ?>
+                        <div class="text-center py-12 border-2 border-dashed border-slate-200 rounded-xl">
+                            <span class="text-4xl opacity-50">📸</span>
+                            <p class="text-slate-400 font-bold mt-4 text-sm">Belum ada slide gambar hero.<br>Website akan menggunakan warna solid (gelap).</p>
                         </div>
-                        <?php endforeach; ?>
-                    </div>
-                <?php endif; ?>
+                    <?php else: ?>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <?php foreach($slides as $index => $slide): ?>
+                                <div class="group relative rounded-2xl overflow-hidden border-2 border-slate-200 shadow-sm aspect-video bg-slate-900">
+                                    <div class="absolute top-3 left-3 z-20 bg-slate-900/80 text-white px-2 py-1 rounded-lg text-xs font-black">
+                                        #<?= $index + 1 ?>
+                                    </div>
+                                    <?php $src = (strpos($slide['image_path'], 'http') === 0) ? $slide['image_path'] : rtrim(getenv('APP_URL'), '/') . "/uploads/hero/" . ltrim(str_replace('img/hero/', '', $slide['image_path']), '/'); ?>
+                                    <img src="<?= htmlspecialchars($src) ?>" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-110 transition duration-700">
+                                    
+                                    <div class="absolute inset-0 bg-gradient-to-t from-slate-900/60 to-transparent opacity-0 group-hover:opacity-100 transition duration-300"></div>
+
+                                    <form method="POST" class="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition z-20 translate-y-4 group-hover:translate-y-0">
+                                        <input type="hidden" name="delete_id" value="<?= $slide['id'] ?>">
+                                        <button type="submit" onclick="return confirm('Hapus gambar slide ini secara permanen?')" class="bg-red-500 text-white px-4 py-2 rounded-xl hover:bg-red-600 shadow-xl font-bold text-xs uppercase flex items-center gap-2">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                            Hapus
+                                        </button>
+                                    </form>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
+                </div>
             </div>
         </div>
 
     </div>
 </div>
-
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<script>
-    // NOTIFIKASI SUKSES/GAGAL
-    <?php if(isset($_SESSION['swal_type'])): ?>
-        Swal.fire({
-            icon: '<?= $_SESSION['swal_type'] ?>',
-            title: '<?= $_SESSION['swal_type'] == 'success' ? 'Berhasil!' : 'Gagal!' ?>',
-            text: '<?= $_SESSION['swal_msg'] ?>', 
-            confirmButtonColor: '#0F172A',
-            confirmButtonText: 'OK'
-        });
-        <?php unset($_SESSION['swal_type']); unset($_SESSION['swal_msg']); ?>
-    <?php endif; ?>
-
-    // KONFIRMASI HAPUS
-    const deleteBtns = document.querySelectorAll('.btn-delete');
-    deleteBtns.forEach(btn => {
-        btn.addEventListener('click', function() {
-            const form = this.closest('form');
-            Swal.fire({
-                title: 'Hapus Slide?',
-                text: "Gambar akan dihapus permanen dari halaman depan.",
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#d33',
-                cancelButtonColor: '#3085d6',
-                confirmButtonText: 'Ya, Hapus!',
-                cancelButtonText: 'Batal'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    form.submit();
-                }
-            });
-        });
-    });
-</script>
