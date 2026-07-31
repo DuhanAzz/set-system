@@ -35,20 +35,25 @@
             </div>
         </div>
 
-        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="bg-white border border-slate-200 rounded-[1.5rem] shadow-sm overflow-hidden">
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-sm">
-                    <thead class="bg-slate-50 border-b border-slate-200 text-[10px] uppercase text-slate-500 tracking-wider">
+                    <thead class="bg-slate-50 border-b border-slate-100 text-[10px] font-black uppercase tracking-widest text-slate-400">
                         <tr>
-                            <th class="px-6 py-4">Profil Skater</th>
-                            <th class="px-6 py-4">Klub Asal</th>
-                            <th class="px-6 py-4 text-center">Tgl Lahir / Umur</th>
-                            <th class="px-6 py-4 text-right">Aksi</th>
+                            <th class="p-5">Profil Skater</th>
+                            <th class="p-5">Klub Asal</th>
+                            <th class="p-5 text-center">Tgl Lahir / Umur</th>
+                            <th class="p-5 text-center">Aksi</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         <?php if(empty($skaters)): ?>
-                            <tr><td colspan="4" class="px-8 py-20 text-center text-slate-400 font-bold italic uppercase text-xs">Belum ada atlet terdaftar.</td></tr>
+                            <tr>
+                                <td colspan="4" class="p-12 text-center">
+                                    <div class="text-4xl mb-2">🛼</div>
+                                    <div class="text-slate-400 font-bold italic">Belum ada data skater terdaftar.</div>
+                                </td>
+                            </tr>
                         <?php else: ?>
                             <?php foreach($skaters as $s): 
                                 $umur = '-';
@@ -58,16 +63,14 @@
                                     $umur = $dob->diff($now)->y . ' Thn';
                                 }
                             ?>
-                            <tr class="hover:bg-slate-50 transition duration-150 group">
-                                <td class="px-6 py-3">
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold border-2 <?= strtoupper($s['gender']) == 'M' ? 'bg-blue-50 text-blue-600 border-blue-100' : 'bg-pink-50 text-pink-600 border-pink-100' ?>">
+                            <tr class="hover:bg-slate-50 transition duration-200 group">
+                                <td class="p-5">
+                                    <div class="flex items-center gap-4">
+                                        <div class="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-black border-2 <?= strtoupper($s['gender']) == 'M' ? 'bg-blue-50 text-blue-600 border-blue-100' : 'bg-pink-50 text-pink-600 border-pink-100' ?>">
                                             <?= strtoupper($s['gender']) == 'M' ? 'Pa' : 'Pi' ?>
                                         </div>
                                         <div>
-                                            <div class="flex items-center gap-2">
-                                                <span class="font-black text-slate-800 text-xs uppercase"><?= htmlspecialchars($s['skater_name']) ?></span>
-                                            </div>
+                                            <div class="font-black text-slate-800 text-sm uppercase"><?= htmlspecialchars($s['skater_name']) ?></div>
                                             <div class="font-mono text-slate-400 text-[10px] tracking-wide mt-0.5">
                                                 Reg: <span class="font-bold text-slate-500"><?= date('d M Y', strtotime($s['created_at'])) ?></span>
                                             </div>
@@ -75,7 +78,7 @@
                                     </div>
                                 </td>
 
-                                <td class="px-6 py-3">
+                                <td class="p-5">
                                     <?php if(!empty($s['club_name'])): ?>
                                         <div class="font-bold text-slate-700 text-xs uppercase bg-slate-100 px-2 py-1 rounded inline-block">
                                             <?= htmlspecialchars($s['club_name']) ?>
@@ -85,15 +88,17 @@
                                     <?php endif; ?>
                                 </td>
 
-                                <td class="px-6 py-3 text-center">
-                                    <div class="font-bold text-slate-700 text-xs"><?= !empty($s['birth_date']) ? date('d M Y', strtotime($s['birth_date'])) : '-' ?></div>
-                                    <div class="text-[10px] font-black text-amber-500 uppercase mt-0.5"><?= $umur ?></div>
+                                <td class="p-5 text-center align-middle">
+                                    <div class="font-black text-slate-700 text-sm"><?= !empty($s['birth_date']) ? date('d/m/Y', strtotime($s['birth_date'])) : '-' ?></div>
+                                    <div class="text-[10px] text-amber-500 font-black uppercase mt-0.5 tracking-wider"><?= $umur ?> (<?= $s['age_group'] ?? '-' ?>)</div>
                                 </td>
 
-                                <td class="px-6 py-3 text-right">
-                                    <button class="bg-white border border-slate-200 hover:border-amber-500 hover:text-amber-600 text-slate-400 px-3 py-1.5 rounded-lg text-xs font-bold transition shadow-sm" onclick="alert('Fitur edit detail segera hadir.')">
-                                        ✏️ Edit
-                                    </button>
+                                <td class="p-5 text-center align-middle">
+                                    <div class="flex items-center justify-center gap-2">
+                                        <button class="text-slate-400 bg-white border border-slate-200 hover:border-amber-500 hover:text-amber-600 px-3 py-2 rounded-lg text-xs font-bold transition shadow-sm" onclick="alert('Fitur edit detail segera hadir.')">
+                                            Edit
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                             <?php endforeach; ?>

@@ -3,9 +3,11 @@
         <h1 class="text-3xl font-black uppercase italic tracking-tighter text-slate-900">Database Atlet</h1>
         <p class="text-xs text-slate-500 font-bold uppercase tracking-widest mt-1">Kelola data profil dan best time.</p>
     </div>
+    <?php if ($_SESSION['swim_role'] === 'user'): ?>
     <a href="<?= getenv('APP_URL') ?>/swim/swimmers/create" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition transform hover:-translate-y-1 text-sm uppercase tracking-wider flex items-center gap-2">
         <span>+</span> Tambah Atlet
     </a>
+    <?php endif; ?>
 </div>
 
 <?php if (isset($success)): ?>
@@ -30,7 +32,9 @@
                     <th class="p-5">Nama & Sekolah</th>
                     <th class="p-5 text-center">Gender & Usia</th>
                     <th class="p-5 text-center">Best Time</th>
+                    <?php if ($_SESSION['swim_role'] === 'user'): ?>
                     <th class="p-5 text-center">Aksi</th>
+                    <?php endif; ?>
                 </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
@@ -65,6 +69,9 @@
                             <div class="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-wider flex items-center gap-1">
                                 <span>🏫</span> <?= htmlspecialchars($a['asal_sekolah'] ?? '-') ?>
                             </div>
+                            <?php if (!empty($a['nama_klub'])): ?>
+                                <div class="text-[9px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded mt-1 font-bold inline-block">KLUB: <?= htmlspecialchars($a['nama_klub']) ?></div>
+                            <?php endif; ?>
                         </td>
 
                         <td class="p-5 text-center align-middle">
@@ -89,6 +96,7 @@
                             </a>
                         </td>
 
+                        <?php if ($_SESSION['swim_role'] === 'user'): ?>
                         <td class="p-5 text-center align-middle">
                             <div class="flex items-center justify-center gap-2">
                                 <a href="<?= getenv('APP_URL') ?>/swim/swimmers/edit/<?= $a['id'] ?>" class="text-blue-600 bg-blue-50 hover:bg-blue-600 hover:text-white px-3 py-2 rounded-lg text-xs font-bold transition border border-blue-100">

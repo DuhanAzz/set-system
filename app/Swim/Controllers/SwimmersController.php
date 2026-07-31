@@ -14,7 +14,7 @@ class SwimmersController extends Controller {
     }
 
     private function checkAccess() {
-        if (!isset($_SESSION['swim_role']) || $_SESSION['swim_role'] !== 'user') {
+        if (!isset($_SESSION['swim_role']) || !in_array($_SESSION['swim_role'], ['user', 'master', 'admin'])) {
             header("Location: " . getenv('APP_URL') . "/swim/login");
             exit;
         }
@@ -22,10 +22,17 @@ class SwimmersController extends Controller {
 
     public function index() {
         $this->checkAccess();
-        $uid = $_SESSION['swim_user_id'];
         
-        $stmt = $this->db->prepare("SELECT * FROM swim_swimmers WHERE user_id = ? ORDER BY id DESC");
-        $stmt->execute([$uid]);
+        $role = $_SESSION['swim_role'];
+        if ($role === 'user') {
+            $uid = $_SESSION['swim_user_id'];
+            $stmt = $this->db->prepare("SELECT s.*, c.nama_klub FROM swim_swimmers s LEFT JOIN swim_clubs c ON s.user_id = c.user_id WHERE s.user_id = ? ORDER BY s.id DESC");
+            $stmt->execute([$uid]);
+        } else {
+            // Master / Admin melihat semua atlet
+            $stmt = $this->db->prepare("SELECT s.*, c.nama_klub FROM swim_swimmers s LEFT JOIN swim_clubs c ON s.user_id = c.user_id ORDER BY s.id DESC");
+            $stmt->execute();
+        }
         $swimmers = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         // AUTO KALKULASI KU ON THE FLY
