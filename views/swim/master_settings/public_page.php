@@ -15,7 +15,7 @@
                 <a href="<?= getenv('APP_URL') ?>/swim/master/settings/global_config" class="px-4 py-2 rounded-lg text-[10px] font-black uppercase transition text-slate-400 hover:bg-slate-50">Global Config</a>
             </div>
             
-            <a href="<?= getenv('APP_URL') ?>/roll" target="_blank" class="bg-slate-800 text-white px-6 py-3 rounded-full font-bold text-xs hover:bg-slate-900 shadow-xl transition transform hover:scale-105 flex items-center gap-2">
+            <a href="<?= getenv('APP_URL') ?>/swim" target="_blank" class="bg-slate-800 text-white px-6 py-3 rounded-full font-bold text-xs hover:bg-slate-900 shadow-xl transition transform hover:scale-105 flex items-center gap-2">
                 <span>👁️</span> Lihat Website
             </a>
         </div>
