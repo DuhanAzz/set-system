@@ -8,6 +8,7 @@ $contactEmail = $s['contact_email'] ?? 'info@swimmeet.id';
 $contactWA    = $s['contact_wa'] ?? '';
 $linkIG       = $s['link_instagram'] ?? '';
 $linkFB       = $s['link_facebook'] ?? '';
+$heroSubtitle = $s['hero_subtitle'] ?? 'Professional Timing System';
 ?>
 <!DOCTYPE html>
 <html lang="id" class="scroll-smooth">
@@ -65,10 +66,10 @@ $linkFB       = $s['link_facebook'] ?? '';
                     <a href="#instruction" class="nav-link text-yellow-400">Panduan</a>
                 </div>
                 <div class="hidden lg:flex items-center border-l border-white/20 pl-10">
-                    <?php if(isset($_SESSION['user_id'])): 
-                        $dashLink = getenv('APP_URL') . '/src/user/dashboard.php';
-                        if($_SESSION['role'] == 'master') $dashLink = getenv('APP_URL') . '/src/master/dashboard.php';
-                        if($_SESSION['role'] == 'admin') $dashLink = getenv('APP_URL') . '/src/admin/dashboard.php';
+                    <?php if(isset($_SESSION['swim_user_id'])): 
+                        $dashLink = getenv('APP_URL') . '/swim/user/dashboard';
+                        if(isset($_SESSION['swim_role']) && $_SESSION['swim_role'] == 'master') $dashLink = getenv('APP_URL') . '/swim/master/dashboard';
+                        if(isset($_SESSION['swim_role']) && $_SESSION['swim_role'] == 'admin') $dashLink = getenv('APP_URL') . '/swim/admin/dashboard';
                     ?>
                         <a href="<?= $dashLink ?>" class="bg-blue-600 hover:bg-blue-700 text-white px-10 py-3 rounded-full font-black text-xs uppercase tracking-widest shadow-xl transition transform hover:scale-105">Dashboard</a>
                     <?php else: ?>
@@ -90,10 +91,10 @@ $linkFB       = $s['link_facebook'] ?? '';
             <a href="<?= getenv('APP_URL') ?>/swim/results" class="mobile-nav-link text-2xl font-black text-white uppercase tracking-widest mb-6 hover:text-blue-400 border-b border-slate-800 pb-4 block">Hasil Lomba</a>
             <a href="#instruction" class="mobile-nav-link text-2xl font-black text-white uppercase tracking-widest mb-8 hover:text-blue-400 border-b border-slate-800 pb-4 block">Panduan</a>
             
-            <?php if(isset($_SESSION['user_id'])): 
-                $dashLink = getenv('APP_URL') . '/src/user/dashboard.php';
-                if($_SESSION['role'] == 'master') $dashLink = getenv('APP_URL') . '/src/master/dashboard.php';
-                if($_SESSION['role'] == 'admin') $dashLink = getenv('APP_URL') . '/src/admin/dashboard.php';
+            <?php if(isset($_SESSION['swim_user_id'])): 
+                $dashLink = getenv('APP_URL') . '/swim/user/dashboard';
+                if(isset($_SESSION['swim_role']) && $_SESSION['swim_role'] == 'master') $dashLink = getenv('APP_URL') . '/swim/master/dashboard';
+                if(isset($_SESSION['swim_role']) && $_SESSION['swim_role'] == 'admin') $dashLink = getenv('APP_URL') . '/swim/admin/dashboard';
             ?>
                 <a href="<?= $dashLink ?>" class="bg-blue-600 text-white text-center py-4 rounded-xl font-black uppercase tracking-widest shadow-xl hover:bg-blue-700 block w-full">Dashboard</a>
             <?php else: ?>
@@ -114,7 +115,7 @@ $linkFB       = $s['link_facebook'] ?? '';
         <div class="max-w-screen-xl mx-auto px-6 w-full pt-48 relative z-10 text-white">
             <div class="max-w-5xl">
                 <div class="inline-flex items-center gap-2 mb-6 text-blue-400">
-                    <div class="h-1 w-12 bg-blue-500"></div><span class="font-bold tracking-[0.3em] uppercase text-xs md:text-sm">Professional Timing System</span>
+                    <div class="h-1 w-12 bg-blue-500"></div><span class="font-bold tracking-[0.3em] uppercase text-xs md:text-sm"><?= htmlspecialchars($heroSubtitle) ?></span>
                 </div>
                 <h1 class="text-7xl md:text-9xl font-black uppercase tracking-tighter leading-none mb-10 drop-shadow-2xl"><?= htmlspecialchars($heroTitle) ?></h1>
                 
