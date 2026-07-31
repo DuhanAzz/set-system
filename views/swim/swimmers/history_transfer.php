@@ -19,51 +19,51 @@
             </div>
         <?php endif; ?>
 
-        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="bg-white border border-slate-200 rounded-[1.5rem] shadow-sm overflow-hidden">
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-sm">
-                    <thead class="bg-slate-50 border-b border-slate-200 text-[10px] uppercase text-slate-500 tracking-wider">
+                    <thead class="bg-slate-50 border-b border-slate-100 text-[10px] font-black uppercase tracking-widest text-slate-400">
                         <tr>
-                            <th class="px-6 py-4">Waktu</th>
-                            <th class="px-6 py-4">Modul / Tipe</th>
-                            <th class="px-6 py-4">Aktivitas</th>
-                            <th class="px-6 py-4">Admin</th>
+                            <th class="p-5">Waktu</th>
+                            <th class="p-5">Modul / Tipe</th>
+                            <th class="p-5">Aktivitas</th>
+                            <th class="p-5 text-center">Admin</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         <?php if(empty($transfers)): ?>
-                            <tr><td colspan="4" class="p-8 text-center text-slate-400 italic">Belum ada riwayat aktivitas.</td></tr>
+                            <tr><td colspan="4" class="p-12 text-center text-slate-400 italic font-bold">Belum ada riwayat aktivitas.</td></tr>
                         <?php else: foreach($transfers as $t): ?>
                             
-                        <tr class="hover:bg-slate-50 transition">
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="font-bold text-slate-700 text-xs">
-                                    <?= date('d M Y', strtotime($t['created_at'])) ?>
+                        <tr class="hover:bg-slate-50 transition duration-200">
+                            <td class="p-5 whitespace-nowrap">
+                                <div class="font-black text-slate-700 text-sm">
+                                    <?= date('d/m/Y', strtotime($t['created_at'])) ?>
                                 </div>
-                                <div class="text-[10px] text-slate-400">
+                                <div class="text-[10px] text-slate-400 font-bold uppercase mt-0.5 tracking-wider">
                                     <?= date('H:i', strtotime($t['created_at'])) . ' WIB' ?>
                                 </div>
                             </td>
 
-                            <td class="px-6 py-4">
-                                <div class="font-black text-slate-800 uppercase text-xs">
+                            <td class="p-5">
+                                <div class="font-black text-slate-800 uppercase text-xs tracking-wider">
                                     <?= htmlspecialchars(str_replace('_', ' ', $t['action_type'])) ?>
                                 </div>
                                 <?php if ($t['nama_atlet']): ?>
-                                <div class="text-[10px] font-mono text-blue-600 mt-1">
-                                    UID: <?= htmlspecialchars($t['uid'] ?? '-') ?>
+                                <div class="text-[9px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded mt-1 font-bold inline-block uppercase">
+                                    ATLET: <?= htmlspecialchars($t['nama_atlet']) ?>
                                 </div>
                                 <?php endif; ?>
                             </td>
 
-                            <td class="px-6 py-4">
-                                <div class="text-xs font-bold text-slate-700">
+                            <td class="p-5">
+                                <div class="text-xs font-medium text-slate-700">
                                     <?= htmlspecialchars($t['description'] ?? '-') ?>
                                 </div>
                             </td>
 
-                            <td class="px-6 py-4">
-                                <div class="text-xs font-bold text-slate-600">
+                            <td class="p-5 text-center align-middle">
+                                <div class="inline-flex text-[10px] bg-amber-50 text-amber-700 px-3 py-1.5 rounded-lg border border-amber-100 font-black uppercase tracking-widest">
                                     <?= htmlspecialchars($t['admin_name'] ?? 'System') ?>
                                 </div>
                             </td>

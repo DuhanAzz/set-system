@@ -59,6 +59,25 @@ class SwimmersController extends Controller {
         unset($_SESSION['flash_success'], $_SESSION['flash_error']);
     }
 
+    public function history_transfer() {
+        $this->checkAccess();
+        
+        $sql = "SELECT l.*, u.nama_lengkap as admin_name, s.nama_atlet, s.uid 
+                FROM swim_system_logs l 
+                LEFT JOIN swim_users u ON l.user_id = u.id 
+                LEFT JOIN swim_swimmers s ON l.target_id = s.id 
+                ORDER BY l.created_at DESC 
+                LIMIT 200";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute();
+        $transfers = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $this->view('swim/swimmers/history_transfer', [
+            'transfers' => $transfers,
+            'error_msg' => null
+        ]);
+    }
+
     public function create() {
         $this->checkAccess();
         $this->view('swim/user/swimmers/create');
