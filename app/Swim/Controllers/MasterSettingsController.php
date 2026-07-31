@@ -94,9 +94,13 @@ class MasterSettingsController extends Controller {
 
                 $_SESSION['msg'] = "Pengaturan berhasil diperbarui.";
                 $_SESSION['msg_type'] = "success";
+                $_SESSION['flash_message'] = "Pengaturan berhasil diperbarui.";
+                $_SESSION['flash_type'] = "success";
             } catch (\Exception $e) {
                 $_SESSION['msg'] = "Gagal menyimpan: " . $e->getMessage();
                 $_SESSION['msg_type'] = "error";
+                $_SESSION['flash_message'] = "Gagal menyimpan: " . $e->getMessage();
+                $_SESSION['flash_type'] = "error";
             }
             header("Location: " . getenv('APP_URL') . "/swim/masterSettings/global_config");
             exit;
@@ -151,10 +155,14 @@ class MasterSettingsController extends Controller {
                     
                 $_SESSION['swal_type'] = 'success'; 
                 $_SESSION['swal_msg']  = 'Pengaturan halaman depan berhasil diperbarui!';
+                $_SESSION['flash_type'] = 'success'; 
+                $_SESSION['flash_message']  = 'Pengaturan halaman depan berhasil diperbarui!';
                 
             } catch (\Exception $e) {
                 $_SESSION['swal_type'] = 'error'; 
                 $_SESSION['swal_msg']  = 'Gagal: ' . $e->getMessage();
+                $_SESSION['flash_type'] = 'error'; 
+                $_SESSION['flash_message']  = 'Gagal: ' . $e->getMessage();
             }
             header("Location: " . getenv('APP_URL') . "/swim/masterSettings/public_page");
             exit;
@@ -168,12 +176,14 @@ class MasterSettingsController extends Controller {
                     if ($fileName) {
                         $pdo->prepare("INSERT INTO swim_hero_images (image_path) VALUES (?)")->execute([$fileName]);
                         $_SESSION['swal_type'] = 'success'; $_SESSION['swal_msg'] = 'Slide baru berhasil ditambahkan!';
+                        $_SESSION['flash_type'] = 'success'; $_SESSION['flash_message'] = 'Slide baru berhasil ditambahkan!';
                     } else {
                         throw new \Exception("Gagal upload gambar slider.");
                     }
                 }
             } catch (\Exception $e) {
                 $_SESSION['swal_type'] = 'error'; $_SESSION['swal_msg'] = $e->getMessage();
+                $_SESSION['flash_type'] = 'error'; $_SESSION['flash_message'] = $e->getMessage();
             }
             header("Location: " . getenv('APP_URL') . "/swim/masterSettings/public_page");
             exit;
@@ -192,6 +202,7 @@ class MasterSettingsController extends Controller {
             }
             $pdo->prepare("DELETE FROM swim_hero_images WHERE id = ?")->execute([$id]);
             $_SESSION['swal_type'] = 'success'; $_SESSION['swal_msg'] = 'Slide berhasil dihapus.';
+            $_SESSION['flash_type'] = 'success'; $_SESSION['flash_message'] = 'Slide berhasil dihapus.';
             header("Location: " . getenv('APP_URL') . "/swim/masterSettings/public_page");
             exit;
         }
