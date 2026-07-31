@@ -50,11 +50,19 @@ class SwimmersController extends Controller {
             }
         }
 
-        $this->view('swim/user/swimmers/index', [
-            'swimmers' => $swimmers,
-            'success' => $_SESSION['flash_success'] ?? null,
-            'error' => $_SESSION['flash_error'] ?? null
-        ]);
+        if (isset($_SESSION['swim_role']) && $_SESSION['swim_role'] === 'master') {
+            $this->view('swim/master/swimmers/index', [
+                'swimmers' => $swimmers,
+                'success' => $_SESSION['flash_success'] ?? null,
+                'error' => $_SESSION['flash_error'] ?? null
+            ]);
+        } else {
+            $this->view('swim/user/swimmers/index', [
+                'swimmers' => $swimmers,
+                'success' => $_SESSION['flash_success'] ?? null,
+                'error' => $_SESSION['flash_error'] ?? null
+            ]);
+        }
         
         unset($_SESSION['flash_success'], $_SESSION['flash_error']);
     }
@@ -183,7 +191,7 @@ class SwimmersController extends Controller {
             // Validasi format tanggal
             if (!preg_match("/^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])$/", $dob)) {
                 $_SESSION['flash_error'] = "Format tanggal lahir salah.";
-                header("Location: " . getenv('APP_URL') . "/swim/swimmers/create");
+                header("Location: " . getenv('APP_URL') . "/swim/" . $_SESSION['swim_role'] . "/swimmers/create");
                 exit;
             }
 
@@ -192,7 +200,7 @@ class SwimmersController extends Controller {
             $stmtCek->execute([$uid, strtoupper($nama), $dob]);
             if ($stmtCek->fetchColumn() > 0) {
                 $_SESSION['flash_error'] = "Atlet ini sudah ada di dalam roster.";
-                header("Location: " . getenv('APP_URL') . "/swim/swimmers/create");
+                header("Location: " . getenv('APP_URL') . "/swim/" . $_SESSION['swim_role'] . "/swimmers/create");
                 exit;
             }
 
@@ -221,7 +229,7 @@ class SwimmersController extends Controller {
                 $_SESSION['flash_error'] = "Gagal menyimpan: " . $e->getMessage();
             }
         }
-        header("Location: " . getenv('APP_URL') . "/swim/swimmers");
+        header("Location: " . getenv('APP_URL') . "/swim/" . $_SESSION['swim_role'] . "/swimmers");
         exit;
     }
 
@@ -235,7 +243,7 @@ class SwimmersController extends Controller {
 
         if (!$swimmer) {
             $_SESSION['flash_error'] = "Atlet tidak ditemukan.";
-            header("Location: " . getenv('APP_URL') . "/swim/swimmers");
+            header("Location: " . getenv('APP_URL') . "/swim/" . $_SESSION['swim_role'] . "/swimmers");
             exit;
         }
 
@@ -255,7 +263,7 @@ class SwimmersController extends Controller {
             // Validasi format tanggal
             if (!preg_match("/^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])$/", $dob)) {
                 $_SESSION['flash_error'] = "Format tanggal lahir salah.";
-                header("Location: " . getenv('APP_URL') . "/swim/swimmers/edit/" . $id);
+                header("Location: " . getenv('APP_URL') . "/swim/" . $_SESSION['swim_role'] . "/swimmers/edit/" . $id);
                 exit;
             }
 
@@ -264,7 +272,7 @@ class SwimmersController extends Controller {
             $stmtCek->execute([$uid, strtoupper($nama), $dob, $id]);
             if ($stmtCek->fetchColumn() > 0) {
                 $_SESSION['flash_error'] = "Atlet ini sudah ada di dalam roster.";
-                header("Location: " . getenv('APP_URL') . "/swim/swimmers/edit/" . $id);
+                header("Location: " . getenv('APP_URL') . "/swim/" . $_SESSION['swim_role'] . "/swimmers/edit/" . $id);
                 exit;
             }
 
@@ -288,7 +296,7 @@ class SwimmersController extends Controller {
                 $_SESSION['flash_error'] = "Gagal memperbarui: " . $e->getMessage();
             }
         }
-        header("Location: " . getenv('APP_URL') . "/swim/swimmers");
+        header("Location: " . getenv('APP_URL') . "/swim/" . $_SESSION['swim_role'] . "/swimmers");
         exit;
     }
 
@@ -311,7 +319,7 @@ class SwimmersController extends Controller {
             $_SESSION['flash_error'] = "Gagal menghapus: " . $e->getMessage();
         }
 
-        header("Location: " . getenv('APP_URL') . "/swim/swimmers");
+        header("Location: " . getenv('APP_URL') . "/swim/" . $_SESSION['swim_role'] . "/swimmers");
         exit;
     }
 }

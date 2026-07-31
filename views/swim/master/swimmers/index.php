@@ -1,5 +1,5 @@
 <?php 
-// FILE: views/roll/master/skaters/index.php
+// FILE: views/roll/master/swimmers/index.php
 ?>
 <div>
     <div>
@@ -14,14 +14,14 @@
         
         <div class="flex flex-col md:flex-row justify-between items-end gap-4 mb-6">
             <div>
-                <h1 class="text-3xl font-black text-slate-800 uppercase italic tracking-tighter">Database Skater</h1>
+                <h1 class="text-3xl font-black text-slate-800 uppercase italic tracking-tighter">Database Atlet</h1>
                 <p class="text-xs text-slate-500 font-medium">Manajemen Data & Afiliasi Klub</p>
             </div>
             
             <div class="w-full md:w-auto flex flex-col sm:flex-row items-center gap-2">
                 <div class="bg-white p-1 rounded-xl shadow-sm border border-slate-200 flex w-full sm:w-auto mb-2 sm:mb-0">
-                    <a href="<?= getenv('APP_URL') ?>/roll/master/skaters/index" class="px-4 py-2 w-full text-center sm:w-auto rounded-lg text-[10px] font-black uppercase transition bg-slate-900 text-white shadow-md">Daftar Skater</a>
-                    <a href="<?= getenv('APP_URL') ?>/roll/master/skaters/history_transfer" class="px-4 py-2 w-full text-center sm:w-auto rounded-lg text-[10px] font-black uppercase transition text-slate-400 hover:bg-slate-50">Riwayat Mutasi</a>
+                    <a href="<?= getenv('APP_URL') ?>/roll/master/swimmers/index" class="px-4 py-2 w-full text-center sm:w-auto rounded-lg text-[10px] font-black uppercase transition bg-slate-900 text-white shadow-md">Daftar Atlet</a>
+                    <a href="<?= getenv('APP_URL') ?>/roll/master/swimmers/history_transfer" class="px-4 py-2 w-full text-center sm:w-auto rounded-lg text-[10px] font-black uppercase transition text-slate-400 hover:bg-slate-50">Riwayat Mutasi</a>
                 </div>
 
                 <form method="GET" class="relative w-full sm:w-auto">
@@ -40,14 +40,14 @@
                 <table class="w-full text-left text-sm">
                     <thead class="bg-slate-50 border-b border-slate-100 text-[10px] font-black uppercase tracking-widest text-slate-400">
                         <tr>
-                            <th class="p-5">Profil Skater</th>
+                            <th class="p-5">Profil Atlet</th>
                             <th class="p-5">Klub Asal</th>
                             <th class="p-5 text-center">Tgl Lahir / Umur</th>
                             <th class="p-5 text-center">Aksi</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
-                        <?php if(empty($skaters)): ?>
+                        <?php if(empty($swimmers)): ?>
                             <tr>
                                 <td colspan="4" class="p-12 text-center">
                                     <div class="text-4xl mb-2">🛼</div>
@@ -55,7 +55,7 @@
                                 </td>
                             </tr>
                         <?php else: ?>
-                            <?php foreach($skaters as $s): 
+                            <?php foreach($swimmers as $s): 
                                 $umur = '-';
                                 if(!empty($s['birth_date'])) {
                                     $dob = new DateTime($s['birth_date']);
