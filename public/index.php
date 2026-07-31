@@ -147,6 +147,22 @@ switch ($module) {
             break;
         }
 
+        // Auto-redirect Legacy URLs to New Modular URLs (Swim)
+        if (strtolower($page) === 'mastersettings') {
+            $newPath = 'master/settings/' . ($url[2] ?? 'index');
+            header("Location: " . rtrim(getenv('APP_URL'), '/') . "/swim/" . $newPath);
+            exit;
+        }
+        if (strtolower($page) === 'masterfinance') {
+            $newPath = 'master/finance/' . ($url[2] ?? 'index');
+            header("Location: " . rtrim(getenv('APP_URL'), '/') . "/swim/" . $newPath);
+            exit;
+        }
+        if (strtolower($page) === 'users' && isset($_GET['role'])) {
+            header("Location: " . rtrim(getenv('APP_URL'), '/') . "/swim/master/users?role=" . $_GET['role']);
+            exit;
+        }
+
         $roleFolders = ['master', 'admin', 'user'];
         if (in_array($page, $roleFolders)) {
             $roleFolder = ucfirst($page);

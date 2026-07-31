@@ -43,7 +43,7 @@ class MasterFinanceController extends Controller {
                 $_SESSION['msg_type'] = "error";
             }
             
-            header("Location: " . getenv('APP_URL') . "/swim/masterFinance/revenue");
+            header("Location: " . getenv('APP_URL') . "/swim/master/finance/revenue");
             exit;
         }
 

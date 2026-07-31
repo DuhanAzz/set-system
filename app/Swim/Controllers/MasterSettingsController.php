@@ -29,7 +29,7 @@ class MasterSettingsController extends Controller {
                 $_SESSION['swal_type'] = "success";
                 $_SESSION['swal_msg']  = "Pasal DQ berhasil dihapus!";
             }
-            header("Location: " . getenv('APP_URL') . "/swim/masterSettings/dq_rules");
+            header("Location: " . getenv('APP_URL') . "/swim/master/settings/dq_rules");
             exit;
         }
 
@@ -51,7 +51,7 @@ class MasterSettingsController extends Controller {
                 $_SESSION['swal_type'] = "success";
                 $_SESSION['swal_msg']  = "Pasal DQ baru berhasil ditambahkan!";
             }
-            header("Location: " . getenv('APP_URL') . "/swim/masterSettings/dq_rules");
+            header("Location: " . getenv('APP_URL') . "/swim/master/settings/dq_rules");
             exit;
         }
 
@@ -102,7 +102,7 @@ class MasterSettingsController extends Controller {
                 $_SESSION['flash_message'] = "Gagal menyimpan: " . $e->getMessage();
                 $_SESSION['flash_type'] = "error";
             }
-            header("Location: " . getenv('APP_URL') . "/swim/masterSettings/global_config");
+            header("Location: " . getenv('APP_URL') . "/swim/master/settings/global_config");
             exit;
         }
 
@@ -164,7 +164,7 @@ class MasterSettingsController extends Controller {
                 $_SESSION['flash_type'] = 'error'; 
                 $_SESSION['flash_message']  = 'Gagal: ' . $e->getMessage();
             }
-            header("Location: " . getenv('APP_URL') . "/swim/masterSettings/public_page");
+            header("Location: " . getenv('APP_URL') . "/swim/master/settings/public_page");
             exit;
         }
 
@@ -185,7 +185,7 @@ class MasterSettingsController extends Controller {
                 $_SESSION['swal_type'] = 'error'; $_SESSION['swal_msg'] = $e->getMessage();
                 $_SESSION['flash_type'] = 'error'; $_SESSION['flash_message'] = $e->getMessage();
             }
-            header("Location: " . getenv('APP_URL') . "/swim/masterSettings/public_page");
+            header("Location: " . getenv('APP_URL') . "/swim/master/settings/public_page");
             exit;
         }
 
@@ -203,7 +203,7 @@ class MasterSettingsController extends Controller {
             $pdo->prepare("DELETE FROM swim_hero_images WHERE id = ?")->execute([$id]);
             $_SESSION['swal_type'] = 'success'; $_SESSION['swal_msg'] = 'Slide berhasil dihapus.';
             $_SESSION['flash_type'] = 'success'; $_SESSION['flash_message'] = 'Slide berhasil dihapus.';
-            header("Location: " . getenv('APP_URL') . "/swim/masterSettings/public_page");
+            header("Location: " . getenv('APP_URL') . "/swim/master/settings/public_page");
             exit;
         }
 
