@@ -329,14 +329,14 @@ class RollRegistrationController extends Controller {
                     }
                 }
 
-                // Ambil nama jarak
-                $stmtDist = $db->prepare("SELECT d.distance_name FROM roll_event_details c JOIN roll_ref_distances d ON c.distance_id = d.id WHERE c.id = ?");
+                // Ambil id jarak
+                $stmtDist = $db->prepare("SELECT d.id FROM roll_event_details c JOIN roll_ref_distances d ON c.distance_id = d.id WHERE c.id = ?");
                 $stmtDist->execute([$race_class_id]);
-                $distance = $stmtDist->fetchColumn() ?: '-';
+                $distance_id = $stmtDist->fetchColumn() ?: null;
 
                 // Save
-                $stmtInsert = $db->prepare("INSERT INTO roll_entries (event_id, skater_id, race_class_id, race_distance, team_name) VALUES (?, ?, ?, ?, ?)");
-                if ($stmtInsert->execute([$event_id, $skater_id, $race_class_id, $distance, $team_name])) {
+                $stmtInsert = $db->prepare("INSERT INTO roll_entries (event_id, skater_id, race_class_id, distance_id, team_name) VALUES (?, ?, ?, ?, ?)");
+                if ($stmtInsert->execute([$event_id, $skater_id, $race_class_id, $distance_id, $team_name])) {
                     $successCount++;
                     if ($is_team_reg) { $currTeam++; } else { $currIndv++; }
                 }

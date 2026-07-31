@@ -174,7 +174,7 @@
                                         <td class="px-6 py-4">
                                             <div class="font-bold text-blue-600 text-xs uppercase mt-1">
                                                 <div class="text-[9px] font-bold text-slate-500 uppercase mb-0.5 bg-slate-100 inline-block px-1.5 py-0.5 rounded"><?= htmlspecialchars($firstEnt['skate_class'] ?? '-') ?></div><br>
-                                                <?= !empty($firstEnt['race_number']) ? htmlspecialchars($firstEnt['race_number']) . ' - ' : '' ?><?= htmlspecialchars($firstEnt['distance_name'] ?? $firstEnt['race_distance'] ?? '-') ?>
+                                                <?= !empty($firstEnt['race_number']) ? htmlspecialchars($firstEnt['race_number']) . ' - ' : '' ?><?= htmlspecialchars($firstEnt['distance_name'] ?? '-') ?>
                                             </div>
                                         </td>
                                         <td class="px-6 py-4 text-center">
@@ -252,7 +252,7 @@
                                                 <div class="flex items-center justify-between bg-white border border-slate-200 p-2.5 rounded-lg shadow-sm group/item hover:border-blue-200 transition-colors">
                                                     <div>
                                                         <div class="font-bold text-blue-600 text-[11px] uppercase">
-                                                            <?= !empty($ent['race_number']) ? htmlspecialchars($ent['race_number']) . ' - ' : '' ?><?= htmlspecialchars($ent['distance_name'] ?? $ent['race_distance'] ?? '-') ?>
+                                                            <?= !empty($ent['race_number']) ? htmlspecialchars($ent['race_number']) . ' - ' : '' ?><?= htmlspecialchars($ent['distance_name'] ?? '-') ?>
                                                         </div>
                                                         <?php if (!empty($ent['team_name'])): ?>
                                                         <div class="text-[9px] text-indigo-500 font-bold mt-0.5">
