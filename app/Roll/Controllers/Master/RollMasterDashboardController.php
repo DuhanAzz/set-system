@@ -118,6 +118,7 @@ class RollMasterDashboardController extends Controller {
             'stats' => $stats,
             'liveEvents' => $liveEvents,
             'recentUsers' => $recentUsers,
+            'visitorStats' => $visitorStats,
             'pendingEntries' => $pendingEntries,
             'visitorStats' => $visitorStats,
             'systemStatus' => $systemStatus,

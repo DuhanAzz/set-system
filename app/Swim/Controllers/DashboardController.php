@@ -86,6 +86,13 @@ class DashboardController extends Controller {
                 }
             } catch (\Exception $e) {}
 
+                                    // Hitung Pengunjung (Chart Data)
+            $visitorStats = [];
+            try {
+                $stmtChart = $pdo->query("SELECT DATE_FORMAT(visit_date, '%d %b') as visit_date, SUM(views_count) as total_views FROM site_visitors WHERE module IN ('swim', 'core') AND visit_date >= DATE_SUB(CURDATE(), INTERVAL 7 DAY) GROUP BY visit_date ORDER BY visit_date ASC");
+                $visitorStats = $stmtChart->fetchAll(\PDO::FETCH_ASSOC);
+            } catch (\Exception $e) {}
+
             // E. Event Live / Mendatang
             $sqlLive = "
                 SELECT e.*, u.nama_lengkap as eo_name 
@@ -124,6 +131,7 @@ class DashboardController extends Controller {
             'stats' => $stats,
             'liveEvents' => $liveEvents,
             'recentUsers' => $recentUsers,
+            'visitorStats' => $visitorStats,
             'visitorStats' => $visitorStats,
             'systemStatus' => $systemStatus,
             'heroTitle' => $heroTitle

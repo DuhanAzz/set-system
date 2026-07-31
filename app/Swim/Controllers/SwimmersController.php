@@ -80,7 +80,7 @@ class SwimmersController extends Controller {
         $stmt->execute();
         $transfers = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        $this->view('swim/swimmers/history_transfer', [
+        $this->view('swim/master/swimmers/history_transfer', [
             'transfers' => $transfers,
             'error_msg' => null
         ]);
