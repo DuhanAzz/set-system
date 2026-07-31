@@ -34,12 +34,15 @@ try {
                 <?php foreach($sliders as $index => $slide): ?>
                     <?php 
                         $src = $slide['image_path'];
-                        if (strpos($src, 'http') !== 0) $src = getenv('APP_URL') . "/public/" . $src . "?t=" . time();
+                        if (strpos($src, 'http') !== 0) {
+                            $src = rtrim(getenv('APP_URL'), '/') . '/uploads/hero/' . ltrim(str_replace('img/hero/', '', $src), '/');
+                            $src .= "?t=" . time();
+                        }
                     ?>
-                    <div class="bg-slide <?= $index === 0 ? 'active' : '' ?>" style="background-image: url('<?= $src ?>');"></div>
+                    <div class="bg-slide <?= $index === 0 ? 'active' : '' ?>" style="background-image: url('<?= htmlspecialchars($src) ?>');"></div>
                 <?php endforeach; ?>
             <?php else: ?>
-                <div class="bg-slide active" style="background-color: #0F172A;"></div>
+                <div class="bg-slide active" style="background-image: url('<?= rtrim(getenv('APP_URL'), '/') ?>/img/hero/hero_1765203416_0.jpg');"></div>
             <?php endif; ?>
         </div>
         <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-[2px]"></div>
