@@ -226,3 +226,68 @@
         </div>
 
     </div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('visitorChart').getContext('2d');
+    
+    // Parse PHP data to JS
+    const visitorData = <?= json_encode($visitorStats ?? []) ?>;
+    
+    const labels = visitorData.map(item => item.visit_date);
+    const data = visitorData.map(item => item.total_views);
+    
+    // Gradient fill
+    let gradient = ctx.createLinearGradient(0, 0, 0, 400);
+    gradient.addColorStop(0, 'rgba(59, 130, 246, 0.5)'); // blue-500
+    gradient.addColorStop(1, 'rgba(59, 130, 246, 0.0)');
+    
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels.length ? labels : ['Belum ada data'],
+            datasets: [{
+                label: 'Total Views',
+                data: data.length ? data : [0],
+                borderColor: '#3b82f6',
+                backgroundColor: gradient,
+                borderWidth: 3,
+                pointBackgroundColor: '#ffffff',
+                pointBorderColor: '#3b82f6',
+                pointBorderWidth: 2,
+                pointRadius: 4,
+                pointHoverRadius: 6,
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: '#1e293b',
+                    padding: 12,
+                    titleFont: { size: 13, family: 'Inter' },
+                    bodyFont: { size: 14, family: 'Inter', weight: 'bold' },
+                    displayColors: false,
+                    cornerRadius: 8,
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: { color: '#f1f5f9', drawBorder: false },
+                    ticks: { font: { family: 'Inter', size: 11 }, color: '#94a3b8', precision: 0 }
+                },
+                x: {
+                    grid: { display: false, drawBorder: false },
+                    ticks: { font: { family: 'Inter', size: 11 }, color: '#94a3b8' }
+                }
+            }
+        }
+    });
+});
+</script>
