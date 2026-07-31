@@ -10,8 +10,8 @@ class LoginController extends Controller {
 
     public function index() {
         // Jika sudah login di modul roll, arahkan ke dashboard
-        if (isset($_SESSION['roll_user_id']) && isset($_SESSION['role'])) {
-            header('Location: ' . getenv('APP_URL') . '/roll/dashboard');
+        if (isset($_SESSION['roll_user_id']) && isset($_SESSION['roll_role'])) {
+            header('Location: ' . getenv('APP_URL') . '/roll/' . $_SESSION['roll_role'] . '/dashboard');
             exit;
         }
 
@@ -43,20 +43,20 @@ class LoginController extends Controller {
                     $_SESSION['roll_user_id'] = $user['id'];
                     $_SESSION['roll_role'] = $user['role']; 
                     
-                    // Routing Redirect Berdasarkan Role (REVISI DashboardController)
+                    // Routing Redirect Berdasarkan Role
                     $role = strtolower($user['role']);
                     switch ($role) {
                         case 'master':
-                            header('Location: ' . getenv('APP_URL') . '/roll/dashboard/master');
+                            header('Location: ' . getenv('APP_URL') . '/roll/master/dashboard');
                             break;
                         case 'admin':
-                            header('Location: ' . getenv('APP_URL') . '/roll/dashboard/admin');
+                            header('Location: ' . getenv('APP_URL') . '/roll/admin/dashboard');
                             break;
                         case 'user':
-                            header('Location: ' . getenv('APP_URL') . '/roll/dashboard/user');
+                            header('Location: ' . getenv('APP_URL') . '/roll/user/dashboard');
                             break;
                         default:
-                            header('Location: ' . getenv('APP_URL') . '/roll/dashboard/user');
+                            header('Location: ' . getenv('APP_URL') . '/roll/user/dashboard');
                             break;
                     }
                     exit;

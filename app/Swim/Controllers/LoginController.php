@@ -10,8 +10,8 @@ class LoginController extends Controller {
 
     public function index() {
         // Jika sudah login di modul swim, arahkan ke dashboard
-        if (isset($_SESSION['swim_user_id']) && isset($_SESSION['role'])) {
-            header('Location: ' . getenv('APP_URL') . '/swim/dashboard');
+        if (isset($_SESSION['swim_user_id']) && isset($_SESSION['swim_role'])) {
+            header('Location: ' . getenv('APP_URL') . '/swim/' . $_SESSION['swim_role'] . '/dashboard');
             exit;
         }
 
@@ -46,20 +46,20 @@ class LoginController extends Controller {
                     $_SESSION['swim_role'] = $user['role']; 
                     $_SESSION['nama_lengkap'] = $user['nama_lengkap'] ?? $user['username'];
                     
-                    // Routing Redirect Berdasarkan Role (REVISI DashboardController)
+                    // Routing Redirect Berdasarkan Role
                     $role = strtolower($user['role']);
                     switch ($role) {
                         case 'master':
-                            header('Location: ' . getenv('APP_URL') . '/swim/dashboard/master');
+                            header('Location: ' . getenv('APP_URL') . '/swim/master/dashboard');
                             break;
                         case 'admin':
-                            header('Location: ' . getenv('APP_URL') . '/swim/dashboard/admin');
+                            header('Location: ' . getenv('APP_URL') . '/swim/admin/dashboard');
                             break;
                         case 'user':
-                            header('Location: ' . getenv('APP_URL') . '/swim/dashboard/user');
+                            header('Location: ' . getenv('APP_URL') . '/swim/user/dashboard');
                             break;
                         default:
-                            header('Location: ' . getenv('APP_URL') . '/swim/dashboard/user');
+                            header('Location: ' . getenv('APP_URL') . '/swim/user/dashboard');
                             break;
                     }
                     exit;

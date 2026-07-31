@@ -140,8 +140,8 @@ switch ($module) {
 
         if ($page === 'login' || $page === 'logout' || $page === 'register') {
             $controller = new \App\Swim\Controllers\LoginController();
-            // Asumsi metode berada di LoginController/RegisterController (perlu cek implementasi aslinya)
-            if ($page === 'login' && $method === 'submit') $controller->process();
+            if ($page === 'login' && $method === 'process') $controller->process();
+            elseif ($page === 'login' && $method === 'logout') $controller->logout();
             elseif ($page === 'logout') $controller->logout();
             else $controller->index();
             break;
@@ -238,6 +238,7 @@ switch ($module) {
         if ($page === 'login' || $page === 'logout' || $page === 'register') {
             $controller = new \App\Roll\Controllers\RollAuthController();
             if ($page === 'login' && $method === 'submit') $controller->login();
+            elseif ($page === 'login' && $method === 'logout') $controller->logout();
             elseif ($page === 'logout') $controller->logout();
             elseif ($page === 'register' && $method === 'submit') $controller->processRegister();
             elseif ($page === 'register') $controller->register();
