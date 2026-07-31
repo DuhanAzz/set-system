@@ -91,7 +91,7 @@ class UsersController extends Controller {
                         $_SESSION['swal_msg'] = 'Gagal update: ' . $e->getMessage();
                     }
                 }
-                header("Location: " . getenv('APP_URL') . "/swim/users/index?role=$targetRole");
+                header("Location: " . getenv('APP_URL') . "/swim/master/users?role=$targetRole");
                 exit;
             }
         }
@@ -119,7 +119,7 @@ class UsersController extends Controller {
                     $_SESSION['swal_type'] = 'error'; $_SESSION['swal_msg'] = 'Gagal menghapus: ' . $e->getMessage();
                 }
             }
-            header("Location: " . getenv('APP_URL') . "/swim/users/index?role=$targetRole"); 
+            header("Location: " . getenv('APP_URL') . "/swim/master/users?role=$targetRole"); 
             exit;
         }
     }
@@ -201,12 +201,12 @@ class UsersController extends Controller {
 
                 $this->pdo->commit();
                 $_SESSION['swal_type'] = 'success'; $_SESSION['swal_msg'] = $msg;
-                header("Location: " . getenv('APP_URL') . "/swim/users/index?role=" . $role); exit;
+                header("Location: " . getenv('APP_URL') . "/swim/master/users?role=" . $role); exit;
 
             } catch (Exception $e) { 
                 $this->pdo->rollBack();
                 $_SESSION['swal_type'] = 'error'; $_SESSION['swal_msg'] = 'Error: ' . $e->getMessage();
-                header("Location: " . getenv('APP_URL') . "/swim/users/index?role=" . $role); exit;
+                header("Location: " . getenv('APP_URL') . "/swim/master/users?role=" . $role); exit;
             }
         }
     }
@@ -214,7 +214,7 @@ class UsersController extends Controller {
     public function verify() {
         $id = $_GET['id'] ?? 0;
         if (!$id) {
-            header("Location: " . getenv('APP_URL') . "/swim/users/index"); 
+            header("Location: " . getenv('APP_URL') . "/swim/master/users"); 
             exit;
         }
 
@@ -222,7 +222,7 @@ class UsersController extends Controller {
             $this->pdo->prepare("UPDATE swim_users SET account_status = 'active' WHERE id = ?")->execute([$id]);
             $_SESSION['swal_type'] = 'success';
             $_SESSION['swal_msg']  = 'Akun berhasil diverifikasi dan diaktifkan!';
-            header("Location: " . getenv('APP_URL') . "/swim/users/verify?id=$id"); 
+            header("Location: " . getenv('APP_URL') . "/swim/master/users/verify?id=$id"); 
             exit;
         }
 

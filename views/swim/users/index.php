@@ -136,11 +136,11 @@
                                 </span>
                                 <div class="flex gap-1 opacity-100 lg:opacity-30 lg:group-hover:opacity-100 transition">
                                     <?php if($status != 'active'): ?>
-                                        <a href="?action=status&uid=<?= $u['id'] ?>&status=active&role=<?= $targetRole ?>" 
+                                        <a href="<?= getenv('APP_URL') ?>/swim/master/users/status?uid=<?= $u['id'] ?>&status=active&role=<?= $targetRole ?>" 
                                            class="w-5 h-5 rounded bg-emerald-500 text-white flex items-center justify-center hover:bg-emerald-600 shadow-sm text-[10px]" title="Aktifkan">✓</a>
                                     <?php endif; ?>
                                     <?php if($status != 'suspended'): ?>
-                                        <a href="?action=status&uid=<?= $u['id'] ?>&status=suspended&role=<?= $targetRole ?>" 
+                                        <a href="<?= getenv('APP_URL') ?>/swim/master/users/status?uid=<?= $u['id'] ?>&status=suspended&role=<?= $targetRole ?>" 
                                            class="w-5 h-5 rounded bg-red-500 text-white flex items-center justify-center hover:bg-red-600 shadow-sm text-[10px]" title="Blokir" onclick="return confirm('Blokir user ini?')">✕</a>
                                     <?php endif; ?>
                                 </div>
@@ -162,8 +162,7 @@
                                         ✏️
                                     </button>
                                 <?php endif; ?>
-                                
-                                <a href="?delete=<?= $u['id'] ?>&role=<?= $targetRole ?>" onclick="return confirm('Hapus permanen? Data event/klub (termasuk data atlet mereka) akan hilang permanen.')" class="w-8 h-8 flex items-center justify-center bg-white border border-slate-200 rounded-lg hover:border-red-500 hover:text-red-600 transition text-slate-400 shadow-sm">🗑️</a>
+                                <a href="<?= getenv('APP_URL') ?>/swim/master/users/delete?id=<?= $u['id'] ?>&role=<?= $targetRole ?>" onclick="return confirm('Hapus permanen? Data event/klub (termasuk data atlet mereka) akan hilang permanen.')" class="w-8 h-8 flex items-center justify-center bg-white border border-slate-200 rounded-lg hover:border-red-500 hover:text-red-600 transition text-slate-400 shadow-sm">🗑️</a>
                             </div>
                         </td>
                     </tr>
