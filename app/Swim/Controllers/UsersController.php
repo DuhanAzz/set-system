@@ -135,7 +135,7 @@ class UsersController extends Controller {
                 $namaAkun = trim($_POST['nama_lengkap']); 
                 $email    = trim($_POST['email']);
                 $phone    = trim($_POST['phone']); 
-                $username = $email; 
+                $username = trim($_POST['username'] ?? $email); 
                 $pass     = $_POST['password'];
                 $namaEntitas = trim($_POST['nama_detail']); 
 

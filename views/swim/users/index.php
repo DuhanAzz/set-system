@@ -189,14 +189,14 @@
                 <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-1">Info Login (Akun)</h4>
                 
                 <div>
-                    <label class="text-[10px] font-bold text-slate-500 uppercase">Nama Pemilik Akun</label>
-                    <input type="text" name="nama_lengkap" id="form-nama" class="w-full px-4 py-3 border border-slate-200 bg-slate-50 rounded-xl text-sm font-bold focus:bg-white focus:border-blue-500 outline-none" required placeholder="Nama Admin / Ketua Klub">
+                    <label class="text-[10px] font-bold text-slate-500 uppercase">Username Login</label>
+                    <input type="text" name="username" id="form-username" class="w-full px-4 py-3 border border-slate-200 bg-slate-50 rounded-xl text-sm font-bold focus:bg-white focus:border-blue-500 outline-none" required placeholder="Username" autocomplete="off" oninput="this.value = this.value.toLowerCase().replace(/\s+/g, '')">
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label class="text-[10px] font-bold text-slate-500 uppercase">Email (Username)</label>
-                        <input type="email" name="email" id="form-email" class="w-full px-4 py-3 border border-slate-200 bg-slate-50 rounded-xl text-sm font-bold focus:bg-white focus:border-blue-500 outline-none" required>
+                        <label class="text-[10px] font-bold text-slate-500 uppercase">Email</label>
+                        <input type="email" name="email" id="form-email" class="w-full px-4 py-3 border border-slate-200 bg-slate-50 rounded-xl text-sm font-bold focus:bg-white focus:border-blue-500 outline-none" required autocomplete="off" oninput="this.value = this.value.toLowerCase()">
                     </div>
                     <div>
                         <label class="text-[10px] font-bold text-slate-500 uppercase">No. WhatsApp</label>
@@ -204,9 +204,15 @@
                     </div>
                 </div>
 
-                <div>
-                    <label class="text-[10px] font-bold text-slate-500 uppercase">Password</label>
-                    <input type="password" name="password" id="form-pass" class="w-full px-4 py-3 border border-slate-200 bg-slate-50 rounded-xl text-sm font-bold focus:bg-white focus:border-blue-500 outline-none" placeholder="Kosongi jika edit user (tidak ubah pass)">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-500 uppercase">Password</label>
+                        <input type="password" name="password" id="form-pass" class="w-full px-4 py-3 border border-slate-200 bg-slate-50 rounded-xl text-sm font-bold focus:bg-white focus:border-blue-500 outline-none" placeholder="Kosongi jika edit user" autocomplete="new-password">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-500 uppercase">Nama Pemilik Akun</label>
+                        <input type="text" name="nama_lengkap" id="form-nama" class="w-full px-4 py-3 border border-slate-200 bg-slate-50 rounded-xl text-sm font-bold focus:bg-white focus:border-blue-500 outline-none" required placeholder="Nama Admin / Ketua Klub">
+                    </div>
                 </div>
             </div>
 
@@ -262,39 +268,42 @@
 </div>
 
 <script>
-const modal = document.getElementById('modal-admin');
+    function openModal() {
+        document.getElementById('modal-admin').classList.remove('hidden');
+        document.getElementById('modal-title').innerText = 'Tambah <?= strtoupper($targetRole) ?>';
+        document.getElementById('form-id').value = ""; 
+        
+        document.getElementById('form-username').value = "";
+        document.getElementById('form-nama').value = "";
+        document.getElementById('form-email').value = "";
+        document.getElementById('form-phone').value = "";
+        document.getElementById('form-pass').required = true; 
+        document.getElementById('form-pass').value = ""; 
+        
+        document.getElementById('form-nama-detail').value = "";
+        <?php if($targetRole == 'admin'): ?>
+            document.getElementById('form-mode').value = "Langsung Final";
+            document.getElementById('form-location').value = "";
+            document.getElementById('form-city').value = "";
+            document.getElementById('form-date').value = "";
+        <?php else: ?>
+            document.getElementById('form-kota').value = "";
+        <?php endif; ?>
+    }
 
-function openModal() {
-    document.getElementById('modal-title').innerText = "Tambah <?= strtoupper($targetRole) ?> Baru";
-    document.getElementById('form-id').value = ""; 
-    
-    document.getElementById('form-nama').value = "";
-    document.getElementById('form-email').value = "";
-    document.getElementById('form-phone').value = "";
-    document.getElementById('form-pass').required = true;
-    document.getElementById('form-pass').value = "";
-    
-    document.getElementById('form-nama-detail').value = "";
-    
-    if(document.getElementById('form-location')) document.getElementById('form-location').value = "";
-    if(document.getElementById('form-city')) document.getElementById('form-city').value = "";
-    if(document.getElementById('form-date')) document.getElementById('form-date').value = ""; 
-    if(document.getElementById('form-mode')) document.getElementById('form-mode').selectedIndex = 0;
-    if(document.getElementById('form-kota')) document.getElementById('form-kota').value = "";
-    
-    modal.classList.remove('hidden');
-}
+    function editAdmin(buttonElement) {
+        const data = JSON.parse(buttonElement.getAttribute('data-user'));
+        editUser(data);
+    }
 
-function editAdmin(buttonElement) {
-    try {
-        const jsonString = buttonElement.getAttribute('data-user');
-        const data = JSON.parse(jsonString);
-
-        document.getElementById('modal-title').innerText = "Edit <?= strtoupper($targetRole) ?>";
+    function editUser(data) {
+        document.getElementById('modal-admin').classList.remove('hidden');
+        document.getElementById('modal-title').innerText = 'Edit <?= strtoupper($targetRole) ?>';
         
         document.getElementById('form-id').value = data.id; 
+        document.getElementById('form-username').value = data.username || '';
         document.getElementById('form-nama').value = data.nama_lengkap; 
-        document.getElementById('form-email').value = data.email;
+        document.getElementById('form-email').value = data.email || '';
         document.getElementById('form-phone').value = data.phone || '';
         document.getElementById('form-pass').required = false; 
         document.getElementById('form-pass').value = ""; 
