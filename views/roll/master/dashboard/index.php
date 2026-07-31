@@ -95,6 +95,16 @@
 
     </div>
 
+    <!-- GRAFIK PENGUNJUNG -->
+    <div class="bg-white rounded-[2rem] shadow-sm border border-slate-200 p-8 mb-8">
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="font-black text-slate-800 uppercase italic text-sm tracking-widest">📈 Grafik Pengunjung (7 Hari Terakhir)</h3>
+        </div>
+        <div class="relative h-64 w-full">
+            <canvas id="visitorChart"></canvas>
+        </div>
+    </div>
+
     <!-- EARLY WARNING SYSTEM & LAINNYA -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
