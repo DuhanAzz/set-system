@@ -51,7 +51,7 @@ function isGroupActive($req, $keywords) {
          <div class="px-8 mt-8 mb-2 text-[10px] font-black text-slate-600 uppercase tracking-widest">Main Control</div>
          
          <!-- GROUP 1: Pengguna & Akses -->
-         <?php $g1Active = isGroupActive($req, ['users/index.php?role=admin', 'users/index.php?role=user']); ?>
+         <?php $g1Active = isGroupActive($req, ['master/users']); ?>
          <button onclick="toggleSidebarDropdown('dd-pengguna')" class="<?= $g1Active ? $dropdownBtnActive : $dropdownBtnBase ?>">
             <div class="flex items-center">
                <span class="w-6 text-center mr-3 text-lg opacity-80">👥</span>
@@ -65,7 +65,7 @@ function isGroupActive($req, $keywords) {
          </div>
 
          <!-- GROUP 2: Manajemen Atlet -->
-         <?php $g2Active = isGroupActive($req, ['master/swimmers/index', 'history_transfer']); ?>
+         <?php $g2Active = isGroupActive($req, ['master/swimmers']); ?>
          <button onclick="toggleSidebarDropdown('dd-atlet')" class="<?= $g2Active ? $dropdownBtnActive : $dropdownBtnBase ?>">
             <div class="flex items-center">
                <span class="w-6 text-center mr-3 text-lg opacity-80">🏊</span>
@@ -74,12 +74,12 @@ function isGroupActive($req, $keywords) {
             <span id="icon-dd-atlet" class="transform transition-transform text-xs <?= $g2Active ? 'rotate-180' : '' ?>">▼</span>
          </button>
          <div id="dd-atlet" class="bg-[#0b1120] py-2 <?= $g2Active ? '' : 'hidden' ?>">
-             <a href="<?= getenv('APP_URL') ?>/swim/master/swimmers" class="<?= (strpos($req,"swim/swimmers/index")!==false) ? $childActiveLink : $childBaseLink ?>">Database Atlet</a>
-            <a href="<?= getenv('APP_URL') ?>/swim/swimmers/history_transfer" class="<?= (strpos($req,"history_transfer")!==false) ? $childActiveLink : $childBaseLink ?>">Log Aktivitas</a>
+             <a href="<?= getenv('APP_URL') ?>/swim/master/swimmers" class="<?= (strpos($req,"master/swimmers")!==false) ? $childActiveLink : $childBaseLink ?>">Database Atlet</a>
+            <a href="<?= getenv('APP_URL') ?>/swim/master/swimmers/history_transfer" class="<?= (strpos($req,"history_transfer")!==false) ? $childActiveLink : $childBaseLink ?>">Log Aktivitas</a>
          </div>
 
          <!-- GROUP 3: Sistem & Operasional -->
-         <?php $g3Active = isGroupActive($req, ['masterFinance', 'maintenance', 'system_health']); ?>
+         <?php $g3Active = isGroupActive($req, ['master/finance', 'master/maintenance']); ?>
          <button onclick="toggleSidebarDropdown('dd-sistem')" class="<?= $g3Active ? $dropdownBtnActive : $dropdownBtnBase ?>">
             <div class="flex items-center">
                <span class="w-6 text-center mr-3 text-lg opacity-80">⚙️</span>
@@ -88,13 +88,13 @@ function isGroupActive($req, $keywords) {
             <span id="icon-dd-sistem" class="transform transition-transform text-xs <?= $g3Active ? 'rotate-180' : '' ?>">▼</span>
          </button>
          <div id="dd-sistem" class="bg-[#0b1120] py-2 <?= $g3Active ? '' : 'hidden' ?>">
-             <a href="<?= getenv('APP_URL') ?>/swim/masterFinance/revenue" class="<?= (strpos($req,"masterFinance")!==false) ? $childActiveLink : $childBaseLink ?>">Keuangan</a>
-             <a href="<?= getenv('APP_URL') ?>/swim/maintenance/data_cleanup" class="<?= (strpos($req,"maintenance/data_cleanup")!==false) ? $childActiveLink : $childBaseLink ?>">Maintenance Data</a>
-             <a href="<?= getenv('APP_URL') ?>/swim/maintenance/system_health" class="<?= (strpos($req,"maintenance/system_health")!==false) ? $childActiveLink : $childBaseLink ?>">System Health</a>
+             <a href="<?= getenv('APP_URL') ?>/swim/master/finance/revenue" class="<?= (strpos($req,"master/finance")!==false) ? $childActiveLink : $childBaseLink ?>">Keuangan</a>
+             <a href="<?= getenv('APP_URL') ?>/swim/master/maintenance/data_cleanup" class="<?= (strpos($req,"maintenance/data_cleanup")!==false) ? $childActiveLink : $childBaseLink ?>">Maintenance Data</a>
+             <a href="<?= getenv('APP_URL') ?>/swim/master/maintenance/system_health" class="<?= (strpos($req,"maintenance/system_health")!==false) ? $childActiveLink : $childBaseLink ?>">System Health</a>
          </div>
 
          <!-- GROUP 4: Konfigurasi Web -->
-         <?php $g4Active = isGroupActive($req, ['public_page', 'global_config']); ?>
+         <?php $g4Active = isGroupActive($req, ['master/settings']); ?>
          <button onclick="toggleSidebarDropdown('dd-web')" class="<?= $g4Active ? $dropdownBtnActive : $dropdownBtnBase ?>">
             <div class="flex items-center">
                <span class="w-6 text-center mr-3 text-lg opacity-80">🌍</span>
@@ -103,12 +103,12 @@ function isGroupActive($req, $keywords) {
             <span id="icon-dd-web" class="transform transition-transform text-xs <?= $g4Active ? 'rotate-180' : '' ?>">▼</span>
          </button>
          <div id="dd-web" class="bg-[#0b1120] py-2 <?= $g4Active ? '' : 'hidden' ?>">
-             <a href="<?= getenv('APP_URL') ?>/swim/masterSettings/public_page" class="<?= (strpos($req,"public_page")!==false) ? $childActiveLink : $childBaseLink ?>">Landing Page</a>
-             <a href="<?= getenv('APP_URL') ?>/swim/masterSettings/global_config" class="<?= (strpos($req,"global_config")!==false) ? $childActiveLink : $childBaseLink ?>">Global Config</a>
+             <a href="<?= getenv('APP_URL') ?>/swim/master/settings/public_page" class="<?= (strpos($req,"public_page")!==false) ? $childActiveLink : $childBaseLink ?>">Landing Page</a>
+             <a href="<?= getenv('APP_URL') ?>/swim/master/settings/global_config" class="<?= (strpos($req,"global_config")!==false) ? $childActiveLink : $childBaseLink ?>">Global Config</a>
          </div>
 
          <!-- GROUP 5: Data Referensi -->
-         <?php $g5Active = isGroupActive($req, ['manage_records', 'record_packages', 'dq_rules']); ?>
+         <?php $g5Active = isGroupActive($req, ['master/records', 'master/settings/dq_rules']); ?>
          <button onclick="toggleSidebarDropdown('dd-referensi')" class="<?= $g5Active ? $dropdownBtnActive : $dropdownBtnBase ?>">
             <div class="flex items-center">
                <span class="w-6 text-center mr-3 text-lg opacity-80">📚</span>
@@ -117,8 +117,8 @@ function isGroupActive($req, $keywords) {
             <span id="icon-dd-referensi" class="transform transition-transform text-xs <?= $g5Active ? 'rotate-180' : '' ?>">▼</span>
          </button>
          <div id="dd-referensi" class="bg-[#0b1120] py-2 <?= $g5Active ? '' : 'hidden' ?>">
-             <a href="<?= getenv('APP_URL') ?>/swim/records/manage_records" class="<?= (strpos($req,"/records/")!==false) ? $childActiveLink : $childBaseLink ?>">Manajemen Rekor</a>
-             <a href="<?= getenv('APP_URL') ?>/swim/masterSettings/dq_rules" class="<?= (strpos($req,"dq_rules")!==false) ? $childActiveLink : $childBaseLink ?>">Master DQ Rules</a>
+             <a href="<?= getenv('APP_URL') ?>/swim/master/records/manage_records" class="<?= (strpos($req,"master/records")!==false) ? $childActiveLink : $childBaseLink ?>">Manajemen Rekor</a>
+             <a href="<?= getenv('APP_URL') ?>/swim/master/settings/dq_rules" class="<?= (strpos($req,"dq_rules")!==false) ? $childActiveLink : $childBaseLink ?>">Master DQ Rules</a>
          </div>
 
       <?php endif; ?>
@@ -141,7 +141,7 @@ function isGroupActive($req, $keywords) {
          ?>
          
          <!-- GROUP 1: Setup Kejuaraan -->
-         <?php $a1Active = isGroupActive($req, ['event_profile', 'events/index']); ?>
+         <?php $a1Active = isGroupActive($req, ['admin/profile', 'admin/events']); ?>
          <button onclick="toggleSidebarDropdown('dd-setup')" class="<?= $a1Active ? $dropdownBtnActive : $dropdownBtnBase ?>">
             <div class="flex items-center">
                <span class="w-6 text-xl mr-3 text-center opacity-80">⚙️</span>
@@ -150,12 +150,12 @@ function isGroupActive($req, $keywords) {
             <span id="icon-dd-setup" class="transform transition-transform text-xs <?= $a1Active ? 'rotate-180' : '' ?>">▼</span>
          </button>
          <div id="dd-setup" class="bg-[#0b1120] py-2 <?= $a1Active ? '' : 'hidden' ?>">
-             <a href="<?= getenv('APP_URL') ?>/swim/event_profile/index" class="<?= (strpos($req,"event_profile")!==false) ? $childActiveLink : $childBaseLink ?>">Profil Event</a>
-             <a href="<?= getenv('APP_URL') ?>/swim/master/events" class="<?= (strpos($req,"events/index")!==false) ? $childActiveLink : $childBaseLink ?>">Daftar Nomor Lomba</a>
+             <a href="<?= getenv('APP_URL') ?>/swim/admin/profile/index" class="<?= (strpos($req,"admin/profile")!==false) ? $childActiveLink : $childBaseLink ?>">Profil Event</a>
+             <a href="<?= getenv('APP_URL') ?>/swim/admin/events" class="<?= (strpos($req,"admin/events")!==false) ? $childActiveLink : $childBaseLink ?>">Daftar Nomor Lomba</a>
          </div>
 
          <!-- GROUP 2: Operasional Lomba -->
-         <?php $a2Active = isGroupActive($req, ['entries', 'relay']); ?>
+         <?php $a2Active = isGroupActive($req, ['admin/entries', 'admin/relay', 'admin/seeding']); ?>
          <button onclick="toggleSidebarDropdown('dd-ops')" class="<?= $a2Active ? $dropdownBtnActive : $dropdownBtnBase ?>">
             <div class="flex items-center">
                <span class="w-6 text-xl mr-3 text-center opacity-80">🏃</span>
@@ -164,18 +164,18 @@ function isGroupActive($req, $keywords) {
             <span id="icon-dd-ops" class="transform transform transition-transform text-xs <?= $a2Active ? 'rotate-180' : '' ?>">▼</span>
          </button>
          <div id="dd-ops" class="bg-[#0b1120] py-2 <?= $a2Active ? '' : 'hidden' ?>">
-             <a href="<?= getenv('APP_URL') ?>/swim/entries/index" class="<?= (strpos($req,"entries")!==false) ? $childActiveLink : $childBaseLink ?>">Verifikasi Entries</a>
+             <a href="<?= getenv('APP_URL') ?>/swim/admin/entries/index" class="<?= (strpos($req,"admin/entries")!==false) ? $childActiveLink : $childBaseLink ?>">Verifikasi Entries</a>
              <?php if($hasRelay): ?>
-             <a href="<?= getenv('APP_URL') ?>/swim/relay/index" class="<?= (strpos($req,"relay")!==false) ? $childActiveLink : $childBaseLink ?> text-pink-400">Manajemen Estafet</a>
+             <a href="<?= getenv('APP_URL') ?>/swim/admin/relay/index" class="<?= (strpos($req,"admin/relay")!==false) ? $childActiveLink : $childBaseLink ?> text-pink-400">Manajemen Estafet</a>
              <?php endif; ?>
-             <a href="<?= getenv('APP_URL') ?>/swim/seeding/index" class="<?= (strpos($req,"seeding/index")!==false) ? $childActiveLink : $childBaseLink ?>">Start List <?= ($adminMode == 'Babak Penyisihan') ? 'Penyisihan' : '' ?></a>
+             <a href="<?= getenv('APP_URL') ?>/swim/admin/seeding/index" class="<?= (strpos($req,"admin/seeding")!==false) ? $childActiveLink : $childBaseLink ?>">Start List <?= ($adminMode == 'Babak Penyisihan') ? 'Penyisihan' : '' ?></a>
              <?php if($adminMode == 'Babak Penyisihan'): ?>
-             <a href="<?= getenv('APP_URL') ?>/src/admin/seeding/final.php" class="<?= (strpos($req,"seeding/final")!==false) ? $childActiveLink : $childBaseLink ?> text-orange-400">Seeding Final</a>
+             <a href="<?= getenv('APP_URL') ?>/swim/admin/seeding/final" class="<?= (strpos($req,"admin/seeding/final")!==false) ? $childActiveLink : $childBaseLink ?> text-orange-400">Seeding Final</a>
              <?php endif; ?>
          </div>
 
          <!-- GROUP 3: Hasil & Penghargaan -->
-         <?php $a3Active = isGroupActive($req, ['results/index', 'publish_result', 'medal_tally', 'best_swimmer', 'manage_exports']); ?>
+         <?php $a3Active = isGroupActive($req, ['admin/results', 'admin/medal_tally', 'admin/export']); ?>
          <button onclick="toggleSidebarDropdown('dd-hasil')" class="<?= $a3Active ? $dropdownBtnActive : $dropdownBtnBase ?>">
             <div class="flex items-center">
                <span class="w-6 text-xl mr-3 text-center opacity-80">🏆</span>
@@ -184,34 +184,34 @@ function isGroupActive($req, $keywords) {
             <span id="icon-dd-hasil" class="transform transition-transform text-xs <?= $a3Active ? 'rotate-180' : '' ?>">▼</span>
          </button>
          <div id="dd-hasil" class="bg-[#0b1120] py-2 <?= $a3Active ? '' : 'hidden' ?>">
-             <a href="<?= getenv('APP_URL') ?>/swim/results" class="<?= (strpos($req,"swim/results")!==false && strpos($req,"publish")===false) ? $childActiveLink : $childBaseLink ?>">Input Hasil</a>
-             <a href="<?= getenv('APP_URL') ?>/swim/results/publish" class="<?= (strpos($req,"publish")!==false) ? $childActiveLink : $childBaseLink ?>">Publikasi Hasil</a>
-             <a href="<?= getenv('APP_URL') ?>/swim/medal_tally" class="<?= (strpos($req,"medal_tally")!==false && strpos($req,"best_swimmer")===false) ? $childActiveLink : $childBaseLink ?>">Rekap Medali</a>
-             <a href="<?= getenv('APP_URL') ?>/swim/medal_tally/best_swimmer" class="<?= (strpos($req,"best_swimmer")!==false) ? $childActiveLink : $childBaseLink ?>">Perenang Terbaik</a>
-             <a href="<?= getenv('APP_URL') ?>/swim/export" class="<?= (strpos($req,"export")!==false) ? $childActiveLink : $childBaseLink ?>">Ekspor & Laporan</a>
+             <a href="<?= getenv('APP_URL') ?>/swim/admin/results" class="<?= (strpos($req,"admin/results")!==false && strpos($req,"publish")===false) ? $childActiveLink : $childBaseLink ?>">Input Hasil</a>
+             <a href="<?= getenv('APP_URL') ?>/swim/admin/results/publish" class="<?= (strpos($req,"publish")!==false) ? $childActiveLink : $childBaseLink ?>">Publikasi Hasil</a>
+             <a href="<?= getenv('APP_URL') ?>/swim/admin/medal_tally" class="<?= (strpos($req,"admin/medal_tally")!==false && strpos($req,"best_swimmer")===false) ? $childActiveLink : $childBaseLink ?>">Rekap Medali</a>
+             <a href="<?= getenv('APP_URL') ?>/swim/admin/medal_tally/best_swimmer" class="<?= (strpos($req,"best_swimmer")!==false) ? $childActiveLink : $childBaseLink ?>">Perenang Terbaik</a>
+             <a href="<?= getenv('APP_URL') ?>/swim/admin/export" class="<?= (strpos($req,"admin/export")!==false) ? $childActiveLink : $childBaseLink ?>">Ekspor & Laporan</a>
          </div>
 
       <?php endif; ?>
 
       <?php if($role == 'user'): ?>
          <div class="px-8 mt-8 mb-2 text-[10px] font-black text-slate-600 uppercase tracking-widest">Club Management</div>
-         <a href="<?= getenv('APP_URL') ?>/swim/swimmers" class="<?= (strpos($req,"swim/swimmers")!==false) ? $activeLink : $baseLink ?>">
+         <a href="<?= getenv('APP_URL') ?>/swim/user/swimmers" class="<?= (strpos($req,"user/swimmers")!==false) ? $activeLink : $baseLink ?>">
             <span class="w-6 text-xl mr-3 text-center opacity-80">🏊</span>
             <span class="font-bold text-[11px] tracking-widest uppercase">Atlet Saya</span>
          </a>
 
          <div class="px-8 mt-8 mb-2 text-[10px] font-black text-slate-600 uppercase tracking-widest">Registrations</div>
-         <a href="<?= getenv('APP_URL') ?>/swim/explore" class="<?= (strpos($req, '/swim/explore') !== false) ? $activeLink : $baseLink ?>">
+         <a href="<?= getenv('APP_URL') ?>/swim/user/explore" class="<?= (strpos($req, '/swim/user/explore') !== false) ? $activeLink : $baseLink ?>">
             <span class="w-6 text-xl mr-3 text-center opacity-80">🚀</span>
             <span class="font-bold text-[11px] tracking-widest uppercase">Cari Lomba</span>
          </a>
-         <a href="<?= getenv('APP_URL') ?>/swim/checkout" class="<?= (strpos($req, '/swim/checkout') !== false) ? $activeLink : $baseLink ?>">
+         <a href="<?= getenv('APP_URL') ?>/swim/user/checkout" class="<?= (strpos($req, '/swim/user/checkout') !== false) ? $activeLink : $baseLink ?>">
             <span class="w-6 text-xl mr-3 text-center opacity-80">💸</span>
             <span class="font-bold text-[11px] tracking-widest uppercase">Status Bayar</span>
          </a>
 
          <div class="px-8 mt-8 mb-2 text-[10px] font-black text-slate-600 uppercase tracking-widest">Information</div>
-         <a href="<?= getenv('APP_URL') ?>/swim/pengumuman" class="<?= (strpos($req, '/swim/pengumuman') !== false) ? $activeLink : $baseLink ?>">
+         <a href="<?= getenv('APP_URL') ?>/swim/user/pengumuman" class="<?= (strpos($req, '/swim/user/pengumuman') !== false) ? $activeLink : $baseLink ?>">
             <span class="w-6 text-xl mr-3 text-center opacity-80">📢</span>
             <span class="font-bold text-[11px] tracking-widest uppercase">Pengumuman</span>
          </a>
