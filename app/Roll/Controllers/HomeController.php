@@ -27,6 +27,7 @@ class HomeController extends Controller {
     }
     
     public function index() {
+        $this->trackVisitor("roll");
         // Mengambil koneksi database singleton
         $db = Database::getInstance()->getConnection();
         

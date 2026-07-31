@@ -105,11 +105,21 @@ class RollMasterDashboardController extends Controller {
             die("Database Error: " . $e->getMessage());
         }
 
+        $visitorStats = [];
+        try {
+            $sqlVisitors = "SELECT visit_date, SUM(views_count) as total_views 
+                            FROM site_visitors 
+                            WHERE visit_date >= DATE_SUB(CURDATE(), INTERVAL 7 DAY) 
+                            GROUP BY visit_date ORDER BY visit_date ASC";
+            $visitorStats = $pdo->query($sqlVisitors)->fetchAll(\PDO::FETCH_ASSOC);
+        } catch (\Exception $e) {}
+
         return $this->view('roll/master/dashboard/index', [
             'stats' => $stats,
             'liveEvents' => $liveEvents,
             'recentUsers' => $recentUsers,
             'pendingEntries' => $pendingEntries,
+            'visitorStats' => $visitorStats,
             'systemStatus' => $systemStatus,
             'heroTitle' => $heroTitle
         ]);

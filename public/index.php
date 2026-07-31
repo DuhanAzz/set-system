@@ -138,37 +138,87 @@ switch ($module) {
             }
         }
 
-        // Autoloader akan otomatis mencari file di app/Swim/Controllers/
-        if ($page === 'finance' && isset($_SESSION['swim_role']) && $_SESSION['swim_role'] === 'master') {
-            $controllerClass = "\\App\\Swim\\Controllers\\MasterFinanceController";
+        if ($page === 'login' || $page === 'logout' || $page === 'register') {
+            $controller = new \App\Swim\Controllers\LoginController();
+            // Asumsi metode berada di LoginController/RegisterController (perlu cek implementasi aslinya)
+            if ($page === 'login' && $method === 'submit') $controller->process();
+            elseif ($page === 'logout') $controller->logout();
+            else $controller->index();
+            break;
+        }
+
+        $roleFolders = ['master', 'admin', 'user'];
+        if (in_array($page, $roleFolders)) {
+            $roleFolder = ucfirst($page);
+            $subRoute = isset($url[2]) && $url[2] != '' ? strtolower($url[2]) : 'dashboard';
+            $action = isset($url[3]) && $url[3] != '' ? strtolower($url[3]) : 'index';
+
+            $map = [
+                'Admin' => [
+                    'dashboard' => '\\App\\Swim\\Controllers\\DashboardController',
+                    'profile'   => '\\App\\Swim\\Controllers\\ProfileController',
+                    'events'    => '\\App\\Swim\\Controllers\\EventsController',
+                    'entries'   => '\\App\\Swim\\Controllers\\EntriesController',
+                    'results'   => '\\App\\Swim\\Controllers\\ResultsController',
+                    'seeding'   => '\\App\\Swim\\Controllers\\SeedingController'
+                ],
+                'User' => [
+                    'dashboard' => '\\App\\Swim\\Controllers\\UserDashboardController',
+                    'profile'   => '\\App\\Swim\\Controllers\\ClubProfileController',
+                    'swimmers'  => '\\App\\Swim\\Controllers\\SwimmersController',
+                    'explore'   => '\\App\\Swim\\Controllers\\ExploreController',
+                    'registration' => '\\App\\Swim\\Controllers\\RegistrationController',
+                    'checkout'  => '\\App\\Swim\\Controllers\\CheckoutController'
+                ],
+                'Master' => [
+                    'dashboard' => '\\App\\Swim\\Controllers\\DashboardController',
+                    'users'     => '\\App\\Swim\\Controllers\\UsersController',
+                    'swimmers'  => '\\App\\Swim\\Controllers\\SwimmersController',
+                    'finance'   => '\\App\\Swim\\Controllers\\MasterFinanceController',
+                    'settings'  => '\\App\\Swim\\Controllers\\MasterSettingsController',
+                    'maintenance' => '\\App\\Swim\\Controllers\\MaintenanceController',
+                    'records'   => '\\App\\Swim\\Controllers\\RecordsController'
+                ]
+            ];
+
+            if (isset($map[$roleFolder][$subRoute]) && class_exists($map[$roleFolder][$subRoute])) {
+                $controllerClass = $map[$roleFolder][$subRoute];
+                $controller = new $controllerClass();
+                
+                // Khusus DashboardController karena methodnya sesuai role
+                if ($subRoute === 'dashboard' && $controllerClass === '\\App\\Swim\\Controllers\\DashboardController') {
+                    $controller->$page(); // master() / admin()
+                } else {
+                    if (method_exists($controller, $action)) {
+                        $params = array_slice($url, 4);
+                        $controller->$action(...$params);
+                    } else {
+                        $params = array_slice($url, 3);
+                        $controller->index(...$params);
+                    }
+                }
+            } else {
+                http_response_code(404);
+                echo "<h1>404 Not Found</h1><p>Halaman Swim '{$page}/{$subRoute}' tidak ditemukan.</p>";
+            }
         } else {
+            // Legacy / Fallback Route (menangkap rute lama agar tidak broken)
             $pascalCasePage = str_replace(' ', '', ucwords(str_replace('_', ' ', $page)));
             $controllerClass = "\\App\\Swim\\Controllers\\" . $pascalCasePage . "Controller";
-        }
-        
-        if (class_exists($controllerClass)) {
-            $controller = new $controllerClass();
-            // Jika ada method yang dipanggil di URL indeks ke-2, eksekusi itu. Jika tidak, jalankan index()
-            if (method_exists($controller, $method)) {
-                $params = array_slice($url, 3);
-                $controller->$method(...$params);
-            } else {
-                $params = array_slice($url, 2);
-                $controller->index(...$params);
-            }
-        } else {
-            // Fallback: Coba periksa apakah method ada di HomeController
-            $fallbackClass = "\\App\\Swim\\Controllers\\HomeController";
-            if (class_exists($fallbackClass)) {
-                $fallbackController = new $fallbackClass();
-                if (method_exists($fallbackController, $page)) {
-                    $fallbackController->$page();
-                    break;
-                }
-            }
             
-            http_response_code(404);
-            echo "<h1>404 Not Found</h1><p>Halaman Swim '{$page}' tidak ditemukan.</p>";
+            if (class_exists($controllerClass)) {
+                $controller = new $controllerClass();
+                if (method_exists($controller, $method)) {
+                    $params = array_slice($url, 3);
+                    $controller->$method(...$params);
+                } else {
+                    $params = array_slice($url, 2);
+                    $controller->index(...$params);
+                }
+            } else {
+                http_response_code(404);
+                echo "<h1>404 Not Found</h1><p>Halaman Swim '{$page}' tidak ditemukan.</p>";
+            }
         }
         break;
 

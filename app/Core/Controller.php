@@ -4,6 +4,31 @@ namespace App\Core;
 
 class Controller {
     /**
+     * Mencatat kunjungan unik per hari untuk statistik
+     * @param string $module Nama modul (contoh: 'swim', 'roll', 'core')
+     */
+    protected function trackVisitor($module) {
+        try {
+            $db = \App\Core\Database::getInstance()->getConnection();
+            $today = date('Y-m-d');
+            
+            // Cek apakah sudah ada catatan untuk hari ini & modul ini
+            $stmt = $db->prepare("SELECT id FROM site_visitors WHERE module = ? AND visit_date = ?");
+            $stmt->execute([$module, $today]);
+            
+            if ($stmt->rowCount() > 0) {
+                // Update
+                $db->prepare("UPDATE site_visitors SET views_count = views_count + 1 WHERE module = ? AND visit_date = ?")->execute([$module, $today]);
+            } else {
+                // Insert
+                $db->prepare("INSERT INTO site_visitors (module, visit_date, views_count) VALUES (?, ?, 1)")->execute([$module, $today]);
+            }
+        } catch (\Exception $e) {
+            // Abaikan error DB agar tidak merusak halaman utama
+        }
+    }
+
+    /**
      * Memuat file view dan meneruskan data
      * 
      * @param string $viewPath Lokasi file view relatif terhadap folder views (misal: 'home/index')

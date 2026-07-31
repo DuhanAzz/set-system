@@ -9,6 +9,7 @@ use PDO;
 class HomeController extends Controller {
     
     public function index() {
+        $this->trackVisitor("core");
         // Mengambil koneksi database singleton
         $db = Database::getInstance()->getConnection();
         

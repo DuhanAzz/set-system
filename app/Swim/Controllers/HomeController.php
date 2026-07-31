@@ -9,6 +9,7 @@ use PDO;
 class HomeController extends Controller {
     
     public function index() {
+        $this->trackVisitor("swim");
         $db = Database::getInstance()->getConnection();
         
         // 0. Ambil Settings

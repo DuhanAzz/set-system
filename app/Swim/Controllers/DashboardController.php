@@ -111,10 +111,20 @@ class DashboardController extends Controller {
             die("Database Error: " . $e->getMessage());
         }
 
+        $visitorStats = [];
+        try {
+            $sqlVisitors = "SELECT visit_date, SUM(views_count) as total_views 
+                            FROM site_visitors 
+                            WHERE visit_date >= DATE_SUB(CURDATE(), INTERVAL 7 DAY) 
+                            GROUP BY visit_date ORDER BY visit_date ASC";
+            $visitorStats = $pdo->query($sqlVisitors)->fetchAll(\PDO::FETCH_ASSOC);
+        } catch (\Exception $e) {}
+
         return $this->view('swim/master/dashboard', [
             'stats' => $stats,
             'liveEvents' => $liveEvents,
             'recentUsers' => $recentUsers,
+            'visitorStats' => $visitorStats,
             'systemStatus' => $systemStatus,
             'heroTitle' => $heroTitle
         ]);

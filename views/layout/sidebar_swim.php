@@ -19,9 +19,9 @@ $childBaseLink = 'block px-8 py-2.5 text-[10px] text-slate-400 font-bold upperca
 $childActiveLink = 'block px-8 py-2.5 text-[10px] text-blue-400 font-black uppercase tracking-widest bg-slate-800/50 border-l-2 border-blue-500 ml-6 shadow-[inset_0px_1px_0px_0px_rgba(255,255,255,0.05)]';
 
 // Link Dashboard dinamis
-if ($role == 'master') $dashLink = getenv('APP_URL') . '/swim/dashboard/master';
-elseif ($role == 'admin') $dashLink = getenv('APP_URL') . '/swim/dashboard/admin';
-elseif ($role == 'user') $dashLink = getenv('APP_URL') . '/swim/user_dashboard';
+if ($role == 'master') $dashLink = getenv('APP_URL') . '/swim/master/dashboard';
+elseif ($role == 'admin') $dashLink = getenv('APP_URL') . '/swim/admin/dashboard';
+elseif ($role == 'user') $dashLink = getenv('APP_URL') . '/swim/user/dashboard';
 else $dashLink = getenv('APP_URL') . '/swim/login';
 
 // HELPER FUNCTION: Check if req contains any of the keywords
@@ -60,8 +60,8 @@ function isGroupActive($req, $keywords) {
             <span id="icon-dd-pengguna" class="transform transition-transform text-xs <?= $g1Active ? 'rotate-180' : '' ?>">▼</span>
          </button>
          <div id="dd-pengguna" class="bg-[#0b1120] py-2 <?= $g1Active ? '' : 'hidden' ?>">
-             <a href="<?= getenv('APP_URL') ?>/swim/users/index?role=admin" class="<?= (strpos($req,"role=admin")!==false) ? $childActiveLink : $childBaseLink ?>">Admin EO</a>
-             <a href="<?= getenv('APP_URL') ?>/swim/users/index?role=user" class="<?= (strpos($req,"role=user")!==false) ? $childActiveLink : $childBaseLink ?>">Akun Klub</a>
+             <a href="<?= getenv('APP_URL') ?>/swim/master/users?role=admin" class="<?= (strpos($req,"role=admin")!==false) ? $childActiveLink : $childBaseLink ?>">Admin EO</a>
+             <a href="<?= getenv('APP_URL') ?>/swim/master/users?role=user" class="<?= (strpos($req,"role=user")!==false) ? $childActiveLink : $childBaseLink ?>">Akun Klub</a>
          </div>
 
          <!-- GROUP 2: Manajemen Atlet -->
@@ -74,7 +74,7 @@ function isGroupActive($req, $keywords) {
             <span id="icon-dd-atlet" class="transform transition-transform text-xs <?= $g2Active ? 'rotate-180' : '' ?>">▼</span>
          </button>
          <div id="dd-atlet" class="bg-[#0b1120] py-2 <?= $g2Active ? '' : 'hidden' ?>">
-             <a href="<?= getenv('APP_URL') ?>/swim/swimmers/index" class="<?= (strpos($req,"swim/swimmers/index")!==false) ? $childActiveLink : $childBaseLink ?>">Database Atlet</a>
+             <a href="<?= getenv('APP_URL') ?>/swim/master/swimmers" class="<?= (strpos($req,"swim/swimmers/index")!==false) ? $childActiveLink : $childBaseLink ?>">Database Atlet</a>
             <a href="<?= getenv('APP_URL') ?>/swim/swimmers/history_transfer" class="<?= (strpos($req,"history_transfer")!==false) ? $childActiveLink : $childBaseLink ?>">Log Aktivitas</a>
          </div>
 
@@ -151,7 +151,7 @@ function isGroupActive($req, $keywords) {
          </button>
          <div id="dd-setup" class="bg-[#0b1120] py-2 <?= $a1Active ? '' : 'hidden' ?>">
              <a href="<?= getenv('APP_URL') ?>/swim/event_profile/index" class="<?= (strpos($req,"event_profile")!==false) ? $childActiveLink : $childBaseLink ?>">Profil Event</a>
-             <a href="<?= getenv('APP_URL') ?>/swim/events/index" class="<?= (strpos($req,"events/index")!==false) ? $childActiveLink : $childBaseLink ?>">Daftar Nomor Lomba</a>
+             <a href="<?= getenv('APP_URL') ?>/swim/master/events" class="<?= (strpos($req,"events/index")!==false) ? $childActiveLink : $childBaseLink ?>">Daftar Nomor Lomba</a>
          </div>
 
          <!-- GROUP 2: Operasional Lomba -->
