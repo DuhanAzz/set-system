@@ -355,4 +355,9 @@ function closeModal() {
 
         <?php unset($_SESSION['swal_type']); unset($_SESSION['swal_msg']); ?>
     <?php endif; ?>
+
+    <?php if(isset($_SESSION['wa_redirect'])): ?>
+        window.open('<?= $_SESSION['wa_redirect'] ?>', '_blank');
+        <?php unset($_SESSION['wa_redirect']); ?>
+    <?php endif; ?>
 </script>
