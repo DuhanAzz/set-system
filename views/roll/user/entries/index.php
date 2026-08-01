@@ -348,7 +348,7 @@
                             }
                         }
                         foreach($skateCats as $catId => $catName): ?>
-                            <option value="<?= $catId ?>"><?= htmlspecialchars($catName) ?></option>
+                            <option value="<?= $catId ?>" data-original-name="<?= htmlspecialchars($catName) ?>"><?= htmlspecialchars($catName) ?></option>
                         <?php endforeach; ?>
                     </select>
                 </div>
@@ -463,8 +463,54 @@ function onSkaterChange(sel) {
     // update hidden skater_id
     document.getElementById('modal_skater_id').value = opt.value;
     
+    const catSelect = document.getElementById('skate_category_select');
+    
+    if (opt.value) {
+        const age = parseInt(sel.dataset.age);
+        const gender = sel.dataset.gender;
+        
+        // Filter category dropdown
+        for (let i = 1; i < catSelect.options.length; i++) {
+            const catOption = catSelect.options[i];
+            const catId = catOption.value;
+            
+            let hasValidClass = false;
+            let matchingKU = "";
+            
+            for (const c of allClasses) {
+                const distanceName = (c.distance_name || '').toLowerCase();
+                if (distanceName.includes('relay') || distanceName.includes('team') || distanceName.includes('pair')) continue;
+                
+                if (c.class_cat_id == catId) {
+                    if (age >= parseInt(c.min_year) && age <= parseInt(c.max_year)) {
+                        const catGender = (c.gender || '').toLowerCase();
+                        if ((catGender === 'putra' && gender === 'M') || (catGender === 'putri' && gender === 'F') || catGender === 'campuran') {
+                            hasValidClass = true;
+                            matchingKU = c.group_name;
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            if (hasValidClass) {
+                catOption.style.display = '';
+                catOption.innerText = catOption.dataset.originalName + ' (' + matchingKU + ')';
+            } else {
+                catOption.style.display = 'none';
+                catOption.innerText = catOption.dataset.originalName;
+            }
+        }
+    } else {
+        // Reset category dropdown
+        for (let i = 1; i < catSelect.options.length; i++) {
+            catSelect.options[i].style.display = '';
+            catSelect.options[i].innerText = catSelect.options[i].dataset.originalName;
+        }
+    }
+    
     // Reset dependant dropdowns
-    document.getElementById('skate_category_select').value = '';
+    catSelect.value = '';
     
     filterClasses();
 }
@@ -531,15 +577,20 @@ function filterClasses() {
                 // Check gender
                 const catGender = (c.gender || '').toLowerCase();
                 if ((catGender === 'putra' && gender === 'M') || (catGender === 'putri' && gender === 'F') || catGender === 'campuran') {
-                    // Format: "104 - DTT 200m"
-                    let raceNumber = c.race_number ? c.race_number + ' - ' : '';
-                    let labelText = raceNumber + c.distance_name;
+                    // Deteksi kelas Wajib (Mandatory)
+                    const isMandatory = c.race_number && c.race_number.includes('*');
+                    const displayRaceNumber = c.race_number ? c.race_number.replace('*', '') + ' - ' : '';
+                    let labelText = displayRaceNumber + c.distance_name;
+                    
+                    if (isMandatory) {
+                        labelText += ' <span class="text-red-500 font-bold ml-1 text-[9px] bg-red-50 px-1 py-0.5 rounded uppercase tracking-wider" title="Wajib Diikuti">Wajib</span>';
+                    }
                     
                     const label = document.createElement('label');
-                    label.className = 'flex items-center gap-3 p-2 hover:bg-slate-50 rounded cursor-pointer transition-colors border border-transparent hover:border-slate-200';
+                    label.className = `flex items-center gap-3 p-2 rounded cursor-pointer transition-colors border border-transparent ${isMandatory ? 'bg-red-50/30' : 'hover:bg-slate-50 hover:border-slate-200'}`;
                     label.innerHTML = `
-                        <input type="checkbox" name="race_class_id[]" value="${c.id}" class="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 individual-race-cb" onchange="checkIndividualLimits(this)">
-                        <span class="text-xs font-bold text-slate-700 uppercase">${labelText}</span>
+                        <input type="checkbox" name="race_class_id[]" value="${c.id}" class="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 individual-race-cb" onchange="checkIndividualLimits(this)" ${isMandatory ? 'checked onclick="return false;"' : ''}>
+                        <span class="text-xs font-bold text-slate-700 uppercase ${isMandatory ? 'opacity-80' : ''}">${labelText}</span>
                     `;
                     classContainer.appendChild(label);
                     validCount++;
@@ -550,6 +601,9 @@ function filterClasses() {
     
     if (validCount === 0) {
         classContainer.innerHTML = '<div class="text-xs text-slate-400 italic text-center p-2">- Tidak ada nomor lomba yang sesuai umur atlet -</div>';
+    } else {
+        // Jalankan pengecekan limit awal untuk memvalidasi mandatory checks
+        checkIndividualLimits(null);
     }
 }
 
@@ -569,14 +623,17 @@ function checkIndividualLimits(checkbox) {
             if (!cb.checked) cb.disabled = true;
         });
     } else {
-        checkboxes.forEach(cb => cb.disabled = false);
+        checkboxes.forEach(cb => {
+            // Re-enable checkboxes, unless they are checked mandatory ones (which have an onclick return false, but we can just leave them enabled so they submit)
+            cb.disabled = false;
+        });
     }
     
     if (checked.length > 0) {
         btn.disabled = false;
         btn.className = 'w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-black text-xs shadow-lg shadow-blue-200 transition-all uppercase tracking-widest cursor-pointer';
         
-        let selectedNames = Array.from(checked).map(cb => '✅ ' + cb.nextElementSibling.innerText).join('<br>');
+        let selectedNames = Array.from(checked).map(cb => '✅ ' + cb.nextElementSibling.innerHTML).join('<br>');
         alertBox.innerHTML = `<div class="text-emerald-600 bg-emerald-50 text-left p-3 rounded-lg"><div class="text-[10px] uppercase tracking-widest mb-1 opacity-50">Nomor Terpilih:</div>${selectedNames}</div>`;
         alertBox.classList.remove('hidden', 'text-red-600', 'bg-red-50', 'border-red-200');
         alertBox.classList.add('text-emerald-600', 'bg-emerald-50', 'border-emerald-200');

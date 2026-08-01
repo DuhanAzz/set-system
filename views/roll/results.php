@@ -129,72 +129,53 @@ $siteDesc     = $s['site_description'] ?? 'Platform manajemen lomba sepatu roda 
             </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <?php if (empty($completed_events)): ?>
-                <div class="col-span-full text-center py-20 bg-white rounded-3xl border border-slate-200 shadow-sm">
-                    <div class="text-6xl mb-4">🏆</div>
-                    <h3 class="text-2xl font-black text-slate-800 mb-2">Belum Ada Hasil</h3>
-                    <p class="text-slate-500 font-medium">Saat ini belum ada hasil perlombaan yang dipublikasikan (Published).</p>
-                </div>
-            <?php else: ?>
+        <?php if (empty($completed_events)): ?>
+            <div class="text-center py-24 border-2 border-dashed border-slate-200 rounded-3xl bg-white shadow-sm">
+                <div class="text-6xl mb-4 opacity-50">🏆</div>
+                <h3 class="text-xl font-black text-slate-800 uppercase italic">Belum Ada Hasil</h3>
+                <p class="text-slate-400 text-sm font-bold uppercase mt-2 tracking-widest">Saat ini belum ada hasil perlombaan yang dipublikasikan.</p>
+            </div>
+        <?php else: ?>
+            <div class="grid grid-cols-1 gap-8">
                 <?php foreach ($completed_events as $ev): ?>
-                    <div class="bg-white rounded-3xl border border-slate-200 overflow-hidden hover:shadow-2xl transition-all duration-300 group flex flex-col sm:flex-row relative h-full">
+                    <div class="group bg-white rounded-3xl p-8 border border-slate-200 hover:shadow-2xl hover:border-orange-200 transition-all duration-300 flex flex-col md:flex-row md:items-center justify-between gap-8 relative overflow-hidden">
                         
-                        <!-- Badges (Absolute to card) -->
-                        <div class="absolute top-4 left-4 z-20 flex flex-col gap-2">
-                            <span class="bg-green-500 text-white text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow-lg">Completed</span>
-                        </div>
-                        
-                        <!-- Poster Image (Left side) -->
-                        <div class="w-full sm:w-2/5 aspect-[1/1.4] sm:aspect-auto sm:min-h-[350px] bg-slate-900 relative overflow-hidden shrink-0">
-                            <?php if (!empty($ev['poster_image'])): ?>
-                                <img src="<?= getenv('APP_URL') ?>/<?= ltrim($ev['poster_image'], '/') ?>" class="w-full h-full object-cover opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-700" alt="Poster">
-                            <?php else: ?>
-                                <img src="https://images.unsplash.com/photo-1520045892732-304bc3ac5d8e?q=80&w=800&auto=format&fit=crop" class="w-full h-full object-cover opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-700" alt="Fallback Poster">
-                            <?php endif; ?>
-                            <div class="absolute inset-0 bg-gradient-to-t from-slate-900/80 sm:bg-gradient-to-r sm:from-transparent sm:to-slate-900/10 to-transparent"></div>
-                            
-                            <!-- Logos -->
-                            <div class="absolute bottom-4 left-4 z-20 flex gap-2">
-                                <?php if (!empty($ev['logo_left'])): ?>
-                                    <div class="bg-white p-1 rounded-lg shadow"><img src="<?= getenv('APP_URL') ?>/<?= ltrim($ev['logo_left'], '/') ?>" class="h-8 object-contain"></div>
-                                <?php endif; ?>
+                        <span class="absolute -right-6 -bottom-10 text-[10rem] font-black text-slate-50 italic select-none pointer-events-none group-hover:text-orange-50 transition">
+                            <?= !empty($ev['event_date_start']) ? date('d', strtotime($ev['event_date_start'])) : '' ?>
+                        </span>
+
+                        <div class="flex-1 relative z-10">
+                            <div class="flex items-center gap-3 mb-3">
+                                <span class="bg-green-500 text-white text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-widest shadow-md">
+                                    COMPLETED
+                                </span>
+                                <span class="text-slate-400 text-[10px] font-bold uppercase tracking-wider">
+                                    <?= !empty($ev['event_date_start']) ? date('d F Y', strtotime($ev['event_date_start'])) : 'TBA' ?>
+                                </span>
                             </div>
+                            
+                            <h3 class="text-2xl md:text-3xl font-black uppercase italic text-slate-800 leading-none mb-3 group-hover:text-orange-600 transition">
+                                <?= htmlspecialchars($ev['event_name']) ?>
+                            </h3>
+                            
+                            <p class="text-slate-500 font-bold text-xs uppercase flex items-center gap-2">
+                                <span>📍</span> <?= htmlspecialchars($ev['event_location'] ?? '') ?><?= !empty($ev['event_city']) ? ' - ' . htmlspecialchars($ev['event_city']) : '' ?>
+                            </p>
                         </div>
 
-                        <!-- Content (Right side) -->
-                        <div class="w-full sm:w-3/5 p-6 md:p-8 flex flex-col justify-between relative z-10">
-                            <div>
-                                <h3 class="text-2xl md:text-3xl font-black uppercase text-slate-800 mb-4 italic leading-tight line-clamp-2 group-hover:text-green-600 transition">
-                                    <?= htmlspecialchars($ev['event_name']) ?>
-                                </h3>
-                                
-                                <div class="space-y-3 text-slate-500 text-xs font-bold uppercase tracking-wide">
-                                    <div class="flex items-start gap-3">
-                                        <span class="bg-slate-50 border border-slate-100 p-2 rounded-xl text-sm shadow-sm">📅</span> 
-                                        <div class="mt-0.5">
-                                            <span class="text-slate-700"><?= date('d F Y', strtotime($ev['event_date_start'])) ?></span>
-                                        </div>
-                                    </div>
-                                    <div class="flex items-start gap-3">
-                                        <span class="bg-slate-50 border border-slate-100 p-2 rounded-xl text-sm shadow-sm">📍</span> 
-                                        <div class="mt-0.5">
-                                            <span class="text-slate-700 line-clamp-2"><?= htmlspecialchars($ev['event_city']) ?></span>
-                                        </div>
-                                    </div>
+                        <div class="flex flex-wrap md:flex-nowrap gap-3 relative z-10">
+                            <a href="<?= getenv('APP_URL') ?>/roll/liveresult/<?= $ev['id'] ?>" class="flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-slate-900 text-white hover:bg-orange-600 transition shadow-lg min-w-[160px] md:min-w-[200px]">
+                                <span class="animate-bounce text-xl">🏆</span>
+                                <div class="text-left">
+                                    <div class="text-[9px] text-orange-300 font-black uppercase tracking-widest">Real-Time</div>
+                                    <div class="text-sm font-bold uppercase">Lihat Hasil Live</div>
                                 </div>
-                            </div>
-                            
-                            <div class="grid grid-cols-1 mt-6">
-                                <a href="<?= getenv('APP_URL') ?>/roll/liveresult/<?= $ev['id'] ?>" class="py-4 px-4 rounded-xl flex items-center justify-center gap-2 bg-orange-50 border-2 border-orange-100 text-orange-600 hover:bg-orange-600 hover:text-white transition-all uppercase text-[10px] font-black tracking-widest shadow-sm">
-                                    <span class="animate-bounce">🏆</span> Lihat Hasil Live
-                                </a>
-                            </div>
+                            </a>
                         </div>
                     </div>
                 <?php endforeach; ?>
-            <?php endif; ?>
-        </div>
+            </div>
+        <?php endif; ?>
     </main>
 
     <footer class="bg-[#0F172A] text-white pt-32 pb-16 border-t-4 border-orange-600 text-center mt-auto">

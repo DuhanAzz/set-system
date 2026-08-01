@@ -268,6 +268,43 @@ class RollRegistrationController extends Controller {
             $currIndv = (int)$counts['indv_count'];
             $currTeam = (int)$counts['team_count'];
 
+            // AUTO INJECT MANDATORY CLASSES
+            if (!$is_team_reg && !empty($race_class_ids)) {
+                $stmtC = $db->prepare("SELECT skate_class_id FROM roll_event_details WHERE id = ?");
+                $stmtC->execute([$race_class_ids[0]]);
+                $firstClass = $stmtC->fetch(PDO::FETCH_ASSOC);
+                
+                if ($firstClass) {
+                    $skate_class_id = $firstClass['skate_class_id'];
+                    $stmtEvDate = $db->prepare("SELECT event_date_start FROM roll_events WHERE id = ?");
+                    $stmtEvDate->execute([$event_id]);
+                    $evDate = $stmtEvDate->fetchColumn();
+                    
+                    $skaterAge = \App\Helpers\DateHelper::calculateAge($skater['birth_date'], $evDate);
+                    
+                    $stmtMandatory = $db->prepare("
+                        SELECT c.id 
+                        FROM roll_event_details c
+                        JOIN roll_ref_age_groups a ON c.age_group_id = a.id
+                        WHERE c.event_id = ? 
+                          AND c.skate_class_id = ? 
+                          AND c.race_number LIKE '%*%'
+                          AND ? >= a.min_year AND ? <= a.max_year
+                          AND (LOWER(c.gender) = 'campuran' 
+                               OR (LOWER(c.gender) = 'putra' AND ? = 'M') 
+                               OR (LOWER(c.gender) = 'putri' AND ? = 'F'))
+                    ");
+                    $stmtMandatory->execute([$event_id, $skate_class_id, $skaterAge, $skaterAge, $skater['gender'], $skater['gender']]);
+                    $mandatoryIds = $stmtMandatory->fetchAll(PDO::FETCH_COLUMN);
+                    
+                    foreach ($mandatoryIds as $mid) {
+                        if (!in_array($mid, $race_class_ids)) {
+                            array_unshift($race_class_ids, $mid);
+                        }
+                    }
+                }
+            }
+
             foreach ($race_class_ids as $race_class_id) {
                 $race_class_id = (int)$race_class_id;
 

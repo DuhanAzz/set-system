@@ -70,9 +70,10 @@
                 $pemulaKuNames = ['Ku I (< 7 Thn)', 'Ku II (7-9 Thn)', 'Ku III (> 9 Thn)'];
                 $pemulaDistNames = ['100m', '200m'];
 
-                $speedKUs = array_filter($ageGroups, fn($a) => in_array($a['group_name'], $speedKuNames));
-                $stdKUs = array_filter($ageGroups, fn($a) => in_array($a['group_name'], $stdKuNames));
-                $pemulaKUs = array_filter($ageGroups, fn($a) => in_array($a['group_name'], $pemulaKuNames));
+                // Tampilkan semua KU dari master referensi agar dinamis jika ada perubahan/penambahan
+                $speedKUs = $ageGroups;
+                $stdKUs = $ageGroups;
+                $pemulaKUs = $ageGroups;
 
                 $speedDists = array_filter($distances, fn($d) => in_array($d['distance_name'], $speedDistNames));
                 usort($speedDists, fn($a, $b) => array_search($a['distance_name'], $speedDistNames) - array_search($b['distance_name'], $speedDistNames));
@@ -126,7 +127,7 @@
                                     <?php foreach($speedKUs as $ku): ?>
                                     <tr class="hover:bg-slate-50 transition-colors">
                                         <td class="p-4 text-slate-800 font-bold sticky left-0 bg-white z-10 border-r border-slate-200 text-xs shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-                                            <?= str_replace([' (< 7 Thn)', ' (8-9 Thn)', ' (10-11 Thn)', ' (12-14 Thn)', ' (15-18 Thn)', ' (>= 19 Thn)'], '', $ku['group_name']) ?>
+                                            <?= htmlspecialchars($ku['group_name']) ?>
                                         </td>
                                         <?php foreach($speedDists as $d): 
                                             $val = $matrixData[$scSpeed][$ku['id']][$d['id']] ?? '';
@@ -156,7 +157,7 @@
                                     <?php foreach($stdKUs as $ku): ?>
                                     <tr class="hover:bg-slate-50 transition-colors">
                                         <td class="p-4 text-slate-800 font-bold sticky left-0 bg-white z-10 border-r border-slate-200 text-xs shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-                                            <?= str_replace([' (< 7 Thn)', ' (7-9 Thn)', ' (> 9 Thn)'], '', $ku['group_name']) ?>
+                                            <?= htmlspecialchars($ku['group_name']) ?>
                                         </td>
                                         <?php foreach($stdDists as $d): 
                                             $val = $matrixData[$scStd][$ku['id']][$d['id']] ?? '';
@@ -186,7 +187,7 @@
                                     <?php foreach($pemulaKUs as $ku): ?>
                                     <tr class="hover:bg-slate-50 transition-colors">
                                         <td class="p-4 text-slate-800 font-bold sticky left-0 bg-white z-10 border-r border-slate-200 text-xs shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-                                            <?= str_replace([' (< 7 Thn)', ' (7-9 Thn)', ' (> 9 Thn)'], '', $ku['group_name']) ?>
+                                            <?= htmlspecialchars($ku['group_name']) ?>
                                         </td>
                                         <?php foreach($pemulaDists as $d): 
                                             $val = $matrixData[$scPemula][$ku['id']][$d['id']] ?? '';
@@ -248,15 +249,6 @@ foreach ($classes as $c) {
 }
 ksort($scheduleByDay);
 
-$stdKuNames = ['Ku A (< 7 Thn)', 'Ku B (8-9 Thn)', 'Ku C (10-11 Thn)', 'Ku D (12-14 Thn)'];
-$stdDistNames = ['300m', '500m', '1000m', 'Relay 1000m', 'Relay 3000m'];
-
-$pemulaKuNames = ['Ku I (< 7 Thn)', 'Ku II (7-9 Thn)', 'Ku III (> 9 Thn)'];
-$pemulaDistNames = ['100m', '200m'];
-
-$speedKUs = array_filter($ageGroups, fn($a) => in_array($a['group_name'], $speedKuNames));
-$stdKUs = array_filter($ageGroups, fn($a) => in_array($a['group_name'], $stdKuNames));
-$pemulaKUs = array_filter($ageGroups, fn($a) => in_array($a['group_name'], $pemulaKuNames));
 ?>
 
 <?php if (!empty($scheduleByDay)): ?>
