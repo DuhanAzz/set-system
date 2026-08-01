@@ -229,16 +229,15 @@
 
     <!-- PROMO MERCH SECTION -->
     <?php if (!empty($landing['promo_image'])): ?>
-    <section id="promo" class="w-full relative">
-        <div class="w-full mx-auto relative min-h-[400px] md:min-h-[500px] bg-fixed bg-center bg-cover bg-no-repeat" style="background-image: url('<?= getenv('APP_URL') ?>/uploads/landing/<?= $landing['promo_image'] ?>');">
-            
-            <div class="absolute bottom-0 left-0 right-0 flex flex-col items-center justify-end text-center px-6 pb-12 md:pb-16 pointer-events-none">
-                <h3 class="text-white text-4xl md:text-6xl font-display font-bold uppercase tracking-tighter mb-6 drop-shadow-2xl" style="text-shadow: 0 4px 10px rgba(0,0,0,0.9);">Official Merchandise</h3>
-                <a href="https://wa.me/<?= preg_replace('/[^0-9]/', '', $landing['contact_whatsapp']) ?>" target="_blank" class="btn-primary px-10 py-4 md:py-5 rounded-full text-white font-bold uppercase tracking-widest shadow-neon text-sm md:text-base hover:scale-105 transition-transform pointer-events-auto">
-                    Pesan Sekarang
-                </a>
-            </div>
+    <section id="promo" class="w-full relative bg-[#09090b] pt-24">
+        <div class="max-w-4xl mx-auto px-6 text-center mb-12 md:mb-16">
+            <h3 class="text-white text-4xl md:text-6xl font-display font-bold uppercase tracking-tighter mb-8">Official Merchandise</h3>
+            <a href="https://wa.me/<?= preg_replace('/[^0-9]/', '', $landing['contact_whatsapp']) ?>" target="_blank" class="btn-primary inline-block px-10 py-4 md:py-5 rounded-full text-white font-bold uppercase tracking-widest shadow-neon text-sm md:text-base hover:scale-105 transition-transform">
+                Pesan Sekarang
+            </a>
         </div>
+        
+        <div class="w-full mx-auto relative min-h-[300px] md:min-h-[500px] bg-fixed bg-center bg-cover bg-no-repeat" style="background-image: url('<?= getenv('APP_URL') ?>/uploads/landing/<?= $landing['promo_image'] ?>');"></div>
     </section>
     <?php endif; ?>
 
