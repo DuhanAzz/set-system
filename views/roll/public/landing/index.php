@@ -106,33 +106,33 @@
         <div class="absolute inset-0 hero-pattern opacity-20 z-0"></div>
         <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-theme rounded-full blur-[150px] opacity-20 z-0 pointer-events-none"></div>
 
-        <div class="max-w-7xl mx-auto px-6 relative z-10 w-full grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div class="space-y-8">
-                <div class="inline-block px-4 py-1.5 rounded-full glass border border-white/20 text-theme text-xs font-bold uppercase tracking-[0.2em]">
+        <div class="max-w-7xl mx-auto px-6 relative z-10 w-full grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+            <div class="space-y-6 lg:space-y-8 mt-12 lg:mt-0 text-center lg:text-left">
+                <div class="inline-block px-3 py-1 lg:px-4 lg:py-1.5 rounded-full glass border border-white/20 text-theme text-[10px] lg:text-xs font-bold uppercase tracking-[0.2em]">
                     <?= !empty($landing['event_date_start']) ? date('d M Y', strtotime($landing['event_date_start'])) : 'Coming Soon' ?>
                 </div>
                 
-                <h1 class="text-6xl md:text-8xl font-display font-bold leading-[0.9] tracking-tighter uppercase text-white drop-shadow-2xl">
+                <h1 class="text-5xl md:text-6xl lg:text-8xl font-display font-bold leading-[0.9] tracking-tighter uppercase text-white drop-shadow-2xl break-words">
                     <?= nl2br(htmlspecialchars($landing['hero_title'] ?: $landing['event_name'])) ?>
                 </h1>
                 
                 <?php if (!empty($landing['hero_subtitle'])): ?>
-                    <p class="text-lg md:text-xl text-slate-400 font-medium max-w-xl leading-relaxed">
+                    <p class="text-base md:text-lg lg:text-xl text-slate-400 font-medium max-w-xl mx-auto lg:mx-0 leading-relaxed">
                         <?= htmlspecialchars($landing['hero_subtitle']) ?>
                     </p>
                 <?php endif; ?>
                 
-                <div class="flex flex-wrap gap-4 pt-4">
-                    <a href="<?= getenv('APP_URL') ?>/roll" class="btn-primary px-8 py-4 rounded-full text-white font-bold uppercase tracking-widest flex items-center gap-3">
+                <div class="flex flex-col sm:flex-row justify-center lg:justify-start gap-3 lg:gap-4 pt-4">
+                    <a href="<?= getenv('APP_URL') ?>/roll" class="btn-primary w-full sm:w-auto justify-center px-6 py-3 lg:px-8 lg:py-4 rounded-full text-white font-bold uppercase tracking-widest text-sm flex items-center gap-2 lg:gap-3">
                         Register Now
                     </a>
-                    <a href="#about" class="px-8 py-4 rounded-full glass border border-white/20 text-white font-bold uppercase tracking-widest hover:bg-white/10 transition">
+                    <a href="#about" class="w-full sm:w-auto text-center px-6 py-3 lg:px-8 lg:py-4 rounded-full glass border border-white/20 text-white font-bold uppercase tracking-widest text-sm hover:bg-white/10 transition">
                         Explore Event
                     </a>
                 </div>
             </div>
             
-            <div class="hidden lg:block relative h-[600px] rounded-2xl overflow-hidden shadow-neon transform rotate-3 hover:rotate-0 transition duration-500">
+            <div class="relative h-[250px] sm:h-[400px] lg:h-[600px] rounded-2xl overflow-hidden shadow-neon lg:transform lg:rotate-3 lg:hover:rotate-0 transition duration-500 mt-8 lg:mt-0">
                 <?php 
                 $sliderImages = !empty($landing['hero_slider_images']) ? json_decode($landing['hero_slider_images'], true) : [];
                 if (empty($sliderImages) && !empty($landing['poster_image'])) {
