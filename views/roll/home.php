@@ -220,7 +220,7 @@ $eventFallbackImg = !empty($s['event_fallback_image']) ? rtrim(getenv('APP_URL')
                                 <span class="bg-slate-50 border border-slate-100 p-2.5 rounded-xl text-lg shadow-sm">📍</span> 
                                 <div class="mt-1">
                                     <span class="block text-[9px] text-slate-400 mb-0.5">Lokasi / Sirkuit</span>
-                                    <span class="text-slate-700 text-sm line-clamp-2"><?= htmlspecialchars($e['location']) ?><?= !empty($e['event_city']) ? ' - ' . htmlspecialchars($e['event_city']) : '' ?></span>
+                                    <span class="text-slate-700 text-sm line-clamp-2"><?= htmlspecialchars($e['event_location'] ?? '') ?><?= !empty($e['event_city']) ? ' - ' . htmlspecialchars($e['event_city']) : '' ?></span>
                                 </div>
                             </div>
                         </div>

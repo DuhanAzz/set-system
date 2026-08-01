@@ -39,7 +39,7 @@ class HomeController extends Controller {
             $sliders = $stmt_sliders->fetchAll(PDO::FETCH_ASSOC);
             
             // 3. Tarik data event terbaru (roll_events)
-            $sqlEvents = "SELECT id, event_name, location, event_city, event_date_start, status, poster_image, logo_left, is_result_published 
+            $sqlEvents = "SELECT id, event_name, event_location, event_city, event_date_start, status, poster_image, logo_left, is_result_published 
                           FROM roll_events 
                           WHERE status != 'Draft' 
                           ORDER BY id DESC LIMIT 4";

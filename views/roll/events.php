@@ -195,7 +195,7 @@ $siteDesc     = $s['site_description'] ?? 'Platform manajemen lomba sepatu roda 
                                     <div class="flex items-start gap-3">
                                         <span class="bg-slate-50 border border-slate-100 p-2 rounded-xl text-sm shadow-sm">📍</span> 
                                         <div class="mt-0.5">
-                                            <span class="text-slate-700 line-clamp-2"><?= htmlspecialchars($ev['event_city']) ?></span>
+                                            <span class="text-slate-700 line-clamp-2"><?= htmlspecialchars($ev['event_location'] ?? '') ?><?= !empty($ev['event_city']) ? ' - ' . htmlspecialchars($ev['event_city']) : '' ?></span>
                                         </div>
                                     </div>
                                 </div>

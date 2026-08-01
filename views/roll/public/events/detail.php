@@ -51,7 +51,7 @@ $appName      = $s['app_name'] ?? 'SET Roll System';
                 <img src="<?= rtrim(getenv('APP_URL'), '/') ?>/uploads/<?= ltrim(str_replace(['public/uploads/', 'uploads/'], '', $event['logo_left']), '/') ?>" class="h-24 md:h-32 object-contain mb-8 p-2 bg-white rounded-xl shadow-lg">
             <?php endif; ?>
             <h1 class="text-4xl md:text-6xl font-black text-white uppercase italic tracking-tighter drop-shadow-lg mb-4"><?= htmlspecialchars($event['event_name']) ?></h1>
-            <p class="text-orange-400 font-bold tracking-[0.2em] uppercase text-sm md:text-base mb-2">📍 <?= htmlspecialchars($event['location'] ?? $event['event_city']) ?></p>
+            <p class="text-orange-400 font-bold tracking-[0.2em] uppercase text-sm md:text-base mb-2">📍 <?= htmlspecialchars($event['event_location'] ?? $event['event_city']) ?></p>
             <p class="text-slate-300 font-bold tracking-[0.1em] uppercase text-xs md:text-sm">📅 <?= date('d F Y', strtotime($event['event_date_start'])) ?></p>
         </div>
     </div>

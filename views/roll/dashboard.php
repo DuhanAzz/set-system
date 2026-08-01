@@ -82,7 +82,7 @@
                     <?php foreach($latestEvents as $e): ?>
                     <tr class="hover:bg-slate-50 transition-colors">
                         <td class="px-6 py-4 font-bold text-slate-800"><?= htmlspecialchars($e['event_name']) ?></td>
-                        <td class="px-6 py-4 text-slate-500 text-sm"><?= htmlspecialchars($e['location'] ?? '-') ?></td>
+                        <td class="px-6 py-4 text-slate-500 text-sm"><?= htmlspecialchars($e['event_location'] ?? '-') ?></td>
                         <td class="px-6 py-4 text-center">
                             <span class="bg-slate-100 text-slate-600 px-3 py-1 rounded-lg text-xs font-bold tracking-wider">
                                 <?= htmlspecialchars($e['race_format']) ?>
