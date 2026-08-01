@@ -369,18 +369,23 @@ switch ($module) {
 
     default:
         // Cek apakah modul ini adalah custom slug untuk landing page Roll
-        $db = \App\Core\Database::getInstance()->getConnection();
-        $stmtSlug = $db->prepare("SELECT id FROM roll_event_landing_pages WHERE slug = ? AND status = 'Published'");
-        $stmtSlug->execute([$module]);
-        $landingPage = $stmtSlug->fetch();
-        
-        if ($landingPage) {
-            $controllerClass = "\\App\\Roll\\Controllers\\PublicLandingController";
-            if (class_exists($controllerClass)) {
-                $controller = new $controllerClass();
-                $controller->index($module);
-                break;
+        // Dibungkus try-catch agar tidak Error 500 jika tabel belum dibuat di hosting
+        try {
+            $db = \App\Core\Database::getInstance()->getConnection();
+            $stmtSlug = $db->prepare("SELECT id FROM roll_event_landing_pages WHERE slug = ? AND status = 'Published'");
+            $stmtSlug->execute([$module]);
+            $landingPage = $stmtSlug->fetch();
+            
+            if ($landingPage) {
+                $controllerClass = "\\App\\Roll\\Controllers\\PublicLandingController";
+                if (class_exists($controllerClass)) {
+                    $controller = new $controllerClass();
+                    $controller->index($module);
+                    break;
+                }
             }
+        } catch (\PDOException $e) {
+            // Tabel belum ada, biarkan lanjut ke 404 Not Found
         }
 
         // Penanganan 404 jika modul tidak dikenali
