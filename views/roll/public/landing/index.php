@@ -230,13 +230,11 @@
     <!-- PROMO MERCH SECTION -->
     <?php if (!empty($landing['promo_image'])): ?>
     <section id="promo" class="w-full relative">
-        <div class="w-full mx-auto relative min-h-[400px] md:min-h-[500px] flex items-center justify-center bg-fixed bg-center bg-cover bg-no-repeat" style="background-image: url('<?= getenv('APP_URL') ?>/uploads/landing/<?= $landing['promo_image'] ?>');">
-            <!-- Overlay Gelap -->
-            <div class="absolute inset-0 bg-black/60 hover:bg-black/40 transition duration-700"></div>
+        <div class="w-full mx-auto relative min-h-[400px] md:min-h-[500px] flex items-end justify-center pb-12 md:pb-16 bg-fixed bg-center bg-cover bg-no-repeat" style="background-image: url('<?= getenv('APP_URL') ?>/uploads/landing/<?= $landing['promo_image'] ?>');">
             
-            <div class="relative z-10 flex flex-col items-center justify-center text-center px-6">
-                <h3 class="text-white text-4xl md:text-6xl font-display font-bold uppercase tracking-tighter mb-8 drop-shadow-2xl">Official Merchandise</h3>
-                <a href="https://wa.me/<?= preg_replace('/[^0-9]/', '', $landing['contact_whatsapp']) ?>" target="_blank" class="btn-primary px-10 py-4 md:py-5 rounded-full text-white font-bold uppercase tracking-widest shadow-neon text-sm md:text-base">
+            <div class="relative z-10 flex flex-col items-center justify-center text-center px-6 w-full bg-gradient-to-t from-black/80 via-black/40 to-transparent pt-32 pb-8 mt-auto rounded-t-3xl md:w-auto md:px-24">
+                <h3 class="text-white text-4xl md:text-6xl font-display font-bold uppercase tracking-tighter mb-6 drop-shadow-2xl">Official Merchandise</h3>
+                <a href="https://wa.me/<?= preg_replace('/[^0-9]/', '', $landing['contact_whatsapp']) ?>" target="_blank" class="btn-primary px-10 py-4 md:py-5 rounded-full text-white font-bold uppercase tracking-widest shadow-neon text-sm md:text-base hover:scale-105 transition-transform">
                     Pesan Sekarang
                 </a>
             </div>
