@@ -73,7 +73,9 @@
     <nav class="fixed top-0 w-full z-50 glass border-b-0 border-white/10 transition-all duration-300" id="navbar">
         <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
             <div class="flex items-center gap-4">
-                <?php if (!empty($landing['logo_left'])): ?>
+                <?php if (!empty($landing['logo_image'])): ?>
+                    <img src="<?= getenv('APP_URL') ?>/uploads/landing/<?= $landing['logo_image'] ?>" class="h-10">
+                <?php elseif (!empty($landing['logo_left'])): ?>
                     <img src="<?= getenv('APP_URL') ?>/uploads/logos/<?= $landing['logo_left'] ?>" class="h-10">
                 <?php else: ?>
                     <div class="text-2xl font-display font-bold tracking-wider text-theme">SET<span class="text-white">SYSTEM</span></div>
@@ -97,7 +99,13 @@
     <!-- HERO SECTION -->
     <section class="relative min-h-screen flex items-center pt-20 overflow-hidden">
         <!-- Background Image / Poster -->
-        <?php if (!empty($landing['poster_image'])): ?>
+        <?php if (!empty($landing['hero_image'])): ?>
+            <div class="absolute inset-0 z-0">
+                <img src="<?= getenv('APP_URL') ?>/uploads/landing/<?= $landing['hero_image'] ?>" alt="Hero Background" class="w-full h-full object-cover opacity-30 mix-blend-luminosity">
+                <div class="absolute inset-0 bg-gradient-to-t from-[#09090b] via-[#09090b]/80 to-transparent"></div>
+                <div class="absolute inset-0 bg-gradient-to-r from-[#09090b] via-transparent to-transparent"></div>
+            </div>
+        <?php elseif (!empty($landing['poster_image'])): ?>
             <div class="absolute inset-0 z-0">
                 <img src="<?= getenv('APP_URL') ?>/uploads/events/<?= $landing['poster_image'] ?>" alt="Event Poster" class="w-full h-full object-cover opacity-30 mix-blend-luminosity">
                 <div class="absolute inset-0 bg-gradient-to-t from-[#09090b] via-[#09090b]/80 to-transparent"></div>
@@ -219,15 +227,36 @@
         </div>
     </section>
 
-    <!-- SCHEDULE SECTION -->
-    <?php if (!empty($landing['schedule_text'])): ?>
-    <section id="schedule" class="py-24 bg-white text-slate-900">
-        <div class="max-w-3xl mx-auto px-6 text-center space-y-8">
+    <!-- JUKNIS SECTION -->
+    <?php if (!empty($landing['juknis_pdf'])): ?>
+    <section id="juknis" class="py-24 bg-white text-slate-900 relative">
+        <div class="max-w-4xl mx-auto px-6 text-center space-y-8">
             <h2 class="text-5xl font-display font-bold uppercase tracking-tight">
-                Event <span class="text-theme">Schedule</span>
+                Petunjuk Teknis <span class="text-theme">(JUKNIS)</span>
             </h2>
-            <div class="prose prose-lg mx-auto text-left text-slate-600 border-l-4 border-theme pl-6">
-                <?= nl2br(htmlspecialchars($landing['schedule_text'])) ?>
+            <p class="text-slate-500 text-lg max-w-2xl mx-auto">
+                Silakan unduh atau baca dokumen Petunjuk Teknis secara detail sebelum melakukan pendaftaran event.
+            </p>
+            <div class="pt-6">
+                <a href="<?= getenv('APP_URL') ?>/uploads/landing/<?= $landing['juknis_pdf'] ?>" target="_blank" class="inline-flex items-center gap-3 bg-theme hover:bg-theme/90 text-white font-bold py-4 px-10 rounded-full shadow-2xl hover:-translate-y-1 transition duration-300 uppercase tracking-widest text-sm">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    Lihat & Unduh PDF Juknis
+                </a>
+            </div>
+        </div>
+    </section>
+    <?php endif; ?>
+
+    <!-- PROMO MERCH SECTION -->
+    <?php if (!empty($landing['promo_image'])): ?>
+    <section id="promo" class="w-full bg-[#09090b] relative">
+        <div class="w-full max-w-[2000px] mx-auto relative group">
+            <img src="<?= getenv('APP_URL') ?>/uploads/landing/<?= $landing['promo_image'] ?>" class="w-full object-cover aspect-[21/9] md:aspect-[16/5] brightness-75 group-hover:brightness-100 transition duration-700">
+            <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30 flex flex-col items-center justify-end pb-12 md:pb-24">
+                <h3 class="text-white text-3xl md:text-5xl font-display font-bold uppercase tracking-tighter mb-6 drop-shadow-lg">Official Merchandise</h3>
+                <a href="https://wa.me/<?= preg_replace('/[^0-9]/', '', $landing['contact_whatsapp']) ?>" target="_blank" class="btn-primary px-8 py-3 md:py-4 rounded-full text-white font-bold uppercase tracking-widest shadow-neon">
+                    Pesan Sekarang
+                </a>
             </div>
         </div>
     </section>
@@ -237,7 +266,9 @@
     <footer class="bg-black py-12 border-t border-white/10">
         <div class="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6">
             <div class="flex items-center gap-4">
-                <?php if (!empty($landing['logo_left'])): ?>
+                <?php if (!empty($landing['logo_image'])): ?>
+                    <img src="<?= getenv('APP_URL') ?>/uploads/landing/<?= $landing['logo_image'] ?>" class="h-8 grayscale opacity-50 hover:grayscale-0 hover:opacity-100 transition">
+                <?php elseif (!empty($landing['logo_left'])): ?>
                     <img src="<?= getenv('APP_URL') ?>/uploads/logos/<?= $landing['logo_left'] ?>" class="h-8 grayscale opacity-50 hover:grayscale-0 hover:opacity-100 transition">
                 <?php endif; ?>
                 <div class="text-xl font-display font-bold tracking-wider text-slate-600">SET<span class="text-slate-700">SYSTEM</span></div>

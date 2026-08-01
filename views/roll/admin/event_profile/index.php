@@ -237,7 +237,7 @@
             <h3 class="text-xl font-black text-slate-800 uppercase tracking-widest">Pengaturan Landing Page</h3>
             <button type="button" onclick="closeLandingModal()" class="text-slate-400 hover:text-red-500 text-2xl transition">&times;</button>
         </div>
-        <form action="<?= getenv('APP_URL') ?>/roll/admin/events/saveLandingPage" method="POST" class="p-8 space-y-6">
+        <form action="<?= getenv('APP_URL') ?>/roll/admin/events/saveLandingPage" method="POST" enctype="multipart/form-data" class="p-8 space-y-6">
             <input type="hidden" name="event_id" value="<?= $row['id'] ?? 0 ?>">
             
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -271,9 +271,35 @@
                     <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Deskripsi Event (About)</label>
                     <textarea name="about_text" rows="4" class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-800 focus:ring-2 focus:ring-purple-500"><?= htmlspecialchars($landing['about_text'] ?? '') ?></textarea>
                 </div>
-                <div class="md:col-span-2">
-                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Jadwal & Agenda Lomba</label>
-                    <textarea name="schedule_text" rows="4" class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-800 focus:ring-2 focus:ring-purple-500"><?= htmlspecialchars($landing['schedule_text'] ?? '') ?></textarea>
+                <div class="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6 p-4 border border-slate-200 rounded-xl bg-slate-50">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Logo Header & Footer (Opsional)</label>
+                        <input type="file" name="logo_image" accept="image/png, image/jpeg, image/webp" class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-800 text-sm">
+                        <?php if(!empty($landing['logo_image'])): ?>
+                            <div class="text-xs text-green-600 mt-1 font-bold">Terupload: <?= $landing['logo_image'] ?></div>
+                        <?php endif; ?>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Hero Image Background</label>
+                        <input type="file" name="hero_image" accept="image/png, image/jpeg, image/webp" class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-800 text-sm">
+                        <?php if(!empty($landing['hero_image'])): ?>
+                            <div class="text-xs text-green-600 mt-1 font-bold">Terupload: <?= $landing['hero_image'] ?></div>
+                        <?php endif; ?>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Petunjuk Teknis (Juknis) PDF</label>
+                        <input type="file" name="juknis_pdf" accept="application/pdf" class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-800 text-sm">
+                        <?php if(!empty($landing['juknis_pdf'])): ?>
+                            <div class="text-xs text-green-600 mt-1 font-bold">Terupload: <?= $landing['juknis_pdf'] ?></div>
+                        <?php endif; ?>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Banner Promo Merch (16:9)</label>
+                        <input type="file" name="promo_image" accept="image/png, image/jpeg, image/webp" class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-800 text-sm">
+                        <?php if(!empty($landing['promo_image'])): ?>
+                            <div class="text-xs text-green-600 mt-1 font-bold">Terupload: <?= $landing['promo_image'] ?></div>
+                        <?php endif; ?>
+                    </div>
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Kontak WhatsApp</label>

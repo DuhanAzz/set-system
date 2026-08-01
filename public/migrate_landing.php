@@ -29,6 +29,10 @@ try {
         id INT(11) AUTO_INCREMENT PRIMARY KEY,
         event_id INT(11) NOT NULL,
         slug VARCHAR(255) NOT NULL UNIQUE,
+        logo_image VARCHAR(255) NULL,
+        hero_image VARCHAR(255) NULL,
+        juknis_pdf VARCHAR(255) NULL,
+        promo_image VARCHAR(255) NULL,
         hero_title VARCHAR(255),
         hero_subtitle TEXT,
         about_text TEXT,
@@ -43,6 +47,16 @@ try {
     )";
 
     $db->exec($sql);
+
+    // ALTER TABLE to add new columns if table already exists from previous migration
+    try {
+        $db->exec("ALTER TABLE roll_event_landing_pages ADD COLUMN logo_image VARCHAR(255) NULL AFTER slug");
+        $db->exec("ALTER TABLE roll_event_landing_pages ADD COLUMN hero_image VARCHAR(255) NULL AFTER logo_image");
+        $db->exec("ALTER TABLE roll_event_landing_pages ADD COLUMN juknis_pdf VARCHAR(255) NULL AFTER hero_image");
+        $db->exec("ALTER TABLE roll_event_landing_pages ADD COLUMN promo_image VARCHAR(255) NULL AFTER juknis_pdf");
+    } catch (\PDOException $e) {
+        // Abaikan error jika kolom sudah ada (Duplicate column name)
+    }
 
     echo "<h2 style='color:green'>BERHASIL!</h2>";
     echo "<p>Tabel <b>roll_event_landing_pages</b> berhasil dibuat di database.</p>";
