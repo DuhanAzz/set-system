@@ -121,7 +121,7 @@ class RollRegistrationController extends Controller {
 
         // Ambil Data Kelas Lomba
         $stmtC = $db->prepare("
-            SELECT c.category_name, a.min_year, a.max_year 
+            SELECT c.gender as category_name, a.min_year, a.max_year 
             FROM roll_event_details c
             JOIN roll_ref_age_groups a ON c.age_group_id = a.id
             WHERE c.id = ?
@@ -234,6 +234,17 @@ class RollRegistrationController extends Controller {
 
         $db = Database::getInstance()->getConnection();
         
+        // Cek status pembayaran, jika Pending/Paid, kunci (lock)
+        $stmtPayment = $db->prepare("SELECT status FROM roll_payments WHERE club_id = ? AND event_id = ?");
+        $stmtPayment->execute([$club_id, $event_id]);
+        $paymentStatus = $stmtPayment->fetchColumn();
+        if ($paymentStatus && in_array($paymentStatus, ['Pending', 'Paid'])) {
+            $_SESSION['flash_message'] = "Pendaftaran terkunci karena status pembayaran ($paymentStatus).";
+            $_SESSION['flash_type'] = "error";
+            header("Location: " . getenv('APP_URL') . "/roll/user/registration/index/" . $event_id);
+            exit;
+        }
+        
         // Fetch event limits
         $stmtLimit = $db->prepare("SELECT max_individual_races, max_team_races FROM roll_events WHERE id = ?");
         $stmtLimit->execute([$event_id]);
@@ -248,7 +259,7 @@ class RollRegistrationController extends Controller {
             $skater_id = (int)$skater_id;
             
             // Pastikan atlet milik klub ini
-            $stmtOwn = $db->prepare("SELECT skater_name FROM roll_skaters WHERE id = ? AND club_id = ?");
+            $stmtOwn = $db->prepare("SELECT skater_name, birth_date, gender FROM roll_skaters WHERE id = ? AND club_id = ?");
             $stmtOwn->execute([$skater_id, $club_id]);
             $skater = $stmtOwn->fetch(PDO::FETCH_ASSOC);
             if (!$skater) continue;

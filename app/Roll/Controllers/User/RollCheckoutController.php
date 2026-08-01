@@ -457,13 +457,16 @@ class RollCheckoutController extends Controller {
                 }
                 
                 // Update atau Insert ke roll_payments
-                $stmtCheck = $db->prepare("SELECT id FROM roll_payments WHERE club_id = ? AND event_id = ?");
+                $stmtCheck = $db->prepare("SELECT id, status FROM roll_payments WHERE club_id = ? AND event_id = ?");
                 $stmtCheck->execute([$club_id, $event_id]);
-                $payId = $stmtCheck->fetchColumn();
+                $payRow = $stmtCheck->fetch(PDO::FETCH_ASSOC);
                 
-                if ($payId) {
+                if ($payRow) {
+                    if ($payRow['status'] === 'Paid') {
+                        throw new \Exception("Pembayaran Anda sudah Lunas (Paid) dan diverifikasi. Tidak bisa mengunggah ulang.");
+                    }
                     $stmtUpdate = $db->prepare("UPDATE roll_payments SET status = 'Pending', payment_proof = ?, total_amount = ? WHERE id = ?");
-                    $stmtUpdate->execute([$proof_file, $total_amount, $payId]);
+                    $stmtUpdate->execute([$proof_file, $total_amount, $payRow['id']]);
                 } else {
                     $stmtInsert = $db->prepare("INSERT INTO roll_payments (club_id, event_id, total_amount, payment_proof, status) VALUES (?, ?, ?, ?, 'Pending')");
                     $stmtInsert->execute([$club_id, $event_id, $total_amount, $proof_file]);
