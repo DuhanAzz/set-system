@@ -84,8 +84,12 @@
             
             <div class="hidden md:flex gap-8 text-sm font-bold tracking-widest uppercase text-slate-300">
                 <a href="#about" class="hover:text-white transition">About</a>
-                <a href="#schedule" class="hover:text-white transition">Schedule</a>
-                <a href="#classes" class="hover:text-white transition">Classes</a>
+                <?php if (!empty($landing['juknis_pdf'])): ?>
+                <a href="#juknis" class="hover:text-white transition">Juknis</a>
+                <?php endif; ?>
+                <?php if (!empty($landing['promo_image'])): ?>
+                <a href="#promo" class="hover:text-white transition">Merch</a>
+                <?php endif; ?>
             </div>
 
             <div>
@@ -98,23 +102,9 @@
 
     <!-- HERO SECTION -->
     <section class="relative min-h-screen flex items-center pt-20 overflow-hidden">
-        <!-- Background Image / Poster -->
-        <?php if (!empty($landing['hero_image'])): ?>
-            <div class="absolute inset-0 z-0">
-                <img src="<?= getenv('APP_URL') ?>/uploads/landing/<?= $landing['hero_image'] ?>" alt="Hero Background" class="w-full h-full object-cover opacity-30 mix-blend-luminosity">
-                <div class="absolute inset-0 bg-gradient-to-t from-[#09090b] via-[#09090b]/80 to-transparent"></div>
-                <div class="absolute inset-0 bg-gradient-to-r from-[#09090b] via-transparent to-transparent"></div>
-            </div>
-        <?php elseif (!empty($landing['poster_image'])): ?>
-            <div class="absolute inset-0 z-0">
-                <img src="<?= getenv('APP_URL') ?>/uploads/events/<?= $landing['poster_image'] ?>" alt="Event Poster" class="w-full h-full object-cover opacity-30 mix-blend-luminosity">
-                <div class="absolute inset-0 bg-gradient-to-t from-[#09090b] via-[#09090b]/80 to-transparent"></div>
-                <div class="absolute inset-0 bg-gradient-to-r from-[#09090b] via-transparent to-transparent"></div>
-            </div>
-        <?php else: ?>
-            <div class="absolute inset-0 hero-pattern opacity-20 z-0"></div>
-            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-theme rounded-full blur-[150px] opacity-20 z-0 pointer-events-none"></div>
-        <?php endif; ?>
+        <!-- Background Pattern -->
+        <div class="absolute inset-0 hero-pattern opacity-20 z-0"></div>
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-theme rounded-full blur-[150px] opacity-20 z-0 pointer-events-none"></div>
 
         <div class="max-w-7xl mx-auto px-6 relative z-10 w-full grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div class="space-y-8">
@@ -142,12 +132,37 @@
                 </div>
             </div>
             
-            <div class="hidden lg:block relative">
-                <?php if (!empty($landing['poster_image'])): ?>
-                    <div class="relative rounded-2xl overflow-hidden shadow-neon transform rotate-3 hover:rotate-0 transition duration-500">
-                        <img src="<?= getenv('APP_URL') ?>/uploads/events/<?= $landing['poster_image'] ?>" class="w-full object-cover">
-                        <div class="absolute inset-0 border-2 border-white/20 rounded-2xl"></div>
+            <div class="hidden lg:block relative h-[600px] rounded-2xl overflow-hidden shadow-neon transform rotate-3 hover:rotate-0 transition duration-500">
+                <?php 
+                $sliderImages = !empty($landing['hero_slider_images']) ? json_decode($landing['hero_slider_images'], true) : [];
+                if (empty($sliderImages) && !empty($landing['poster_image'])) {
+                    $sliderImages = ['/events/' . $landing['poster_image']]; // Fallback to poster_image
+                }
+                ?>
+                
+                <?php if (!empty($sliderImages)): ?>
+                    <div id="hero-slider" class="w-full h-full relative">
+                        <?php foreach ($sliderImages as $idx => $img): ?>
+                            <?php $src = (strpos($img, '/events/') === 0) ? getenv('APP_URL') . '/uploads' . $img : getenv('APP_URL') . '/uploads/landing/' . $img; ?>
+                            <img src="<?= $src ?>" class="absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out slider-img" style="opacity: <?= $idx === 0 ? '1' : '0' ?>;">
+                        <?php endforeach; ?>
+                        <div class="absolute inset-0 border-2 border-white/20 rounded-2xl z-10 pointer-events-none"></div>
                     </div>
+                    <?php if (count($sliderImages) > 1): ?>
+                    <script>
+                        document.addEventListener("DOMContentLoaded", function() {
+                            const slides = document.querySelectorAll('#hero-slider .slider-img');
+                            let currentSlide = 0;
+                            setInterval(() => {
+                                slides[currentSlide].style.opacity = '0';
+                                currentSlide = (currentSlide + 1) % slides.length;
+                                slides[currentSlide].style.opacity = '1';
+                            }, 4000);
+                        });
+                    </script>
+                    <?php endif; ?>
+                <?php else: ?>
+                    <div class="w-full h-full bg-white/5 border-2 border-white/20 rounded-2xl flex items-center justify-center text-white/30 font-bold uppercase tracking-widest">No Image Available</div>
                 <?php endif; ?>
             </div>
         </div>
@@ -190,42 +205,7 @@
         </div>
     </section>
 
-    <!-- CLASSES & CATEGORIES -->
-    <section id="classes" class="py-24 relative overflow-hidden">
-        <div class="max-w-7xl mx-auto px-6">
-            <h2 class="text-5xl font-display font-bold uppercase text-center text-white tracking-tight mb-16">
-                Race <span class="text-theme">Categories</span>
-            </h2>
-            
-            <?php if (empty($classes)): ?>
-                <div class="text-center text-slate-500">Kategori kelas belum diatur.</div>
-            <?php else: ?>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <?php foreach ($classes as $catName => $items): ?>
-                        <div class="glass rounded-2xl p-6 border-t-4 border-t-theme hover:bg-white/5 transition duration-300">
-                            <h3 class="text-2xl font-display font-bold uppercase text-white mb-4"><?= htmlspecialchars($catName) ?></h3>
-                            <ul class="space-y-3">
-                                <?php 
-                                // Ambil 5 teratas untuk preview
-                                $preview = array_slice($items, 0, 5);
-                                foreach ($preview as $item): ?>
-                                    <li class="flex items-center gap-3 text-sm text-slate-300">
-                                        <div class="w-1.5 h-1.5 rounded-full bg-theme"></div>
-                                        <?= htmlspecialchars($item['group_name'] ?? 'Umum') ?> - 
-                                        <?= htmlspecialchars($item['distance_name'] ?? '') ?> 
-                                        <span class="text-xs px-2 py-0.5 rounded bg-white/10 text-white ml-auto"><?= htmlspecialchars($item['gender']) ?></span>
-                                    </li>
-                                <?php endforeach; ?>
-                                <?php if (count($items) > 5): ?>
-                                    <li class="text-xs font-bold text-theme uppercase tracking-widest pt-2">+ <?= count($items) - 5 ?> Kelas Lainnya</li>
-                                <?php endif; ?>
-                            </ul>
-                        </div>
-                    <?php endforeach; ?>
-                </div>
-            <?php endif; ?>
-        </div>
-    </section>
+
 
     <!-- JUKNIS SECTION -->
     <?php if (!empty($landing['juknis_pdf'])): ?>
@@ -249,12 +229,14 @@
 
     <!-- PROMO MERCH SECTION -->
     <?php if (!empty($landing['promo_image'])): ?>
-    <section id="promo" class="w-full bg-[#09090b] relative">
-        <div class="w-full max-w-[2000px] mx-auto relative group">
-            <img src="<?= getenv('APP_URL') ?>/uploads/landing/<?= $landing['promo_image'] ?>" class="w-full object-cover aspect-[21/9] md:aspect-[16/5] brightness-75 group-hover:brightness-100 transition duration-700">
-            <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30 flex flex-col items-center justify-end pb-12 md:pb-24">
-                <h3 class="text-white text-3xl md:text-5xl font-display font-bold uppercase tracking-tighter mb-6 drop-shadow-lg">Official Merchandise</h3>
-                <a href="https://wa.me/<?= preg_replace('/[^0-9]/', '', $landing['contact_whatsapp']) ?>" target="_blank" class="btn-primary px-8 py-3 md:py-4 rounded-full text-white font-bold uppercase tracking-widest shadow-neon">
+    <section id="promo" class="w-full relative">
+        <div class="w-full mx-auto relative min-h-[400px] md:min-h-[500px] flex items-center justify-center bg-fixed bg-center bg-cover bg-no-repeat" style="background-image: url('<?= getenv('APP_URL') ?>/uploads/landing/<?= $landing['promo_image'] ?>');">
+            <!-- Overlay Gelap -->
+            <div class="absolute inset-0 bg-black/60 hover:bg-black/40 transition duration-700"></div>
+            
+            <div class="relative z-10 flex flex-col items-center justify-center text-center px-6">
+                <h3 class="text-white text-4xl md:text-6xl font-display font-bold uppercase tracking-tighter mb-8 drop-shadow-2xl">Official Merchandise</h3>
+                <a href="https://wa.me/<?= preg_replace('/[^0-9]/', '', $landing['contact_whatsapp']) ?>" target="_blank" class="btn-primary px-10 py-4 md:py-5 rounded-full text-white font-bold uppercase tracking-widest shadow-neon text-sm md:text-base">
                     Pesan Sekarang
                 </a>
             </div>
