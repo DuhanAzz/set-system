@@ -800,6 +800,29 @@ class RollEventController extends Controller {
             mkdir($uploadDir, 0777, true);
         }
 
+        // Handle Deletions
+        if (!empty($_POST['delete_logo'])) {
+            if ($logo_image && file_exists($uploadDir . $logo_image)) unlink($uploadDir . $logo_image);
+            $logo_image = null;
+        }
+        if (!empty($_POST['delete_hero_slider'])) {
+            if ($hero_slider_images) {
+                $sliders = json_decode($hero_slider_images, true) ?: [];
+                foreach ($sliders as $img) {
+                    if (file_exists($uploadDir . $img)) unlink($uploadDir . $img);
+                }
+            }
+            $hero_slider_images = null;
+        }
+        if (!empty($_POST['delete_juknis'])) {
+            if ($juknis_pdf && file_exists($uploadDir . $juknis_pdf)) unlink($uploadDir . $juknis_pdf);
+            $juknis_pdf = null;
+        }
+        if (!empty($_POST['delete_promo'])) {
+            if ($promo_image && file_exists($uploadDir . $promo_image)) unlink($uploadDir . $promo_image);
+            $promo_image = null;
+        }
+
         // Handle File Uploads
         $allowedImageTypes = ['image/jpeg', 'image/png', 'image/webp'];
         $allowedPdfTypes = ['application/pdf'];
