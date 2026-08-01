@@ -31,6 +31,7 @@ try {
         slug VARCHAR(255) NOT NULL UNIQUE,
         logo_image VARCHAR(255) NULL,
         hero_image VARCHAR(255) NULL,
+        hero_slider_images TEXT NULL,
         juknis_pdf VARCHAR(255) NULL,
         promo_image VARCHAR(255) NULL,
         hero_title VARCHAR(255),
@@ -52,6 +53,7 @@ try {
     try {
         $db->exec("ALTER TABLE roll_event_landing_pages ADD COLUMN logo_image VARCHAR(255) NULL AFTER slug");
         $db->exec("ALTER TABLE roll_event_landing_pages ADD COLUMN hero_image VARCHAR(255) NULL AFTER logo_image");
+        $db->exec("ALTER TABLE roll_event_landing_pages ADD COLUMN hero_slider_images TEXT NULL AFTER hero_image");
         $db->exec("ALTER TABLE roll_event_landing_pages ADD COLUMN juknis_pdf VARCHAR(255) NULL AFTER hero_image");
         $db->exec("ALTER TABLE roll_event_landing_pages ADD COLUMN promo_image VARCHAR(255) NULL AFTER juknis_pdf");
     } catch (\PDOException $e) {
