@@ -60,8 +60,16 @@ class RollEventController extends Controller {
             $skateClasses = $db->query("SELECT * FROM roll_ref_skate_classes ORDER BY id ASC")->fetchAll(PDO::FETCH_ASSOC);
         } catch (\Exception $e) {}
 
+        $landing = [];
+        if ($eventId > 0) {
+            $stmtLanding = $db->prepare("SELECT * FROM roll_event_landing_pages WHERE event_id = ?");
+            $stmtLanding->execute([$eventId]);
+            $landing = $stmtLanding->fetch(PDO::FETCH_ASSOC) ?: [];
+        }
+
         return $this->view('roll/admin/event_profile/index', [
             'row' => $row,
+            'landing' => $landing,
             'classes' => $classes,
             'distances' => $distances,
             'ageGroups' => $ageGroups,
@@ -741,5 +749,59 @@ class RollEventController extends Controller {
             'event' => $event,
             'classes' => $classes
         ]);
+    }
+    public function saveLandingPage() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header("Location: " . getenv('APP_URL') . "/roll/admin/events/profile");
+            exit;
+        }
+
+        $db = Database::getInstance()->getConnection();
+        $event_id = $_POST['event_id'] ?? 0;
+        $slug = preg_replace('/[^a-z0-9-]/', '', strtolower($_POST['slug'] ?? ''));
+        
+        if (!$event_id || !$slug) {
+            $_SESSION['flash_message'] = "Event ID atau Slug tidak valid!";
+            $_SESSION['flash_type'] = "error";
+            header("Location: " . getenv('APP_URL') . "/roll/admin/events/profile?id=" . $event_id);
+            exit;
+        }
+
+        $hero_title = $_POST['hero_title'] ?? '';
+        $hero_subtitle = $_POST['hero_subtitle'] ?? '';
+        $about_text = $_POST['about_text'] ?? '';
+        $schedule_text = $_POST['schedule_text'] ?? '';
+        $contact_whatsapp = $_POST['contact_whatsapp'] ?? '';
+        $contact_email = $_POST['contact_email'] ?? '';
+        $theme_color = $_POST['theme_color'] ?? '#2563eb';
+        $status = $_POST['status'] ?? 'Draft';
+
+        // Check if slug is used by other event
+        $stmtCheck = $db->prepare("SELECT id FROM roll_event_landing_pages WHERE slug = ? AND event_id != ?");
+        $stmtCheck->execute([$slug, $event_id]);
+        if ($stmtCheck->fetchColumn()) {
+            $_SESSION['flash_message'] = "Slug '{$slug}' sudah digunakan event lain!";
+            $_SESSION['flash_type'] = "error";
+            header("Location: " . getenv('APP_URL') . "/roll/admin/events/profile?id=" . $event_id);
+            exit;
+        }
+
+        // Upsert
+        $stmtExist = $db->prepare("SELECT id FROM roll_event_landing_pages WHERE event_id = ?");
+        $stmtExist->execute([$event_id]);
+        $exists = $stmtExist->fetchColumn();
+
+        if ($exists) {
+            $stmtUpdate = $db->prepare("UPDATE roll_event_landing_pages SET slug=?, hero_title=?, hero_subtitle=?, about_text=?, schedule_text=?, contact_whatsapp=?, contact_email=?, theme_color=?, status=? WHERE event_id=?");
+            $stmtUpdate->execute([$slug, $hero_title, $hero_subtitle, $about_text, $schedule_text, $contact_whatsapp, $contact_email, $theme_color, $status, $event_id]);
+        } else {
+            $stmtInsert = $db->prepare("INSERT INTO roll_event_landing_pages (event_id, slug, hero_title, hero_subtitle, about_text, schedule_text, contact_whatsapp, contact_email, theme_color, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmtInsert->execute([$event_id, $slug, $hero_title, $hero_subtitle, $about_text, $schedule_text, $contact_whatsapp, $contact_email, $theme_color, $status]);
+        }
+
+        $_SESSION['flash_message'] = "Landing Page berhasil disimpan!";
+        $_SESSION['flash_type'] = "success";
+        header("Location: " . getenv('APP_URL') . "/roll/admin/events/profile?id=" . $event_id);
+        exit;
     }
 }

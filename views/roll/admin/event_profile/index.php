@@ -35,6 +35,9 @@
                 </div>
                 <?php if(!empty($row)): ?>
                 <div class="mt-4 md:mt-0 flex flex-wrap gap-2 md:gap-4">
+                    <button type="button" onclick="openLandingModal()" class="bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:shadow-purple-500/25 transition-all flex items-center uppercase tracking-widest text-sm">
+                        <span class="mr-2">🌍</span> Atur Landing Page
+                    </button>
                     <button type="button" onclick="document.getElementById('profile-form').submit()" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:shadow-blue-500/25 transition-all flex items-center uppercase tracking-widest text-sm">
                         <span class="mr-2">💾</span> Simpan Profil & Gambar
                     </button>
@@ -225,3 +228,83 @@
         <?php endif; ?>
     </div>
 </div>
+
+<!-- LANDING PAGE MODAL -->
+<div id="landingModal" class="fixed inset-0 z-[9999] hidden">
+    <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closeLandingModal()"></div>
+    <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl max-h-[90vh] overflow-y-auto bg-white rounded-2xl shadow-2xl">
+        <div class="sticky top-0 bg-white/80 backdrop-blur-md border-b border-slate-200 px-8 py-5 flex justify-between items-center z-10">
+            <h3 class="text-xl font-black text-slate-800 uppercase tracking-widest">Pengaturan Landing Page</h3>
+            <button type="button" onclick="closeLandingModal()" class="text-slate-400 hover:text-red-500 text-2xl transition">&times;</button>
+        </div>
+        <form action="<?= getenv('APP_URL') ?>/roll/admin/events/saveLandingPage" method="POST" class="p-8 space-y-6">
+            <input type="hidden" name="event_id" value="<?= $row['id'] ?? 0 ?>">
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Custom URL Slug (Tanpa Spasi)</label>
+                    <div class="flex items-center">
+                        <span class="bg-slate-100 text-slate-500 border border-slate-200 border-r-0 rounded-l-lg px-3 py-2 text-sm font-mono">setsystem.id/</span>
+                        <input type="text" name="slug" value="<?= htmlspecialchars($landing['slug'] ?? '') ?>" placeholder="indonesiarollerspeedseries" class="w-full bg-white border border-slate-200 rounded-r-lg px-4 py-2 text-slate-800 focus:ring-2 focus:ring-purple-500 font-mono text-sm" required>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Status Halaman</label>
+                    <select name="status" class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-800 focus:ring-2 focus:ring-purple-500 font-bold">
+                        <option value="Draft" <?= (($landing['status'] ?? 'Draft') == 'Draft') ? 'selected' : '' ?>>Draft (Sembunyikan)</option>
+                        <option value="Published" <?= (($landing['status'] ?? 'Draft') == 'Published') ? 'selected' : '' ?>>Published (Bisa Diakses)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Hero Title (Judul Utama)</label>
+                    <input type="text" name="hero_title" value="<?= htmlspecialchars($landing['hero_title'] ?? '') ?>" placeholder="Contoh: ARENA SPORTS 2026" class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-800 focus:ring-2 focus:ring-purple-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Warna Tema (Hex Code)</label>
+                    <input type="color" name="theme_color" value="<?= htmlspecialchars($landing['theme_color'] ?? '#2563eb') ?>" class="w-full h-10 p-1 bg-white border border-slate-200 rounded-lg cursor-pointer">
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Hero Subtitle</label>
+                    <textarea name="hero_subtitle" rows="2" class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-800 focus:ring-2 focus:ring-purple-500" placeholder="Contoh: The biggest roller skating competition in Indonesia."><?= htmlspecialchars($landing['hero_subtitle'] ?? '') ?></textarea>
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Deskripsi Event (About)</label>
+                    <textarea name="about_text" rows="4" class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-800 focus:ring-2 focus:ring-purple-500"><?= htmlspecialchars($landing['about_text'] ?? '') ?></textarea>
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Jadwal & Agenda Lomba</label>
+                    <textarea name="schedule_text" rows="4" class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-800 focus:ring-2 focus:ring-purple-500"><?= htmlspecialchars($landing['schedule_text'] ?? '') ?></textarea>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Kontak WhatsApp</label>
+                    <input type="text" name="contact_whatsapp" value="<?= htmlspecialchars($landing['contact_whatsapp'] ?? '') ?>" placeholder="6281234567890" class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-800 focus:ring-2 focus:ring-purple-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Kontak Email</label>
+                    <input type="email" name="contact_email" value="<?= htmlspecialchars($landing['contact_email'] ?? '') ?>" placeholder="info@example.com" class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-800 focus:ring-2 focus:ring-purple-500">
+                </div>
+            </div>
+            
+            <div class="pt-6 border-t border-slate-200 flex justify-end gap-3">
+                <?php if(!empty($landing['slug'])): ?>
+                <a href="<?= getenv('APP_URL') ?>/<?= htmlspecialchars($landing['slug']) ?>" target="_blank" class="px-6 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 flex items-center gap-2">
+                    Lihat Halaman
+                </a>
+                <?php endif; ?>
+                <button type="button" onclick="closeLandingModal()" class="px-6 py-2.5 rounded-xl text-slate-500 font-bold hover:bg-slate-100">Batal</button>
+                <button type="submit" class="px-8 py-2.5 bg-purple-600 text-white rounded-xl font-bold uppercase tracking-widest hover:bg-purple-700 hover:shadow-lg hover:shadow-purple-500/30 transition-all">
+                    Simpan Landing Page
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openLandingModal() {
+    document.getElementById('landingModal').classList.remove('hidden');
+}
+function closeLandingModal() {
+    document.getElementById('landingModal').classList.add('hidden');
+}
+</script>

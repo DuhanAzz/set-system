@@ -368,6 +368,21 @@ switch ($module) {
         break;
 
     default:
+        // Cek apakah modul ini adalah custom slug untuk landing page Roll
+        $db = \App\Core\Database::getInstance()->getConnection();
+        $stmtSlug = $db->prepare("SELECT id FROM roll_event_landing_pages WHERE slug = ? AND status = 'Published'");
+        $stmtSlug->execute([$module]);
+        $landingPage = $stmtSlug->fetch();
+        
+        if ($landingPage) {
+            $controllerClass = "\\App\\Roll\\Controllers\\PublicLandingController";
+            if (class_exists($controllerClass)) {
+                $controller = new $controllerClass();
+                $controller->index($module);
+                break;
+            }
+        }
+
         // Penanganan 404 jika modul tidak dikenali
         http_response_code(404);
         echo "<h1>404 Not Found</h1><p>Modul '{$module}' tidak tersedia.</p>";
