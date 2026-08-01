@@ -74,11 +74,11 @@
         <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
             <div class="flex items-center gap-4">
                 <?php if (!empty($landing['logo_image'])): ?>
-                    <img src="<?= getenv('APP_URL') ?>/uploads/landing/<?= $landing['logo_image'] ?>" class="h-10">
+                    <img src="<?= getenv('APP_URL') ?>/uploads/landing/<?= $landing['logo_image'] ?>" class="h-16">
                 <?php elseif (!empty($landing['logo_left'])): ?>
-                    <img src="<?= getenv('APP_URL') ?>/uploads/logos/<?= $landing['logo_left'] ?>" class="h-10">
+                    <img src="<?= getenv('APP_URL') ?>/uploads/logos/<?= $landing['logo_left'] ?>" class="h-16">
                 <?php else: ?>
-                    <div class="text-2xl font-display font-bold tracking-wider text-theme">SET<span class="text-white">SYSTEM</span></div>
+                    <img src="<?= getenv('APP_URL') ?>/img/logo.png" class="h-12">
                 <?php endif; ?>
             </div>
             
@@ -236,8 +236,7 @@
                 Pesan Sekarang
             </a>
         </div>
-        
-        <div class="w-full mx-auto relative min-h-[300px] md:min-h-[500px] bg-fixed bg-center bg-cover bg-no-repeat" style="background-image: url('<?= getenv('APP_URL') ?>/uploads/landing/<?= $landing['promo_image'] ?>');"></div>
+        <div class="w-full mx-auto relative min-h-[300px] md:min-h-[500px] bg-scroll md:bg-fixed bg-center bg-cover bg-no-repeat" style="background-image: url('<?= getenv('APP_URL') ?>/uploads/landing/<?= $landing['promo_image'] ?>');"></div>
     </section>
     <?php endif; ?>
 
@@ -250,7 +249,7 @@
                 <?php elseif (!empty($landing['logo_left'])): ?>
                     <img src="<?= getenv('APP_URL') ?>/uploads/logos/<?= $landing['logo_left'] ?>" class="h-8 grayscale opacity-50 hover:grayscale-0 hover:opacity-100 transition">
                 <?php endif; ?>
-                <div class="text-xl font-display font-bold tracking-wider text-slate-600">SET<span class="text-slate-700">SYSTEM</span></div>
+                <img src="<?= getenv('APP_URL') ?>/img/logo.png" class="h-8 grayscale opacity-50 hover:grayscale-0 hover:opacity-100 transition">
             </div>
             
             <div class="flex gap-6 text-sm font-bold uppercase tracking-widest text-slate-500">
