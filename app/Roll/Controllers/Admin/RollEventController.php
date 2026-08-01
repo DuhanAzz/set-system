@@ -856,16 +856,22 @@ class RollEventController extends Controller {
         }
 
         // Upsert
-        if ($existing) {
-            $stmtUpdate = $db->prepare("UPDATE roll_event_landing_pages SET slug=?, hero_title=?, hero_subtitle=?, about_text=?, contact_whatsapp=?, contact_email=?, theme_color=?, status=?, logo_image=?, hero_slider_images=?, juknis_pdf=?, promo_image=? WHERE event_id=?");
-            $stmtUpdate->execute([$slug, $hero_title, $hero_subtitle, $about_text, $contact_whatsapp, $contact_email, $theme_color, $status, $logo_image, $hero_slider_images, $juknis_pdf, $promo_image, $event_id]);
-        } else {
-            $stmtInsert = $db->prepare("INSERT INTO roll_event_landing_pages (event_id, slug, hero_title, hero_subtitle, about_text, contact_whatsapp, contact_email, theme_color, status, logo_image, hero_slider_images, juknis_pdf, promo_image) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-            $stmtInsert->execute([$event_id, $slug, $hero_title, $hero_subtitle, $about_text, $contact_whatsapp, $contact_email, $theme_color, $status, $logo_image, $hero_slider_images, $juknis_pdf, $promo_image]);
+        try {
+            if ($existing) {
+                $stmtUpdate = $db->prepare("UPDATE roll_event_landing_pages SET slug=?, hero_title=?, hero_subtitle=?, about_text=?, contact_whatsapp=?, contact_email=?, theme_color=?, status=?, logo_image=?, hero_slider_images=?, juknis_pdf=?, promo_image=? WHERE event_id=?");
+                $stmtUpdate->execute([$slug, $hero_title, $hero_subtitle, $about_text, $contact_whatsapp, $contact_email, $theme_color, $status, $logo_image, $hero_slider_images, $juknis_pdf, $promo_image, $event_id]);
+            } else {
+                $stmtInsert = $db->prepare("INSERT INTO roll_event_landing_pages (event_id, slug, hero_title, hero_subtitle, about_text, contact_whatsapp, contact_email, theme_color, status, logo_image, hero_slider_images, juknis_pdf, promo_image) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                $stmtInsert->execute([$event_id, $slug, $hero_title, $hero_subtitle, $about_text, $contact_whatsapp, $contact_email, $theme_color, $status, $logo_image, $hero_slider_images, $juknis_pdf, $promo_image]);
+            }
+
+            $_SESSION['flash_message'] = "Landing Page berhasil disimpan!";
+            $_SESSION['flash_type'] = "success";
+        } catch (\PDOException $e) {
+            $_SESSION['flash_message'] = "Gagal menyimpan: Pastikan Anda telah menjalankan skrip migrate_landing.php! (" . $e->getMessage() . ")";
+            $_SESSION['flash_type'] = "error";
         }
 
-        $_SESSION['flash_message'] = "Landing Page berhasil disimpan!";
-        $_SESSION['flash_type'] = "success";
         header("Location: " . getenv('APP_URL') . "/roll/admin/events/profile?id=" . $event_id);
         exit;
     }
