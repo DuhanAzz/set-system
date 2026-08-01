@@ -275,20 +275,24 @@
                     <div>
                         <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Logo Header & Footer (Opsional)</label>
                         <input type="file" name="logo_image" accept="image/png, image/jpeg, image/webp" class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-800 text-sm">
+                        <div class="text-[10px] text-slate-400 mt-1">Maks 2MB. Format: JPG/PNG.</div>
                         <?php if(!empty($landing['logo_image'])): ?>
                             <div class="text-xs text-green-600 mt-1 font-bold">Terupload: <?= $landing['logo_image'] ?></div>
                         <?php endif; ?>
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Hero Image Background</label>
-                        <input type="file" name="hero_image" accept="image/png, image/jpeg, image/webp" class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-800 text-sm">
-                        <?php if(!empty($landing['hero_image'])): ?>
-                            <div class="text-xs text-green-600 mt-1 font-bold">Terupload: <?= $landing['hero_image'] ?></div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Hero Image Slider</label>
+                        <input type="file" name="hero_slider[]" multiple accept="image/png, image/jpeg, image/webp" class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-800 text-sm">
+                        <div class="text-[10px] text-slate-400 mt-1">Bisa pilih banyak file sekaligus. Maks 2MB/file agar server tidak hang.</div>
+                        <?php if(!empty($landing['hero_slider_images'])): ?>
+                            <?php $sliders = json_decode($landing['hero_slider_images'], true) ?: []; ?>
+                            <div class="text-xs text-green-600 mt-1 font-bold">Terupload: <?= count($sliders) ?> gambar</div>
                         <?php endif; ?>
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Petunjuk Teknis (Juknis) PDF</label>
                         <input type="file" name="juknis_pdf" accept="application/pdf" class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-800 text-sm">
+                        <div class="text-[10px] text-slate-400 mt-1">Maks 5MB. Format: PDF.</div>
                         <?php if(!empty($landing['juknis_pdf'])): ?>
                             <div class="text-xs text-green-600 mt-1 font-bold">Terupload: <?= $landing['juknis_pdf'] ?></div>
                         <?php endif; ?>
@@ -296,6 +300,7 @@
                     <div>
                         <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Banner Promo Merch (16:9)</label>
                         <input type="file" name="promo_image" accept="image/png, image/jpeg, image/webp" class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-800 text-sm">
+                        <div class="text-[10px] text-slate-400 mt-1">Maks 2MB. Format: JPG/PNG.</div>
                         <?php if(!empty($landing['promo_image'])): ?>
                             <div class="text-xs text-green-600 mt-1 font-bold">Terupload: <?= $landing['promo_image'] ?></div>
                         <?php endif; ?>
