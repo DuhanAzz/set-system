@@ -50,14 +50,20 @@ try {
     $db->exec($sql);
 
     // ALTER TABLE to add new columns if table already exists from previous migration
-    try {
-        $db->exec("ALTER TABLE roll_event_landing_pages ADD COLUMN logo_image VARCHAR(255) NULL AFTER slug");
-        $db->exec("ALTER TABLE roll_event_landing_pages ADD COLUMN hero_image VARCHAR(255) NULL AFTER logo_image");
-        $db->exec("ALTER TABLE roll_event_landing_pages ADD COLUMN hero_slider_images TEXT NULL AFTER hero_image");
-        $db->exec("ALTER TABLE roll_event_landing_pages ADD COLUMN juknis_pdf VARCHAR(255) NULL AFTER hero_image");
-        $db->exec("ALTER TABLE roll_event_landing_pages ADD COLUMN promo_image VARCHAR(255) NULL AFTER juknis_pdf");
-    } catch (\PDOException $e) {
-        // Abaikan error jika kolom sudah ada (Duplicate column name)
+    $columns = [
+        "ADD COLUMN logo_image VARCHAR(255) NULL AFTER slug",
+        "ADD COLUMN hero_image VARCHAR(255) NULL AFTER logo_image",
+        "ADD COLUMN hero_slider_images TEXT NULL AFTER hero_image",
+        "ADD COLUMN juknis_pdf VARCHAR(255) NULL AFTER hero_image",
+        "ADD COLUMN promo_image VARCHAR(255) NULL AFTER juknis_pdf"
+    ];
+
+    foreach ($columns as $col) {
+        try {
+            $db->exec("ALTER TABLE roll_event_landing_pages " . $col);
+        } catch (\PDOException $e) {
+            // Abaikan error jika kolom sudah ada (Duplicate column name)
+        }
     }
 
     echo "<h2 style='color:green'>BERHASIL!</h2>";
