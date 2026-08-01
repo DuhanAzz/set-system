@@ -791,7 +791,7 @@ class RollEventController extends Controller {
         $existing = $stmtExist->fetch(PDO::FETCH_ASSOC);
 
         $logo_image = $existing['logo_image'] ?? null;
-        $hero_image = $existing['hero_image'] ?? null;
+        $hero_slider_images = $existing['hero_slider_images'] ?? null;
         $juknis_pdf = $existing['juknis_pdf'] ?? null;
         $promo_image = $existing['promo_image'] ?? null;
 
@@ -803,30 +803,52 @@ class RollEventController extends Controller {
         // Handle File Uploads
         $allowedImageTypes = ['image/jpeg', 'image/png', 'image/webp'];
         $allowedPdfTypes = ['application/pdf'];
+        $maxFileSize = 2 * 1024 * 1024; // 2MB max per file to prevent server hang
 
         if (isset($_FILES['logo_image']) && $_FILES['logo_image']['error'] === UPLOAD_ERR_OK) {
-            if (in_array($_FILES['logo_image']['type'], $allowedImageTypes)) {
+            if (in_array($_FILES['logo_image']['type'], $allowedImageTypes) && $_FILES['logo_image']['size'] <= $maxFileSize) {
                 $ext = pathinfo($_FILES['logo_image']['name'], PATHINFO_EXTENSION);
                 $logo_image = 'logo_' . $event_id . '_' . time() . '.' . $ext;
                 move_uploaded_file($_FILES['logo_image']['tmp_name'], $uploadDir . $logo_image);
             }
         }
-        if (isset($_FILES['hero_image']) && $_FILES['hero_image']['error'] === UPLOAD_ERR_OK) {
-            if (in_array($_FILES['hero_image']['type'], $allowedImageTypes)) {
-                $ext = pathinfo($_FILES['hero_image']['name'], PATHINFO_EXTENSION);
-                $hero_image = 'hero_' . $event_id . '_' . time() . '.' . $ext;
-                move_uploaded_file($_FILES['hero_image']['tmp_name'], $uploadDir . $hero_image);
+        
+        // Handle Multiple Hero Slider Images
+        if (isset($_FILES['hero_slider']) && is_array($_FILES['hero_slider']['name'])) {
+            $sliderImages = [];
+            if (!empty($existing['hero_slider_images'])) {
+                $sliderImages = json_decode($existing['hero_slider_images'], true) ?: [];
+            }
+            
+            $fileCount = count($_FILES['hero_slider']['name']);
+            $hasNewUploads = false;
+            
+            for ($i = 0; $i < $fileCount; $i++) {
+                if ($_FILES['hero_slider']['error'][$i] === UPLOAD_ERR_OK) {
+                    if (in_array($_FILES['hero_slider']['type'][$i], $allowedImageTypes) && $_FILES['hero_slider']['size'][$i] <= $maxFileSize) {
+                        $ext = pathinfo($_FILES['hero_slider']['name'][$i], PATHINFO_EXTENSION);
+                        $newName = 'hero_slide_' . $event_id . '_' . time() . '_' . $i . '.' . $ext;
+                        if (move_uploaded_file($_FILES['hero_slider']['tmp_name'][$i], $uploadDir . $newName)) {
+                            $sliderImages[] = $newName;
+                            $hasNewUploads = true;
+                        }
+                    }
+                }
+            }
+            if ($hasNewUploads) {
+                $hero_slider_images = json_encode($sliderImages);
             }
         }
+
         if (isset($_FILES['promo_image']) && $_FILES['promo_image']['error'] === UPLOAD_ERR_OK) {
-            if (in_array($_FILES['promo_image']['type'], $allowedImageTypes)) {
+            if (in_array($_FILES['promo_image']['type'], $allowedImageTypes) && $_FILES['promo_image']['size'] <= $maxFileSize) {
                 $ext = pathinfo($_FILES['promo_image']['name'], PATHINFO_EXTENSION);
                 $promo_image = 'promo_' . $event_id . '_' . time() . '.' . $ext;
                 move_uploaded_file($_FILES['promo_image']['tmp_name'], $uploadDir . $promo_image);
             }
         }
         if (isset($_FILES['juknis_pdf']) && $_FILES['juknis_pdf']['error'] === UPLOAD_ERR_OK) {
-            if (in_array($_FILES['juknis_pdf']['type'], $allowedPdfTypes)) {
+            if (in_array($_FILES['juknis_pdf']['type'], $allowedPdfTypes) && $_FILES['juknis_pdf']['size'] <= 5 * 1024 * 1024) { // PDF 5MB
                 $ext = pathinfo($_FILES['juknis_pdf']['name'], PATHINFO_EXTENSION);
                 $juknis_pdf = 'juknis_' . $event_id . '_' . time() . '.' . $ext;
                 move_uploaded_file($_FILES['juknis_pdf']['tmp_name'], $uploadDir . $juknis_pdf);
@@ -835,11 +857,11 @@ class RollEventController extends Controller {
 
         // Upsert
         if ($existing) {
-            $stmtUpdate = $db->prepare("UPDATE roll_event_landing_pages SET slug=?, hero_title=?, hero_subtitle=?, about_text=?, contact_whatsapp=?, contact_email=?, theme_color=?, status=?, logo_image=?, hero_image=?, juknis_pdf=?, promo_image=? WHERE event_id=?");
-            $stmtUpdate->execute([$slug, $hero_title, $hero_subtitle, $about_text, $contact_whatsapp, $contact_email, $theme_color, $status, $logo_image, $hero_image, $juknis_pdf, $promo_image, $event_id]);
+            $stmtUpdate = $db->prepare("UPDATE roll_event_landing_pages SET slug=?, hero_title=?, hero_subtitle=?, about_text=?, contact_whatsapp=?, contact_email=?, theme_color=?, status=?, logo_image=?, hero_slider_images=?, juknis_pdf=?, promo_image=? WHERE event_id=?");
+            $stmtUpdate->execute([$slug, $hero_title, $hero_subtitle, $about_text, $contact_whatsapp, $contact_email, $theme_color, $status, $logo_image, $hero_slider_images, $juknis_pdf, $promo_image, $event_id]);
         } else {
-            $stmtInsert = $db->prepare("INSERT INTO roll_event_landing_pages (event_id, slug, hero_title, hero_subtitle, about_text, contact_whatsapp, contact_email, theme_color, status, logo_image, hero_image, juknis_pdf, promo_image) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-            $stmtInsert->execute([$event_id, $slug, $hero_title, $hero_subtitle, $about_text, $contact_whatsapp, $contact_email, $theme_color, $status, $logo_image, $hero_image, $juknis_pdf, $promo_image]);
+            $stmtInsert = $db->prepare("INSERT INTO roll_event_landing_pages (event_id, slug, hero_title, hero_subtitle, about_text, contact_whatsapp, contact_email, theme_color, status, logo_image, hero_slider_images, juknis_pdf, promo_image) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmtInsert->execute([$event_id, $slug, $hero_title, $hero_subtitle, $about_text, $contact_whatsapp, $contact_email, $theme_color, $status, $logo_image, $hero_slider_images, $juknis_pdf, $promo_image]);
         }
 
         $_SESSION['flash_message'] = "Landing Page berhasil disimpan!";
