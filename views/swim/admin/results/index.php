@@ -80,7 +80,7 @@
                     </div>
                 </div>
 
-                <a href="<?= getenv('APP_URL') ?>/swim/results/input?category_id=<?= $ev['id'] ?>" 
+                <a href="<?= getenv('APP_URL') ?>/swim/admin/results/input?category_id=<?= $ev['id'] ?>" 
                    class="w-full md:w-auto px-8 py-3 
                    <?= $is_completed ? 'bg-slate-800 hover:bg-slate-700 shadow-slate-200' : 'bg-blue-600 hover:bg-blue-700 shadow-blue-200' ?> 
                    text-white rounded-xl font-bold text-xs uppercase tracking-wider shadow-lg transition flex items-center justify-center gap-2 transform active:scale-95">

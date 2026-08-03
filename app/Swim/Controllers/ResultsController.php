@@ -80,7 +80,7 @@ class ResultsController extends Controller {
         $eventId = $this->getActiveEventId($pdo, $uid);
         
         $cat_id = $_GET['category_id'] ?? null;
-        if (!$cat_id) { header("Location: " . getenv('APP_URL') . "/swim/results"); exit; }
+        if (!$cat_id) { header("Location: " . getenv('APP_URL') . "/swim/admin/results"); exit; }
         
         // Simpan referensi ke request untuk method POST
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -182,13 +182,13 @@ class ResultsController extends Controller {
         $stmtPrev = $pdo->prepare("SELECT id FROM swim_event_numbers WHERE event_id = ? AND id < ? ORDER BY id DESC LIMIT 1");
         $stmtPrev->execute([$currentEventId, $cat_id]);
         $rowPrev = $stmtPrev->fetch(PDO::FETCH_ASSOC);
-        $prevUrl = $rowPrev ? getenv('APP_URL') . "/swim/results/input?category_id=" . $rowPrev['id'] : "#";
+        $prevUrl = $rowPrev ? getenv('APP_URL') . "/swim/admin/results/input?category_id=" . $rowPrev['id'] : "#";
         $prevClass = $rowPrev ? "bg-slate-700 hover:bg-slate-800 text-white" : "bg-slate-200 text-slate-400 cursor-not-allowed pointer-events-none";
 
         $stmtNext = $pdo->prepare("SELECT id FROM swim_event_numbers WHERE event_id = ? AND id > ? ORDER BY id ASC LIMIT 1");
         $stmtNext->execute([$currentEventId, $cat_id]);
         $rowNext = $stmtNext->fetch(PDO::FETCH_ASSOC);
-        $nextUrl = $rowNext ? getenv('APP_URL') . "/swim/results/input?category_id=" . $rowNext['id'] : "#";
+        $nextUrl = $rowNext ? getenv('APP_URL') . "/swim/admin/results/input?category_id=" . $rowNext['id'] : "#";
         $nextClass = $rowNext ? "bg-slate-700 hover:bg-slate-800 text-white" : "bg-slate-200 text-slate-400 cursor-not-allowed pointer-events-none";    
 
         $stmtEvent = $pdo->prepare("SELECT * FROM swim_events WHERE id = ?");
@@ -348,7 +348,7 @@ class ResultsController extends Controller {
             $_SESSION['error'] = "Terjadi kesalahan: " . $e->getMessage();
         }
 
-        header("Location: " . getenv('APP_URL') . "/swim/results/input?category_id=" . $cat_id);
+        header("Location: " . getenv('APP_URL') . "/swim/admin/results/input?category_id=" . $cat_id);
         exit;
     }
 
@@ -431,7 +431,7 @@ class ResultsController extends Controller {
             } else {
                 $_SESSION['error'] = "File gagal diunggah atau ukuran terlalu besar.";
             }
-            header("Location: " . getenv('APP_URL') . "/swim/results/publish?event_id=" . $evId);
+            header("Location: " . getenv('APP_URL') . "/swim/admin/results/publish?event_id=" . $evId);
             exit;
         }
 

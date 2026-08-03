@@ -39,33 +39,59 @@ class RollResultController extends Controller {
         $stmtClasses->execute([$eventId]);
         $classes = $stmtClasses->fetchAll(PDO::FETCH_ASSOC);
 
-        $heats = [];
-        $totalNotEliminated = 0;
+        $heatsData = [];
+        $totalEliminatedByHeat = [];
+        $raceInfo = null;
+        
+        $prevUrl = '#'; $prevClass = 'bg-slate-200 text-slate-400 cursor-not-allowed pointer-events-none';
+        $nextUrl = '#'; $nextClass = 'bg-slate-200 text-slate-400 cursor-not-allowed pointer-events-none';
+        
         if ($filter_class_id > 0) {
-            $stmtHeats = $db->prepare("SELECT DISTINCT heat_name FROM roll_pelotons WHERE event_id = ? AND race_class_id = ? ORDER BY heat_name ASC");
-            $stmtHeats->execute([$eventId, $filter_class_id]);
-            $heats = $stmtHeats->fetchAll(PDO::FETCH_ASSOC);
+            foreach ($classes as $c) {
+                if ($c['id'] == $filter_class_id) $raceInfo = $c;
+            }
             
-            $stmtCountElim = $db->prepare("SELECT COUNT(*) FROM roll_event_results WHERE event_id = ? AND race_class_id = ? AND status != 'OK' AND heat_name = ?");
-            $stmtCountElim->execute([$eventId, $filter_class_id, $filter_heat]);
-            $totalNotEliminated = (int) $stmtCountElim->fetchColumn();
-        }
+            $stmtPrev = $db->prepare("SELECT id FROM roll_event_details WHERE event_id = ? AND id < ? ORDER BY id DESC LIMIT 1");
+            $stmtPrev->execute([$eventId, $filter_class_id]);
+            $rowPrev = $stmtPrev->fetch(PDO::FETCH_ASSOC);
+            if ($rowPrev) {
+                $prevUrl = getenv('APP_URL') . "/roll/admin/results?race_class_id=" . $rowPrev['id'];
+                $prevClass = "bg-slate-700 hover:bg-slate-800 text-white";
+            }
 
-        $results = [];
-        if ($filter_class_id > 0 && !empty($filter_heat)) {
+            $stmtNext = $db->prepare("SELECT id FROM roll_event_details WHERE event_id = ? AND id > ? ORDER BY id ASC LIMIT 1");
+            $stmtNext->execute([$eventId, $filter_class_id]);
+            $rowNext = $stmtNext->fetch(PDO::FETCH_ASSOC);
+            if ($rowNext) {
+                $nextUrl = getenv('APP_URL') . "/roll/admin/results?race_class_id=" . $rowNext['id'];
+                $nextClass = "bg-slate-700 hover:bg-slate-800 text-white";
+            }
+
             $stmtRes = $db->prepare("
                 SELECT r.id as result_id, p.skater_id, s.skater_name, c.club_name, p.start_grid, e.bib_number,
-                       r.time, r.rank, r.point, COALESCE(r.status, 'OK') as status, COALESCE(r.is_official, 0) as is_official
+                       r.time, r.rank, r.point, COALESCE(r.status, 'OK') as status, COALESCE(r.is_official, 0) as is_official,
+                       p.heat_name
                 FROM roll_pelotons p
                 JOIN roll_skaters s ON p.skater_id = s.id
                 LEFT JOIN roll_clubs c ON s.club_id = c.id
                 LEFT JOIN roll_event_results r ON p.skater_id = r.skater_id AND p.race_class_id = r.race_class_id AND p.event_id = r.event_id AND p.heat_name = r.heat_name
                 LEFT JOIN roll_entries e ON p.skater_id = e.skater_id AND p.race_class_id = e.race_class_id AND p.event_id = e.event_id
-                WHERE p.event_id = ? AND p.race_class_id = ? AND p.heat_name = ?
-                ORDER BY CASE WHEN COALESCE(r.status, 'OK') = 'OK' THEN 0 ELSE 1 END ASC, r.rank IS NULL, r.rank ASC, r.point DESC, r.time ASC, p.start_grid ASC
+                WHERE p.event_id = ? AND p.race_class_id = ?
+                ORDER BY p.heat_name ASC, CASE WHEN COALESCE(r.status, 'OK') = 'OK' THEN 0 ELSE 1 END ASC, r.rank IS NULL, r.rank ASC, r.point DESC, r.time ASC, p.start_grid ASC
             ");
-            $stmtRes->execute([$eventId, $filter_class_id, $filter_heat]);
-            $results = $stmtRes->fetchAll(PDO::FETCH_ASSOC);
+            $stmtRes->execute([$eventId, $filter_class_id]);
+            $raw_results = $stmtRes->fetchAll(PDO::FETCH_ASSOC);
+            
+            foreach ($raw_results as $row) {
+                $heatsData[$row['heat_name']][] = $row;
+            }
+            
+            $stmtCountElim = $db->prepare("SELECT heat_name, COUNT(*) as cnt FROM roll_event_results WHERE event_id = ? AND race_class_id = ? AND status != 'OK' GROUP BY heat_name");
+            $stmtCountElim->execute([$eventId, $filter_class_id]);
+            $elimData = $stmtCountElim->fetchAll(PDO::FETCH_ASSOC);
+            foreach ($elimData as $ed) {
+                $totalEliminatedByHeat[$ed['heat_name']] = (int)$ed['cnt'];
+            }
         }
 
         $dqRules = $db->query("SELECT id, kode_dq, deskripsi as description FROM roll_dq_rules ORDER BY kode_dq ASC")->fetchAll(PDO::FETCH_ASSOC);
@@ -84,13 +110,16 @@ class RollResultController extends Controller {
 
         return $this->view('roll/admin/results/index', [
             'classes' => $classes,
-            'heats' => $heats,
-            'results' => $results,
+            'heatsData' => $heatsData,
+            'raceInfo' => $raceInfo,
+            'prevUrl' => $prevUrl,
+            'prevClass' => $prevClass,
+            'nextUrl' => $nextUrl,
+            'nextClass' => $nextClass,
             'dqRules' => $dqRules,
             'eventId' => $eventId,
             'filter_class_id' => $filter_class_id,
-            'filter_heat' => $filter_heat,
-            'totalNotEliminated' => $totalNotEliminated,
+            'totalEliminatedByHeat' => $totalEliminatedByHeat,
             'raceFormat' => $raceFormat
         ]);
     }
@@ -107,7 +136,7 @@ class RollResultController extends Controller {
             $statuses = $_POST['status'] ?? [];
             
             $filter_class_id = $_POST['race_class_id'] ?? 0;
-            $filter_heat = $_POST['heat_name'] ?? '';
+            $heat_names = $_POST['heat_name'] ?? [];
 
             if ($eventId > 0) {
                 try {
@@ -116,68 +145,76 @@ class RollResultController extends Controller {
                     $stmtInsert = $db->prepare("INSERT INTO roll_event_results (event_id, race_class_id, round, skater_id, heat_name, time, rank, point, status, is_official) VALUES (?, ?, 'Kualifikasi', ?, ?, ?, ?, ?, ?, 0)");
                     
                     $skater_ids = $_POST['skater_id'] ?? [];
-                    $rows = [];
+                    
+                    // Group rows by heat_name
+                    $heatsGrouped = [];
                     foreach ($skater_ids as $index => $s_id) {
-                        $rows[] = [
+                        $h_name = trim($heat_names[$index] ?? '');
+                        if (empty($h_name)) continue;
+                        
+                        $heatsGrouped[$h_name][] = [
                             'skater_id' => $s_id,
                             'result_id' => trim($result_ids[$index] ?? ''),
                             'time' => trim($times[$index] ?? ''),
                             'rank' => trim($ranks[$index] ?? ''),
                             'point' => (int)trim($points[$index] ?? '0'),
-                            'status' => trim($statuses[$index] ?? 'OK')
+                            'status' => trim($statuses[$index] ?? 'OK'),
+                            'heat_name' => $h_name
                         ];
                     }
 
-                    // Absolute Sorting Hierarchy
-                    usort($rows, function($a, $b) {
-                        // 1. Status Non-OK terlempar ke bawah
-                        $aOk = ($a['status'] === 'OK') ? 0 : 1;
-                        $bOk = ($b['status'] === 'OK') ? 0 : 1;
-                        if ($aOk !== $bOk) return $aOk - $bOk;
-                        
-                        // 2. Rank manual penentu utama
-                        $aRank = ($a['rank'] === '') ? 999999 : (int)$a['rank'];
-                        $bRank = ($b['rank'] === '') ? 999999 : (int)$b['rank'];
-                        if ($aRank !== $bRank) return $aRank - $bRank;
-                        
-                        // 3. Point tertinggi
-                        if ($a['point'] !== $b['point']) return $b['point'] - $a['point'];
-                        
-                        // 4. Time tercepat (ASC)
-                        $aTime = ($a['time'] === '') ? '99:99.999' : $a['time'];
-                        $bTime = ($b['time'] === '') ? '99:99.999' : $b['time'];
-                        return strcmp($aTime, $bTime);
-                    });
-
-                    $currentRank = 1;
                     $count = 0;
-                    foreach ($rows as $row) {
-                        // Jika status bukan OK, hapus rank mutlaknya agar tidak rancu
-                        $finalRank = ($row['status'] === 'OK') ? $currentRank++ : null;
-                        $finalTime = ($row['time'] === '') ? null : $row['time'];
-                        
-                        if (!empty($row['result_id'])) {
-                            $stmtUpdate->execute([
-                                $finalTime,
-                                $finalRank,
-                                $row['point'],
-                                $row['status'],
-                                $row['result_id'],
-                                $eventId
-                            ]);
-                        } else {
-                            $stmtInsert->execute([
-                                $eventId,
-                                $filter_class_id,
-                                $row['skater_id'],
-                                $filter_heat,
-                                $finalTime,
-                                $finalRank,
-                                $row['point'],
-                                $row['status']
-                            ]);
+                    foreach ($heatsGrouped as $heatName => $rows) {
+                        // Absolute Sorting Hierarchy Per Heat
+                        usort($rows, function($a, $b) {
+                            // 1. Status Non-OK terlempar ke bawah
+                            $aOk = ($a['status'] === 'OK') ? 0 : 1;
+                            $bOk = ($b['status'] === 'OK') ? 0 : 1;
+                            if ($aOk !== $bOk) return $aOk - $bOk;
+                            
+                            // 2. Rank manual penentu utama
+                            $aRank = ($a['rank'] === '') ? 999999 : (int)$a['rank'];
+                            $bRank = ($b['rank'] === '') ? 999999 : (int)$b['rank'];
+                            if ($aRank !== $bRank) return $aRank - $bRank;
+                            
+                            // 3. Point tertinggi
+                            if ($a['point'] !== $b['point']) return $b['point'] - $a['point'];
+                            
+                            // 4. Time tercepat (ASC)
+                            $aTime = ($a['time'] === '') ? '99:99.999' : $a['time'];
+                            $bTime = ($b['time'] === '') ? '99:99.999' : $b['time'];
+                            return strcmp($aTime, $bTime);
+                        });
+
+                        $currentRank = 1;
+                        foreach ($rows as $row) {
+                            // Jika status bukan OK, hapus rank mutlaknya agar tidak rancu
+                            $finalRank = ($row['status'] === 'OK') ? $currentRank++ : null;
+                            $finalTime = ($row['time'] === '') ? null : $row['time'];
+                            
+                            if (!empty($row['result_id'])) {
+                                $stmtUpdate->execute([
+                                    $finalTime,
+                                    $finalRank,
+                                    $row['point'],
+                                    $row['status'],
+                                    $row['result_id'],
+                                    $eventId
+                                ]);
+                            } else {
+                                $stmtInsert->execute([
+                                    $eventId,
+                                    $filter_class_id,
+                                    $row['skater_id'],
+                                    $row['heat_name'],
+                                    $finalTime,
+                                    $finalRank,
+                                    $row['point'],
+                                    $row['status']
+                                ]);
+                            }
+                            $count++;
                         }
-                        $count++;
                     }
                     
                     $db->commit();
@@ -190,7 +227,7 @@ class RollResultController extends Controller {
                 }
             }
 
-            header("Location: " . getenv('APP_URL') . "/roll/admin/results?race_class_id=" . $filter_class_id . "&heat_name=" . urlencode($filter_heat));
+            header("Location: " . getenv('APP_URL') . "/roll/admin/results?race_class_id=" . $filter_class_id);
             exit;
         }
     }

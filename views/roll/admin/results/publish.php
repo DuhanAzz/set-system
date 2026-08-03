@@ -36,8 +36,9 @@
             <table class="w-full text-left border-collapse">
                 <thead>
                     <tr class="bg-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-200">
-                        <th class="px-6 py-4 w-24 text-center">No.</th>
+                        <th class="px-6 py-4 w-32 text-center">No. Lomba</th>
                         <th class="px-6 py-4">Kategori Lomba</th>
+                        <th class="px-6 py-4 text-center w-32">Gender</th>
                         <th class="px-6 py-4 text-center w-32">Status Data</th>
                         <th class="px-6 py-4 text-right w-40">Live Result?</th>
                     </tr>
@@ -45,9 +46,11 @@
                 <tbody class="divide-y divide-slate-100">
                     <?php foreach($classes as $index => $c): 
                         $isPublished = ($c['result_status'] == 'Published');
+                        $isPutra = stripos($c['group_name'], 'putra') !== false;
+                        $gender = $isPutra ? 'PUTRA' : (stripos($c['group_name'], 'putri') !== false ? 'PUTRI' : 'CAMPUR');
                     ?>
                     <tr class="hover:bg-slate-50 transition-colors">
-                        <td class="px-6 py-4 text-center font-black text-slate-400 text-lg">#<?= $index + 1 ?></td>
+                        <td class="px-6 py-4 text-center font-black text-slate-400 text-sm">No. Lomba <?= $index + 1 ?></td>
                         <td class="px-6 py-4">
                             <div class="font-black text-slate-800 uppercase text-sm leading-tight mb-1">
                                 <?= htmlspecialchars($c['distance_name'] ?? '') ?> 
@@ -55,6 +58,11 @@
                             <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
                                 <?= htmlspecialchars($c['category_name'] ?? '') ?> • <?= htmlspecialchars($c['group_name'] ?? '') ?>
                             </div>
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            <span class="px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border <?= $isPutra ? 'bg-blue-50 text-blue-600 border-blue-200' : ($gender == 'PUTRI' ? 'bg-pink-50 text-pink-600 border-pink-200' : 'bg-purple-50 text-purple-600 border-purple-200') ?>">
+                                <?= $gender ?>
+                            </span>
                         </td>
                         <td class="px-6 py-4 text-center">
                             <?php if($isPublished): ?>

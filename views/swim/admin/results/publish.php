@@ -22,7 +22,7 @@
         <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full lg:w-auto">
             <div class="w-full sm:w-64">
                 <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Pilih Event Aktif:</label>
-                <select id="eventSelector" onchange="window.location.href='<?= getenv('APP_URL') ?>/swim/results/publish?event_id='+this.value" class="w-full bg-white border border-slate-300 text-slate-700 text-xs font-bold rounded-xl px-4 py-2.5 shadow-sm cursor-pointer transition focus:border-blue-500 focus:outline-none">
+                <select id="eventSelector" onchange="window.location.href='<?= getenv('APP_URL') ?>/swim/admin/results/publish?event_id='+this.value" class="w-full bg-white border border-slate-300 text-slate-700 text-xs font-bold rounded-xl px-4 py-2.5 shadow-sm cursor-pointer transition focus:border-blue-500 focus:outline-none">
                     <?php foreach($myEvents as $ev): ?>
                         <option value="<?= $ev['id'] ?>" <?= ($ev['id'] == $eventId) ? 'selected' : '' ?>><?= htmlspecialchars($ev['event_name']) ?></option>
                     <?php endforeach; ?>
@@ -44,7 +44,7 @@
     <?php if($eventId > 0): ?>
     <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-200 mb-8">
         <h2 class="text-sm font-black text-slate-800 uppercase tracking-widest mb-4">📥 Unggah Dokumen Perlombaan</h2>
-        <form action="<?= getenv('APP_URL') ?>/swim/results/publish" method="POST" enctype="multipart/form-data" class="flex flex-col md:flex-row items-end gap-4">
+        <form action="<?= getenv('APP_URL') ?>/swim/admin/results/publish" method="POST" enctype="multipart/form-data" class="flex flex-col md:flex-row items-end gap-4">
             <input type="hidden" name="event_id" value="<?= $eventId ?>">
             <input type="hidden" name="upload_doc" value="1">
             
@@ -135,7 +135,7 @@ function toggleEventPublish(checkboxElem, eventId) {
     formData.append('event_id', eventId);
     formData.append('is_result_published', isChecked);
 
-    fetch('<?= getenv('APP_URL') ?>/swim/results/publish', {
+    fetch('<?= getenv('APP_URL') ?>/swim/admin/results/publish', {
         method: 'POST',
         body: formData
     })
@@ -168,7 +168,7 @@ function togglePublish(checkboxElem, eventNumberId) {
     formData.append('event_number_id', eventNumberId);
     formData.append('is_published', isChecked);
 
-    fetch('<?= getenv('APP_URL') ?>/swim/results/publish', {
+    fetch('<?= getenv('APP_URL') ?>/swim/admin/results/publish', {
         method: 'POST',
         body: formData
     })
