@@ -195,6 +195,84 @@ class RollResultController extends Controller {
         }
     }
 
+    public function publish_page() {
+        $db = Database::getInstance()->getConnection();
+        $eventId = $_SESSION['roll_admin_active_event_id'] ?? 0;
+
+        if ($eventId == 0) {
+            $_SESSION['flash_message'] = "Pilih Event terlebih dahulu!";
+            $_SESSION['flash_type'] = "warning";
+            header("Location: " . getenv('APP_URL') . "/roll/admin/dashboard");
+            exit;
+        }
+
+        // --- AJAX HANDLER UNTUK SAKLAR (TOGGLE) ---
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+            header('Content-Type: application/json');
+            
+            if ($_POST['action'] === 'toggle_publish') {
+                $classId = $_POST['class_id'] ?? 0;
+                $status = $_POST['is_published'] ?? 'Draft';
+                try {
+                    $stmt = $db->prepare("UPDATE roll_event_details SET result_status = ? WHERE id = ?");
+                    $stmt->execute([$status, $classId]);
+                    echo json_encode(['success' => true, 'message' => 'Status berhasil diubah!']);
+                } catch (\Exception $e) {
+                    echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
+                }
+                exit; 
+            }
+            
+            if ($_POST['action'] === 'toggle_event_publish') {
+                $evId = $_POST['event_id'] ?? 0;
+                $status = $_POST['is_result_published'] ?? 0;
+                try {
+                    $stmt = $db->prepare("UPDATE roll_events SET is_result_published = ? WHERE id = ?");
+                    $stmt->execute([$status, $evId]);
+                    echo json_encode(['success' => true, 'message' => 'Status publikasi global berhasil diubah!']);
+                } catch (\Exception $e) {
+                    // Coba tambahkan kolom jika belum ada
+                    try {
+                        $db->exec("ALTER TABLE roll_events ADD COLUMN is_result_published TINYINT(1) DEFAULT 0");
+                        $stmt = $db->prepare("UPDATE roll_events SET is_result_published = ? WHERE id = ?");
+                        $stmt->execute([$status, $evId]);
+                        echo json_encode(['success' => true, 'message' => 'Status publikasi global berhasil diubah (Kolom baru dibuat)!']);
+                    } catch (\Exception $ex) {
+                        echo json_encode(['success' => false, 'message' => 'Error: ' . $ex->getMessage()]);
+                    }
+                }
+                exit;
+            }
+        }
+
+        // Coba periksa apakah kolom is_result_published ada, jika tidak tambah otomatis saat halaman dimuat
+        try {
+            $stmtEv = $db->prepare("SELECT id, event_name, is_result_published FROM roll_events WHERE id = ?");
+            $stmtEv->execute([$eventId]);
+        } catch (\Exception $e) {
+            $db->exec("ALTER TABLE roll_events ADD COLUMN is_result_published TINYINT(1) DEFAULT 0");
+            $stmtEv = $db->prepare("SELECT id, event_name, is_result_published FROM roll_events WHERE id = ?");
+            $stmtEv->execute([$eventId]);
+        }
+        $eventInfo = $stmtEv->fetch(PDO::FETCH_ASSOC);
+
+        // Fetch Classes
+        $stmtClasses = $db->prepare("SELECT ed.id, d.distance_name, a.group_name, ed.category_name, ed.result_status 
+                                     FROM roll_event_details ed 
+                                     LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id 
+                                     LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id 
+                                     WHERE ed.event_id = ?
+                                     ORDER BY ed.id ASC");
+        $stmtClasses->execute([$eventId]);
+        $classes = $stmtClasses->fetchAll(PDO::FETCH_ASSOC);
+
+        return $this->view('roll/admin/results/publish', [
+            'classes' => $classes,
+            'eventInfo' => $eventInfo,
+            'eventId' => $eventId
+        ]);
+    }
+
     public function publish() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $db = Database::getInstance()->getConnection();
