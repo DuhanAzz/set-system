@@ -78,30 +78,30 @@ $heroSubtitle = $s['hero_subtitle'] ?? 'Professional Timing System';
                 </div>
 
                 <!-- Hamburger Button (Mobile Only) -->
-                <button id="mobile-menu-btn" class="lg:hidden text-white hover:text-blue-400 focus:outline-none ml-auto z-[60] relative">
+                <button id="mobile-menu-btn" class="lg:hidden text-white hover:text-blue-400 focus:outline-none ml-auto z-50 relative">
                     <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
                 </button>
             </div>
         </div>
-
-        <!-- Mobile Menu Container -->
-        <div id="mobile-menu" class="fixed inset-0 bg-slate-900/95 backdrop-blur-sm z-[55] hidden flex-col pt-32 px-10 transition-all duration-300 transform translate-x-full">
-            <a href="#home" class="mobile-nav-link text-2xl font-black text-white uppercase tracking-widest mb-6 hover:text-blue-400 border-b border-slate-800 pb-4 block">Home</a>
-            <a href="<?= getenv('APP_URL') ?>/swim/events" class="mobile-nav-link text-2xl font-black text-white uppercase tracking-widest mb-6 hover:text-blue-400 border-b border-slate-800 pb-4 block">Jadwal Lomba</a>
-            <a href="<?= getenv('APP_URL') ?>/swim/results" class="mobile-nav-link text-2xl font-black text-white uppercase tracking-widest mb-6 hover:text-blue-400 border-b border-slate-800 pb-4 block">Hasil Lomba</a>
-            <a href="#instruction" class="mobile-nav-link text-2xl font-black text-white uppercase tracking-widest mb-8 hover:text-blue-400 border-b border-slate-800 pb-4 block">Panduan</a>
-            
-            <?php if(isset($_SESSION['swim_user_id'])): 
-                $dashLink = getenv('APP_URL') . '/swim/user/dashboard';
-                if(isset($_SESSION['swim_role']) && $_SESSION['swim_role'] == 'master') $dashLink = getenv('APP_URL') . '/swim/master/dashboard';
-                if(isset($_SESSION['swim_role']) && $_SESSION['swim_role'] == 'admin') $dashLink = getenv('APP_URL') . '/swim/admin/dashboard';
-            ?>
-                <a href="<?= $dashLink ?>" class="bg-blue-600 text-white text-center py-4 rounded-xl font-black uppercase tracking-widest shadow-xl hover:bg-blue-700 block w-full">Dashboard</a>
-            <?php else: ?>
-                <a href="<?= getenv('APP_URL') ?>/swim/login" class="bg-blue-600 text-white text-center py-4 rounded-xl font-black uppercase tracking-widest shadow-xl hover:bg-blue-700 block w-full">Login / Daftar</a>
-            <?php endif; ?>
-        </div>
     </nav>
+
+    <!-- MOBILE MENU OVERLAY -->
+    <div id="mobile-menu" class="fixed inset-0 bg-[#0F172A]/95 backdrop-blur-md z-40 hidden flex-col justify-center items-center text-center space-y-8 transition-opacity duration-300 opacity-0">
+        <a href="#home" class="mobile-nav-link text-3xl font-teko font-black text-white uppercase tracking-widest hover:text-[#3b82f6] transition-colors">Home</a>
+        <a href="<?= getenv('APP_URL') ?>/swim/events" class="mobile-nav-link text-3xl font-teko font-black text-white uppercase tracking-widest hover:text-[#3b82f6] transition-colors">Jadwal Lomba</a>
+        <a href="<?= getenv('APP_URL') ?>/swim/results" class="mobile-nav-link text-3xl font-teko font-black text-white uppercase tracking-widest hover:text-[#3b82f6] transition-colors">Hasil Lomba</a>
+        <a href="#instruction" class="mobile-nav-link text-3xl font-teko font-black text-white uppercase tracking-widest hover:text-[#3b82f6] transition-colors">Panduan</a>
+        
+        <?php if(isset($_SESSION['swim_user_id'])): 
+            $dashLink = getenv('APP_URL') . '/swim/user/dashboard';
+            if(isset($_SESSION['swim_role']) && $_SESSION['swim_role'] == 'master') $dashLink = getenv('APP_URL') . '/swim/master/dashboard';
+            if(isset($_SESSION['swim_role']) && $_SESSION['swim_role'] == 'admin') $dashLink = getenv('APP_URL') . '/swim/admin/dashboard';
+        ?>
+            <a href="<?= $dashLink ?>" class="bg-blue-600 text-white px-10 py-4 mt-6 rounded font-black text-sm uppercase tracking-widest shadow-xl hover:bg-blue-700 mobile-nav-link">Dashboard</a>
+        <?php else: ?>
+            <a href="<?= getenv('APP_URL') ?>/swim/login" class="bg-blue-600 text-white px-10 py-4 mt-6 rounded font-black text-sm uppercase tracking-widest shadow-xl hover:bg-blue-700 mobile-nav-link">Login / Daftar</a>
+        <?php endif; ?>
+    </div>
 
     <section id="home" class="h-screen min-h-[850px] flex items-center relative overflow-hidden">
         <div id="slider" class="absolute inset-0">
@@ -328,20 +328,23 @@ $heroSubtitle = $s['hero_subtitle'] ?? 'Professional Timing System';
             mobileMenuBtn.addEventListener('click', () => {
                 if (mobileMenu.classList.contains('hidden')) {
                     mobileMenu.classList.remove('hidden');
-                    setTimeout(() => { mobileMenu.classList.remove('translate-x-full'); }, 10);
+                    setTimeout(() => { mobileMenu.classList.remove('opacity-0'); }, 10);
                     mobileMenuBtn.innerHTML = '<svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>';
+                    document.body.style.overflow = 'hidden';
                 } else {
-                    mobileMenu.classList.add('translate-x-full');
+                    mobileMenu.classList.add('opacity-0');
                     setTimeout(() => { mobileMenu.classList.add('hidden'); }, 300);
                     mobileMenuBtn.innerHTML = '<svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>';
+                    document.body.style.overflow = '';
                 }
             });
 
             mobileNavLinks.forEach(link => {
                 link.addEventListener('click', () => {
-                    mobileMenu.classList.add('translate-x-full');
+                    mobileMenu.classList.add('opacity-0');
                     setTimeout(() => { mobileMenu.classList.add('hidden'); }, 300);
                     mobileMenuBtn.innerHTML = '<svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>';
+                    document.body.style.overflow = '';
                 });
             });
         }

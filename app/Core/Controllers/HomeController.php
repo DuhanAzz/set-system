@@ -23,11 +23,18 @@ class HomeController extends Controller {
             $stmt_sliders = $db->query("SELECT * FROM universal_hero_images ORDER BY id DESC");
             $sliders = $stmt_sliders->fetchAll(PDO::FETCH_ASSOC);
             
-            // 3. Tarik data event terbaru (swim_events) - Akan dijadikan global events nantinya
-            $sqlEvents = "SELECT id, event_name, event_city, event_date_start, poster_image 
-                          FROM swim_events 
-                          WHERE event_status != 'Draft' 
-                          ORDER BY id DESC LIMIT 6";
+            // 3. Tarik data event terbaru (swim_events dan roll_events)
+            $sqlEvents = "
+                SELECT 'swim' AS system_type, id, event_name, event_city, event_date_start, poster_image, created_at 
+                FROM swim_events 
+                WHERE event_status != 'Draft'
+                UNION ALL
+                SELECT 'roll' AS system_type, id, event_name, event_city, event_date_start, poster_image, created_at 
+                FROM roll_events 
+                WHERE status != 'Draft'
+                ORDER BY event_date_start DESC, created_at DESC 
+                LIMIT 6
+            ";
             $stmt_events = $db->query($sqlEvents);
             $events = $stmt_events->fetchAll(PDO::FETCH_ASSOC);
         } catch (\Exception $e) {

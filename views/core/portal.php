@@ -75,12 +75,24 @@ $heroImage = !empty($sliders) ? ltrim($sliders[0]['image_path'], '/') : 'https:/
                     <a href="<?= getenv('APP_URL') ?>/roll" class="nav-link">Sistem Sepatu Roda</a>
                     <a href="#events" class="nav-link">Jadwal Event</a>
                 </div>
-                <div class="flex items-center lg:border-l lg:border-white/20 lg:pl-10">
+                <div class="hidden lg:flex items-center lg:border-l lg:border-white/20 lg:pl-10">
                     <a href="<?= getenv('APP_URL') ?>/core/login" class="bg-[#f25822] hover:bg-orange-600 text-white px-8 py-3 rounded font-black text-xs uppercase tracking-widest shadow-xl transition transform hover:-translate-y-1">Login Admin</a>
                 </div>
+                <!-- MOBILE TOGGLE BUTTON -->
+                <button id="mobile-menu-btn" class="lg:hidden text-white focus:outline-none z-50">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                </button>
             </div>
         </div>
     </nav>
+
+    <!-- MOBILE MENU OVERLAY -->
+    <div id="mobile-menu" class="fixed inset-0 bg-[#0F172A]/95 backdrop-blur-md z-40 hidden flex-col justify-center items-center text-center space-y-8 transition-opacity duration-300 opacity-0">
+        <a href="<?= getenv('APP_URL') ?>/swim" class="text-white text-3xl font-teko font-black uppercase tracking-widest hover:text-[#f25822] transition-colors mobile-nav-link">Sistem Renang</a>
+        <a href="<?= getenv('APP_URL') ?>/roll" class="text-white text-3xl font-teko font-black uppercase tracking-widest hover:text-[#f25822] transition-colors mobile-nav-link">Sistem Sepatu Roda</a>
+        <a href="#events" class="text-white text-3xl font-teko font-black uppercase tracking-widest hover:text-[#f25822] transition-colors mobile-nav-link">Jadwal Event</a>
+        <a href="<?= getenv('APP_URL') ?>/core/login" class="bg-[#f25822] text-white px-10 py-4 mt-6 rounded font-black text-sm uppercase tracking-widest shadow-xl mobile-nav-link">Login Admin</a>
+    </div>
 
     <!-- HERO SECTION -->
     <section class="relative h-screen min-h-[700px] flex items-center justify-center overflow-hidden bg-slate-950">
@@ -175,8 +187,7 @@ $heroImage = !empty($sliders) ? ltrim($sliders[0]['image_path'], '/') : 'https:/
                 <?php if (!empty($events)): ?>
                     <?php foreach ($events as $index => $e): ?>
                         <?php 
-                            $eventNameLower = strtolower($e['event_name']);
-                            $isRoll = (strpos($eventNameLower, 'sepatu roda') !== false || strpos($eventNameLower, 'skate') !== false || strpos($eventNameLower, 'roll') !== false);
+                            $isRoll = ($e['system_type'] === 'roll');
                         ?>
                         <div class="group bg-slate-50 border border-slate-200 shadow-sm p-8 hover:shadow-xl transition-all flex flex-col cursor-pointer relative" onclick="window.location.href='<?= getenv('APP_URL') ?>/<?= $isRoll ? 'roll' : 'swim' ?>/event?id=<?= $e['id'] ?>'">
                             <div class="absolute top-6 right-6 w-16 h-16 opacity-20 grayscale group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-500">
@@ -352,6 +363,38 @@ $heroImage = !empty($sliders) ? ltrim($sliders[0]['image_path'], '/') : 'https:/
                     imgs[cur].classList.remove('opacity-0');
                     imgs[cur].classList.add('opacity-100');
                 }, 5000); 
+            }
+        });
+
+        // MOBILE MENU JS
+        document.addEventListener('DOMContentLoaded', () => {
+            const mobileBtn = document.getElementById('mobile-menu-btn');
+            const mobileMenu = document.getElementById('mobile-menu');
+            const mobileLinks = document.querySelectorAll('.mobile-nav-link');
+
+            if(mobileBtn && mobileMenu) {
+                mobileBtn.addEventListener('click', () => {
+                    if(mobileMenu.classList.contains('hidden')) {
+                        mobileMenu.classList.remove('hidden');
+                        setTimeout(() => mobileMenu.classList.remove('opacity-0'), 10);
+                        mobileBtn.innerHTML = '<svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>';
+                        document.body.style.overflow = 'hidden';
+                    } else {
+                        mobileMenu.classList.add('opacity-0');
+                        setTimeout(() => mobileMenu.classList.add('hidden'), 300);
+                        mobileBtn.innerHTML = '<svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>';
+                        document.body.style.overflow = '';
+                    }
+                });
+
+                mobileLinks.forEach(link => {
+                    link.addEventListener('click', () => {
+                        mobileMenu.classList.add('opacity-0');
+                        setTimeout(() => mobileMenu.classList.add('hidden'), 300);
+                        mobileBtn.innerHTML = '<svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>';
+                        document.body.style.overflow = '';
+                    });
+                });
             }
         });
     </script>
