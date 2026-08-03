@@ -87,11 +87,37 @@ $heroImage = !empty($sliders) ? ltrim($sliders[0]['image_path'], '/') : 'https:/
     </nav>
 
     <!-- MOBILE MENU OVERLAY -->
-    <div id="mobile-menu" class="fixed inset-0 bg-[#0F172A]/95 backdrop-blur-md z-40 hidden flex-col justify-center items-center text-center space-y-8 transition-opacity duration-300 opacity-0">
-        <a href="<?= getenv('APP_URL') ?>/swim" class="text-white text-3xl font-teko font-black uppercase tracking-widest hover:text-[#f25822] transition-colors mobile-nav-link">Sistem Renang</a>
-        <a href="<?= getenv('APP_URL') ?>/roll" class="text-white text-3xl font-teko font-black uppercase tracking-widest hover:text-[#f25822] transition-colors mobile-nav-link">Sistem Sepatu Roda</a>
-        <a href="#events" class="text-white text-3xl font-teko font-black uppercase tracking-widest hover:text-[#f25822] transition-colors mobile-nav-link">Jadwal Event</a>
-        <a href="<?= getenv('APP_URL') ?>/core/login" class="bg-[#f25822] text-white px-10 py-4 mt-6 rounded font-black text-sm uppercase tracking-widest shadow-xl mobile-nav-link">Login Admin</a>
+    <div id="mobile-menu" class="fixed inset-0 bg-slate-950/95 backdrop-blur-xl z-40 hidden flex-col transition-opacity duration-300 opacity-0">
+        <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-slate-800/20 via-slate-950/80 to-slate-950 pointer-events-none"></div>
+        
+        <div class="relative flex-1 flex flex-col justify-center px-8 text-center pt-24 pb-10 overflow-y-auto">
+            <img src="<?= getenv('APP_URL') ?>/img/logo.png" class="h-12 mx-auto mb-10 object-contain opacity-50">
+            
+            <nav class="flex flex-col gap-4">
+                <a href="<?= getenv('APP_URL') ?>/swim" class="group relative py-3 mobile-nav-link">
+                    <span class="text-white text-3xl font-teko font-black uppercase tracking-widest group-hover:text-[#f25822] transition-colors">Sistem Renang</span>
+                    <div class="absolute bottom-0 left-1/4 right-1/4 h-px bg-slate-800 group-hover:bg-[#f25822]/50 transition-colors"></div>
+                </a>
+                <a href="<?= getenv('APP_URL') ?>/roll" class="group relative py-3 mobile-nav-link">
+                    <span class="text-white text-3xl font-teko font-black uppercase tracking-widest group-hover:text-[#f25822] transition-colors">Sistem Sepatu Roda</span>
+                    <div class="absolute bottom-0 left-1/4 right-1/4 h-px bg-slate-800 group-hover:bg-[#f25822]/50 transition-colors"></div>
+                </a>
+                <a href="#events" class="group relative py-3 mobile-nav-link">
+                    <span class="text-white text-3xl font-teko font-black uppercase tracking-widest group-hover:text-[#f25822] transition-colors">Jadwal Event</span>
+                    <div class="absolute bottom-0 left-1/4 right-1/4 h-px bg-slate-800 group-hover:bg-[#f25822]/50 transition-colors"></div>
+                </a>
+            </nav>
+            
+            <div class="mt-12">
+                <a href="<?= getenv('APP_URL') ?>/core/login" class="inline-block w-full max-w-xs mx-auto bg-gradient-to-r from-[#f25822] to-orange-500 text-white px-8 py-4 rounded-full font-black text-sm uppercase tracking-widest shadow-[0_10px_20px_-10px_rgba(242,88,34,0.5)] active:scale-95 transition-transform mobile-nav-link">
+                    Login Admin
+                </a>
+            </div>
+            
+            <div class="mt-auto pt-12 text-slate-600 text-[10px] font-black tracking-widest uppercase">
+                &copy; <?= date('Y') ?> SET SYSTEM
+            </div>
+        </div>
     </div>
 
     <!-- HERO SECTION -->
@@ -375,13 +401,13 @@ $heroImage = !empty($sliders) ? ltrim($sliders[0]['image_path'], '/') : 'https:/
             if(mobileBtn && mobileMenu) {
                 mobileBtn.addEventListener('click', () => {
                     if(mobileMenu.classList.contains('hidden')) {
-                        mobileMenu.classList.remove('hidden');
+                        mobileMenu.classList.replace('hidden', 'flex');
                         setTimeout(() => mobileMenu.classList.remove('opacity-0'), 10);
                         mobileBtn.innerHTML = '<svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>';
                         document.body.style.overflow = 'hidden';
                     } else {
                         mobileMenu.classList.add('opacity-0');
-                        setTimeout(() => mobileMenu.classList.add('hidden'), 300);
+                        setTimeout(() => mobileMenu.classList.replace('flex', 'hidden'), 300);
                         mobileBtn.innerHTML = '<svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>';
                         document.body.style.overflow = '';
                     }
@@ -390,7 +416,7 @@ $heroImage = !empty($sliders) ? ltrim($sliders[0]['image_path'], '/') : 'https:/
                 mobileLinks.forEach(link => {
                     link.addEventListener('click', () => {
                         mobileMenu.classList.add('opacity-0');
-                        setTimeout(() => mobileMenu.classList.add('hidden'), 300);
+                        setTimeout(() => mobileMenu.classList.replace('flex', 'hidden'), 300);
                         mobileBtn.innerHTML = '<svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>';
                         document.body.style.overflow = '';
                     });

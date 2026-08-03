@@ -109,19 +109,45 @@ $eventFallbackImg = !empty($s['event_fallback_image']) ? rtrim(getenv('APP_URL')
     </nav>
 
     <!-- MOBILE MENU OVERLAY -->
-    <div id="mobile-menu" class="fixed inset-0 bg-[#0F172A]/95 backdrop-blur-md z-40 hidden flex-col justify-center items-center text-center space-y-8 transition-opacity duration-300 opacity-0">
-        <a href="#home" class="mobile-nav-link text-3xl font-teko font-black text-white uppercase tracking-widest hover:text-[#ea580c] transition-colors">Home</a>
-        <a href="<?= getenv('APP_URL') ?>/roll/events" class="mobile-nav-link text-3xl font-teko font-black text-white uppercase tracking-widest hover:text-[#ea580c] transition-colors">Jadwal Lomba</a>
-        <a href="<?= getenv('APP_URL') ?>/roll/results" class="mobile-nav-link text-3xl font-teko font-black text-white uppercase tracking-widest hover:text-[#ea580c] transition-colors">Hasil Lomba</a>
-        <a href="#instruction" class="mobile-nav-link text-3xl font-teko font-black text-white uppercase tracking-widest hover:text-[#ea580c] transition-colors">Panduan</a>
+    <div id="mobile-menu" class="fixed inset-0 bg-slate-950/95 backdrop-blur-xl z-40 hidden flex-col transition-opacity duration-300 opacity-0">
+        <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-slate-800/20 via-slate-950/80 to-slate-950 pointer-events-none"></div>
         
-        <?php if(isset($_SESSION['roll_user_id'])): 
-            $dashLink = getenv('APP_URL') . '/roll/dashboard';
-        ?>
-            <a href="<?= $dashLink ?>" class="bg-orange-600 text-white px-10 py-4 mt-6 rounded font-black text-sm uppercase tracking-widest shadow-xl hover:bg-orange-700 mobile-nav-link">Dashboard</a>
-        <?php else: ?>
-            <a href="<?= getenv('APP_URL') ?>/roll/login" class="bg-orange-600 text-white px-10 py-4 mt-6 rounded font-black text-sm uppercase tracking-widest shadow-xl hover:bg-orange-700 mobile-nav-link">Login / Daftar</a>
-        <?php endif; ?>
+        <div class="relative flex-1 flex flex-col justify-center px-8 text-center pt-24 pb-10 overflow-y-auto">
+            <img src="<?= getenv('APP_URL') ?>/img/logo.png" class="h-12 mx-auto mb-10 object-contain opacity-50">
+            
+            <nav class="flex flex-col gap-4">
+                <a href="#home" class="group relative py-3 mobile-nav-link">
+                    <span class="text-white text-3xl font-teko font-black uppercase tracking-widest group-hover:text-[#ea580c] transition-colors">Home</span>
+                    <div class="absolute bottom-0 left-1/4 right-1/4 h-px bg-slate-800 group-hover:bg-[#ea580c]/50 transition-colors"></div>
+                </a>
+                <a href="<?= getenv('APP_URL') ?>/roll/events" class="group relative py-3 mobile-nav-link">
+                    <span class="text-white text-3xl font-teko font-black uppercase tracking-widest group-hover:text-[#ea580c] transition-colors">Jadwal Lomba</span>
+                    <div class="absolute bottom-0 left-1/4 right-1/4 h-px bg-slate-800 group-hover:bg-[#ea580c]/50 transition-colors"></div>
+                </a>
+                <a href="<?= getenv('APP_URL') ?>/roll/results" class="group relative py-3 mobile-nav-link">
+                    <span class="text-white text-3xl font-teko font-black uppercase tracking-widest group-hover:text-[#ea580c] transition-colors">Hasil Lomba</span>
+                    <div class="absolute bottom-0 left-1/4 right-1/4 h-px bg-slate-800 group-hover:bg-[#ea580c]/50 transition-colors"></div>
+                </a>
+                <a href="#instruction" class="group relative py-3 mobile-nav-link">
+                    <span class="text-white text-3xl font-teko font-black uppercase tracking-widest group-hover:text-[#ea580c] transition-colors">Panduan</span>
+                    <div class="absolute bottom-0 left-1/4 right-1/4 h-px bg-slate-800 group-hover:bg-[#ea580c]/50 transition-colors"></div>
+                </a>
+            </nav>
+            
+            <div class="mt-12">
+                <?php if(isset($_SESSION['roll_user_id'])): 
+                    $dashLink = getenv('APP_URL') . '/roll/dashboard';
+                ?>
+                    <a href="<?= $dashLink ?>" class="inline-block w-full max-w-xs mx-auto bg-gradient-to-r from-[#ea580c] to-orange-500 text-white px-8 py-4 rounded-full font-black text-sm uppercase tracking-widest shadow-[0_10px_20px_-10px_rgba(234,88,12,0.5)] active:scale-95 transition-transform mobile-nav-link">Dashboard</a>
+                <?php else: ?>
+                    <a href="<?= getenv('APP_URL') ?>/roll/login" class="inline-block w-full max-w-xs mx-auto bg-gradient-to-r from-[#ea580c] to-orange-500 text-white px-8 py-4 rounded-full font-black text-sm uppercase tracking-widest shadow-[0_10px_20px_-10px_rgba(234,88,12,0.5)] active:scale-95 transition-transform mobile-nav-link">Login / Daftar</a>
+                <?php endif; ?>
+            </div>
+            
+            <div class="mt-auto pt-12 text-slate-600 text-[10px] font-black tracking-widest uppercase">
+                &copy; <?= date('Y') ?> SET SYSTEM
+            </div>
+        </div>
     </div>
 
     <section id="home" class="h-screen min-h-[850px] flex items-center relative overflow-hidden">
@@ -354,13 +380,13 @@ $eventFallbackImg = !empty($s['event_fallback_image']) ? rtrim(getenv('APP_URL')
         if(mobileMenuBtn && mobileMenu) {
             mobileMenuBtn.addEventListener('click', () => {
                 if (mobileMenu.classList.contains('hidden')) {
-                    mobileMenu.classList.remove('hidden');
+                    mobileMenu.classList.replace('hidden', 'flex');
                     setTimeout(() => { mobileMenu.classList.remove('opacity-0'); }, 10);
                     mobileMenuBtn.innerHTML = '<svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>';
                     document.body.style.overflow = 'hidden';
                 } else {
                     mobileMenu.classList.add('opacity-0');
-                    setTimeout(() => { mobileMenu.classList.add('hidden'); }, 300);
+                    setTimeout(() => { mobileMenu.classList.replace('flex', 'hidden'); }, 300);
                     mobileMenuBtn.innerHTML = '<svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>';
                     document.body.style.overflow = '';
                 }
@@ -369,7 +395,7 @@ $eventFallbackImg = !empty($s['event_fallback_image']) ? rtrim(getenv('APP_URL')
             mobileNavLinks.forEach(link => {
                 link.addEventListener('click', () => {
                     mobileMenu.classList.add('opacity-0');
-                    setTimeout(() => { mobileMenu.classList.add('hidden'); }, 300);
+                    setTimeout(() => { mobileMenu.classList.replace('flex', 'hidden'); }, 300);
                     mobileMenuBtn.innerHTML = '<svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>';
                     document.body.style.overflow = '';
                 });
