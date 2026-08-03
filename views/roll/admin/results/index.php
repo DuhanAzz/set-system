@@ -59,25 +59,79 @@
 
         <?php if ($eventId > 0): ?>
 
+        <?php if ($filter_class_id == 0): ?>
+            <!-- SWIM STYLE CARDS FOR CLASSES -->
+            <div class="space-y-4 pb-20">
+                <?php if(empty($classes)): ?>
+                    <div class="bg-white rounded-[2.5rem] p-16 text-center border border-slate-200 shadow-sm flex flex-col items-center">
+                        <div class="text-6xl mb-4 grayscale opacity-30">🔍</div>
+                        <h3 class="font-black text-slate-400 uppercase tracking-widest text-lg">
+                            Belum Ada Kelas Lomba
+                        </h3>
+                        <p class="text-xs font-bold text-slate-300 mt-2">
+                            Lakukan setup atau seeding terlebih dahulu.
+                        </p>
+                    </div>
+                <?php else: ?>
+                    <div class="grid grid-cols-1 gap-4">
+                    <?php foreach($classes as $idx => $ev): 
+                        $isPutra = stripos($ev['group_name'], 'putra') !== false;
+                        if($isPutra) { 
+                            $bg = 'bg-blue-50'; $txt = 'text-blue-600'; $icon='👨'; $brd='hover:border-blue-300';
+                        } elseif(stripos($ev['group_name'], 'putri') !== false) { 
+                            $bg = 'bg-pink-50'; $txt = 'text-pink-600'; $icon='👩'; $brd='hover:border-pink-300';
+                        } else { 
+                            $bg = 'bg-purple-50'; $txt = 'text-purple-600'; $icon='👫'; $brd='hover:border-purple-300';
+                        }
+                    ?>
+                    <div class="group bg-white hover:bg-slate-50 rounded-[2rem] p-5 border border-slate-200 <?= $brd ?> shadow-sm hover:shadow-lg transition-all duration-300 flex flex-col md:flex-row items-center gap-6 relative overflow-hidden">
+                        <div class="shrink-0 w-20 h-20 rounded-2xl bg-slate-900 text-white flex flex-col items-center justify-center shadow-md relative z-10 group-hover:scale-105 transition-transform">
+                            <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Kelas</span>
+                            <span class="text-3xl font-black italic"><?= str_pad($idx+1, 2, '0', STR_PAD_LEFT) ?></span>
+                        </div>
+
+                        <div class="flex-1 text-center md:text-left relative z-10 w-full">
+                            <div class="inline-flex items-center justify-center md:justify-start gap-2 mb-2 flex-wrap">
+                                <span class="px-3 py-1 rounded-lg <?= $bg ?> <?= $txt ?> text-[10px] font-black uppercase tracking-widest shadow-sm">
+                                    <?= $icon ?> <?= $isPutra ? 'PUTRA' : (stripos($ev['group_name'], 'putri') !== false ? 'PUTRI' : 'CAMPUR') ?>
+                                </span>
+                                <span class="text-[10px] font-bold text-slate-500 bg-slate-100 px-3 py-1 rounded-lg border border-slate-200">
+                                    <?= htmlspecialchars($ev['group_name']) ?>
+                                </span>
+                            </div>
+                            
+                            <h3 class="text-xl font-black text-slate-800 uppercase italic leading-tight group-hover:text-blue-600 transition-colors">
+                                <?= htmlspecialchars($ev['distance_name']) ?>
+                            </h3>
+                            <p class="text-xs font-bold text-slate-400 mt-1">
+                                <?= htmlspecialchars($ev['category_name']) ?>
+                            </p>
+                        </div>
+
+                        <div class="w-full md:w-auto flex flex-col items-center md:items-end gap-3 px-4 relative z-10">
+                            <a href="?race_class_id=<?= $ev['id'] ?>" class="w-full md:w-auto px-8 py-3 bg-blue-600 hover:bg-blue-700 shadow-blue-200 text-white rounded-xl font-bold text-xs uppercase tracking-wider shadow-lg transition flex items-center justify-center gap-2 transform active:scale-95">
+                                ⏱️ Pilih Kelas Ini
+                            </a>
+                        </div>
+                    </div>
+                    <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
+            </div>
+        <?php else: ?>
+        
+        <div class="mb-4">
+            <a href="?" class="text-blue-600 font-bold text-xs uppercase tracking-widest hover:underline flex items-center gap-1">← Kembali ke Daftar Kelas</a>
+        </div>
+
         <!-- FILTER FORM -->
         <div class="bg-slate-50/50 rounded-2xl border border-slate-200/50 shadow-xl backdrop-blur-sm p-6">
             <form action="" method="GET" class="flex flex-col md:flex-row gap-4 items-end">
-                <div class="flex-1">
-                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Pilih Kelas Lomba</label>
-                    <select name="race_class_id" class="w-full bg-white border border-slate-200 rounded-lg px-4 py-3 text-slate-800 focus:ring-2 focus:ring-blue-500" required onchange="this.form.submit()">
-                        <option value="">- Pilih Kelas -</option>
-                        <?php foreach($classes as $c): ?>
-                            <option value="<?= $c['id'] ?>" <?= $filter_class_id == $c['id'] ? 'selected' : '' ?>>
-                                <?= htmlspecialchars($c['group_name']) ?> - <?= htmlspecialchars($c['distance_name']) ?> (<?= htmlspecialchars($c['category_name']) ?>)
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
+                <input type="hidden" name="race_class_id" value="<?= $filter_class_id ?>">
                 
-                <?php if ($filter_class_id > 0): ?>
                 <div class="flex-1">
                     <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Pilih Seri (Heat)</label>
-                    <select name="heat_name" class="w-full bg-white border border-slate-200 rounded-lg px-4 py-3 text-slate-800 focus:ring-2 focus:ring-blue-500" required>
+                    <select name="heat_name" class="w-full bg-white border border-slate-200 rounded-lg px-4 py-3 text-slate-800 focus:ring-2 focus:ring-blue-500" required onchange="this.form.submit()">
                         <option value="">- Pilih Seri -</option>
                         <?php foreach($heats as $h): ?>
                             <option value="<?= $h['heat_name'] ?>" <?= $filter_heat == $h['heat_name'] ? 'selected' : '' ?>>
@@ -86,8 +140,7 @@
                         <?php endforeach; ?>
                     </select>
                 </div>
-                <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-slate-800 font-bold py-3 px-8 rounded-lg shadow-lg hover:shadow-blue-500/25 transition-all">Buka Input</button>
-                <?php endif; ?>
+                <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-slate-800 font-bold py-3 px-8 rounded-lg shadow-lg hover:shadow-blue-500/25 transition-all">Buka Input Lomba</button>
             </form>
         </div>
 
@@ -220,7 +273,7 @@
                             </button>
                         </form>
                     <?php else: ?>
-                        <form action="<?= getenv('APP_URL') ?>/roll/admin/results/publish" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin Publish hasil Official ini? Tindakan ini akan mengaktifkan algoritma Advancement (Fastest Loser) ke babak berikutnya!');">
+                        <form action="<?= getenv('APP_URL') ?>/roll/admin/results/publish_final" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin Publish hasil Official ini? Tindakan ini akan mengaktifkan algoritma Advancement (Fastest Loser) ke babak berikutnya!');">
                             <input type="hidden" name="race_class_id" value="<?= htmlspecialchars($filter_class_id) ?>">
                             <button type="submit" class="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-black py-3 px-6 rounded-lg shadow-lg hover:shadow-indigo-500/25 transition-all uppercase tracking-widest text-xs flex items-center gap-2">
                                 <span>📢</span> Publish & Proses Babak Lanjut

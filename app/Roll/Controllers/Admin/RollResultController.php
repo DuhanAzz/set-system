@@ -195,7 +195,7 @@ class RollResultController extends Controller {
         }
     }
 
-    public function publish_page() {
+    public function publish() {
         $db = Database::getInstance()->getConnection();
         $eventId = $_SESSION['roll_admin_active_event_id'] ?? 0;
 
@@ -273,7 +273,7 @@ class RollResultController extends Controller {
         ]);
     }
 
-    public function publish() {
+    public function publish_final() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $db = Database::getInstance()->getConnection();
             $eventId = $_SESSION['roll_admin_active_event_id'] ?? 0;
