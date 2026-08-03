@@ -110,12 +110,22 @@
                 <a href="<?= $prevUrl ?? '#' ?>" class="h-10 px-4 flex items-center justify-center rounded-l-lg font-bold text-xs uppercase transition border-r border-slate-600 <?= $prevClass ?? '' ?>">&laquo; PREV</a>
                 <div class="flex bg-slate-100 rounded-none p-1 gap-1">
                     <a href="<?= getenv('APP_URL') ?>/roll/admin/results" class="h-8 px-3 flex items-center bg-white border border-slate-300 rounded text-slate-600 font-bold text-[10px] uppercase hover:bg-slate-50">Menu</a>
-                    <!-- Removed EXPORT TXT for now as it may need specific implementation -->
+                    <a href="<?= getenv('APP_URL') ?>/roll/admin/results/input?category_id=<?= $filter_class_id ?>&export_txt=1" class="h-8 px-3 flex items-center bg-teal-500 text-white rounded font-bold text-[10px] uppercase hover:bg-teal-600 gap-1" title="Download Data ke TXT Format Stopwatch">📤 EXPORT</a>
+                    <button type="button" onclick="document.getElementById('txtUploadForm').classList.toggle('hidden')" class="h-8 px-3 flex items-center bg-emerald-500 text-white rounded font-bold text-[10px] uppercase hover:bg-emerald-600 gap-1" title="Import TXT Backup dari Stopwatch">📝 IMPORT</button>
                     <button type="button" onclick="window.print()" class="h-8 px-3 flex items-center bg-orange-500 text-white rounded font-bold text-[10px] uppercase hover:bg-orange-600 gap-1">🖨️ PDF</button>
                     <button type="submit" form="formResult" class="h-8 px-4 flex items-center bg-blue-600 text-white rounded font-bold text-[10px] uppercase hover:bg-blue-700 gap-1 shadow-sm">💾 SIMPAN</button>
                 </div>
                 <a href="<?= $nextUrl ?? '#' ?>" class="h-10 px-4 flex items-center justify-center rounded-r-lg font-bold text-xs uppercase transition border-l border-slate-600 <?= $nextClass ?? '' ?>">NEXT &raquo;</a>
             </div>
+        </div>
+
+        <!-- Form Upload TXT Hidden -->
+        <div id="txtUploadForm" class="hidden w-full border-t pt-3 mb-6 bg-emerald-50 p-3 rounded-lg border border-emerald-200">
+            <label class="block text-xs font-bold text-emerald-700 mb-2">Import Hasil Lomba dari File .TXT Stopwatch (Fallback)</label>
+            <form method="POST" enctype="multipart/form-data" class="flex gap-2 items-center">
+                <input type="file" name="txt_backup" accept=".txt" required class="text-xs w-full p-1 bg-white border border-emerald-200 rounded">
+                <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-1.5 rounded font-bold text-xs whitespace-nowrap shadow-sm">Upload & Sinkron</button>
+            </form>
         </div>
 
         <?php if (!empty($heatsData)): ?>
