@@ -51,8 +51,13 @@ class RollMedalTallyController extends Controller {
         $stmtTally->execute([$eventId]);
         $medalTally = $stmtTally->fetchAll(PDO::FETCH_ASSOC);
 
+        $stmtEvt = $db->prepare("SELECT * FROM roll_events WHERE id = ?");
+        $stmtEvt->execute([$eventId]);
+        $eventInfo = $stmtEvt->fetch(PDO::FETCH_ASSOC);
+
         return $this->view('roll/admin/medal_tally/index', [
             'medalTally' => $medalTally,
+            'eventInfo' => $eventInfo,
             'eventId' => $eventId
         ]);
     }
@@ -112,8 +117,13 @@ class RollMedalTallyController extends Controller {
             $groupedMVP[$key][] = $mvp;
         }
 
+        $stmtEvt = $db->prepare("SELECT * FROM roll_events WHERE id = ?");
+        $stmtEvt->execute([$eventId]);
+        $eventInfo = $stmtEvt->fetch(PDO::FETCH_ASSOC);
+
         return $this->view('roll/admin/medal_tally/best_skater', [
             'groupedMVP' => $groupedMVP,
+            'eventInfo' => $eventInfo,
             'eventId' => $eventId
         ]);
     }
