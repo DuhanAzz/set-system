@@ -31,10 +31,11 @@ class RollResultController extends Controller {
         $filter_heat = $_GET['heat_name'] ?? '';
 
         // Fetch Classes (roll_event_details) for dropdown
-        $stmtClasses = $db->prepare("SELECT ed.id, d.distance_name, a.group_name, ed.category_name 
+        $stmtClasses = $db->prepare("SELECT ed.id, ed.race_number, d.distance_name, a.group_name, sc.class_name as skate_class_name, ed.gender
                                      FROM roll_event_details ed 
                                      LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id 
                                      LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id 
+                                     LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
                                      WHERE ed.event_id = ?");
         $stmtClasses->execute([$eventId]);
         $classes = $stmtClasses->fetchAll(PDO::FETCH_ASSOC);

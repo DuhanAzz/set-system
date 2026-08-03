@@ -46,47 +46,40 @@
                         </p>
                     </div>
                 <?php else: ?>
-                    <div class="grid grid-cols-1 gap-4">
+                    <div class="space-y-3">
                     <?php foreach($classes as $idx => $ev): 
-                        $isPutra = stripos($ev['group_name'], 'putra') !== false;
-                        if($isPutra) { 
-                            $bg = 'bg-blue-50'; $txt = 'text-blue-600'; $icon='👨'; $brd='hover:border-blue-300';
-                        } elseif(stripos($ev['group_name'], 'putri') !== false) { 
-                            $bg = 'bg-pink-50'; $txt = 'text-pink-600'; $icon='👩'; $brd='hover:border-pink-300';
-                        } else { 
-                            $bg = 'bg-purple-50'; $txt = 'text-purple-600'; $icon='👫'; $brd='hover:border-purple-300';
+                        $raceNum = str_pad($ev['race_number'] ?? ($idx+1), 3, '0', STR_PAD_LEFT);
+                        $genderDb = strtolower($ev['gender'] ?? '');
+                        if (strpos($genderDb, 'putra') !== false) {
+                            $genderLabel = 'Pa';
+                        } elseif (strpos($genderDb, 'putri') !== false) {
+                            $genderLabel = 'Pi';
+                        } else {
+                            $genderLabel = 'Pa & Pi';
                         }
                     ?>
-                    <div class="group bg-white hover:bg-slate-50 rounded-[2rem] p-5 border border-slate-200 <?= $brd ?> shadow-sm hover:shadow-lg transition-all duration-300 flex flex-col md:flex-row items-center gap-6 relative overflow-hidden">
-                        <div class="shrink-0 w-20 h-20 rounded-2xl bg-slate-900 text-white flex flex-col items-center justify-center shadow-md relative z-10 group-hover:scale-105 transition-transform">
-                            <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Kelas</span>
-                            <span class="text-3xl font-black italic"><?= str_pad($idx+1, 2, '0', STR_PAD_LEFT) ?></span>
-                        </div>
-
-                        <div class="flex-1 text-center md:text-left relative z-10 w-full">
-                            <div class="inline-flex items-center justify-center md:justify-start gap-2 mb-2 flex-wrap">
-                                <span class="px-3 py-1 rounded-lg <?= $bg ?> <?= $txt ?> text-[10px] font-black uppercase tracking-widest shadow-sm">
-                                    <?= $icon ?> <?= $isPutra ? 'PUTRA' : (stripos($ev['group_name'], 'putri') !== false ? 'PUTRI' : 'CAMPUR') ?>
-                                </span>
-                                <span class="text-[10px] font-bold text-slate-500 bg-slate-100 px-3 py-1 rounded-lg border border-slate-200">
-                                    <?= htmlspecialchars($ev['group_name']) ?>
-                                </span>
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-slate-50 rounded-xl border border-slate-200 hover:bg-slate-100 transition-colors">
+                            <div class="flex items-center gap-3">
+                                <div class="bg-blue-600 text-white font-black text-sm px-3 py-1.5 rounded-lg shadow-sm">R<?= $raceNum ?></div>
+                                <div>
+                                    <div class="text-sm font-black text-slate-800 uppercase tracking-widest">
+                                        <?= htmlspecialchars($ev['distance_name']) ?> - <?= htmlspecialchars($ev['group_name']) ?> <?= $genderLabel ?>
+                                    </div>
+                                    <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5 flex items-center gap-2">
+                                        <span class="bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded">
+                                            Kategori: <?= htmlspecialchars($ev['skate_class_name'] ?? 'Umum') ?>
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
                             
-                            <h3 class="text-xl font-black text-slate-800 uppercase italic leading-tight group-hover:text-blue-600 transition-colors">
-                                <?= htmlspecialchars($ev['distance_name']) ?>
-                            </h3>
-                            <p class="text-xs font-bold text-slate-400 mt-1">
-                                <?= htmlspecialchars($ev['category_name']) ?>
-                            </p>
+                            <div class="flex items-center gap-2">
+                                <a href="?race_class_id=<?= $ev['id'] ?>" class="bg-blue-100 hover:bg-blue-200 text-blue-700 p-2 px-4 rounded-lg transition-colors flex items-center gap-2 shadow-sm border border-blue-200" title="Input Hasil">
+                                    <span class="text-sm">⏱️</span>
+                                    <span class="text-xs font-bold uppercase tracking-widest hidden sm:inline">Pilih Kelas Ini</span>
+                                </a>
+                            </div>
                         </div>
-
-                        <div class="w-full md:w-auto flex flex-col items-center md:items-end gap-3 px-4 relative z-10">
-                            <a href="?race_class_id=<?= $ev['id'] ?>" class="w-full md:w-auto px-8 py-3 bg-blue-600 hover:bg-blue-700 shadow-blue-200 text-white rounded-xl font-bold text-xs uppercase tracking-wider shadow-lg transition flex items-center justify-center gap-2 transform active:scale-95">
-                                ⏱️ Pilih Kelas Ini
-                            </a>
-                        </div>
-                    </div>
                     <?php endforeach; ?>
                     </div>
                 <?php endif; ?>
@@ -97,10 +90,21 @@
         
         <!-- Navigation Top Bar (Swim Style) -->
         <div class="bg-slate-800 rounded-lg p-2 flex flex-col md:flex-row justify-between items-center gap-2 mb-6">
-            <div class="flex items-center gap-2 text-white font-bold text-xs uppercase px-4 text-center md:text-left">
-                <span class="opacity-50">MODE LOMBA: <?= htmlspecialchars($raceFormat) ?></span>
-                <span class="hidden md:inline">|</span>
-                <span><?= htmlspecialchars($raceInfo['distance_name'] ?? '') ?> - <?= htmlspecialchars($raceInfo['group_name'] ?? '') ?></span>
+            <div class="flex items-center gap-2 text-white font-bold text-[11px] uppercase px-4 text-center md:text-left">
+                <?php 
+                    $hdrRaceNum = str_pad($raceInfo['race_number'] ?? '', 3, '0', STR_PAD_LEFT);
+                    $hdrGenderDb = strtolower($raceInfo['gender'] ?? '');
+                    if (strpos($hdrGenderDb, 'putra') !== false) {
+                        $hdrGenderLabel = 'Pa';
+                    } elseif (strpos($hdrGenderDb, 'putri') !== false) {
+                        $hdrGenderLabel = 'Pi';
+                    } else {
+                        $hdrGenderLabel = 'Pa & Pi';
+                    }
+                ?>
+                <span>R<?= $hdrRaceNum ?> - <?= htmlspecialchars($raceFormat) ?> - <?= htmlspecialchars($raceInfo['distance_name'] ?? '') ?> - <?= htmlspecialchars($raceInfo['group_name'] ?? '') ?> - <?= $hdrGenderLabel ?></span>
+                <span class="hidden md:inline opacity-50">|</span>
+                <span class="text-blue-300">Kategori: <?= htmlspecialchars($raceInfo['skate_class_name'] ?? 'Umum') ?></span>
             </div>
             <div class="flex items-center gap-2">
                 <a href="<?= $prevUrl ?? '#' ?>" class="h-10 px-4 flex items-center justify-center rounded-l-lg font-bold text-xs uppercase transition border-r border-slate-600 <?= $prevClass ?? '' ?>">&laquo; PREV</a>
