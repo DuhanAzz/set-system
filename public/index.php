@@ -299,7 +299,8 @@ switch ($module) {
                     'bibs'      => '\\App\\Roll\\Controllers\\Admin\\RollBibController',
                     'pelotons'  => '\\App\\Roll\\Controllers\\Admin\\RollPelotonController',
                     'results'   => '\\App\\Roll\\Controllers\\Admin\\RollResultController',
-                    'reports'   => '\\App\\Roll\\Controllers\\Admin\\RollReportController'
+                    'medal_tally'=> '\\App\\Roll\\Controllers\\Admin\\RollMedalTallyController',
+                    'export'    => '\\App\\Roll\\Controllers\\Admin\\RollExportController'
                 ],
                 'User' => [
                     'dashboard'    => '\\App\\Roll\\Controllers\\User\\RollUserDashboardController',
