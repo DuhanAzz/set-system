@@ -150,7 +150,7 @@ $eventFallbackImg = !empty($s['event_fallback_image']) ? rtrim(getenv('APP_URL')
         </div>
     </div>
 
-    <section id="home" class="h-screen min-h-[850px] flex items-center relative overflow-hidden">
+    <section id="home" class="h-[80vh] min-h-[500px] md:h-screen md:min-h-[700px] flex items-center relative overflow-hidden">
         <div id="slider" class="absolute inset-0">
             <?php foreach($sliders as $index => $slide): 
                 $slideImg = (strpos($slide['image_path'], 'http') === 0) ? $slide['image_path'] : rtrim(getenv('APP_URL'), '/') . '/uploads/hero/' . ltrim(str_replace('img/hero/', '', $slide['image_path']), '/');

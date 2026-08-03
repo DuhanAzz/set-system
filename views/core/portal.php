@@ -121,7 +121,7 @@ $heroImage = !empty($sliders) ? ltrim($sliders[0]['image_path'], '/') : 'https:/
     </div>
 
     <!-- HERO SECTION -->
-    <section class="relative h-screen min-h-[700px] flex items-center justify-center overflow-hidden bg-slate-950">
+    <section class="relative h-[80vh] min-h-[500px] md:h-screen md:min-h-[700px] flex items-center justify-center overflow-hidden bg-slate-950">
         <div id="hero-slider" class="absolute inset-0">
             <?php if (!empty($sliders)): ?>
                 <?php foreach ($sliders as $index => $slide): ?>
@@ -321,7 +321,7 @@ $heroImage = !empty($sliders) ? ltrim($sliders[0]['image_path'], '/') : 'https:/
             ? (strpos($promoSetting, 'http') === 0 ? htmlspecialchars($promoSetting) : getenv('APP_URL') . '/' . htmlspecialchars($promoSetting)) 
             : $promoDefault;
     ?>
-    <section class="relative py-40 bg-cover bg-fixed bg-center" style="background-image: url('<?= $promoBg ?>');">
+    <section class="relative py-32 md:py-40 bg-cover bg-scroll lg:bg-fixed bg-center" style="background-image: url('<?= $promoBg ?>');">
         <div class="absolute inset-0 bg-slate-950/70 z-0"></div>
         <div class="relative z-10 container mx-auto px-6 text-center max-w-4xl space-y-10">
             <h2 class="font-teko text-6xl md:text-8xl font-black text-white uppercase tracking-wide leading-none drop-shadow-xl">
