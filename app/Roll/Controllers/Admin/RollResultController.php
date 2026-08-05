@@ -78,7 +78,7 @@ class RollResultController extends Controller {
                 LEFT JOIN roll_event_results r ON p.skater_id = r.skater_id AND p.race_class_id = r.race_class_id AND p.event_id = r.event_id AND p.heat_name = r.heat_name
                 LEFT JOIN roll_entries e ON p.skater_id = e.skater_id AND p.race_class_id = e.race_class_id AND p.event_id = e.event_id
                 WHERE p.event_id = ? AND p.race_class_id = ?
-                ORDER BY p.heat_name ASC, CASE WHEN COALESCE(r.status, 'OK') = 'OK' THEN 0 ELSE 1 END ASC, r.rank IS NULL, r.rank ASC, r.point DESC, r.time ASC, p.start_grid ASC
+                ORDER BY CAST(REPLACE(p.heat_name, 'Heat ', '') AS UNSIGNED) ASC, p.heat_name ASC, CASE WHEN COALESCE(r.status, 'OK') = 'OK' THEN 0 ELSE 1 END ASC, r.rank IS NULL, r.rank ASC, r.point DESC, r.time ASC, p.start_grid ASC
             ");
             $stmtRes->execute([$eventId, $filter_class_id]);
             $raw_results = $stmtRes->fetchAll(PDO::FETCH_ASSOC);
@@ -455,4 +455,120 @@ class RollResultController extends Controller {
             exit;
         }
     }
+    
+    public function export_csv() {
+        $db = Database::getInstance()->getConnection();
+        $eventId = $_SESSION['roll_admin_active_event_id'] ?? 0;
+        $classId = $_GET['race_class_id'] ?? 0;
+
+        if ($eventId > 0 && $classId > 0) {
+            $stmtC = $db->prepare("SELECT ed.race_number, d.distance_name, a.group_name, ed.gender, sc.class_name 
+                                  FROM roll_event_details ed
+                                  LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
+                                  LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id
+                                  LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
+                                  WHERE ed.id = ?");
+            $stmtC->execute([$classId]);
+            $raceInfo = $stmtC->fetch(PDO::FETCH_ASSOC);
+            $raceLabel = "R" . str_pad($raceInfo['race_number'], 3, '0', STR_PAD_LEFT) . " - " . ($raceInfo['distance_name'] ?? '') . " - " . ($raceInfo['group_name'] ?? '') . " - " . ($raceInfo['gender'] ?? '') . " | Kategori: " . ($raceInfo['class_name'] ?? 'Umum');
+            $safeFilename = preg_replace('/[^A-Za-z0-9_]/', '_', str_replace(' ', '_', $raceLabel));
+            
+            $stmt = $db->prepare("
+                SELECT e.bib_number, p.heat_name, s.skater_name
+                FROM roll_pelotons p
+                JOIN roll_entries e ON p.skater_id = e.skater_id AND p.race_class_id = e.race_class_id AND p.event_id = e.event_id
+                JOIN roll_skaters s ON p.skater_id = s.id
+                WHERE p.event_id = ? AND p.race_class_id = ?
+                ORDER BY CAST(REPLACE(p.heat_name, 'Heat ', '') AS UNSIGNED) ASC, p.heat_name ASC, p.start_grid ASC
+            ");
+            $stmt->execute([$eventId, $classId]);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            header('Content-Type: text/csv; charset=utf-8');
+            header('Content-Disposition: attachment; filename="Export_' . $safeFilename . '.csv"');
+            
+            $output = fopen('php://output', 'w');
+            fputcsv($output, ['INFO', $raceLabel]);
+            fputcsv($output, ['BIB', 'TIME', 'HEAT', 'NAME']);
+            
+            foreach ($rows as $row) {
+                fputcsv($output, [$row['bib_number'], '00.00.000', $row['heat_name'], $row['skater_name']]);
+            }
+            fclose($output);
+            exit;
+        }
+    }
+
+    public function import_csv() {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['csv_backup'])) {
+            $db = Database::getInstance()->getConnection();
+            $eventId = $_SESSION['roll_admin_active_event_id'] ?? 0;
+            $classId = $_POST['race_class_id'] ?? 0;
+
+            if ($eventId > 0 && $classId > 0 && $_FILES['csv_backup']['error'] == UPLOAD_ERR_OK) {
+                $file = fopen($_FILES['csv_backup']['tmp_name'], 'r');
+                
+                $db->beginTransaction();
+                try {
+                    while (($lineStr = fgets($file)) !== false) {
+                        // Detect delimiter
+                        $delimiter = (strpos($lineStr, ';') !== false && strpos($lineStr, ',') === false) ? ';' : ',';
+                        $data = str_getcsv($lineStr, $delimiter);
+                        
+                        if (count($data) < 2) continue;
+                        
+                        $bib = trim($data[0]);
+                        $bibLower = strtolower($bib);
+                        if (empty($bib) || $bibLower === 'bib' || $bibLower === 'info') continue;
+                        
+                        $time = trim($data[1]);
+                        
+                        // Normalize time format to 00:00.000 if Excel truncated it (e.g., 00:00.0 -> 00:00.000)
+                        if (preg_match('/^\d{2}:\d{2}\.\d{1,2}$/', $time)) {
+                            $time = str_pad($time, 9, '0');
+                        }
+                        
+                        $heat = isset($data[2]) ? trim($data[2]) : '';
+                            
+                            // Find skater by bib
+                            $stmtS = $db->prepare("SELECT skater_id FROM roll_entries WHERE event_id = ? AND race_class_id = ? AND bib_number = ?");
+                            $stmtS->execute([$eventId, $classId, $bib]);
+                            $skater = $stmtS->fetch(PDO::FETCH_ASSOC);
+                            
+                            if ($skater) {
+                                $skaterId = $skater['skater_id'];
+                                // Check if result exists
+                                $stmtR = $db->prepare("SELECT id FROM roll_event_results WHERE event_id = ? AND race_class_id = ? AND skater_id = ?");
+                                $stmtR->execute([$eventId, $classId, $skaterId]);
+                                if ($stmtR->rowCount() > 0) {
+                                    $stmtUpd = $db->prepare("UPDATE roll_event_results SET time = ? WHERE event_id = ? AND race_class_id = ? AND skater_id = ?");
+                                    $stmtUpd->execute([$time, $eventId, $classId, $skaterId]);
+                                } else {
+                                    $stmtIns = $db->prepare("INSERT INTO roll_event_results (event_id, race_class_id, round, skater_id, heat_name, time, status, is_official) VALUES (?, ?, 'Kualifikasi', ?, ?, ?, 'OK', 0)");
+                                    if (empty($heat)) {
+                                        $stmtP = $db->prepare("SELECT heat_name FROM roll_pelotons WHERE event_id = ? AND race_class_id = ? AND skater_id = ?");
+                                        $stmtP->execute([$eventId, $classId, $skaterId]);
+                                        $heat = $stmtP->fetchColumn() ?: 'Heat 1';
+                                    }
+                                    $stmtIns->execute([$eventId, $classId, $skaterId, $heat, $time]);
+                                }
+                            }
+                    }
+                    fclose($file);
+                    $db->commit();
+                    $_SESSION['flash_message'] = "Data hasil berhasil di-import dari CSV!";
+                    $_SESSION['flash_type'] = "success";
+                } catch (\Exception $e) {
+                    if (isset($file) && is_resource($file)) fclose($file);
+                    $db->rollBack();
+                    $_SESSION['flash_message'] = "Gagal import: " . $e->getMessage();
+                    $_SESSION['flash_type'] = "error";
+                }
+            }
+            header("Location: " . getenv('APP_URL') . "/roll/admin/results?race_class_id=" . $classId);
+            exit;
+        }
+    }
+
+
 }

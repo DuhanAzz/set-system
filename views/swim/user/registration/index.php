@@ -256,8 +256,15 @@ function fillAllBestTimes() {
 function closeModal() { document.getElementById('modalEntry').classList.add('hidden'); }
 function hapusAtletDariList() {
     const swId = document.getElementById('mSwimmerId').value;
-    if (confirm('Apakah Anda yakin ingin menghapus atlet ini dari daftar lomba? Semua nomor lomba yang ia ikuti di event ini akan ikut terhapus.')) {
-        window.location.href = '?remove_swimmer=' + swId;
+    const msg = 'Apakah Anda yakin ingin menghapus atlet ini dari daftar lomba? Semua nomor lomba yang ia ikuti di event ini akan ikut terhapus.';
+    if (typeof showCustomConfirm === 'function') {
+        showCustomConfirm(msg, function() {
+            window.location.href = '?remove_swimmer=' + swId;
+        });
+    } else {
+        if (confirm(msg)) {
+            window.location.href = '?remove_swimmer=' + swId;
+        }
     }
 }
 </script>

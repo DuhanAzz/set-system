@@ -110,8 +110,8 @@
                 <a href="<?= $prevUrl ?? '#' ?>" class="h-10 px-4 flex items-center justify-center rounded-l-lg font-bold text-xs uppercase transition border-r border-slate-600 <?= $prevClass ?? '' ?>">&laquo; PREV</a>
                 <div class="flex bg-slate-100 rounded-none p-1 gap-1">
                     <a href="<?= getenv('APP_URL') ?>/roll/admin/results" class="h-8 px-3 flex items-center bg-white border border-slate-300 rounded text-slate-600 font-bold text-[10px] uppercase hover:bg-slate-50">Menu</a>
-                    <a href="<?= getenv('APP_URL') ?>/roll/admin/results/input?category_id=<?= $filter_class_id ?>&export_txt=1" class="h-8 px-3 flex items-center bg-teal-500 text-white rounded font-bold text-[10px] uppercase hover:bg-teal-600 gap-1" title="Download Data ke TXT Format Stopwatch">📤 EXPORT</a>
-                    <button type="button" onclick="document.getElementById('txtUploadForm').classList.toggle('hidden')" class="h-8 px-3 flex items-center bg-emerald-500 text-white rounded font-bold text-[10px] uppercase hover:bg-emerald-600 gap-1" title="Import TXT Backup dari Stopwatch">📝 IMPORT</button>
+                    <a href="<?= getenv('APP_URL') ?>/roll/admin/results/export_csv?race_class_id=<?= $filter_class_id ?>" class="h-8 px-3 flex items-center bg-teal-500 text-white rounded font-bold text-[10px] uppercase hover:bg-teal-600 gap-1" title="Download Data ke CSV Format Stopwatch">📤 EXPORT</a>
+                    <button type="button" onclick="document.getElementById('csvUploadForm').classList.toggle('hidden')" class="h-8 px-3 flex items-center bg-emerald-500 text-white rounded font-bold text-[10px] uppercase hover:bg-emerald-600 gap-1" title="Import CSV Backup dari Stopwatch">📝 IMPORT</button>
                     <button type="button" onclick="window.print()" class="h-8 px-3 flex items-center bg-orange-500 text-white rounded font-bold text-[10px] uppercase hover:bg-orange-600 gap-1">🖨️ PDF</button>
                     <button type="submit" form="formResult" class="h-8 px-4 flex items-center bg-blue-600 text-white rounded font-bold text-[10px] uppercase hover:bg-blue-700 gap-1 shadow-sm">💾 SIMPAN</button>
                 </div>
@@ -119,11 +119,12 @@
             </div>
         </div>
 
-        <!-- Form Upload TXT Hidden -->
-        <div id="txtUploadForm" class="hidden w-full border-t pt-3 mb-6 bg-emerald-50 p-3 rounded-lg border border-emerald-200">
-            <label class="block text-xs font-bold text-emerald-700 mb-2">Import Hasil Lomba dari File .TXT Stopwatch (Fallback)</label>
-            <form method="POST" enctype="multipart/form-data" class="flex gap-2 items-center">
-                <input type="file" name="txt_backup" accept=".txt" required class="text-xs w-full p-1 bg-white border border-emerald-200 rounded">
+        <!-- Form Upload CSV Hidden -->
+        <div id="csvUploadForm" class="hidden w-full border-t pt-3 mb-6 bg-emerald-50 p-3 rounded-lg border border-emerald-200">
+            <label class="block text-xs font-bold text-emerald-700 mb-2">Import Hasil Lomba dari File .CSV (Format: BIB, TIME)</label>
+            <form method="POST" action="<?= getenv('APP_URL') ?>/roll/admin/results/import_csv" enctype="multipart/form-data" class="flex gap-2 items-center">
+                <input type="hidden" name="race_class_id" value="<?= $filter_class_id ?>">
+                <input type="file" name="csv_backup" accept=".csv" required class="text-xs w-full p-1 bg-white border border-emerald-200 rounded">
                 <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-1.5 rounded font-bold text-xs whitespace-nowrap shadow-sm">Upload & Sinkron</button>
             </form>
         </div>
@@ -147,13 +148,6 @@
                         <?php if($raceFormat === 'ELIMINASI'): ?>
                             <span class="px-3 py-1 bg-red-100 text-red-600 border border-red-200 rounded-lg text-xs font-bold uppercase tracking-widest">Sisa <?= count($results) - $totalEliminated ?></span>
                         <?php endif; ?>
-                    </div>
-                    <!-- Hardware Target Selector -->
-                    <div class="flex items-center gap-2">
-                        <label class="flex items-center gap-2 cursor-pointer bg-white px-4 py-2 rounded-xl border-2 border-slate-200 hover:border-blue-300 hover:bg-blue-50 transition peer-checked:border-blue-500 peer-checked:bg-blue-50">
-                            <input type="radio" name="hardware_target" value="<?= htmlspecialchars($heatName) ?>" class="w-4 h-4 text-blue-600 focus:ring-blue-500">
-                            <span class="text-xs font-black text-slate-600 uppercase tracking-wider">🔵 Target Hardware</span>
-                        </label>
                     </div>
                 </div>
                 
@@ -199,7 +193,7 @@
                                     <input type="number" step="1" name="rank[]" value="<?= $r['rank'] ?>" class="input-rank shadow-sm" id="rank_<?= $r['skater_id'] ?>" <?= $is_official ? 'disabled' : '' ?>>
                                 </td>
                                 <td class="p-3">
-                                    <input type="text" name="time[]" value="<?= htmlspecialchars($r['time'] ?? '') ?>" class="input-time shadow-sm" placeholder="00:00.000" id="time_<?= $r['skater_id'] ?>" <?= $is_official ? 'disabled' : '' ?>>
+                                    <input type="text" name="time[]" value="<?= htmlspecialchars($r['time'] ?? '00.00.000') ?>" class="input-time shadow-sm" placeholder="00.00.000" id="time_<?= $r['skater_id'] ?>" <?= $is_official ? 'disabled' : '' ?> autocomplete="off" onfocus="if(this.value==='00.00.000')this.value='';" onblur="if(this.value==='')this.value='00.00.000';">
                                 </td>
                                 
                                 <?php if($raceFormat === 'PTP'): ?>
@@ -247,14 +241,7 @@
             <?php endif; ?>
         </form>
         
-        <?php if(!$is_official): ?>
-        <!-- Floating SIMPAN Action -->
-        <div class="fixed bottom-0 left-0 right-0 p-4 bg-white/90 backdrop-blur-md border-t border-slate-200 shadow-[0_-10px_20px_rgba(0,0,0,0.05)] z-50 flex justify-center">
-            <button type="submit" form="formResult" class="bg-blue-600 hover:bg-blue-700 text-white font-black py-4 px-12 rounded-2xl shadow-xl hover:shadow-blue-500/25 transition-all text-sm uppercase tracking-widest flex items-center gap-3">
-                💾 Simpan Hasil Sementara (Provisional)
-            </button>
-        </div>
-        <?php endif; ?>
+
 
         <!-- OFFICIAL / PUBLISH ACTIONS -->
         <?php if(!empty($heatsData)): ?>
@@ -390,17 +377,8 @@
         // Integrasi hardware Stopwatch Arduino
         function receiveHardwareData(data) {
             console.log("Hardware Data Received:", data);
-            // Contoh struktur data: { bib: '054', time: '01:05.123' }
-            
-            let activeRadio = document.querySelector('input[name="hardware_target"]:checked');
-            if (!activeRadio) {
-                console.warn("Target Hardware (Seri/Heat) belum dipilih!");
-                alert("Silakan pilih 🔵 Target Hardware (Seri) yang sedang berjalan!");
-                return;
-            }
-            
-            let heatName = activeRadio.value;
-            let heatTable = document.querySelector(`.heat-table[data-heat="${heatName}"]`);
+            let targetHeat = "Heat 1"; // Default fallback since radio button is removed
+            let heatTable = document.querySelector(`.heat-table[data-heat="${targetHeat}"]`);
             
             if (heatTable) {
                 let row = heatTable.querySelector(`tr[data-bib="${data.bib}"]`);

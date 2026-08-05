@@ -153,9 +153,17 @@
 
 <script>
 function openModal(action) {
-    if(confirm(action === 'approve' ? 'Terima & Kunci Data?' : 'Batal/Tolak Verifikasi?')) {
-        document.getElementById('modalActionInput').value = action;
-        document.getElementById('actionForm').submit();
+    const msg = action === 'approve' ? 'Terima & Kunci Data?' : 'Batal/Tolak Verifikasi?';
+    if (typeof showCustomConfirm === 'function') {
+        showCustomConfirm(msg, function() {
+            document.getElementById('modalActionInput').value = action;
+            document.getElementById('actionForm').submit();
+        });
+    } else {
+        if(confirm(msg)) {
+            document.getElementById('modalActionInput').value = action;
+            document.getElementById('actionForm').submit();
+        }
     }
 }
 </script>
