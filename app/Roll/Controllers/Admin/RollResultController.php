@@ -521,6 +521,9 @@ class RollResultController extends Controller {
                         $bibLower = strtolower($bib);
                         if (empty($bib) || $bibLower === 'bib' || $bibLower === 'info') continue;
                         
+                        // Force BIB to be 3 digits (e.g. 36 -> 036) to match database format
+                        $bib = str_pad($bib, 3, '0', STR_PAD_LEFT);
+                        
                         $time = trim($data[1]);
                         
                         // Normalize time format to 00:00.000 if Excel truncated it (e.g., 00:00.0 -> 00:00.000)
