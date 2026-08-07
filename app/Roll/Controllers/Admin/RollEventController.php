@@ -795,6 +795,7 @@ class RollEventController extends Controller {
         $hero_slider_images = $existing['hero_slider_images'] ?? null;
         $juknis_pdf = $existing['juknis_pdf'] ?? null;
         $promo_image = $existing['promo_image'] ?? null;
+        $contact_instagram = $_POST['contact_instagram'] ?? '';
 
         $uploadDir = __DIR__ . '/../../../../public/uploads/landing/';
         if (!is_dir($uploadDir)) {
@@ -882,11 +883,11 @@ class RollEventController extends Controller {
         // Upsert
         try {
             if ($existing) {
-                $stmtUpdate = $db->prepare("UPDATE roll_event_landing_pages SET slug=?, hero_title=?, hero_subtitle=?, about_text=?, contact_whatsapp=?, contact_email=?, theme_color=?, status=?, logo_image=?, hero_slider_images=?, juknis_pdf=?, promo_image=? WHERE event_id=?");
-                $stmtUpdate->execute([$slug, $hero_title, $hero_subtitle, $about_text, $contact_whatsapp, $contact_email, $theme_color, $status, $logo_image, $hero_slider_images, $juknis_pdf, $promo_image, $event_id]);
+                $stmtUpdate = $db->prepare("UPDATE roll_event_landing_pages SET slug=?, hero_title=?, hero_subtitle=?, about_text=?, contact_whatsapp=?, contact_email=?, contact_instagram=?, theme_color=?, status=?, logo_image=?, hero_slider_images=?, juknis_pdf=?, promo_image=? WHERE event_id=?");
+                $stmtUpdate->execute([$slug, $hero_title, $hero_subtitle, $about_text, $contact_whatsapp, $contact_email, $contact_instagram, $theme_color, $status, $logo_image, $hero_slider_images, $juknis_pdf, $promo_image, $event_id]);
             } else {
-                $stmtInsert = $db->prepare("INSERT INTO roll_event_landing_pages (event_id, slug, hero_title, hero_subtitle, about_text, contact_whatsapp, contact_email, theme_color, status, logo_image, hero_slider_images, juknis_pdf, promo_image) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-                $stmtInsert->execute([$event_id, $slug, $hero_title, $hero_subtitle, $about_text, $contact_whatsapp, $contact_email, $theme_color, $status, $logo_image, $hero_slider_images, $juknis_pdf, $promo_image]);
+                $stmtInsert = $db->prepare("INSERT INTO roll_event_landing_pages (event_id, slug, hero_title, hero_subtitle, about_text, contact_whatsapp, contact_email, contact_instagram, theme_color, status, logo_image, hero_slider_images, juknis_pdf, promo_image) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                $stmtInsert->execute([$event_id, $slug, $hero_title, $hero_subtitle, $about_text, $contact_whatsapp, $contact_email, $contact_instagram, $theme_color, $status, $logo_image, $hero_slider_images, $juknis_pdf, $promo_image]);
             }
 
             $_SESSION['flash_message'] = "Landing Page berhasil disimpan!";

@@ -338,6 +338,10 @@
                     <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Kontak Email</label>
                     <input type="email" name="contact_email" value="<?= htmlspecialchars($landing['contact_email'] ?? '') ?>" placeholder="info@example.com" class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-800 focus:ring-2 focus:ring-purple-500">
                 </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Instagram (Username/URL)</label>
+                    <input type="text" name="contact_instagram" value="<?= htmlspecialchars($landing['contact_instagram'] ?? '') ?>" placeholder="https://instagram.com/akun atau @akun" class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-800 focus:ring-2 focus:ring-purple-500">
+                </div>
             </div>
             
             <div class="pt-6 border-t border-slate-200 flex justify-end gap-3">

@@ -259,6 +259,13 @@
                 <?php if (!empty($landing['contact_email'])): ?>
                     <a href="mailto:<?= htmlspecialchars($landing['contact_email']) ?>" class="hover:text-theme transition">Email</a>
                 <?php endif; ?>
+                <?php if (!empty($landing['contact_instagram'])): ?>
+                    <?php 
+                    $ig = $landing['contact_instagram'];
+                    $igLink = strpos($ig, 'http') === 0 ? $ig : 'https://instagram.com/' . ltrim($ig, '@');
+                    ?>
+                    <a href="<?= htmlspecialchars($igLink) ?>" target="_blank" class="hover:text-theme transition">Instagram</a>
+                <?php endif; ?>
             </div>
             
             <div class="text-xs text-slate-600 uppercase tracking-widest font-bold">

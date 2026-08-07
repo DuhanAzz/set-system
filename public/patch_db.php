@@ -35,7 +35,13 @@ try {
         ('roll', CURDATE(), 20)
     ");
     
-    echo "<h1>AMAN!</h1><p>Table site_visitors is ready.</p>";
+    // Add contact_instagram to roll_event_landing_pages if not exists
+    $stmt = $db->query("SHOW COLUMNS FROM roll_event_landing_pages LIKE 'contact_instagram'");
+    if ($stmt->rowCount() == 0) {
+        $db->exec("ALTER TABLE roll_event_landing_pages ADD COLUMN contact_instagram VARCHAR(255) DEFAULT NULL AFTER contact_email");
+    }
+
+    echo "<h1>AMAN!</h1><p>Table site_visitors and contact_instagram are ready.</p>";
 
 } catch (PDOException $e) {
     echo "<h1>ERROR!</h1><p>" . $e->getMessage() . "</p>";
