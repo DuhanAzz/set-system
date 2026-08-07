@@ -1,5 +1,4 @@
 <?php
-require_once __DIR__ . '/../bootstrap_or_env_parser_if_needed';
 // Let's just use the index.php env parser
 $envFile = __DIR__ . '/../.env';
 if (file_exists($envFile)) {
