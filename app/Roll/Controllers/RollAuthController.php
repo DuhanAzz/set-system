@@ -39,6 +39,22 @@ class RollAuthController extends Controller {
 
             // Validasi (Untuk sementara kita gunakan password_verify atau plain text jika hash belum diterapkan sepenuhnya)
             if ($user && password_verify($password, $user['password'])) {
+                
+                // Cek status akun
+                $status = $user['account_status'] ?? 'active';
+                if ($status === 'pending') {
+                    $_SESSION['flash_message'] = "Akun Anda belum diverifikasi oleh Master. Silakan tunggu persetujuan.";
+                    $_SESSION['flash_type'] = "warning";
+                    header("Location: " . getenv('APP_URL') . "/roll/login");
+                    exit;
+                }
+                if ($status === 'suspended') {
+                    $_SESSION['flash_message'] = "Akun Anda telah dibekukan. Silakan hubungi administrator.";
+                    $_SESSION['flash_type'] = "error";
+                    header("Location: " . getenv('APP_URL') . "/roll/login");
+                    exit;
+                }
+
                 // Set Session
                 $_SESSION['roll_user_id'] = $user['id'];
                 $_SESSION['role'] = $user['role']; // 'master', 'admin', 'user'
