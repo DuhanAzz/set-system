@@ -30,6 +30,24 @@ class RollUserAthleteController extends Controller {
         }
         $athletes = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+        $currentYear = (int)date('Y');
+        foreach ($athletes as &$s) {
+            if (!empty($s['birth_date'])) {
+                $year = (int)date('Y', strtotime($s['birth_date']));
+                $age = $currentYear - $year;
+                
+                $age_group = "Dewasa";
+                if ($age <= 6) $age_group = "KU A";
+                elseif ($age <= 8) $age_group = "KU B";
+                elseif ($age <= 10) $age_group = "KU C";
+                elseif ($age <= 12) $age_group = "KU D";
+                elseif ($age <= 14) $age_group = "Junior";
+                
+                $s['age_group'] = $age . " Thn (" . $age_group . ")";
+            }
+        }
+        unset($s);
+
         return $this->view('roll/user/athletes/index', [
             'athletes' => $athletes
         ]);
@@ -55,9 +73,11 @@ class RollUserAthleteController extends Controller {
             elseif ($age <= 10) $age_group = "KU C";
             elseif ($age <= 12) $age_group = "KU D";
             elseif ($age <= 14) $age_group = "Junior";
+            
+            $age_group_str = $age . " Thn (" . $age_group . ")";
 
             $stmt = $db->prepare("INSERT INTO roll_skaters (club_id, skater_name, gender, birth_date, age_group) VALUES (?, ?, ?, ?, ?)");
-            $stmt->execute([$club_id, $skater_name, $gender, $birth_date, $age_group]);
+            $stmt->execute([$club_id, $skater_name, $gender, $birth_date, $age_group_str]);
 
             $_SESSION['flash_message'] = "Atlet berhasil ditambahkan.";
             $_SESSION['flash_type'] = "success";
@@ -80,8 +100,21 @@ class RollUserAthleteController extends Controller {
                 $gender = $_POST['gender'] ?? '';
                 $birth_date = $_POST['birth_date'] ?? '';
 
-                $stmt = $db->prepare("UPDATE roll_skaters SET skater_name = ?, gender = ?, birth_date = ? WHERE id = ?");
-                $stmt->execute([$skater_name, $gender, $birth_date, $id]);
+                $year = (int)date('Y', strtotime($birth_date));
+                $currentYear = (int)date('Y');
+                $age = $currentYear - $year;
+                
+                $age_group = "Dewasa";
+                if ($age <= 6) $age_group = "KU A";
+                elseif ($age <= 8) $age_group = "KU B";
+                elseif ($age <= 10) $age_group = "KU C";
+                elseif ($age <= 12) $age_group = "KU D";
+                elseif ($age <= 14) $age_group = "Junior";
+                
+                $age_group_str = $age . " Thn (" . $age_group . ")";
+
+                $stmt = $db->prepare("UPDATE roll_skaters SET skater_name = ?, gender = ?, birth_date = ?, age_group = ? WHERE id = ?");
+                $stmt->execute([$skater_name, $gender, $birth_date, $age_group_str, $id]);
 
                 $_SESSION['flash_message'] = "Data atlet berhasil diperbarui.";
                 $_SESSION['flash_type'] = "success";
