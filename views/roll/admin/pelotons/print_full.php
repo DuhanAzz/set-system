@@ -99,7 +99,7 @@ $sqlAll = "SELECT
            JOIN roll_skaters s ON p.skater_id = s.id
            LEFT JOIN roll_clubs cl ON s.club_id = cl.id
            WHERE c.event_id = ?
-           ORDER BY CAST(c.race_number AS UNSIGNED) ASC, c.gender ASC, p.round ASC, p.heat_name ASC, p.start_grid ASC";
+           ORDER BY CAST(c.race_number AS UNSIGNED) ASC, c.gender ASC, a.id ASC, p.round ASC, p.heat_name ASC, p.start_grid ASC";
 
 $stmtAll = $db->prepare($sqlAll);
 $stmtAll->execute([$eventId]);
@@ -159,7 +159,7 @@ foreach ($rawData as $row) {
             $scheduleByDay[$dayDigit] = [];
         }
         
-        $scheduleByDay[$dayDigit][] = [
+        $scheduleByDay[$dayDigit][$row['class_id']] = [
             'race_number' => $row['race_number'],
             'race_time'   => $row['race_time'] ?? '00:00',
             'distance_name' => $row['distance_name'],
@@ -190,6 +190,14 @@ foreach ($rawData as $row) {
 }
 
 ksort($scheduleByDay);
+
+$fullBookByDay = [];
+foreach ($fullBook as $cid => $data) {
+    $dayDigit = (int)substr($data['meta']['nomor'], 0, 1);
+    if ($dayDigit === 0) $dayDigit = 1;
+    $fullBookByDay[$dayDigit][$cid] = $data;
+}
+ksort($fullBookByDay);
 
 // Active Columns for Colspan
 $activeColumnsCount = 0;
@@ -327,10 +335,22 @@ if ($cc['klub']) $activeColumnsCount++;
         <tbody>
             <tr>
                 <td>
-                    <!-- ============================================== -->
-                    <!-- JADWAL OTOMATIS (Sesuai dengan print_schedule) -->
-                    <!-- ============================================== -->
-                    <?php if ($showScheduleAuto && empty($scheduleImage) && !empty($scheduleByDay)): ?>
+                    <?php 
+                    $allDays = array_unique(array_merge(array_keys($scheduleByDay), array_keys($fullBookByDay)));
+                    sort($allDays);
+                    $isFirstDay = true;
+                    foreach ($allDays as $day): 
+                        $dayClasses = $scheduleByDay[$day] ?? [];
+                        $dayFullBook = $fullBookByDay[$day] ?? [];
+                    ?>
+                        <?php if (!$isFirstDay): ?>
+                            <div style="page-break-before: always;"></div>
+                        <?php endif; ?>
+                        
+                        <!-- ============================================== -->
+                        <!-- JADWAL OTOMATIS (Sesuai dengan print_schedule) -->
+                        <!-- ============================================== -->
+                    <?php if ($showScheduleAuto && empty($scheduleImage) && !empty($dayClasses)): ?>
                         <div class="schedule-section" style="page-break-after: always;">
                             <div class="schedule-title">SUSUNAN ACARA (ORDER OF EVENTS)</div>
                             
@@ -346,7 +366,7 @@ if ($cc['klub']) $activeColumnsCount++;
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <?php foreach ($scheduleByDay as $day => $dayClasses): 
+                                    <?php
                                         $dateStr = '';
                                         if (!empty($eventInfo['event_date_start'])) {
                                             try {
@@ -441,7 +461,7 @@ if ($cc['klub']) $activeColumnsCount++;
                                                 $renderPemulaGroupFull($pemulaGroup);
                                             }
                                         ?>
-                                    <?php endforeach; ?>
+
                                 </tbody>
                             </table>
                         </div>
@@ -451,10 +471,10 @@ if ($cc['klub']) $activeColumnsCount++;
                     <!-- ============================================== -->
                     <!-- DATA PESERTA (RACE BOOK / STARTING LIST)       -->
                     <!-- ============================================== -->
-                    <?php if(empty($fullBook)): ?>
+                    <?php if(empty($dayFullBook)): ?>
                         <div style="text-align:center; padding: 50px; font-weight:bold;">BELUM ADA DATA RACE BOOK</div>
                     <?php else: ?>
-                        <?php foreach($fullBook as $cid => $data): 
+                        <?php foreach($dayFullBook as $cid => $data): 
                             $meta = $data['meta'];
                             
                             $isHeat = true;
@@ -585,6 +605,10 @@ if ($cc['klub']) $activeColumnsCount++;
                             <div style="height: 10px;"></div>
                         <?php endforeach; ?>
                     <?php endif; ?>
+                    <?php 
+                    $isFirstDay = false;
+                    endforeach; 
+                    ?>
                 </td>
             </tr>
         </tbody>
