@@ -252,7 +252,12 @@
                                             <td>
                                                 <ul style="margin: 0; padding-left: 15px; font-size: 9pt;">
                                                     <?php foreach($s['items'] as $item): ?>
-                                                        <li><?= htmlspecialchars($item['stroke'] . ' (' . $item['age_group'] . ')') ?></li>
+                                                        <li>
+                                                            <?php if(!empty($item['class_name'])): ?>
+                                                                <span style="display:inline-block; padding: 1px 4px; background: #eee; border: 1px solid #ccc; border-radius: 3px; font-size: 7pt; font-weight: bold; margin-right: 4px;"><?= strtoupper($item['class_name']) ?></span>
+                                                            <?php endif; ?>
+                                                            <?= htmlspecialchars($item['stroke'] . ' (' . $item['age_group'] . ')') ?>
+                                                        </li>
                                                     <?php endforeach; ?>
                                                 </ul>
                                             </td>
