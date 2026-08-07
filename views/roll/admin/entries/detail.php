@@ -86,7 +86,7 @@
             <?php endif; ?>
             
             <?php 
-                if(!empty($phoneUser)) {
+                if(!empty($phoneUser)):
                     $waNum = preg_replace('/[^0-9]/', '', $phoneUser);
                     if(substr($waNum, 0, 1) == '0') $waNum = '62' . substr($waNum, 1);
                     
