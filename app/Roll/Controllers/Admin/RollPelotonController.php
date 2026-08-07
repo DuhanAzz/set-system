@@ -36,6 +36,19 @@ class RollPelotonController extends Controller {
         return ['mechanism' => 'heat', 'race_type' => 'sprint'];
     }
 
+    public static function getDefaultMaxLanes(string $distanceName, string $rollerName = ''): int {
+        $dist = strtolower($distanceName);
+        
+        if (strpos($dist, 'dtt') !== false) return 2;
+        if (strpos($dist, '1000') !== false) return 8;
+        if (strpos($dist, 'pair') !== false) return 4;
+        if (strpos($dist, 'relay') !== false) return 4;
+        if (strpos($dist, '500') !== false) return 6;
+        if (strpos($dist, '300') !== false) return 6;
+        
+        return 6;
+    }
+
     public function __construct() {
         if (session_status() === PHP_SESSION_NONE) session_start();
         if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
@@ -112,7 +125,7 @@ class RollPelotonController extends Controller {
                     'group_name' => $cls['group_name'],
                     'distance_name' => $cls['distance_name'],
                     'category_name' => $cls['category_name'],
-                    'max_lanes' => $cls['max_lanes'] > 0 ? (int)$cls['max_lanes'] : 6,
+                    'max_lanes' => $cls['max_lanes'] > 0 ? (int)$cls['max_lanes'] : self::getDefaultMaxLanes($cls['distance_name'], $cat),
                     'total_entries' => 0,
                     'total_pa' => 0,
                     'total_pi' => 0,
@@ -334,7 +347,7 @@ class RollPelotonController extends Controller {
                 if ($maxLanesParam > 0) {
                     $maxLanes = $maxLanesParam;
                 } else {
-                    $maxLanes = (int)($info['max_lanes'] ?? 0);
+                    $maxLanes = self::getDefaultMaxLanes($info['distance_name'] ?? '', $info['roller_name'] ?? '');
                 }
             } else {
                 $maxLanes = $maxLanesParam;
@@ -371,6 +384,23 @@ class RollPelotonController extends Controller {
                         $flatAthletes[] = $a['skater_id'];
                     }
                     shuffle($flatAthletes);
+                    
+                    // 5. Hitung jumlah Seri (Heats)
+                    if ($mechanism === 'starting_list') {
+                        $totalHeats = 1;
+                        $maxLanes = $totalAthletes; // 1 heat contains everyone
+                    } else {
+                        $totalHeats = ceil($totalAthletes / $maxLanes);
+                    }
+                    
+                    $heatsAssigned = array_fill(1, $totalHeats, []);
+                    
+                    $heatIndex = 1;
+                    foreach ($flatAthletes as $skaterId) {
+                        $heatsAssigned[$heatIndex][] = $skaterId;
+                        $heatIndex++;
+                        if ($heatIndex > $totalHeats) $heatIndex = 1;
+                    }
                 } else {
                     // 4. Pengelompokan Klub (Distributed Random)
                     $clubGroups = [];
@@ -383,43 +413,33 @@ class RollPelotonController extends Controller {
                     // Acak isi anggota setiap klub
                     foreach ($clubGroups as &$members) shuffle($members);
 
-                    // Urutkan klub berdasarkan jumlah atlet terbanyak
+                    // Urutkan klub berdasarkan jumlah atlet terbanyak ke tersedikit
                     uasort($clubGroups, function($a, $b) {
                         return count($b) - count($a);
                     });
-
-                    // Flatten array atlet
+                    
+                    // 5. Hitung jumlah Seri (Heats)
+                    if ($mechanism === 'starting_list') {
+                        $totalHeats = 1;
+                        $maxLanes = $totalAthletes; // 1 heat contains everyone
+                    } else {
+                        $totalHeats = ceil($totalAthletes / $maxLanes);
+                    }
+                    
+                    $heatsAssigned = array_fill(1, $totalHeats, []);
+                    
+                    // Sebar setiap klub menggunakan round-robin berlanjut agar merata
+                    // Jika ada sisa/ganjil, otomatis akan jatuh ke heat-heat di akhir rotasi (paling akhir)
+                    $heatIndex = 1;
                     foreach ($clubGroups as $members) {
-                        foreach ($members as $m) {
-                            $flatAthletes[] = $m;
+                        foreach ($members as $skaterId) {
+                            $heatsAssigned[$heatIndex][] = $skaterId;
+                            $heatIndex++;
+                            if ($heatIndex > $totalHeats) {
+                                $heatIndex = 1; // Kembali ke heat dari awal jika ada sisa
+                            }
                         }
                     }
-                }
-
-                // 5. Hitung jumlah Seri (Heats)
-                if ($mechanism === 'starting_list') {
-                    $totalHeats = 1;
-                    $maxLanes = $totalAthletes; // 1 heat contains everyone
-                } else {
-                    $totalHeats = ceil($totalAthletes / $maxLanes);
-                }
-                
-                $heatsAssigned = array_fill(1, $totalHeats, []);
-
-                // 6. Metode Serpentine untuk menempatkan atlet ke heat
-                for ($i = 0; $i < $totalAthletes; $i++) {
-                    $skaterId = $flatAthletes[$i];
-                    
-                    $snakeIter = floor($i / $totalHeats);
-                    $rem = $i % $totalHeats;
-                    
-                    if ($snakeIter % 2 == 0) {
-                        $targetHeat = $rem + 1; // Maju
-                    } else {
-                        $targetHeat = $totalHeats - $rem; // Mundur
-                    }
-                    
-                    $heatsAssigned[$targetHeat][] = $skaterId;
                 }
 
                 // 7. Simpan ke Database

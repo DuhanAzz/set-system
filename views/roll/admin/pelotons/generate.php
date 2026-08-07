@@ -84,7 +84,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         try {
             const customMech = overrideMap[cls.class_id]?.mechanism || ''; 
-            const customLanes = overrideMap[cls.class_id]?.maxLanes || '<?= urlencode($maxLanes) ?>';
+            const customLanes = overrideMap[cls.class_id]?.maxLanes || '0';
             
             let url = `<?= getenv('APP_URL') ?>/roll/admin/pelotons/process?class_id=${cls.class_id}&round=<?= urlencode($round) ?>&algorithm=<?= urlencode($algorithm) ?>&max_lanes=${encodeURIComponent(customLanes)}`;
             if (customMech) {
@@ -114,7 +114,7 @@ document.addEventListener('DOMContentLoaded', function() {
         addLog("TIDAK ADA KELAS UNTUK EVENT INI!");
         progressText.innerText = "100%";
         setTimeout(() => {
-            window.location.href = '<?= getenv("APP_URL") ?>/roll/admin/pelotons'; 
+            window.location.href = '<?= getenv("APP_URL") ?>/roll/admin/pelotons/global'; 
         }, 2000);
     }
 });
