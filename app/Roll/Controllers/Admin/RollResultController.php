@@ -608,7 +608,7 @@ class RollResultController extends Controller {
         // Ambil semua hasil, lalu urutkan secara global berdasarkan waktu
         $stmtResults = $db->prepare("
             SELECT e.bib_number, s.skater_name, s.gender, c.city_province as city, c.club_name, p.heat_name, p.start_grid,
-                   r.rank as heat_rank, r.time, r.status, r.is_official
+                   r.rank as heat_rank, r.time, r.status, r.is_official, r.round
             FROM roll_pelotons p
             JOIN roll_entries e ON p.skater_id = e.skater_id AND p.race_class_id = e.race_class_id AND p.event_id = e.event_id
             JOIN roll_skaters s ON p.skater_id = s.id

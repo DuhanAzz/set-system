@@ -154,13 +154,6 @@
                                     <?php endif; ?>
                                     <h1 style="margin: 0; font-size: 16pt; text-transform: uppercase;">Hasil Perlombaan (Result)</h1>
                                     <p style="margin: 5px 0 0 0; font-size: 12pt; font-weight: bold; color: #333;"><?= htmlspecialchars($event['event_name']) ?></p>
-                                    <p style="margin: 5px 0 0 0; font-size: 11pt; font-weight: bold; color: #b91c1c;">
-                                        R<?= htmlspecialchars($classInfo['race_number']) ?> - 
-                                        <?= htmlspecialchars($classInfo['distance_name'] ?? $classInfo['distance'] ?? '') ?> - 
-                                        <?= htmlspecialchars($classInfo['group_name'] ?? '') ?> - 
-                                        <?= htmlspecialchars($classInfo['gender'] ?? '') ?> 
-                                        (<?= htmlspecialchars($classInfo['roller_name'] ?? '') ?>)
-                                    </p>
                                 </td>
                                 <td style="width: 25%; text-align: right; vertical-align: middle;">
                                     <?php if(!empty($headerLogos['right'])): ?>
@@ -179,6 +172,21 @@
             <tbody>
                 <tr>
                     <td>
+                        <?php 
+                        $currentRound = !empty($results) && !empty($results[0]['round']) ? $results[0]['round'] : 'KUALIFIKASI';
+                        ?>
+                        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 5px;">
+                            <div style="font-size: 11pt; font-weight: bold; color: #b91c1c; text-align: left;">
+                                R<?= htmlspecialchars($classInfo['race_number']) ?> - 
+                                <?= htmlspecialchars($classInfo['distance_name'] ?? $classInfo['distance'] ?? '') ?> - 
+                                <?= htmlspecialchars($classInfo['group_name'] ?? '') ?> - 
+                                <?= htmlspecialchars($classInfo['gender'] ?? '') ?> 
+                                (<?= htmlspecialchars($classInfo['roller_name'] ?? '') ?>)
+                            </div>
+                            <div style="font-size: 11pt; font-weight: bold; color: #333; text-align: right; text-transform: uppercase;">
+                                BABAK <?= htmlspecialchars($currentRound) ?>
+                            </div>
+                        </div>
                         <table class="schedule-table">
                             <thead>
                                 <tr>
@@ -187,13 +195,12 @@
                                     <th>Atlet</th>
                                     <th>Klub</th>
                                     <th class="text-center" style="width: 80px;">Waktu</th>
-                                    <th class="text-center" style="width: 80px;">Status</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <?php if(empty($results)): ?>
                                     <tr>
-                                        <td colspan="6" class="text-center">Belum ada hasil perlombaan.</td>
+                                        <td colspan="5" class="text-center">Belum ada hasil perlombaan.</td>
                                     </tr>
                                 <?php else: 
                                     $adv_count = (int)($classInfo['advancement_count'] ?? 0);
@@ -217,15 +224,13 @@
                                         }
                                 ?>
                                     <tr>
-                                        <td class="text-center font-bold" style="font-size: 12pt;"><?= $globalRank ?></td>
-                                        <td class="text-center font-bold" style="font-size: 12pt;"><?= htmlspecialchars($res['bib_number'] ?? '-') ?></td>
-                                        <td class="font-bold">
+                                        <td class="text-center font-bold" style="font-size: 12pt; vertical-align: middle;"><?= $globalRank ?></td>
+                                        <td class="text-center font-bold" style="font-size: 12pt; vertical-align: middle;"><?= htmlspecialchars($res['bib_number'] ?? '-') ?></td>
+                                        <td class="font-bold" style="vertical-align: middle;">
                                             <?= htmlspecialchars($res['skater_name'] ?? '-') ?>
-                                            <div style="font-size: 8pt; font-weight: normal; color: #666;"><?= htmlspecialchars($res['heat_name'] ?? '') ?> - <?= htmlspecialchars($res['gender'] ?? '-') ?> - <?= htmlspecialchars($res['city'] ?? '-') ?></div>
                                         </td>
-                                        <td><?= htmlspecialchars($res['club_name'] ?? '-') ?></td>
-                                        <td class="text-center font-bold" style="font-size: 11pt;"><?= htmlspecialchars($res['time'] ?? '00.00.000') ?></td>
-                                        <td class="text-center font-bold" style="font-size: 10pt; color: <?= $statusColor ?>;"><?= $statusStr ?></td>
+                                        <td style="vertical-align: middle;"><?= htmlspecialchars($res['club_name'] ?? '-') ?></td>
+                                        <td class="text-center font-bold" style="font-size: 11pt; vertical-align: middle;"><?= htmlspecialchars($res['time'] ?? '00.00.000') ?></td>
                                     </tr>
                                     <?php endforeach; ?>
                                 <?php endif; ?>
