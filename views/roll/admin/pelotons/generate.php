@@ -70,7 +70,7 @@ document.addEventListener('DOMContentLoaded', function() {
             addLog("SEMUA PROSES SELESAI!");
             progressText.innerText = "100%";
             setTimeout(() => {
-                window.location.href = '<?= getenv("APP_URL") ?>/roll/admin/pelotons'; 
+                window.location.href = '<?= getenv("APP_URL") ?>/roll/admin/pelotons/global'; 
             }, 2000);
             return;
         }
