@@ -158,7 +158,7 @@
         <form id="formGenerateAuto" method="POST" action="<?= getenv('APP_URL') ?>/roll/admin/pelotons/generateAll" onsubmit="return confirm('⚡ GENERATE RACE BOOK\n\nProses ini akan menyusun daftar peserta untuk seluruh <?= $totalClasses ?> kelas lomba.\n\n• Kelas HEAT → Babak Kualifikasi (Acak Terdistribusi)\n• Kelas STARTING LIST → Daftar langsung final\n\n<?= $hasGenerated ? '⚠️ Data seeding sebelumnya akan DITIMPA!\n\n' : '' ?>Lanjutkan?')">
             <input type="hidden" name="round" value="Kualifikasi">
             <input type="hidden" name="algorithm" value="distributed">
-            <input type="hidden" name="max_lanes" value="6">
+            <input type="hidden" name="max_lanes" value="0">
             <button type="submit" class="bg-slate-800 hover:bg-slate-900 text-white font-bold uppercase tracking-widest text-xs py-3 px-5 rounded-xl transition-all shadow-md flex items-center gap-2">
                 <span class="text-sm">⚡</span>
                 <span>Generate Seluruh Heat</span>

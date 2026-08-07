@@ -279,7 +279,7 @@ class RollPelotonController extends Controller {
 
         $round = $_POST['round'] ?? 'Kualifikasi';
         $algorithm = $_POST['algorithm'] ?? 'distributed';
-        $maxLanes = (int)($_POST['max_lanes'] ?? 6);
+        $maxLanes = (int)($_POST['max_lanes'] ?? 0);
 
         // Ambil seluruh kelas perlombaan untuk di-passing ke halaman loading
         $stmtClasses = $db->prepare("
@@ -364,7 +364,7 @@ class RollPelotonController extends Controller {
             // 3. Tarik atlet 
             // Untuk saat ini, asumsikan semua atlet Paid masuk (ke depannya jika babak = Final, filter berdasarkan hasil babak sebelumnya)
             $stmtAthletes = $db->prepare("
-                SELECT e.skater_id, s.club_id
+                SELECT DISTINCT e.skater_id, s.club_id, e.team_name
                 FROM roll_entries e
                 JOIN roll_skaters s ON e.skater_id = s.id
                 JOIN roll_payments pay ON pay.club_id = s.club_id AND pay.event_id = e.event_id
@@ -417,15 +417,52 @@ class RollPelotonController extends Controller {
                     foreach ($athletes as $a) {
                         $cId = $a['club_id'] ?? 0;
                         if (!isset($clubGroups[$cId])) $clubGroups[$cId] = [];
-                        $clubGroups[$cId][] = $a['skater_id'];
+                        
+                        $tName = trim($a['team_name'] ?? '');
+                        if (!empty($tName)) {
+                            if (!isset($clubGroups[$cId]['teams'])) $clubGroups[$cId]['teams'] = [];
+                            if (!isset($clubGroups[$cId]['teams'][$tName])) $clubGroups[$cId]['teams'][$tName] = [];
+                            $clubGroups[$cId]['teams'][$tName][] = $a['skater_id'];
+                        } else {
+                            if (!isset($clubGroups[$cId]['no_team'])) $clubGroups[$cId]['no_team'] = [];
+                            $clubGroups[$cId]['no_team'][] = $a['skater_id'];
+                        }
                     }
 
-                    // Acak isi anggota setiap klub
-                    foreach ($clubGroups as &$members) shuffle($members);
-
                     // Bentuk tim di dalam masing-masing klub
-                    foreach ($clubGroups as $cId => $members) {
-                        $clubTeams[$cId] = array_chunk($members, $teamSize);
+                    $mixedPool = [];
+                    foreach ($clubGroups as $cId => $groups) {
+                        $clubTeams[$cId] = [];
+                        if (isset($groups['teams'])) {
+                            foreach ($groups['teams'] as $tName => $tMembers) {
+                                $chunks = array_chunk($tMembers, $teamSize);
+                                foreach ($chunks as $c) $clubTeams[$cId][] = $c;
+                            }
+                        }
+                        if (isset($groups['no_team'])) {
+                            shuffle($groups['no_team']);
+                            
+                            $fullTeamsCount = floor(count($groups['no_team']) / $teamSize);
+                            for ($i = 0; $i < $fullTeamsCount; $i++) {
+                                $clubTeams[$cId][] = array_slice($groups['no_team'], $i * $teamSize, $teamSize);
+                            }
+                            
+                            $remainder = array_slice($groups['no_team'], $fullTeamsCount * $teamSize);
+                            foreach ($remainder as $rem) {
+                                $mixedPool[] = $rem;
+                            }
+                        }
+                        shuffle($clubTeams[$cId]);
+                    }
+                    
+                    // Gabungkan sisa atlet dari berbagai klub menjadi tim campuran
+                    if (!empty($mixedPool)) {
+                        shuffle($mixedPool);
+                        $mixedChunks = array_chunk($mixedPool, $teamSize);
+                        if (!isset($clubTeams[0])) $clubTeams[0] = [];
+                        foreach ($mixedChunks as $c) {
+                            $clubTeams[0][] = $c;
+                        }
                     }
 
                     // Urutkan klub berdasarkan jumlah TIM terbanyak ke tersedikit
