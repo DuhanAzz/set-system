@@ -122,6 +122,10 @@ class RollCheckoutController extends Controller {
         $db = Database::getInstance()->getConnection();
         $club_id = $_SESSION['roll_club_id'] ?? 0;
 
+        $stmtClub = $db->prepare("SELECT club_name FROM roll_clubs WHERE id = ?");
+        $stmtClub->execute([$club_id]);
+        $clubName = $stmtClub->fetchColumn() ?: ($_SESSION['nama_lengkap'] ?? 'Klub');
+
         // Ambil data event
         $stmtEvent = $db->prepare("SELECT * FROM roll_events WHERE id = ?");
         $stmtEvent->execute([$event_id]);
@@ -306,6 +310,7 @@ class RollCheckoutController extends Controller {
 
         return $this->view('roll/user/checkout/detail', [
             'event' => $event,
+            'clubName' => $clubName,
             'unpaidEntries' => $unpaidEntries,
             'historyEntries' => $historyEntries,
             'totalFee' => $totalFee,
