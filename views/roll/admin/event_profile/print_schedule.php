@@ -179,7 +179,9 @@
                             <thead>
                                 <tr>
                                     <th class="text-center" style="width: 80px;">No. Lomba</th>
+                                    <?php if(isset($_GET['show_time']) && $_GET['show_time'] == 1): ?>
                                     <th class="text-center" style="width: 110px; white-space: nowrap;">Pukul</th>
+                                    <?php endif; ?>
                                     <th>Jarak</th>
                                     <th>Kelompok Umur</th>
                                     <th>Roller</th>
@@ -220,7 +222,7 @@
                                 ?>
                                     <!-- Header Hari -->
                                     <tr style="background-color: #e2e8f0;">
-                                        <td colspan="6" style="padding: 10px; font-weight: bold; text-align: center; font-size: 11pt; text-transform: uppercase;">
+                                        <td colspan="<?= (isset($_GET['show_time']) && $_GET['show_time'] == 1) ? '6' : '5' ?>" style="padding: 10px; font-weight: bold; text-align: center; font-size: 11pt; text-transform: uppercase;">
                                             Hari Ke-<?= $day ?> <?= $dateStr ? ' - ' . $dateStr : '' ?>
                                         </td>
                                     </tr>
@@ -255,7 +257,9 @@
                                             ?>
                                             <tr style="background-color: #f1f5f9;">
                                                 <td class="text-center font-bold"><?= htmlspecialchars($racesStr) ?></td>
+                                                <?php if(isset($_GET['show_time']) && $_GET['show_time'] == 1): ?>
                                                 <td class="text-center font-bold" style="white-space: nowrap;"><?= htmlspecialchars($timeStr) ?></td>
+                                                <?php endif; ?>
                                                 <td class="font-bold"><?= htmlspecialchars($distStr) ?></td>
                                                 <td><?= htmlspecialchars($kuStr) ?></td>
                                                 <td class="font-bold text-blue-700">PEMULA</td>
@@ -279,7 +283,9 @@
                                                 ?>
                                                 <tr>
                                                     <td class="text-center font-bold"><?= htmlspecialchars($c['race_number']) ?></td>
+                                                    <?php if(isset($_GET['show_time']) && $_GET['show_time'] == 1): ?>
                                                     <td class="text-center font-bold" style="white-space: nowrap;"><?= htmlspecialchars($c['race_time'] ?? '-') ?></td>
+                                                    <?php endif; ?>
                                                     <td class="font-bold"><?= htmlspecialchars($c['distance_name'] ?? $c['distance'] ?? '-') ?></td>
                                                     <td><?= htmlspecialchars($c['group_name'] ?? 'Umum') ?></td>
                                                     <td class="font-bold text-blue-700"><?= htmlspecialchars($c['roller_name'] ?? '-') ?></td>

@@ -34,11 +34,7 @@
                     <p class="text-slate-500 mt-2 font-medium">Manajemen Matriks dan Jadwal Tergenerate</p>
                 </div>
                 <?php if(!empty($row)): ?>
-                <div class="mt-4 md:mt-0 flex flex-wrap gap-2 md:gap-4">
-                    <a href="<?= getenv('APP_URL') ?>/roll/admin/events/print_schedule" target="_blank" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:shadow-indigo-500/25 transition-all flex items-center">
-                        <span class="mr-2">🖨️</span> Cetak Jadwal & Kelas
-                    </a>
-                </div>
+                <!-- Cetak Jadwal Button moved below -->
                 <?php endif; ?>
             </div>
         </div>
@@ -348,8 +344,17 @@ async function generateScheduleTime(e) {
 </script>
 
 <div class="mt-8 bg-white rounded-2xl border border-slate-200/50 shadow-xl overflow-hidden">
-    <div class="p-6 border-b border-slate-200 bg-slate-50 flex justify-between items-center">
+    <div class="p-6 border-b border-slate-200 bg-slate-50 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <h3 class="text-lg font-bold text-slate-800 uppercase tracking-widest">Jadwal Lomba Tergenerate</h3>
+        <form action="<?= getenv('APP_URL') ?>/roll/admin/events/print_schedule" target="_blank" method="GET" class="flex items-center gap-4 bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm">
+            <label class="flex items-center gap-2 cursor-pointer text-[11px] font-bold text-slate-600 uppercase tracking-widest">
+                <input type="checkbox" name="show_time" value="1" checked class="rounded border-slate-300 text-indigo-600 shadow-sm focus:ring-indigo-500 w-4 h-4">
+                Tampilkan Waktu
+            </label>
+            <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 px-5 rounded-lg shadow hover:shadow-indigo-500/25 transition-all flex items-center text-xs uppercase tracking-widest">
+                <span class="mr-2 text-base">🖨️</span> Cetak Jadwal
+            </button>
+        </form>
     </div>
     
     <div class="p-6">
