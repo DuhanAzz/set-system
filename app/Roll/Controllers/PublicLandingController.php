@@ -11,6 +11,9 @@ class PublicLandingController extends Controller {
     public function index($slug) {
         $db = Database::getInstance()->getConnection();
         
+        // Catat kunjungan ke modul 'roll'
+        $this->trackVisitor("roll");
+        
         // Fetch landing page and event data
         $stmt = $db->prepare("
             SELECT lp.*, e.event_name, e.event_date_start, e.event_date_end, e.event_location, e.event_city, e.poster_image, e.logo_left, e.header_logos
@@ -26,6 +29,9 @@ class PublicLandingController extends Controller {
             echo "<h1>404 Not Found</h1><p>Halaman tidak ditemukan atau belum dipublikasikan.</p>";
             exit;
         }
+
+        // Catat kunjungan ke event spesifik
+        $this->trackVisitor("roll_event_" . $landing['event_id']);
 
         // Fetch classes for this event to display in a summary
         $stmtClasses = $db->prepare("

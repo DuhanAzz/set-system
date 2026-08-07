@@ -92,16 +92,10 @@
 
     <div class="lg:col-span-2 bg-white rounded-[2rem] shadow-sm border border-slate-200 p-8">
         <div class="flex justify-between items-center mb-6">
-            <h3 class="font-black text-slate-800 uppercase italic text-sm tracking-widest">🏆 Top 5 Tim/Klub Teraktif</h3>
+            <h3 class="font-black text-slate-800 uppercase italic text-sm tracking-widest">📈 Grafik Pengunjung (7 Hari Terakhir)</h3>
         </div>
         <div class="relative h-64 w-full">
-            <?php if(empty($chartLabels)): ?>
-                <div class="flex items-center justify-center h-full text-slate-400 text-xs italic bg-slate-50 rounded-xl border-2 border-dashed border-slate-200">
-                    Belum ada data pendaftaran.
-                </div>
-            <?php else: ?>
-                <canvas id="clubChart"></canvas>
-            <?php endif; ?>
+            <canvas id="visitorChart"></canvas>
         </div>
     </div>
 
@@ -149,29 +143,65 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    const ctx = document.getElementById('clubChart');
-    if(ctx && <?= count($chartLabels) ?> > 0) {
-        new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: <?= $jsLabels ?>,
-                datasets: [{
-                    label: 'Jumlah Entri',
-                    data: <?= $jsValues ?>,
-                    backgroundColor: ['#3b82f6','#10b981','#f59e0b','#8b5cf6','#ec4899'],
-                    borderRadius: 6,
-                    barPercentage: 0.6
-                }]
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('visitorChart').getContext('2d');
+    
+    // Parse PHP data to JS
+    const visitorData = <?= json_encode($visitorStats ?? []) ?>;
+    
+    const labels = visitorData.map(item => item.visit_date);
+    const data = visitorData.map(item => item.total_views);
+    
+    // Gradient fill
+    let gradient = ctx.createLinearGradient(0, 0, 0, 400);
+    gradient.addColorStop(0, 'rgba(59, 130, 246, 0.5)'); // blue-500
+    gradient.addColorStop(1, 'rgba(59, 130, 246, 0.0)');
+    
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels.length ? labels : ['Belum ada data'],
+            datasets: [{
+                label: 'Total Views',
+                data: data.length ? data : [0],
+                borderColor: '#3b82f6',
+                backgroundColor: gradient,
+                borderWidth: 3,
+                pointBackgroundColor: '#ffffff',
+                pointBorderColor: '#3b82f6',
+                pointBorderWidth: 2,
+                pointRadius: 4,
+                pointHoverRadius: 6,
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: '#1e293b',
+                    padding: 12,
+                    titleFont: { size: 13, family: 'Inter' },
+                    bodyFont: { size: 14, family: 'Inter', weight: 'bold' },
+                    displayColors: false,
+                    cornerRadius: 8,
+                }
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                    y: { beginAtZero: true, grid: { display: false }, ticks: { precision: 0 } },
-                    x: { grid: { display: false } }
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: { color: '#f1f5f9', drawBorder: false },
+                    ticks: { font: { family: 'Inter', size: 11 }, color: '#94a3b8', precision: 0 }
+                },
+                x: {
+                    grid: { display: false, drawBorder: false },
+                    ticks: { font: { family: 'Inter', size: 11 }, color: '#94a3b8' }
                 }
             }
-        });
-    }
+        }
+    });
+});
 </script>

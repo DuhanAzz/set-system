@@ -106,6 +106,19 @@ class RollAdminDashboardController extends Controller {
                 $chartLabels[] = $row['club_name'];
                 $chartValues[] = (int)$row['total'];
             }
+
+            // Visitor Stats (7 days) for this event
+            $visitorStats = [];
+            try {
+                $moduleName = "roll_event_" . $eventId;
+                $sqlVisitors = "SELECT visit_date, SUM(views_count) as total_views 
+                                FROM site_visitors 
+                                WHERE module = ? AND visit_date >= DATE_SUB(CURDATE(), INTERVAL 7 DAY) 
+                                GROUP BY visit_date ORDER BY visit_date ASC";
+                $stmtVisitor = $db->prepare($sqlVisitors);
+                $stmtVisitor->execute([$moduleName]);
+                $visitorStats = $stmtVisitor->fetchAll(PDO::FETCH_ASSOC);
+            } catch (\Exception $e) {}
         }
 
         $jsLabels = json_encode($chartLabels);
@@ -122,6 +135,7 @@ class RollAdminDashboardController extends Controller {
             'chartLabels'  => $chartLabels,
             'jsLabels'     => $jsLabels,
             'jsValues'     => $jsValues,
+            'visitorStats' => $visitorStats ?? [],
         ]);
     }
 }
