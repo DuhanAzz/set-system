@@ -89,9 +89,15 @@
                                 <?= htmlspecialchars($race['distance_name']) ?>
                             </td>
                             <td class="px-6 py-4">
-                                <span class="px-3 py-1 bg-slate-100 border border-slate-200 text-slate-600 rounded-lg text-[10px] font-black uppercase tracking-widest whitespace-nowrap">
-                                    <?= htmlspecialchars($race['group_name'] ?? 'OPEN') ?> (<?= $race['min_year'] ?>-<?= $race['max_year'] ?>)
-                                </span>
+                                <?php if(stripos($race['group_name'] ?? '', 'Senior') !== false): ?>
+                                    <span class="px-3 py-1 bg-slate-100 border border-slate-200 text-slate-600 rounded-lg text-[10px] font-black uppercase tracking-widest whitespace-nowrap">
+                                        SENIOR
+                                    </span>
+                                <?php else: ?>
+                                    <span class="px-3 py-1 bg-slate-100 border border-slate-200 text-slate-600 rounded-lg text-[10px] font-black uppercase tracking-widest whitespace-nowrap">
+                                        <?= htmlspecialchars($race['group_name'] ?? 'OPEN') ?> (<?= $race['min_year'] ?>-<?= $race['max_year'] ?>)
+                                    </span>
+                                <?php endif; ?>
                             </td>
                             <td class="px-6 py-4">
                                 <span class="px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border bg-blue-50 text-blue-600 border-blue-100 whitespace-nowrap">
