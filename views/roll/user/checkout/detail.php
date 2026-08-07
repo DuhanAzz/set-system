@@ -195,9 +195,15 @@
                 </form>
             </div>
             
-            <a href="<?= getenv('APP_URL') ?>/roll/user/registration/index/<?= $event['id'] ?>" class="block w-full py-4 bg-white border border-slate-200 rounded-2xl text-center text-[10px] font-black text-slate-400 uppercase tracking-widest hover:bg-slate-50 hover:text-slate-600 transition-all outline-none">
-                &larr; Kembali
-            </a>
+            <?php if(!empty($unpaidEntries)): ?>
+                <button type="button" onclick="alert('Harap upload bukti pembayaran Anda terlebih dahulu sebelum dapat kembali / melanjutkan pendaftaran.')" class="block w-full py-4 bg-slate-100 border border-slate-200 rounded-2xl text-center text-[10px] font-black text-slate-400 uppercase tracking-widest cursor-not-allowed outline-none">
+                    &larr; Kembali ke Pendaftaran (Terkunci)
+                </button>
+            <?php else: ?>
+                <a href="<?= getenv('APP_URL') ?>/roll/user/registration/index/<?= $event['id'] ?>" class="block w-full py-4 bg-white border border-slate-200 rounded-2xl text-center text-[10px] font-black text-slate-400 uppercase tracking-widest hover:bg-slate-50 hover:text-slate-600 transition-all outline-none">
+                    &larr; Lanjut ke Pendaftaran
+                </a>
+            <?php endif; ?>
         </div>
 
     </div>
