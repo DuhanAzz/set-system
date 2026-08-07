@@ -146,7 +146,10 @@
                         <?php foreach($events as $ev): ?>
                             <div class="px-4 py-3 flex justify-between items-center hover:bg-slate-50 transition-colors card-row">
                                 <div class="flex flex-col">
-                                    <span class="text-xs font-bold text-slate-700 uppercase">
+                                    <span class="text-xs font-bold text-slate-700 uppercase flex items-center gap-2">
+                                        <?php if(!empty($ev['class_name'])): ?>
+                                            <span class="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded text-[9px] border border-indigo-200"><?= strtoupper($ev['class_name']) ?></span>
+                                        <?php endif; ?>
                                         <?= $ev['distance'] ?> - <?= strtoupper($ev['stroke']) ?>
                                     </span>
                                     <span class="text-[10px] text-slate-400 font-medium mt-0.5 uppercase">

@@ -230,15 +230,17 @@ class RollEntryController extends Controller {
                 ];
             }
             
+            $stmtCls = $db->prepare("SELECT sc.class_name FROM roll_event_details ed LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id=sc.id WHERE ed.id=?");
+            $stmtCls->execute([$ent['race_class_id']]);
+            $rawCName = $stmtCls->fetchColumn() ?: '';
+            $cName = strtolower($rawCName);
+            
             $groupedSkaters[$sId]['items'][] = [
                 'distance' => $ent['distance'],
                 'stroke' => $ent['category_name'] ?: $ent['distance_name'],
-                'age_group' => $ent['group_name']
+                'age_group' => $ent['group_name'],
+                'class_name' => $rawCName
             ];
-            
-            $stmtCls = $db->prepare("SELECT sc.class_name FROM roll_event_details ed LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id=sc.id WHERE ed.id=?");
-            $stmtCls->execute([$ent['race_class_id']]);
-            $cName = strtolower($stmtCls->fetchColumn() ?: '');
             
             $hargaPerNomor = 150000;
             if (strpos($cName, 'speed') !== false) $hargaPerNomor = (float)($eventData['fee_speed'] ?? 450000);
@@ -319,15 +321,17 @@ class RollEntryController extends Controller {
                 ];
             }
             
+            $stmtCls = $db->prepare("SELECT sc.class_name FROM roll_event_details ed LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id=sc.id WHERE ed.id=?");
+            $stmtCls->execute([$ent['race_class_id']]);
+            $rawCName = $stmtCls->fetchColumn() ?: '';
+            $cName = strtolower($rawCName);
+            
             $groupedSkaters[$sId]['items'][] = [
                 'distance' => $ent['distance'],
                 'stroke' => $ent['category_name'] ?: $ent['distance_name'],
-                'age_group' => $ent['group_name']
+                'age_group' => $ent['group_name'],
+                'class_name' => $rawCName
             ];
-            
-            $stmtCls = $db->prepare("SELECT sc.class_name FROM roll_event_details ed LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id=sc.id WHERE ed.id=?");
-            $stmtCls->execute([$ent['race_class_id']]);
-            $cName = strtolower($stmtCls->fetchColumn() ?: '');
             
             $hargaPerNomor = 150000;
             if (strpos($cName, 'speed') !== false) $hargaPerNomor = (float)($eventData['fee_speed'] ?? 450000);
