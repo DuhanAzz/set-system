@@ -430,13 +430,17 @@ class RollPelotonController extends Controller {
                     }
 
                     // Bentuk tim di dalam masing-masing klub
-                    $mixedPool = [];
                     foreach ($clubGroups as $cId => $groups) {
                         $clubTeams[$cId] = [];
                         if (isset($groups['teams'])) {
                             foreach ($groups['teams'] as $tName => $tMembers) {
                                 $chunks = array_chunk($tMembers, $teamSize);
-                                foreach ($chunks as $c) $clubTeams[$cId][] = $c;
+                                foreach ($chunks as $c) {
+                                    // Hanya masukkan jika jumlah anggota genap sesuai kebutuhan tim
+                                    if (count($c) == $teamSize) {
+                                        $clubTeams[$cId][] = $c;
+                                    }
+                                }
                             }
                         }
                         if (isset($groups['no_team'])) {
@@ -446,22 +450,13 @@ class RollPelotonController extends Controller {
                             for ($i = 0; $i < $fullTeamsCount; $i++) {
                                 $clubTeams[$cId][] = array_slice($groups['no_team'], $i * $teamSize, $teamSize);
                             }
-                            
-                            $remainder = array_slice($groups['no_team'], $fullTeamsCount * $teamSize);
-                            foreach ($remainder as $rem) {
-                                $mixedPool[] = $rem;
-                            }
+                            // Sisa atlet (remainder) yang tidak mencukupi 1 tim akan dibuang / diabaikan
                         }
                         shuffle($clubTeams[$cId]);
-                    }
-                    
-                    // Gabungkan sisa atlet dari berbagai klub menjadi tim campuran
-                    if (!empty($mixedPool)) {
-                        shuffle($mixedPool);
-                        $mixedChunks = array_chunk($mixedPool, $teamSize);
-                        if (!isset($clubTeams[0])) $clubTeams[0] = [];
-                        foreach ($mixedChunks as $c) {
-                            $clubTeams[0][] = $c;
+                        
+                        // Bersihkan klub yang ternyata tidak memiliki tim penuh sama sekali
+                        if (empty($clubTeams[$cId])) {
+                            unset($clubTeams[$cId]);
                         }
                     }
 
