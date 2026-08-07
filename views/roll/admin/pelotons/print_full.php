@@ -168,7 +168,6 @@ foreach ($rawData as $row) {
             'raw_gender'  => $row['gender'],
             'gender'      => strtoupper($row['gender'] === 'pa' ? 'Putra' : ($row['gender'] === 'pi' ? 'Putri' : $row['gender']))
         ];
-    }
     
     $rnd = $row['round'] ?: 'Kualifikasi';
     $heat = $row['heat_name'] ?: 'Starting List';
