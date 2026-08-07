@@ -304,7 +304,7 @@
                         <?php endif; ?>
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Petunjuk Teknis (Juknis) PDF</label>
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">THB (Technical Hand Book) PDF</label>
                         <input type="file" name="juknis_pdf" accept="application/pdf" class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-800 text-sm">
                         <div class="text-[10px] text-slate-400 mt-1">Maks 5MB. Format: PDF.</div>
                         <?php if(!empty($landing['juknis_pdf'])): ?>

@@ -211,16 +211,16 @@
     <?php if (!empty($landing['juknis_pdf'])): ?>
     <section id="juknis" class="py-24 bg-white text-slate-900 relative">
         <div class="max-w-4xl mx-auto px-6 text-center space-y-8">
-            <h2 class="text-5xl font-display font-bold uppercase tracking-tight">
-                Petunjuk Teknis <span class="text-theme">(JUKNIS)</span>
+            <h2 class="text-3xl lg:text-5xl font-black text-slate-800 uppercase italic tracking-tighter mb-4" data-aos="fade-up">
+                THB <span class="text-theme">(Technical Hand Book)</span>
             </h2>
             <p class="text-slate-500 text-lg max-w-2xl mx-auto">
-                Silakan unduh atau baca dokumen Petunjuk Teknis secara detail sebelum melakukan pendaftaran event.
+                Silakan unduh atau baca dokumen THB (Technical Hand Book) secara detail sebelum melakukan pendaftaran event.
             </p>
             <div class="pt-6">
                 <a href="<?= getenv('APP_URL') ?>/uploads/landing/<?= $landing['juknis_pdf'] ?>" target="_blank" class="inline-flex items-center gap-3 bg-theme hover:bg-theme/90 text-white font-bold py-4 px-10 rounded-full shadow-2xl hover:-translate-y-1 transition duration-300 uppercase tracking-widest text-sm">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                    Lihat & Unduh PDF Juknis
+                    Lihat & Unduh PDF THB
                 </a>
             </div>
         </div>
