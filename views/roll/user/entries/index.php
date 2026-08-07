@@ -17,7 +17,7 @@
     <?php else: ?>
 
     <!-- HEADER -->
-    <div class="flex justify-between items-center mb-6 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
         <div>
             <a href="<?= getenv('APP_URL') ?>/roll/user/explore/detail/<?= $event['id'] ?>" class="text-[10px] font-bold text-slate-400 hover:text-blue-600 uppercase tracking-widest mb-1 inline-block transition">
                 &larr; Kembali ke Detail Event
@@ -43,7 +43,7 @@
 
     <!-- TABEL ENTRY YANG SUDAH TERDAFTAR -->
     <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
-        <div class="bg-slate-900 p-5 flex justify-between items-center relative overflow-hidden">
+        <div class="bg-slate-900 p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative overflow-hidden">
             <div class="absolute -right-4 -bottom-4 text-6xl opacity-10">📋</div>
             <h2 class="text-white font-black text-base tracking-widest uppercase italic relative z-10">Daftar Peserta Terdaftar</h2>
             

@@ -11,67 +11,69 @@
 <?php endif; ?>
 
 <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden font-sans">
-    <table class="w-full text-left text-sm">
-        <thead class="bg-slate-900 text-slate-300 font-black uppercase text-[10px] tracking-widest">
-            <tr>
-                <th class="px-6 py-5 rounded-tl-3xl">Event</th>
-                <th class="px-6 py-5">Total Tagihan</th>
-                <th class="px-6 py-5 text-center">Status</th>
-                <th class="px-6 py-5 text-right rounded-tr-3xl">Aksi</th>
-            </tr>
-        </thead>
-        <tbody class="divide-y divide-slate-100">
-            <?php if(empty($bills)): ?>
+    <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm">
+            <thead class="bg-slate-900 text-slate-300 font-black uppercase text-[10px] tracking-widest">
                 <tr>
-                    <td colspan="4" class="px-6 py-12 text-center text-slate-400 font-bold italic">Belum ada riwayat tagihan.</td>
+                    <th class="px-6 py-5 whitespace-nowrap">Event</th>
+                    <th class="px-6 py-5 whitespace-nowrap">Total Tagihan</th>
+                    <th class="px-6 py-5 text-center whitespace-nowrap">Status</th>
+                    <th class="px-6 py-5 text-right whitespace-nowrap">Aksi</th>
                 </tr>
-            <?php endif; ?>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+                <?php if(empty($bills)): ?>
+                    <tr>
+                        <td colspan="4" class="px-6 py-12 text-center text-slate-400 font-bold italic">Belum ada riwayat tagihan.</td>
+                    </tr>
+                <?php endif; ?>
 
-            <?php foreach($bills as $b): ?>
-            <tr class="hover:bg-slate-50 transition group">
-                <td class="px-6 py-5 align-top">
-                    <div class="font-black text-slate-800 text-base uppercase italic mb-1 group-hover:text-blue-600 transition">
-                        <?= htmlspecialchars($b['event_name']) ?>
-                    </div>
-                    <span class="text-[10px] bg-slate-100 px-2 py-1 rounded text-slate-500 font-mono font-bold tracking-wider">
-                        #ROLL-<?= str_pad($b['id'], 5, '0', STR_PAD_LEFT) ?>
-                    </span>
-                    <div class="mt-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                        Atlet Terdaftar: <b class="text-slate-700"><?= $b['entries'] ?></b>
-                    </div>
-                </td>
-                
-                <td class="px-6 py-5 align-middle">
-                    <div class="font-black text-xl text-slate-700">
-                        Rp <?= number_format($b['amount'], 0, ',', '.') ?>
-                    </div>
-                </td>
+                <?php foreach($bills as $b): ?>
+                <tr class="hover:bg-slate-50 transition group">
+                    <td class="px-6 py-5 align-top min-w-[200px]">
+                        <div class="font-black text-slate-800 text-base uppercase italic mb-1 group-hover:text-blue-600 transition">
+                            <?= htmlspecialchars($b['event_name']) ?>
+                        </div>
+                        <span class="text-[10px] bg-slate-100 px-2 py-1 rounded text-slate-500 font-mono font-bold tracking-wider">
+                            #ROLL-<?= str_pad($b['id'], 5, '0', STR_PAD_LEFT) ?>
+                        </span>
+                        <div class="mt-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                            Atlet Terdaftar: <b class="text-slate-700"><?= $b['entries'] ?></b>
+                        </div>
+                    </td>
+                    
+                    <td class="px-6 py-5 align-middle whitespace-nowrap">
+                        <div class="font-black text-xl text-slate-700">
+                            Rp <?= number_format($b['amount'], 0, ',', '.') ?>
+                        </div>
+                    </td>
 
-                <td class="px-6 py-5 align-middle text-center">
-                    <?php if($b['status'] == 'Paid'): ?>
-                        <span class="bg-emerald-100 text-emerald-700 border border-emerald-200 px-4 py-1.5 rounded-xl text-[10px] font-black tracking-widest uppercase shadow-sm">Lunas</span>
-                    <?php elseif($b['status'] == 'Pending'): ?>
-                        <span class="bg-amber-100 text-amber-700 border border-amber-200 px-4 py-1.5 rounded-xl text-[10px] font-black tracking-widest uppercase shadow-sm">Verifikasi</span>
-                    <?php else: ?>
-                        <span class="bg-slate-100 text-slate-600 border border-slate-200 px-4 py-1.5 rounded-xl text-[10px] font-black tracking-widest uppercase shadow-sm">Unpaid</span>
-                    <?php endif; ?>
-                </td>
+                    <td class="px-6 py-5 align-middle text-center whitespace-nowrap">
+                        <?php if($b['status'] == 'Paid'): ?>
+                            <span class="bg-emerald-100 text-emerald-700 border border-emerald-200 px-4 py-1.5 rounded-xl text-[10px] font-black tracking-widest uppercase shadow-sm">Lunas</span>
+                        <?php elseif($b['status'] == 'Pending'): ?>
+                            <span class="bg-amber-100 text-amber-700 border border-amber-200 px-4 py-1.5 rounded-xl text-[10px] font-black tracking-widest uppercase shadow-sm">Verifikasi</span>
+                        <?php else: ?>
+                            <span class="bg-slate-100 text-slate-600 border border-slate-200 px-4 py-1.5 rounded-xl text-[10px] font-black tracking-widest uppercase shadow-sm">Unpaid</span>
+                        <?php endif; ?>
+                    </td>
 
-                <td class="px-6 py-5 align-middle text-right flex justify-end gap-2">
-                    <?php if($b['status'] === 'Unpaid'): ?>
-                        <button onclick="bukaModal('<?= $b['event_id'] ?>', '<?= htmlspecialchars(addslashes($b['event_name'])) ?>', '<?= $b['amount'] ?>')" 
-                            class="bg-slate-900 text-white px-6 py-3 rounded-xl font-black text-[10px] tracking-widest uppercase shadow-lg hover:bg-blue-600 transition hover:-translate-y-0.5">
-                            Upload Bukti
-                        </button>
-                    <?php endif; ?>
-                    <a href="<?= getenv('APP_URL') ?>/roll/user/checkout/detail/<?= $b['event_id'] ?>" class="text-blue-600 bg-blue-50 px-6 py-3 rounded-xl font-black text-[10px] tracking-widest uppercase border border-blue-200 hover:bg-blue-600 hover:text-white transition shadow-sm">
-                        Rincian
-                    </a>
-                </td>
-            </tr>
-            <?php endforeach; ?>
-        </tbody>
-    </table>
+                    <td class="px-6 py-5 align-middle text-right flex justify-end gap-2 whitespace-nowrap">
+                        <?php if($b['status'] === 'Unpaid'): ?>
+                            <button onclick="bukaModal('<?= $b['event_id'] ?>', '<?= htmlspecialchars(addslashes($b['event_name'])) ?>', '<?= $b['amount'] ?>')" 
+                                class="bg-slate-900 text-white px-6 py-3 rounded-xl font-black text-[10px] tracking-widest uppercase shadow-lg hover:bg-blue-600 transition hover:-translate-y-0.5">
+                                Upload Bukti
+                            </button>
+                        <?php endif; ?>
+                        <a href="<?= getenv('APP_URL') ?>/roll/user/checkout/detail/<?= $b['event_id'] ?>" class="text-blue-600 bg-blue-50 px-6 py-3 rounded-xl font-black text-[10px] tracking-widest uppercase border border-blue-200 hover:bg-blue-600 hover:text-white transition shadow-sm">
+                            Rincian
+                        </a>
+                    </td>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
 </div>
 
 <div id="uploadModal" class="hidden fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 transition-all">
