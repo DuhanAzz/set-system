@@ -75,7 +75,7 @@
                                 <?php if(!empty($u['phone'])): 
                                     $waNum = preg_replace('/[^0-9]/', '', $u['phone']);
                                     if(substr($waNum, 0, 1) == '0') $waNum = '62' . substr($waNum, 1);
-                                    $waMsg = urlencode("Haii saya admin SET SYSTEM.informasikan bahwa akun SET SYSTEM \"{$u['email']}\" sudah aktif. Silakan melakukan pendaftaran lomba 🏆");
+                                    $waMsg = urlencode("Haii saya admin SET SYSTEM.informasikan bahwa akun SET SYSTEM \"{$u['email']}\" sudah aktif. Silakan melakukan pendaftaran lomba");
                                 ?>
                                     <a href="https://wa.me/<?= $waNum ?>?text=<?= $waMsg ?>" target="_blank" class="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded w-fit hover:bg-emerald-100 transition flex items-center gap-1">
                                         📱 WhatsApp
