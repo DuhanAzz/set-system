@@ -187,10 +187,20 @@
                             <div class="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto text-2xl shadow-inner border border-slate-100">
                                 💸
                             </div>
-                            <p class="text-[10px] font-bold text-slate-500 leading-relaxed px-4 uppercase tracking-widest">
-                                Tidak ada tagihan yang belum lunas.
+                            <p class="text-[10px] font-bold text-slate-500 leading-relaxed px-4 uppercase tracking-widest mb-4">
+                                Tidak ada tagihan yang belum lunas (Atau sedang menunggu verifikasi).
                             </p>
                         </div>
+                        <?php 
+                        $waMsg = "Halo Admin SET SYSTEM,\n\nSaya dari Klub *" . ($_SESSION['roll_club_name'] ?? 'Klub') . "* ingin menanyakan status verifikasi pembayaran untuk event *" . ($event['event_name'] ?? 'Event') . "*.\n\nBukti transfer telah kami kirimkan melalui sistem. Mohon bantuannya untuk segera diverifikasi agar kami bisa mendaftarkan atlet lainnya. Terima kasih! ✨";
+                        $adminWa = !empty($event['contact_phone']) ? preg_replace('/[^0-9]/', '', $event['contact_phone']) : '6281234567890';
+                        if(substr($adminWa, 0, 1) == '0') $adminWa = '62' . substr($adminWa, 1);
+                        $waLink = "https://wa.me/" . $adminWa . "?text=" . urlencode($waMsg);
+                        ?>
+                        <a href="<?= $waLink ?>" target="_blank" class="flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-600 shadow-emerald-200 text-white font-black py-4 w-full rounded-2xl shadow-lg transition-all uppercase text-[10px] tracking-widest active:scale-95 outline-none mt-2">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20.52 3.449a11.967 11.967 0 00-8.498-3.447C5.43 0 .044 5.385.044 11.975c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.66 1.446h.005c6.59 0 11.975-5.385 11.975-11.976a11.964 11.964 0 00-3.482-8.367zM12.023 21.758a9.882 9.882 0 01-5.042-1.378l-.36-.214-3.748.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c0-5.445 4.432-9.877 9.882-9.877a9.87 9.87 0 016.985 2.894 9.865 9.865 0 012.892 6.98c-.001 5.446-4.434 9.895-9.862 9.895zM17.433 14.372c-.297-.148-1.757-.867-2.028-.966-.271-.1-.47-.148-.668.148-.198.297-.767.966-.94 1.164-.173.198-.346.223-.643.074a8.1 8.1 0 01-2.42-1.492c-.933-.86-1.562-1.92-1.745-2.217-.183-.297-.02-.458.129-.607.133-.133.297-.346.446-.52.148-.173.198-.297.297-.495.099-.198.05-.371-.025-.52-.074-.148-.668-1.609-.915-2.203-.242-.578-.487-.5-.668-.51h-.57c-.198 0-.52.074-.792.371-.272.297-1.04 1.015-1.04 2.476s1.064 2.871 1.213 3.069c.148.198 2.094 3.196 5.074 4.482.709.306 1.263.489 1.694.626.713.226 1.36.194 1.871.118.571-.085 1.757-.718 2.005-1.41.247-.693.247-1.287.173-1.41-.074-.124-.272-.198-.57-.346z"></path></svg>
+                            Hubungi Admin via WA
+                        </a>
                     <?php endif; ?>
                 </form>
             </div>
