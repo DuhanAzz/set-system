@@ -138,10 +138,20 @@ class RollResultController extends Controller {
             
             $filter_class_id = $_POST['race_class_id'] ?? 0;
             $heat_names = $_POST['heat_name'] ?? [];
+            
+            $advancement_count = $_POST['advancement_count'] ?? null;
+            if ($advancement_count === '') $advancement_count = null;
+            $next_round = $_POST['next_round'] ?? null;
+            if ($next_round === '') $next_round = null;
 
             if ($eventId > 0) {
                 try {
                     $db->beginTransaction();
+                    
+                    // Save qualification settings
+                    $stmtAdv = $db->prepare("UPDATE roll_event_details SET advancement_count = ?, next_round = ? WHERE id = ?");
+                    $stmtAdv->execute([$advancement_count, $next_round, $filter_class_id]);
+
                     $stmtUpdate = $db->prepare("UPDATE roll_event_results SET time = ?, rank = ?, point = ?, status = ?, is_official = 0 WHERE id = ? AND event_id = ?");
                     $stmtInsert = $db->prepare("INSERT INTO roll_event_results (event_id, race_class_id, round, skater_id, heat_name, time, rank, point, status, is_official) VALUES (?, ?, 'Kualifikasi', ?, ?, ?, ?, ?, ?, 0)");
                     
@@ -573,5 +583,52 @@ class RollResultController extends Controller {
         }
     }
 
+    public function print_result() {
+        $db = Database::getInstance()->getConnection();
+        $eventId = $_SESSION['roll_admin_active_event_id'] ?? 0;
+        $classId = $_GET['race_class_id'] ?? 0;
+        
+        if ($eventId == 0 || $classId == 0) {
+            die("Invalid Event or Class.");
+        }
 
+        $stmtEvt = $db->prepare("SELECT * FROM roll_events WHERE id = ?");
+        $stmtEvt->execute([$eventId]);
+        $event = $stmtEvt->fetch(PDO::FETCH_ASSOC);
+
+        $stmtClass = $db->prepare("SELECT ed.*, d.distance_name, a.group_name, sc.class_name as roller_name
+                                   FROM roll_event_details ed 
+                                   LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id 
+                                   LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id 
+                                   LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
+                                   WHERE ed.id = ?");
+        $stmtClass->execute([$classId]);
+        $classInfo = $stmtClass->fetch(PDO::FETCH_ASSOC);
+
+        // Ambil semua hasil, lalu urutkan secara global berdasarkan waktu
+        $stmtResults = $db->prepare("
+            SELECT e.bib_number, s.skater_name, s.gender, c.city_province as city, c.club_name, p.heat_name, p.start_grid,
+                   r.rank as heat_rank, r.time, r.status, r.is_official
+            FROM roll_pelotons p
+            JOIN roll_entries e ON p.skater_id = e.skater_id AND p.race_class_id = e.race_class_id AND p.event_id = e.event_id
+            JOIN roll_skaters s ON p.skater_id = s.id
+            LEFT JOIN roll_clubs c ON s.club_id = c.id
+            LEFT JOIN roll_event_results r ON p.event_id = r.event_id AND p.race_class_id = r.race_class_id AND p.skater_id = r.skater_id
+            WHERE p.event_id = ? AND p.race_class_id = ?
+            ORDER BY 
+                CASE WHEN COALESCE(r.status, 'OK') = 'OK' THEN 0 ELSE 1 END ASC,
+                CASE WHEN r.time IS NULL OR r.time = '' OR r.time = '00.00.000' THEN 1 ELSE 0 END ASC,
+                r.time ASC, 
+                CAST(REPLACE(p.heat_name, 'Heat ', '') AS UNSIGNED) ASC, 
+                p.start_grid ASC
+        ");
+        $stmtResults->execute([$eventId, $classId]);
+        $results = $stmtResults->fetchAll(PDO::FETCH_ASSOC);
+
+        return $this->view('roll/admin/results/print_result', [
+            'event' => $event,
+            'classInfo' => $classInfo,
+            'results' => $results
+        ]);
+    }
 }

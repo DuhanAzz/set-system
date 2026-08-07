@@ -112,7 +112,7 @@
                     <a href="<?= getenv('APP_URL') ?>/roll/admin/results" class="h-8 px-3 flex items-center bg-white border border-slate-300 rounded text-slate-600 font-bold text-[10px] uppercase hover:bg-slate-50">Menu</a>
                     <a href="<?= getenv('APP_URL') ?>/roll/admin/results/export_csv?race_class_id=<?= $filter_class_id ?>" class="h-8 px-3 flex items-center bg-teal-500 text-white rounded font-bold text-[10px] uppercase hover:bg-teal-600 gap-1" title="Download Data ke CSV Format Stopwatch">📤 EXPORT</a>
                     <button type="button" onclick="document.getElementById('csvUploadForm').classList.toggle('hidden')" class="h-8 px-3 flex items-center bg-emerald-500 text-white rounded font-bold text-[10px] uppercase hover:bg-emerald-600 gap-1" title="Import CSV Backup dari Stopwatch">📝 IMPORT</button>
-                    <button type="button" onclick="window.print()" class="h-8 px-3 flex items-center bg-orange-500 text-white rounded font-bold text-[10px] uppercase hover:bg-orange-600 gap-1">🖨️ PDF</button>
+                    <a href="<?= getenv('APP_URL') ?>/roll/admin/results/print_result?race_class_id=<?= $filter_class_id ?>" target="_blank" class="h-8 px-3 flex items-center bg-orange-500 text-white rounded font-bold text-[10px] uppercase hover:bg-orange-600 gap-1">🖨️ PDF</a>
                     <button type="submit" form="formResult" class="h-8 px-4 flex items-center bg-blue-600 text-white rounded font-bold text-[10px] uppercase hover:bg-blue-700 gap-1 shadow-sm">💾 SIMPAN</button>
                 </div>
                 <a href="<?= $nextUrl ?? '#' ?>" class="h-10 px-4 flex items-center justify-center rounded-r-lg font-bold text-xs uppercase transition border-l border-slate-600 <?= $nextClass ?? '' ?>">NEXT &raquo;</a>
@@ -138,6 +138,25 @@
         
         <form id="formResult" action="<?= getenv('APP_URL') ?>/roll/admin/results/save_provisional_result" method="POST">
             <input type="hidden" name="race_class_id" value="<?= htmlspecialchars($filter_class_id) ?>">
+
+            <!-- Panel Pengaturan Kualifikasi -->
+            <div class="bg-indigo-50 border border-indigo-200 rounded-lg p-3 mb-6 flex flex-wrap gap-4 items-center shadow-sm">
+                <div class="text-sm font-bold text-indigo-800 w-full md:w-auto flex-1">⚙️ Pengaturan Kualifikasi (Cut-off)</div>
+                <div class="flex items-center gap-2">
+                    <label class="text-xs font-bold text-slate-600">Loloskan:</label>
+                    <input type="number" name="advancement_count" value="<?= htmlspecialchars($raceInfo['advancement_count'] ?? '') ?>" class="w-20 h-8 text-center text-sm border-slate-300 rounded focus:ring-indigo-500 focus:border-indigo-500" placeholder="0" min="0">
+                    <span class="text-xs font-bold text-slate-600">Atlet ke Babak</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <select name="next_round" class="h-8 text-sm border-slate-300 rounded focus:ring-indigo-500 focus:border-indigo-500 font-bold text-indigo-700">
+                        <option value="">- Pilih Babak -</option>
+                        <option value="Perempat Final" <?= ($raceInfo['next_round'] ?? '') === 'Perempat Final' ? 'selected' : '' ?>>Perempat Final</option>
+                        <option value="Semi Final" <?= ($raceInfo['next_round'] ?? '') === 'Semi Final' ? 'selected' : '' ?>>Semi Final</option>
+                        <option value="Final" <?= ($raceInfo['next_round'] ?? '') === 'Final' ? 'selected' : '' ?>>Final</option>
+                    </select>
+                </div>
+                <div class="text-[10px] text-indigo-600 w-full italic">*(Setel pengaturan di atas, lalu klik tombol SIMPAN. Status kelolosan akan otomatis muncul di Cetakan PDF)*</div>
+            </div>
             
             <?php foreach($heatsData as $heatName => $results): ?>
             <?php $totalEliminated = $totalEliminatedByHeat[$heatName] ?? 0; ?>
