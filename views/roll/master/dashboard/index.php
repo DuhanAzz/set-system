@@ -27,7 +27,7 @@
                     <p class="text-sm text-orange-100 font-medium mt-1">Ada pengguna (Klub/EO) baru yang menunggu persetujuan Anda untuk bisa login.</p>
                 </div>
             </div>
-            <a href="<?= getenv('APP_URL') ?>/roll/users/index" class="bg-white text-orange-600 px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-orange-50 transition transform group-hover:scale-105 shadow-md">Tinjau Sekarang</a>
+            <a href="<?= getenv('APP_URL') ?>/roll/master/users?role=user" class="bg-white text-orange-600 px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-orange-50 transition transform group-hover:scale-105 shadow-md">Tinjau Sekarang</a>
         </div>
         <?php endif; ?>
 

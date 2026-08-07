@@ -75,8 +75,9 @@
                                 <?php if(!empty($u['phone'])): 
                                     $waNum = preg_replace('/[^0-9]/', '', $u['phone']);
                                     if(substr($waNum, 0, 1) == '0') $waNum = '62' . substr($waNum, 1);
+                                    $waMsg = urlencode("Haii saya admin SET SYSTEM.informasikan bahwa akun SET SYSTEM \"{$u['email']}\" sudah aktif. Silakan melakukan pendaftaran lomba ✨");
                                 ?>
-                                    <a href="https://wa.me/<?= $waNum ?>" target="_blank" class="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded w-fit hover:bg-emerald-100 transition flex items-center gap-1">
+                                    <a href="https://wa.me/<?= $waNum ?>?text=<?= $waMsg ?>" target="_blank" class="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded w-fit hover:bg-emerald-100 transition flex items-center gap-1">
                                         📱 WhatsApp
                                     </a>
                                 <?php endif; ?>
@@ -150,8 +151,8 @@
                         <td class="px-6 py-5 align-top text-right">
                             <div class="flex justify-end gap-2">
                                 <?php if($status === 'pending'): ?>
-                                    <a href="<?= getenv('APP_URL') ?>/roll/master/users/verify/<?= $u['id'] ?>" class="flex items-center justify-center bg-amber-500 hover:bg-amber-600 text-white px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition shadow-sm">
-                                        Verifikasi Akun
+                                    <a href="<?= getenv('APP_URL') ?>/roll/master/users/verify/<?= $u['id'] ?>?role=<?= $targetRole ?>" class="flex items-center justify-center bg-amber-500 hover:bg-amber-600 text-white px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition shadow-sm">
+                                        Verifikasi
                                     </a>
                                 <?php else: ?>
                                     <button 
