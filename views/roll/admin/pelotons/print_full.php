@@ -110,13 +110,20 @@ $scheduleByDay = [];
 
 // Organisasi Data
 foreach ($rawData as $row) {
-    $cid = $row['class_id'];
+    $isPemula = (stripos($row['roller_name'] ?? '', 'Pemula') !== false);
+    
+    if ($isPemula) {
+        $genderTitle = strtoupper($row['gender'] === 'pa' ? 'Putra' : ($row['gender'] === 'pi' ? 'Putri' : $row['gender']));
+        $cid = 'PEMULA_' . $row['distance_name'] . '_' . $genderTitle;
+    } else {
+        $cid = $row['class_id'];
+    }
     
     if (!isset($fullBook[$cid])) {
         $mechData = RollPelotonController::getMechanism($row['distance_name']);
         
         $judulParts = [];
-        if ($pc['show_group'])    $judulParts[] = $row['group_name'];
+        if (!$isPemula && $pc['show_group'])    $judulParts[] = $row['group_name'];
         if ($pc['show_gender'])   $judulParts[] = strtoupper($row['gender'] === 'pa' ? 'Putra' : ($row['gender'] === 'pi' ? 'Putri' : $row['gender']));
         if ($pc['show_distance']) $judulParts[] = $row['distance_name'];
         
@@ -127,10 +134,22 @@ foreach ($rawData as $row) {
                 'mechanism'   => $mechData['mechanism'],
                 'race_type'   => $mechData['race_type'],
                 'jadwal'      => $dateRange,
-                'waktu'       => $row['race_time'] ?? '00:00'
+                'waktu'       => $row['race_time'] ?? '00:00',
+                'is_pemula'   => $isPemula,
+                'groups'      => []
             ],
             'rounds' => []
         ];
+    }
+
+    if ($isPemula && !in_array($row['group_name'], $fullBook[$cid]['meta']['groups'])) {
+        $fullBook[$cid]['meta']['groups'][] = $row['group_name'];
+        
+        // Update judul
+        $gStr = implode(', ', $fullBook[$cid]['meta']['groups']);
+        $genderTitle = strtoupper($row['gender'] === 'pa' ? 'Putra' : ($row['gender'] === 'pi' ? 'Putri' : $row['gender']));
+        $fullBook[$cid]['meta']['judul'] = $row['distance_name'] . " - " . $gStr . " - PEMULA " . $genderTitle;
+    }
         
         // Simpan data jadwal per hari
         $dayDigit = (int)substr($row['race_number'], 0, 1);
@@ -166,7 +185,8 @@ foreach ($rawData as $row) {
         'bib_number' => $row['bib_number'],
         'skater_name' => $row['skater_name'],
         'club_name' => $row['club_name'],
-        'team_name' => $row['team_name']
+        'team_name' => $row['team_name'],
+        'group_name' => $row['group_name']
     ];
 }
 
@@ -437,7 +457,14 @@ if ($cc['klub']) $activeColumnsCount++;
                     <?php else: ?>
                         <?php foreach($fullBook as $cid => $data): 
                             $meta = $data['meta'];
-                            $isHeat = ($meta['mechanism'] === 'heat');
+                            
+                            $isHeat = true;
+                            if (isset($data['rounds']['Kualifikasi']['Final']) || isset($data['rounds']['Kualifikasi']['Starting List'])) {
+                                $isHeat = false;
+                            } elseif (!isset($data['rounds']['Kualifikasi']) && isset($data['rounds']['Final'])) {
+                                $isHeat = false;
+                            }
+                            
                             $isTimeTrial = ($meta['race_type'] === 'time_trial');
                             $raceNumStr = str_pad($meta['nomor'], 3, '0', STR_PAD_LEFT);
                         ?>
@@ -475,7 +502,7 @@ if ($cc['klub']) $activeColumnsCount++;
                                                     <?php if($cc['nama']): ?><th class="col-nama">NAMA ATLET</th><?php endif; ?>
                                                     <?php if($cc['klub']): ?><th>KLUB / KONTINGEN</th><?php endif; ?>
                                                 <?php else: ?>
-                                                    <?php if($cc['lane']): ?><th class="col-ln"><?= $isTimeTrial ? 'URUT' : 'LANE' ?></th><?php endif; ?>
+                                                    <?php if($cc['lane']): ?><th class="col-ln">NO</th><?php endif; ?>
                                                     <?php if($cc['bib']): ?><th class="col-bib">NO. BIB</th><?php endif; ?>
                                                     <?php if($cc['nama']): ?><th class="col-nama">NAMA ATLET</th><?php endif; ?>
                                                     <?php if($cc['klub']): ?><th>KLUB / KONTINGEN</th><?php endif; ?>
@@ -508,14 +535,43 @@ if ($cc['klub']) $activeColumnsCount++;
                                                 endforeach; 
                                                 ?>
                                             <?php else: ?>
-                                                <?php foreach($members as $m): ?>
-                                                <tr>
-                                                    <?php if($cc['lane']): ?><td class="col-ln"><?= $m['start_grid'] ?></td><?php endif; ?>
-                                                    <?php if($cc['bib']): ?><td class="col-bib"><?= htmlspecialchars($m['bib_number'] ?? '-') ?></td><?php endif; ?>
-                                                    <?php if($cc['nama']): ?><td class="col-nama" style="font-weight: bold;"><?= htmlspecialchars($m['skater_name']) ?></td><?php endif; ?>
-                                                    <?php if($cc['klub']): ?><td><?= htmlspecialchars($m['club_name'] ?? '-') ?></td><?php endif; ?>
-                                                </tr>
-                                                <?php endforeach; ?>
+                                                <?php 
+                                                if (!empty($meta['is_pemula'])) {
+                                                    $byGroup = [];
+                                                    foreach ($members as $m) {
+                                                        $g = $m['group_name'] ?? 'Lainnya';
+                                                        $byGroup[$g][] = $m;
+                                                    }
+                                                    foreach ($byGroup as $gName => $gMembers) {
+                                                        ?>
+                                                        <tr>
+                                                            <td colspan="<?= $activeColumnsCount ?>" style="background-color: #e2e8f0; font-weight: bold; text-align: center; font-size: 9pt; padding: 4px; border: 1px solid #000; text-transform: uppercase;">
+                                                                <?= htmlspecialchars($gName) ?>
+                                                            </td>
+                                                        </tr>
+                                                        <?php
+                                                        foreach ($gMembers as $m) {
+                                                            ?>
+                                                            <tr>
+                                                                <?php if($cc['lane']): ?><td class="col-ln"><?= $m['start_grid'] ?></td><?php endif; ?>
+                                                                <?php if($cc['bib']): ?><td class="col-bib"><?= htmlspecialchars($m['bib_number'] ?? '-') ?></td><?php endif; ?>
+                                                                <?php if($cc['nama']): ?><td class="col-nama" style="font-weight: bold;"><?= htmlspecialchars($m['skater_name']) ?></td><?php endif; ?>
+                                                                <?php if($cc['klub']): ?><td><?= htmlspecialchars($m['club_name'] ?? '-') ?></td><?php endif; ?>
+                                                            </tr>
+                                                            <?php
+                                                        }
+                                                    }
+                                                } else {
+                                                    foreach($members as $m): ?>
+                                                    <tr>
+                                                        <?php if($cc['lane']): ?><td class="col-ln"><?= $m['start_grid'] ?></td><?php endif; ?>
+                                                        <?php if($cc['bib']): ?><td class="col-bib"><?= htmlspecialchars($m['bib_number'] ?? '-') ?></td><?php endif; ?>
+                                                        <?php if($cc['nama']): ?><td class="col-nama" style="font-weight: bold;"><?= htmlspecialchars($m['skater_name']) ?></td><?php endif; ?>
+                                                        <?php if($cc['klub']): ?><td><?= htmlspecialchars($m['club_name'] ?? '-') ?></td><?php endif; ?>
+                                                    </tr>
+                                                    <?php endforeach; 
+                                                }
+                                                ?>
                                             <?php endif; ?>
                                             <?php if(empty($members)): ?>
                                             <tr>
