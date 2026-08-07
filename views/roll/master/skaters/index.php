@@ -57,21 +57,11 @@
                         <?php else: ?>
                             <?php foreach($skaters as $s): 
                                 $umur = '-';
-                                $pureKu = '-';
                                 if(!empty($s['birth_date'])) {
                                     $year = (int)date('Y', strtotime($s['birth_date']));
                                     $currentYear = (int)date('Y');
                                     $age = $currentYear - $year;
                                     $umur = $age . ' Thn';
-                                    
-                                    $ku = "Dewasa";
-                                    if ($age <= 6) $ku = "KU A";
-                                    elseif ($age <= 8) $ku = "KU B";
-                                    elseif ($age <= 10) $ku = "KU C";
-                                    elseif ($age <= 12) $ku = "KU D";
-                                    elseif ($age <= 14) $ku = "Junior";
-                                    
-                                    $pureKu = $ku;
                                 }
                             ?>
                             <tr class="hover:bg-slate-50 transition duration-200 group">
@@ -101,7 +91,7 @@
 
                                 <td class="p-5 text-center align-middle">
                                     <div class="font-black text-slate-700 text-sm"><?= !empty($s['birth_date']) ? date('d/m/Y', strtotime($s['birth_date'])) : '-' ?></div>
-                                    <div class="text-[10px] text-amber-500 font-black uppercase mt-0.5 tracking-wider"><?= $umur ?> (<?= $pureKu ?>)</div>
+                                    <div class="text-[10px] text-amber-500 font-black uppercase mt-0.5 tracking-wider"><?= $umur ?></div>
                                 </td>
 
                                 <td class="p-5 text-center align-middle">

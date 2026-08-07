@@ -36,14 +36,8 @@ class RollUserAthleteController extends Controller {
                 $year = (int)date('Y', strtotime($s['birth_date']));
                 $age = $currentYear - $year;
                 
-                $age_group = "Dewasa";
-                if ($age <= 6) $age_group = "KU A";
-                elseif ($age <= 8) $age_group = "KU B";
-                elseif ($age <= 10) $age_group = "KU C";
-                elseif ($age <= 12) $age_group = "KU D";
-                elseif ($age <= 14) $age_group = "Junior";
-                
-                $s['age_group'] = $age . " Thn (" . $age_group . ")";
+                $age_group_str = $age . " Thn";
+                $s['age_group'] = $age_group_str;
             }
         }
         unset($s);
@@ -67,14 +61,7 @@ class RollUserAthleteController extends Controller {
             $currentYear = (int)date('Y');
             $age = $currentYear - $year;
             
-            $age_group = "Dewasa";
-            if ($age <= 6) $age_group = "KU A";
-            elseif ($age <= 8) $age_group = "KU B";
-            elseif ($age <= 10) $age_group = "KU C";
-            elseif ($age <= 12) $age_group = "KU D";
-            elseif ($age <= 14) $age_group = "Junior";
-            
-            $age_group_str = $age . " Thn (" . $age_group . ")";
+            $age_group_str = $age . " Thn";
 
             $stmt = $db->prepare("INSERT INTO roll_skaters (club_id, skater_name, gender, birth_date, age_group) VALUES (?, ?, ?, ?, ?)");
             $stmt->execute([$club_id, $skater_name, $gender, $birth_date, $age_group_str]);
@@ -104,14 +91,7 @@ class RollUserAthleteController extends Controller {
                 $currentYear = (int)date('Y');
                 $age = $currentYear - $year;
                 
-                $age_group = "Dewasa";
-                if ($age <= 6) $age_group = "KU A";
-                elseif ($age <= 8) $age_group = "KU B";
-                elseif ($age <= 10) $age_group = "KU C";
-                elseif ($age <= 12) $age_group = "KU D";
-                elseif ($age <= 14) $age_group = "Junior";
-                
-                $age_group_str = $age . " Thn (" . $age_group . ")";
+                $age_group_str = $age . " Thn";
 
                 $stmt = $db->prepare("UPDATE roll_skaters SET skater_name = ?, gender = ?, birth_date = ?, age_group = ? WHERE id = ?");
                 $stmt->execute([$skater_name, $gender, $birth_date, $age_group_str, $id]);

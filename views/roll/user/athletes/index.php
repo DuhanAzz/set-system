@@ -47,7 +47,7 @@
                         <th class="px-6 py-4">Profil Atlet</th>
                         <th class="px-6 py-4 text-center">Jenis Kelamin</th>
                         <th class="px-6 py-4 text-center">Tanggal Lahir</th>
-                        <th class="px-6 py-4 text-center">Kategori Umur</th>
+                        <th class="px-6 py-4 text-center">Umur (Akhir Tahun)</th>
                         <th class="px-6 py-4 text-center">Kontrol</th>
                     </tr>
                 </thead>
