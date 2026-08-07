@@ -16,7 +16,7 @@ class PublicLandingController extends Controller {
         
         // Fetch landing page and event data
         $stmt = $db->prepare("
-            SELECT lp.*, e.event_name, e.event_date_start, e.event_date_end, e.event_location, e.event_city, e.poster_image, e.logo_left, e.header_logos
+            SELECT lp.*, e.event_name, e.event_date_start, e.event_date_end, e.event_location, e.event_city, e.poster_image, e.logo_left, e.header_logos, e.sponsor_logos
             FROM roll_event_landing_pages lp
             JOIN roll_events e ON lp.event_id = e.id
             WHERE lp.slug = ? AND lp.status = 'Published'

@@ -239,7 +239,22 @@
         <div class="w-full mx-auto relative min-h-[300px] md:min-h-[500px] bg-scroll md:bg-fixed bg-center bg-cover bg-no-repeat" style="background-image: url('<?= getenv('APP_URL') ?>/uploads/landing/<?= $landing['promo_image'] ?>');"></div>
     </section>
     <?php endif; ?>
-
+    <?php 
+    $sponsorsArray = !empty($landing['sponsor_logos']) ? json_decode($landing['sponsor_logos'], true) : [];
+    if (!empty($sponsorsArray)): 
+    ?>
+    <!-- SPONSOR SECTION -->
+    <section class="py-16 bg-white border-b border-slate-100">
+        <div class="max-w-7xl mx-auto px-6 text-center">
+            <h4 class="text-sm font-bold text-slate-400 uppercase tracking-widest mb-8">Sponsored By</h4>
+            <div class="flex flex-wrap justify-center items-center gap-8 md:gap-16">
+                <?php foreach($sponsorsArray as $sponsorFile): ?>
+                    <img src="<?= rtrim(getenv('APP_URL'), '/') ?>/<?= ltrim(str_replace('public/', '', $sponsorFile), '/') ?>" class="h-12 md:h-16 object-contain grayscale opacity-60 hover:grayscale-0 hover:opacity-100 transition-all duration-300" alt="Sponsor">
+                <?php endforeach; ?>
+            </div>
+        </div>
+    </section>
+    <?php endif; ?>
     <!-- FOOTER -->
     <footer class="bg-black py-12 border-t border-white/10">
         <div class="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6">
