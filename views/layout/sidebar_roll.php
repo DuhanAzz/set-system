@@ -44,7 +44,7 @@ if (!function_exists('isGroupActive')) {
    <div class="flex-1 overflow-y-auto py-6 space-y-1 custom-scrollbar">
       
       <!-- DASHBOARD -->
-      <a href="<?= $dashLink ?>" class="<?= (strpos($page,'dashboard')!==false) ? $activeLink : $baseLink ?>">
+      <a href="<?= $dashLink ?>" class="<?= (strpos($req,'dashboard')!==false) ? $activeLink : $baseLink ?>">
          <span class="w-6 text-xl mr-3 text-center opacity-80 group-hover:scale-110 transition">📊</span> 
          <span class="font-bold text-[11px] tracking-widest uppercase">Dashboard</span>
       </a>

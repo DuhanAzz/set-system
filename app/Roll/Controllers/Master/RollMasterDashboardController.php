@@ -43,6 +43,10 @@ class RollMasterDashboardController extends Controller {
             } catch (\Exception $e) {}
 
             try {
+                $stats['total_events'] = $pdo->query("SELECT COUNT(*) FROM roll_events")->fetchColumn();
+            } catch (\Exception $e) {}
+
+            try {
                 $stats['athletes'] = $pdo->query("SELECT COUNT(*) FROM roll_skaters")->fetchColumn();
                 $stats['pending_uids'] = $pdo->query("SELECT COUNT(*) FROM roll_skaters WHERE uid IS NULL OR trim(uid) = '' OR uid = '-' OR uid LIKE 'SW%' OR uid = '0'")->fetchColumn();
             } catch (\Exception $e) {}
@@ -102,7 +106,8 @@ class RollMasterDashboardController extends Controller {
             } catch (\Exception $e) {}
 
         } catch (\PDOException $e) {
-            die("Database Error: " . $e->getMessage());
+            error_log("Master Dashboard DB Error: " . $e->getMessage());
+            // Don't die, let it render with default zeros
         }
 
         $visitorStats = [];

@@ -52,7 +52,7 @@
         <div class="bg-gradient-to-br from-indigo-600 to-blue-800 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden group">
             <div class="relative z-10">
                 <p class="text-indigo-100 text-[10px] font-black uppercase tracking-widest mb-1">Total Event</p>
-                <h2 class="text-4xl font-black"><?= number_format(count($liveEvents)) /* we can also pass totalEvents from controller */ ?></h2>
+                <h2 class="text-4xl font-black"><?= number_format($stats['total_events'] ?? 0) ?></h2>
                 <div class="mt-4 text-[10px] font-bold bg-white/20 inline-block px-2 py-1 rounded">Di Sistem</div>
             </div>
             <div class="absolute -right-4 -bottom-4 opacity-10 group-hover:scale-110 transition duration-500 text-white">
