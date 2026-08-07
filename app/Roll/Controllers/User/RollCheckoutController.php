@@ -73,31 +73,29 @@ class RollCheckoutController extends Controller {
             $entries = count($rows);
             
             $amount = 0;
-            if ($status === 'Unpaid' || $status === 'Rejected') {
-                $skaterCats = [];
-                foreach ($rows as $r) {
-                    $cName = strtolower($r['class_name'] ?? '');
-                    if (strpos($cName, 'speed') !== false) $skaterCats[$r['skater_id']]['speed'] = true;
-                    elseif (strpos($cName, 'standar') !== false) $skaterCats[$r['skater_id']]['standar'] = true;
-                    elseif (strpos($cName, 'pemula') !== false) $skaterCats[$r['skater_id']]['pemula'] = true;
-                }
-                
-                foreach ($skaterCats as $sId => $cats) {
-                    $sAmount = 0;
-                    if (isset($cats['speed'])) $sAmount = (float)$eventFees['fee_speed'];
-                    else {
-                        if (isset($cats['standar'])) $sAmount += (float)$eventFees['fee_standart'];
-                        if (isset($cats['pemula'])) {
-                            if (isset($cats['standar']) && empty($eventFees['allow_pemula_standart_mix'])) {
-                                $sAmount = max((float)$eventFees['fee_standart'], (float)$eventFees['fee_pemula']);
-                            } else {
-                                $sAmount += (float)$eventFees['fee_pemula'];
-                            }
+            $skaterCats = [];
+            foreach ($rows as $r) {
+                $cName = strtolower($r['class_name'] ?? '');
+                if (strpos($cName, 'speed') !== false) $skaterCats[$r['skater_id']]['speed'] = true;
+                elseif (strpos($cName, 'standar') !== false) $skaterCats[$r['skater_id']]['standar'] = true;
+                elseif (strpos($cName, 'pemula') !== false) $skaterCats[$r['skater_id']]['pemula'] = true;
+            }
+            
+            foreach ($skaterCats as $sId => $cats) {
+                $sAmount = 0;
+                if (isset($cats['speed'])) $sAmount = (float)$eventFees['fee_speed'];
+                else {
+                    if (isset($cats['standar'])) $sAmount += (float)$eventFees['fee_standart'];
+                    if (isset($cats['pemula'])) {
+                        if (isset($cats['standar']) && empty($eventFees['allow_pemula_standart_mix'])) {
+                            $sAmount = max((float)$eventFees['fee_standart'], (float)$eventFees['fee_pemula']);
+                        } else {
+                            $sAmount += (float)$eventFees['fee_pemula'];
                         }
                     }
-                    if ($sAmount == 0) $sAmount = 150000;
-                    $amount += $sAmount;
                 }
+                if ($sAmount == 0) $sAmount = 150000;
+                $amount += $sAmount;
             }
 
             $bills[] = [
