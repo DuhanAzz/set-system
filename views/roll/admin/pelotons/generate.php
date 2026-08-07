@@ -39,13 +39,39 @@ document.addEventListener('DOMContentLoaded', function() {
         logContainer.prepend(p);
     }
 
+    // Build lookup map from localStorage to get overrides configured in global.php
+    const overrideMap = {};
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key.startsWith('roll_mech_')) {
+            try {
+                const ids = JSON.parse(key.replace('roll_mech_', ''));
+                const val = localStorage.getItem(key);
+                ids.forEach(id => {
+                    if (!overrideMap[id]) overrideMap[id] = {};
+                    overrideMap[id].mechanism = val;
+                });
+            } catch(e) {}
+        }
+        if (key.startsWith('roll_lanes_')) {
+            try {
+                const ids = JSON.parse(key.replace('roll_lanes_', ''));
+                const val = localStorage.getItem(key);
+                ids.forEach(id => {
+                    if (!overrideMap[id]) overrideMap[id] = {};
+                    overrideMap[id].maxLanes = val;
+                });
+            } catch(e) {}
+        }
+    }
+
     async function processNext() {
         if (currentIndex >= total) {
-            addLog("SELESAI! Semua nomor perlombaan telah di-seeding.");
+            addLog("SEMUA PROSES SELESAI!");
             progressText.innerText = "100%";
             setTimeout(() => {
                 window.location.href = '<?= getenv("APP_URL") ?>/roll/admin/pelotons'; 
-            }, 1500);
+            }, 2000);
             return;
         }
 
@@ -57,7 +83,14 @@ document.addEventListener('DOMContentLoaded', function() {
         addLog("Processing: " + className + "...");
 
         try {
-            const url = `<?= getenv('APP_URL') ?>/roll/admin/pelotons/process?class_id=${cls.class_id}&round=<?= urlencode($round) ?>&algorithm=<?= urlencode($algorithm) ?>&max_lanes=<?= urlencode($maxLanes) ?>`;
+            const customMech = overrideMap[cls.class_id]?.mechanism || ''; 
+            const customLanes = overrideMap[cls.class_id]?.maxLanes || '<?= urlencode($maxLanes) ?>';
+            
+            let url = `<?= getenv('APP_URL') ?>/roll/admin/pelotons/process?class_id=${cls.class_id}&round=<?= urlencode($round) ?>&algorithm=<?= urlencode($algorithm) ?>&max_lanes=${encodeURIComponent(customLanes)}`;
+            if (customMech) {
+                url += `&override_mechanism=${encodeURIComponent(customMech)}`;
+            }
+            
             const response = await fetch(url);
             const data = await response.json();
             

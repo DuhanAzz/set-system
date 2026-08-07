@@ -176,7 +176,7 @@
                         $currentRound = !empty($results) && !empty($results[0]['round']) ? $results[0]['round'] : 'KUALIFIKASI';
                         ?>
                         <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 5px;">
-                            <div style="font-size: 11pt; font-weight: bold; color: #b91c1c; text-align: left;">
+                            <div style="font-size: 11pt; font-weight: bold; color: #333; text-align: left; text-transform: uppercase;">
                                 R<?= htmlspecialchars($classInfo['race_number']) ?> - 
                                 <?= htmlspecialchars($classInfo['distance_name'] ?? $classInfo['distance'] ?? '') ?> - 
                                 <?= htmlspecialchars($classInfo['group_name'] ?? '') ?> - 

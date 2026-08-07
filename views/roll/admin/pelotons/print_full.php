@@ -126,7 +126,8 @@ foreach ($rawData as $row) {
                 'judul'       => empty($judulParts) ? "RACE " . $row['race_number'] : implode(" - ", $judulParts),
                 'mechanism'   => $mechData['mechanism'],
                 'race_type'   => $mechData['race_type'],
-                'jadwal'      => $dateRange
+                'jadwal'      => $dateRange,
+                'waktu'       => $row['race_time'] ?? '00:00'
             ],
             'rounds' => []
         ];
@@ -230,23 +231,23 @@ if ($cc['klub']) $activeColumnsCount++;
         .font-bold { font-weight: bold; }
         
         /* TABEL RACE BOOK (HEAT) STYLE */
-        .event-header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #000; padding-bottom: 2px; margin-bottom: 8px; margin-top: 15px; page-break-inside: avoid; }
+        .event-header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #000; padding-bottom: 2px; margin-bottom: 4px; margin-top: 10px; page-break-inside: avoid; }
         .eh-left-group { display: flex; flex-direction: column; gap: 2px; min-width: 120px; }
-        .eh-number { font-size: 10pt; font-weight: 900; background: #000; color: #fff; display: inline-block; padding: 2px 8px; border-radius: 4px 4px 0 0; align-self: flex-start; }
-        .eh-date { font-size: 8pt; font-weight: bold; color: #555; }
+        .eh-number { font-size: 9pt; font-weight: 900; background: #000; color: #fff; display: inline-block; padding: 2px 6px; border-radius: 4px 4px 0 0; align-self: flex-start; }
+        .eh-date { font-size: 7.5pt; font-weight: bold; color: #555; }
         .eh-center { flex-grow: 1; text-align: center; }
-        .eh-title { font-size: 14pt; font-weight: 900; text-transform: uppercase; color: #000; font-style: italic; }
-        .eh-right { min-width: 120px; text-align: right; font-size: 10pt; font-weight: 900; color: #000; }
+        .eh-title { font-size: 13pt; font-weight: 900; text-transform: uppercase; color: #000; font-style: italic; }
+        .eh-right { min-width: 120px; text-align: right; font-size: 9pt; font-weight: 900; color: #000; }
         
-        .heat-title { font-size: 10pt; font-weight: 900; text-transform: uppercase; margin-bottom: 4px; margin-top: 10px; border-bottom: 1px dashed #000; padding-bottom: 2px; }
-        .data-table { width: 100%; border-collapse: collapse; margin-bottom: 15px; page-break-inside: avoid; }
-        .data-table th { border: 1px solid #000; background-color: #eee; padding: 4px; text-align: left; font-size: 9pt; font-weight: bold; text-transform: uppercase; }
-        .data-table td { border: 1px solid #000; padding: 4px; font-size: 9pt; vertical-align: middle; }
+        .heat-title { font-size: 9pt; font-weight: 900; text-transform: uppercase; margin-bottom: 2px; margin-top: 4px; border-bottom: 1px dashed #000; padding-bottom: 2px; }
+        .data-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; page-break-inside: avoid; }
+        .data-table th { border: 1px solid #000; background-color: #eee; padding: 2px 4px; text-align: left; font-size: 8pt; font-weight: bold; text-transform: uppercase; }
+        .data-table td { border: 1px solid #000; padding: 2px 4px; font-size: 8.5pt; vertical-align: middle; }
         .data-table th.col-ln, .data-table td.col-ln { width: 40px; text-align: center; font-weight: bold; }
         .data-table th.col-bib, .data-table td.col-bib { width: 60px; text-align: center; font-weight: bold; }
         .data-table th.col-nama { width: 40%; }
         
-        .round-title { background-color: #e2e8f0; color: #1e293b; text-align: center; padding: 4px; margin-top: 10px; margin-bottom: 5px; font-weight: bold; font-size: 9pt; text-transform: uppercase; page-break-inside: avoid; }
+        .round-title { background-color: #e2e8f0; color: #1e293b; text-align: center; padding: 3px; margin-top: 6px; margin-bottom: 4px; font-weight: bold; font-size: 8.5pt; text-transform: uppercase; page-break-inside: avoid; }
 
         .btn-print { position: fixed; top: 20px; right: 20px; z-index: 999999; background: #0f172a; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-weight: bold; cursor: pointer; text-transform: uppercase; }
         .btn-close { position: fixed; top: 20px; right: 180px; z-index: 999999; background: #475569; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-weight: bold; cursor: pointer; text-transform: uppercase; }
@@ -442,10 +443,10 @@ if ($cc['klub']) $activeColumnsCount++;
                             <div class="event-header">
                                 <div class="eh-left-group">
                                     <div class="eh-number">RACE <?= $raceNumStr ?></div>
-                                    <?php if($pc['show_date']): ?><div class="eh-date"><?= $meta['jadwal'] ?></div><?php endif; ?>
+                                    <?php if($pc['show_date']): ?><div class="eh-date"><?= $meta['jadwal'] ?> <span style="margin-left: 5px; font-weight: normal;">(<?= substr($meta['waktu'], 0, 5) ?>)</span></div><?php endif; ?>
                                 </div>
                                 <div class="eh-center"><div class="eh-title"><?= $meta['judul'] ?></div></div>
-                                <div class="eh-right"><?= $isHeat ? 'PENYISIHAN (HEAT)' : ($isTimeTrial ? 'TIME TRIAL' : 'LANGSUNG FINAL') ?></div>
+                                <div class="eh-right"><?= $isHeat ? 'BABAK PENYISIHAN' : 'BABAK FINAL' ?></div>
                             </div>
 
                             <?php foreach($data['rounds'] as $rndName => $heats): ?>
