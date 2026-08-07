@@ -79,6 +79,10 @@
                             <input type="text" name="event_location" value="<?= htmlspecialchars($row['event_location'] ?? '') ?>" class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-800 focus:ring-2 focus:ring-blue-500">
                         </div>
                         <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">No. WA Admin (Format 628...)</label>
+                            <input type="text" name="contact_phone" value="<?= htmlspecialchars($row['contact_phone'] ?? '') ?>" placeholder="6281234567890" class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-800 focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
                             <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Status Kejuaraan</label>
                             <select name="status" class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-800 focus:ring-2 focus:ring-blue-500 font-bold">
                                 <option value="Draft" <?= ($row['status'] == 'Draft') ? 'selected' : '' ?>>Draft (Sembunyikan)</option>

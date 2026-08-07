@@ -187,12 +187,13 @@ class RollEntryController extends Controller {
         if (!$eventData) die("Event tidak ditemukan");
         
         // AMBIL DATA KLUB
-        $stmtClub = $db->prepare("SELECT c.club_name, u.email FROM roll_clubs c LEFT JOIN roll_users u ON u.club_id = c.id WHERE c.id = ?");
+        $stmtClub = $db->prepare("SELECT c.club_name, u.email, u.phone FROM roll_clubs c LEFT JOIN roll_users u ON u.club_id = c.id WHERE c.id = ?");
         $stmtClub->execute([$targetClubId]);
         $clubData = $stmtClub->fetch(PDO::FETCH_ASSOC);
         
         $clubName = $clubData['club_name'] ?? 'Klub ID: ' . $targetClubId;
         $emailUser = $clubData['email'] ?? 'No Email';
+        $phoneUser = $clubData['phone'] ?? '';
         
         // AMBIL DATA PEMBAYARAN
         $stmtPay = $db->prepare("SELECT * FROM roll_payments WHERE event_id = ? AND club_id = ? LIMIT 1");
@@ -257,6 +258,7 @@ class RollEntryController extends Controller {
             'targetUserId' => $targetClubId,
             'clubName' => $clubName,
             'emailUser' => $emailUser,
+            'phoneUser' => $phoneUser,
             'payData' => $payData,
             'groupedSkaters' => $groupedSkaters,
             'totalTagihan' => $totalTagihan

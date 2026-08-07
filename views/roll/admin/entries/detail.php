@@ -84,6 +84,23 @@
                 <?php endif; ?>
 
             <?php endif; ?>
+            
+            <?php 
+                if(!empty($phoneUser)) {
+                    $waNum = preg_replace('/[^0-9]/', '', $phoneUser);
+                    if(substr($waNum, 0, 1) == '0') $waNum = '62' . substr($waNum, 1);
+                    
+                    $statusPay = $payData['status'] ?? 'Unpaid';
+                    $statusStr = $statusPay == 'Paid' ? 'LUNAS (Diverifikasi)' : ($statusPay == 'Pending' ? 'MENUNGGU VERIFIKASI' : ($statusPay == 'Rejected' ? 'DITOLAK' : 'BELUM DIBAYAR'));
+                    
+                    $waMsg = "Halo perwakilan dari Klub *" . $clubName . "*,\n\nKami dari Admin SET SYSTEM ingin menginformasikan status pembayaran Anda untuk event ini.\n\nTotal Tagihan: *Rp " . number_format($totalTagihan, 0, ',', '.') . "*\nStatus Saat Ini: *" . $statusStr . "*\n\nTerima kasih! ✨";
+                    $waLink = "https://wa.me/" . $waNum . "?text=" . urlencode($waMsg);
+            ?>
+            <a href="<?= $waLink ?>" target="_blank" class="mt-4 flex items-center justify-center gap-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border border-emerald-200 py-3 w-full rounded-xl transition-all font-black uppercase text-[10px] tracking-widest">
+                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20.52 3.449a11.967 11.967 0 00-8.498-3.447C5.43 0 .044 5.385.044 11.975c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.66 1.446h.005c6.59 0 11.975-5.385 11.975-11.976a11.964 11.964 0 00-3.482-8.367zM12.023 21.758a9.882 9.882 0 01-5.042-1.378l-.36-.214-3.748.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c0-5.445 4.432-9.877 9.882-9.877a9.87 9.87 0 016.985 2.894 9.865 9.865 0 012.892 6.98c-.001 5.446-4.434 9.895-9.862 9.895zM17.433 14.372c-.297-.148-1.757-.867-2.028-.966-.271-.1-.47-.148-.668.148-.198.297-.767.966-.94 1.164-.173.198-.346.223-.643.074a8.1 8.1 0 01-2.42-1.492c-.933-.86-1.562-1.92-1.745-2.217-.183-.297-.02-.458.129-.607.133-.133.297-.346.446-.52.148-.173.198-.297.297-.495.099-.198.05-.371-.025-.52-.074-.148-.668-1.609-.915-2.203-.242-.578-.487-.5-.668-.51h-.57c-.198 0-.52.074-.792.371-.272.297-1.04 1.015-1.04 2.476s1.064 2.871 1.213 3.069c.148.198 2.094 3.196 5.074 4.482.709.306 1.263.489 1.694.626.713.226 1.36.194 1.871.118.571-.085 1.757-.718 2.005-1.41.247-.693.247-1.287.173-1.41-.074-.124-.272-.198-.57-.346z"></path></svg>
+                Balas via WA
+            </a>
+            <?php endif; ?>
         </div>
     </div>
 
