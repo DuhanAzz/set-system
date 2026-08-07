@@ -192,7 +192,7 @@
                             </p>
                         </div>
                         <?php 
-                        $waMsg = "Halo Admin SET SYSTEM,\n\nSaya dari Klub *" . ($clubName) . "* ingin menanyakan status verifikasi pembayaran untuk event *" . ($event['event_name'] ?? 'Event') . "*.\n\nBukti transfer telah kami kirimkan melalui sistem. Mohon bantuannya untuk segera diverifikasi agar kami bisa mendaftarkan atlet lainnya. Terima kasih! ✨";
+                        $waMsg = "Halo Admin SET SYSTEM,\n\nSaya dari Klub *" . ($clubName) . "* ingin menanyakan status verifikasi pembayaran untuk event *" . ($event['event_name'] ?? 'Event') . "*.\n\nBukti transfer telah kami kirimkan melalui sistem. Mohon bantuannya untuk segera diverifikasi agar kami bisa mendaftarkan atlet lainnya. Terima kasih! ";
                         $adminWa = !empty($event['contact_phone']) ? preg_replace('/[^0-9]/', '', $event['contact_phone']) : '6281234567890';
                         if(substr($adminWa, 0, 1) == '0') $adminWa = '62' . substr($adminWa, 1);
                         $waLink = "https://wa.me/" . $adminWa . "?text=" . urlencode($waMsg);
