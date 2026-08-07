@@ -68,4 +68,37 @@ class RollMasterSkaterController extends Controller {
             'transfers' => $transfers
         ]);
     }
+    public function update() {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $db = Database::getInstance()->getConnection();
+            $id = $_POST['id'] ?? null;
+            
+            if ($id) {
+                $skater_name = $_POST['skater_name'] ?? '';
+                $gender = $_POST['gender'] ?? '';
+                $birth_date = $_POST['birth_date'] ?? '';
+
+                $year = (int)date('Y', strtotime($birth_date));
+                $currentYear = (int)date('Y');
+                $age = $currentYear - $year;
+                
+                $age_group = "Dewasa";
+                if ($age <= 6) $age_group = "KU A";
+                elseif ($age <= 8) $age_group = "KU B";
+                elseif ($age <= 10) $age_group = "KU C";
+                elseif ($age <= 12) $age_group = "KU D";
+                elseif ($age <= 14) $age_group = "Junior";
+                
+                $age_group_str = $age . " Thn (" . $age_group . ")";
+
+                $stmt = $db->prepare("UPDATE roll_skaters SET skater_name = ?, gender = ?, birth_date = ?, age_group = ? WHERE id = ?");
+                $stmt->execute([$skater_name, $gender, $birth_date, $age_group_str, $id]);
+
+                $_SESSION['flash_message'] = "Data skater berhasil diperbarui.";
+                $_SESSION['flash_type'] = "success";
+            }
+            header("Location: " . getenv('APP_URL') . "/roll/master/skaters/index");
+            exit;
+        }
+    }
 }

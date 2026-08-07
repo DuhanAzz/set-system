@@ -95,7 +95,7 @@
 
                                 <td class="p-5 text-center align-middle">
                                     <div class="flex items-center justify-center gap-2">
-                                        <button class="text-slate-400 bg-white border border-slate-200 hover:border-amber-500 hover:text-amber-600 px-3 py-2 rounded-lg text-xs font-bold transition shadow-sm" onclick="alert('Fitur edit detail segera hadir.')">
+                                        <button class="text-slate-400 bg-white border border-slate-200 hover:border-amber-500 hover:text-amber-600 px-3 py-2 rounded-lg text-xs font-bold transition shadow-sm" onclick='openEditModal(<?= htmlspecialchars(json_encode($s), ENT_QUOTES, "UTF-8") ?>)'>
                                             Edit
                                         </button>
                                     </div>
@@ -109,3 +109,53 @@
         </div>
     </div>
 </div>
+
+<!-- Modal Edit Skater -->
+<div id="modal-edit" class="fixed inset-0 z-[100] hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-lg rounded-[2rem] shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto">
+        <div class="bg-slate-900 p-6 text-white flex justify-between items-center sticky top-0 z-10">
+            <div><h3 class="font-black uppercase tracking-widest italic text-lg leading-none">Edit Biodata Skater</h3></div>
+            <button onclick="document.getElementById('modal-edit').classList.add('hidden')" class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-red-500 transition">✕</button>
+        </div>
+        <form action="<?= getenv('APP_URL') ?>/roll/master/skaters/update" method="POST" class="p-8 space-y-6">
+            <input type="hidden" name="id" id="edit_id">
+            
+            <div class="space-y-3">
+                <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-1">Detail Profil</h4>
+                
+                <div>
+                    <label class="text-[10px] font-bold text-slate-500 uppercase">Nama Lengkap Skater</label>
+                    <input type="text" name="skater_name" id="edit_skater_name" class="w-full px-4 py-3 border border-slate-200 bg-slate-50 rounded-xl text-sm font-bold focus:bg-white focus:border-blue-500 outline-none" required>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-500 uppercase">Jenis Kelamin</label>
+                        <select name="gender" id="edit_gender" required class="w-full px-4 py-3 border border-slate-200 bg-slate-50 rounded-xl text-sm font-bold focus:bg-white focus:border-blue-500 outline-none">
+                            <option value="M">Putra (Male)</option>
+                            <option value="F">Putri (Female)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-500 uppercase">Tanggal Lahir</label>
+                        <input type="date" name="birth_date" id="edit_birth_date" class="w-full px-4 py-3 border border-slate-200 bg-slate-50 rounded-xl text-sm font-bold focus:bg-white focus:border-blue-500 outline-none" required>
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="w-full bg-slate-900 hover:bg-amber-500 text-white font-black py-4 rounded-xl shadow-lg transition uppercase tracking-widest text-xs mt-4">
+                Simpan Perubahan
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+function openEditModal(data) {
+    document.getElementById('edit_id').value = data.id;
+    document.getElementById('edit_skater_name').value = data.skater_name;
+    document.getElementById('edit_gender').value = data.gender.toUpperCase();
+    document.getElementById('edit_birth_date').value = data.birth_date;
+    document.getElementById('modal-edit').classList.remove('hidden');
+}
+</script>
