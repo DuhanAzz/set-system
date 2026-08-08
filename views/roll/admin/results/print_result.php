@@ -184,7 +184,7 @@
                                 (<?= htmlspecialchars($classInfo['roller_name'] ?? '') ?>)
                             </div>
                             <div style="font-size: 11pt; font-weight: bold; color: #333; text-align: right; text-transform: uppercase;">
-                                BABAK <?= htmlspecialchars($currentRound) ?>
+                                <?= htmlspecialchars($currentRound) ?>
                             </div>
                         </div>
                         <table class="schedule-table">

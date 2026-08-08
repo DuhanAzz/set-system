@@ -148,69 +148,52 @@
         <form id="formResult" action="<?= getenv('APP_URL') ?>/roll/admin/results/save_provisional_result" method="POST">
             <input type="hidden" name="race_class_id" value="<?= htmlspecialchars($filter_class_id) ?>">
 
-            <!-- Panel Pengaturan Kualifikasi -->
-            <?php if (!$isDTT): ?>
-            <div class="bg-indigo-50 border border-indigo-200 rounded-lg p-3 mb-6 flex flex-wrap gap-4 items-center shadow-sm">
-                <div class="text-sm font-bold text-indigo-800 w-full md:w-auto flex-1">⚙️ Pengaturan Kualifikasi (Cut-off)</div>
-                
-                <?php if ($isSprint): ?>
-                <?php
-                    $dName = strtolower($raceInfo['distance_name'] ?? '');
-                    $gName = strtolower($raceInfo['group_name'] ?? '');
-                    $combinedName = $dName . ' ' . $gName;
-                    
-                    $roundName = 'Penyisihan';
-                    $generateText = 'GENERATE PEREMPAT FINAL (Top 16)';
-                    $badgeText = 'ℹ️ Mengambil 16 Waktu Tercepat Gabungan';
-                    $autoQualify = 0; $fastestLoser = 16; $nextRound = 'Perempat Final';
-                    
-                    if (strpos($combinedName, 'perempat') !== false || strpos($combinedName, 'quarter') !== false) {
-                        $roundName = 'Perempat Final';
-                        $generateText = 'GENERATE SEMI FINAL (Top 8)';
-                        $badgeText = 'ℹ️ Mengambil 8 Tercepat Gabungan';
-                        $autoQualify = 0; $fastestLoser = 8; $nextRound = 'Semi Final';
-                    } elseif (strpos($combinedName, 'semi') !== false) {
-                        $roundName = 'Semi Final';
-                        $generateText = 'GENERATE FINAL (Top 4)';
-                        $badgeText = 'ℹ️ Mengambil Top 2 Tiap Heat (Total 4)';
-                        $autoQualify = 2; $fastestLoser = 0; $nextRound = 'Final';
-                    }
-                ?>
-                <div class="flex flex-col md:flex-row items-center gap-3 w-full">
-                    <div class="bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap shadow-sm border border-indigo-200">
-                        <?= $badgeText ?>
-                    </div>
-                    
-                    <div class="flex items-center gap-2 bg-white p-1.5 rounded border border-indigo-100">
-                        <label class="text-xs font-bold text-slate-600">Ambil:</label>
-                        <input type="number" name="auto_qualify_per_heat" value="<?= htmlspecialchars($raceInfo['auto_qualify_per_heat'] ?? $autoQualify) ?>" class="w-12 h-7 text-center text-xs border-slate-300 rounded focus:ring-indigo-500 focus:border-indigo-500" placeholder="0" min="0">
-                        <span class="text-[10px] font-bold text-slate-500 uppercase">per Heat</span>
-                        
-                        <label class="text-xs font-bold text-slate-600 ml-2">Ditambah:</label>
-                        <input type="number" name="fastest_loser_count" value="<?= htmlspecialchars($raceInfo['fastest_loser_count'] ?? $fastestLoser) ?>" class="w-12 h-7 text-center text-xs border-slate-300 rounded focus:ring-indigo-500 focus:border-indigo-500" placeholder="0" min="0">
-                        <span class="text-[10px] font-bold text-slate-500 uppercase">Waktu</span>
-                    </div>
-                </div>
-                <?php else: ?>
-                <div class="flex items-center gap-2">
-                    <label class="text-xs font-bold text-slate-600">Loloskan:</label>
-                    <input type="number" name="advancement_count" value="<?= htmlspecialchars($raceInfo['advancement_count'] ?? '') ?>" class="w-20 h-8 text-center text-sm border-slate-300 rounded focus:ring-indigo-500 focus:border-indigo-500" placeholder="0" min="0">
-                    <span class="text-xs font-bold text-slate-600">Atlet ke Babak</span>
-                </div>
-                <?php endif; ?>
-
-                <?php if (!$isSprint): ?>
-                <div class="flex items-center gap-2">
-                    <select name="next_round" class="h-8 text-sm border-slate-300 rounded focus:ring-indigo-500 focus:border-indigo-500 font-bold text-indigo-700">
-                        <option value="">- Lolos ke Babak -</option>
-                        <option value="Perempat Final" <?= ($raceInfo['next_round'] ?? '') === 'Perempat Final' ? 'selected' : '' ?>>Perempat Final</option>
-                        <option value="Semi Final" <?= ($raceInfo['next_round'] ?? '') === 'Semi Final' ? 'selected' : '' ?>>Semi Final</option>
-                        <option value="Final" <?= ($raceInfo['next_round'] ?? '') === 'Final' ? 'selected' : '' ?>>Final</option>
-                    </select>
-                </div>
-                <div class="text-[10px] text-indigo-600 w-full italic">*(Setel pengaturan di atas, lalu klik tombol SIMPAN. Status kelolosan akan otomatis muncul di Cetakan PDF)*</div>
-                <?php endif; ?>
+            <!-- Navigasi Babak -->
+            <div class="mb-4 flex flex-wrap gap-2">
+                <?php foreach($available_rounds as $rnd): ?>
+                    <a href="?race_class_id=<?= $filter_class_id ?>&round=<?= urlencode($rnd) ?>" 
+                       class="px-4 py-2 rounded-lg font-bold text-sm border <?= $rnd === $current_round_name ? 'bg-indigo-600 text-white border-indigo-700 shadow-md' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50' ?>">
+                        <?= htmlspecialchars($rnd) ?>
+                    </a>
+                <?php endforeach; ?>
             </div>
+
+            <!-- Panel Pengaturan Input Hasil -->
+            <?php if (!$isDTT): ?>
+            <div class="bg-indigo-50 border border-indigo-200 rounded-lg p-3 mb-6 shadow-sm">
+                <div class="flex flex-wrap gap-4 items-center">
+                    <div class="text-sm font-bold text-indigo-800 w-full md:w-auto flex-1">⚙️ Pengaturan Input Hasil</div>
+                    
+                    <div class="flex items-center gap-2">
+                        <label class="text-xs font-bold text-slate-600">Nama Babak:</label>
+                        <span class="px-3 py-1 bg-indigo-600 text-white rounded font-bold text-sm shadow-sm"><?= htmlspecialchars($current_round_name) ?></span>
+                        <input type="hidden" name="current_round_name" value="<?= htmlspecialchars($current_round_name) ?>">
+                    </div>
+
+                    <div class="hidden md:block w-px h-8 bg-indigo-200"></div>
+
+                    <div class="flex items-center gap-2">
+                        <label class="text-xs font-bold text-slate-600">Loloskan:</label>
+                        <input type="number" name="advancement_count" value="<?= htmlspecialchars($raceInfo['advancement_count'] ?? '') ?>" class="w-16 h-8 text-center text-sm border-slate-300 rounded focus:ring-indigo-500 focus:border-indigo-500" placeholder="0" min="0">
+                        <span class="text-xs font-bold text-slate-600">Atlet ke Babak</span>
+                    </div>
+                    
+                    <div class="flex items-center gap-2">
+                        <select name="next_round" class="h-8 text-sm border-slate-300 rounded focus:ring-indigo-500 focus:border-indigo-500 font-bold text-indigo-700">
+                            <option value="">- Lolos ke Babak -</option>
+                            <option value="Perempat Final" <?= ($raceInfo['next_round'] ?? '') === 'Perempat Final' ? 'selected' : '' ?>>Perempat Final</option>
+                            <option value="Semi Final" <?= ($raceInfo['next_round'] ?? '') === 'Semi Final' ? 'selected' : '' ?>>Semi Final</option>
+                            <option value="Final" <?= ($raceInfo['next_round'] ?? '') === 'Final' ? 'selected' : '' ?>>Final</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" formaction="<?= getenv('APP_URL') ?>/roll/admin/results/generate_next_round" onclick="return confirm('Apakah Anda yakin ingin melakukan Generate Babak? Sistem akan memproses kelolosan berdasarkan catatan waktu dan membuat Heat baru.')" class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-1.5 rounded font-bold text-xs whitespace-nowrap shadow-sm">
+                        <i class="fas fa-magic mr-1"></i> GENERATE BABAK
+                    </button>
+                </div>
+            </div>
+            <?php else: ?>
+                <input type="hidden" name="current_round_name" value="<?= htmlspecialchars($current_round_name) ?>">
             <?php endif; ?>
             
             <?php foreach($heatsData as $heatName => $results): ?>
@@ -265,42 +248,32 @@
                                     <input type="hidden" name="skater_race_class_id[]" value="<?= $r['race_class_id'] ?? '' ?>">
                                 </td>
                                 <td class="p-3">
-                                    <input type="number" step="1" name="rank[]" value="<?= $r['rank'] ?>" class="input-rank shadow-sm <?= $raceFormat === 'PTP' ? 'bg-slate-100 text-slate-400' : '' ?>" id="rank_<?= $r['skater_id'] ?>" <?= $is_official || $raceFormat === 'PTP' ? 'readonly tabindex="-1"' : '' ?>>
+                                    <input type="number" step="1" name="rank[]" value="<?= $r['rank'] ?>" class="input-rank shadow-sm <?= $raceFormat === 'PTP' ? 'bg-slate-100 text-slate-400' : '' ?>" id="rank_<?= $r['skater_id'] ?>" <?= $raceFormat === 'PTP' ? 'readonly tabindex="-1"' : '' ?>>
                                 </td>
                                 <?php if($raceFormat === 'PTP'): ?>
                                 <td class="p-3 bg-amber-50 border-l border-r border-amber-100">
-                                    <input type="number" step="1" name="point[]" value="<?= $r['point'] ?>" class="input-point shadow-sm focus:ring-2 focus:ring-amber-500" placeholder="0" tabindex="1" <?= $is_official ? 'disabled' : '' ?>>
+                                    <input type="number" step="1" name="point[]" value="<?= $r['point'] ?>" class="input-point shadow-sm focus:ring-2 focus:ring-amber-500" placeholder="0" tabindex="1">
                                 </td>
                                 <?php else: ?>
                                     <input type="hidden" name="point[]" value="0">
                                 <?php endif; ?>
 
                                 <td class="p-3">
-                                    <input type="text" name="time[]" value="<?= htmlspecialchars($r['time'] ?? '00.00.000') ?>" class="input-time shadow-sm <?= $raceFormat === 'ELIMINASI' ? 'opacity-40 bg-slate-100' : '' ?>" placeholder="00.00.000" id="time_<?= $r['skater_id'] ?>" tabindex="<?= $raceFormat === 'PTP' ? '2' : '1' ?>" <?= $is_official || ($raceFormat === 'ELIMINASI' && !empty($r['rank'])) ? 'disabled' : '' ?> autocomplete="off" onfocus="if(this.value==='00.00.000')this.value='';" onblur="if(this.value==='')this.value='00.00.000';">
+                                    <input type="text" name="time[]" value="<?= htmlspecialchars($r['time'] ?? '00.00.000') ?>" class="input-time shadow-sm <?= $raceFormat === 'ELIMINASI' ? 'opacity-40 bg-slate-100' : '' ?>" placeholder="00.00.000" id="time_<?= $r['skater_id'] ?>" tabindex="<?= $raceFormat === 'PTP' ? '2' : '1' ?>" <?= ($raceFormat === 'ELIMINASI' && !empty($r['rank'])) ? 'disabled' : '' ?> autocomplete="off" onfocus="if(this.value==='00.00.000')this.value='';" onblur="if(this.value==='')this.value='00.00.000';">
                                 </td>
 
                                 <?php if($raceFormat === 'ELIMINASI'): ?>
                                 <td class="p-3 text-center">
-                                    <?php if(!$is_official): ?>
                                         <button type="button" class="btn-elim shadow-sm whitespace-nowrap" onclick="eliminateSkater('<?= $r['skater_id'] ?>', '<?= htmlspecialchars($heatName, ENT_QUOTES) ?>')" title="Tarik keluar lintasan (Eliminasi)">🚩 ELIMINASI</button>
-                                    <?php endif; ?>
                                 </td>
                                 <?php endif; ?>
 
                                 <td class="p-3 text-center relative">
-                                    <select name="status[]" class="input-status <?= $r['status']!=='OK' ? 'text-red-600 bg-red-100 border-red-200' : 'text-slate-600 bg-slate-100' ?> border rounded-lg shadow-sm" onchange="handleStatusChange(this, '<?= $r['skater_id'] ?>')" <?= $is_official ? 'disabled' : '' ?>>
+                                    <select name="status[]" class="input-status <?= $r['status']!=='OK' ? 'text-red-600 bg-red-100 border-red-200' : 'text-slate-600 bg-slate-100' ?> border rounded-lg shadow-sm" onchange="handleStatusChange(this, '<?= $r['skater_id'] ?>')">
                                         <?php foreach(['OK', 'DNS', 'DNF', 'DQ', 'FS'] as $s): ?>
                                             <option value="<?= $s ?>" <?= $r['status'] === $s ? 'selected' : '' ?> <?= $s !== 'OK' ? 'class="text-red-600"' : '' ?>><?= $s ?></option>
                                         <?php endforeach; ?>
                                     </select>
-                                    <?php if($is_official): ?>
-                                        <input type="hidden" name="status[]" value="<?= htmlspecialchars($r['status']) ?>">
-                                        <input type="hidden" name="rank[]" value="<?= htmlspecialchars($r['rank'] ?? '') ?>">
-                                        <input type="hidden" name="time[]" value="<?= htmlspecialchars($r['time'] ?? '') ?>">
-                                        <?php if($raceFormat === 'PTP'): ?>
-                                            <input type="hidden" name="point[]" value="<?= htmlspecialchars($r['point'] ?? '0') ?>">
-                                        <?php endif; ?>
-                                    <?php endif; ?>
                                 </td>
                             </tr>
                             <?php endforeach; ?>
@@ -363,9 +336,7 @@
             let rankInput = document.getElementById('rank_' + skaterId);
             let pointInput = document.querySelector(`#row_${skaterId} .input-point`);
             let row = document.getElementById('row_' + skaterId);
-            let isOfficial = <?= isset($is_official) && $is_official ? 'true' : 'false' ?>;
-
-            if (isOfficial) return; 
+            let isOfficial = false;
 
             if(val !== 'OK') {
                 if(timeInput) { timeInput.disabled = true; timeInput.style.background = '#eee'; timeInput.value = ''; }
@@ -402,7 +373,7 @@
                     
                     v = v.padStart(7, '0');
                     
-                    this.value = v.substring(0, 2) + ':' + v.substring(2, 4) + '.' + v.substring(4, 7);
+                    this.value = v.substring(0, 2) + '.' + v.substring(2, 4) + '.' + v.substring(4, 7);
                 });
             });
 

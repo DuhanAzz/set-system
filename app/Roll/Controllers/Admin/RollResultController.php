@@ -68,6 +68,16 @@ class RollResultController extends Controller {
                 $nextClass = "bg-slate-700 hover:bg-slate-800 text-white";
             }
 
+            $current_round_name = $_GET['round'] ?? 'Kualifikasi';
+
+            // Ambil daftar babak yang sudah dibuat (untuk navigasi tab)
+            $stmtRounds = $db->prepare("SELECT DISTINCT round FROM roll_pelotons WHERE event_id = ? AND race_class_id = ? ORDER BY CASE round WHEN 'Kualifikasi' THEN 1 WHEN 'Perempat Final' THEN 2 WHEN 'Semi Final' THEN 3 WHEN 'Final' THEN 4 ELSE 5 END");
+            $stmtRounds->execute([$eventId, $filter_class_id]);
+            $available_rounds = $stmtRounds->fetchAll(PDO::FETCH_COLUMN);
+            if (empty($available_rounds)) {
+                $available_rounds = ['Kualifikasi'];
+            }
+
             $stmtRes = $db->prepare("
                 SELECT r.id as result_id, p.skater_id, s.skater_name, c.club_name, p.start_grid, e.bib_number,
                        r.time, r.rank, r.point, COALESCE(r.status, 'OK') as status, COALESCE(r.is_official, 0) as is_official,
@@ -75,12 +85,12 @@ class RollResultController extends Controller {
                 FROM roll_pelotons p
                 JOIN roll_skaters s ON p.skater_id = s.id
                 LEFT JOIN roll_clubs c ON s.club_id = c.id
-                LEFT JOIN roll_event_results r ON p.skater_id = r.skater_id AND p.race_class_id = r.race_class_id AND p.event_id = r.event_id AND p.heat_name = r.heat_name
+                LEFT JOIN roll_event_results r ON p.skater_id = r.skater_id AND p.race_class_id = r.race_class_id AND p.event_id = r.event_id AND p.heat_name = r.heat_name AND p.round = r.round
                 LEFT JOIN roll_entries e ON p.skater_id = e.skater_id AND p.race_class_id = e.race_class_id AND p.event_id = e.event_id
-                WHERE p.event_id = ? AND p.race_class_id = ?
+                WHERE p.event_id = ? AND p.race_class_id = ? AND p.round = ?
                 ORDER BY CAST(REPLACE(p.heat_name, 'Heat ', '') AS UNSIGNED) ASC, p.heat_name ASC, CASE WHEN COALESCE(r.status, 'OK') = 'OK' THEN 0 ELSE 1 END ASC, r.rank IS NULL, r.rank ASC, r.point DESC, r.time ASC, p.start_grid ASC
             ");
-            $stmtRes->execute([$eventId, $filter_class_id]);
+            $stmtRes->execute([$eventId, $filter_class_id, $current_round_name]);
             $raw_results = $stmtRes->fetchAll(PDO::FETCH_ASSOC);
             
             $isRelay = stripos($raceInfo['distance_name'] ?? '', 'Relay') !== false;
@@ -138,7 +148,9 @@ class RollResultController extends Controller {
             'eventId' => $eventId,
             'filter_class_id' => $filter_class_id,
             'totalEliminatedByHeat' => $totalEliminatedByHeat,
-            'raceFormat' => $raceFormat
+            'raceFormat' => $raceFormat,
+            'available_rounds' => $available_rounds ?? ['Kualifikasi'],
+            'current_round_name' => $current_round_name ?? 'Kualifikasi'
         ]);
     }
 
@@ -161,6 +173,8 @@ class RollResultController extends Controller {
             $next_round = $_POST['next_round'] ?? null;
             if ($next_round === '') $next_round = null;
             
+            $current_round_name = $_POST['current_round_name'] ?? 'Kualifikasi';
+            
             $auto_qualify_per_heat = $_POST['auto_qualify_per_heat'] ?? null;
             if ($auto_qualify_per_heat === '') $auto_qualify_per_heat = null;
             $fastest_loser_count = $_POST['fastest_loser_count'] ?? null;
@@ -175,8 +189,8 @@ class RollResultController extends Controller {
                     $stmtAdv = $db->prepare("UPDATE roll_event_details SET advancement_count = ?, next_round = ?, auto_qualify_per_heat = ?, fastest_loser_count = ? WHERE id = ?");
                     $stmtAdv->execute([$advancement_count, $next_round, $auto_qualify_per_heat, $fastest_loser_count, $filter_class_id]);
 
-                    $stmtUpdate = $db->prepare("UPDATE roll_event_results SET time = ?, rank = ?, point = ?, status = ?, is_official = 0 WHERE id = ? AND event_id = ?");
-                    $stmtInsert = $db->prepare("INSERT INTO roll_event_results (event_id, race_class_id, round, skater_id, heat_name, time, rank, point, status, is_official) VALUES (?, ?, 'Kualifikasi', ?, ?, ?, ?, ?, ?, 0)");
+                    $stmtUpdate = $db->prepare("UPDATE roll_event_results SET time = ?, rank = ?, point = ?, status = ?, round = ?, is_official = 0 WHERE id = ? AND event_id = ?");
+                    $stmtInsert = $db->prepare("INSERT INTO roll_event_results (event_id, race_class_id, round, skater_id, heat_name, time, rank, point, status, is_official) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)");
                     
                     $skater_ids = $_POST['skater_id'] ?? [];
                     
@@ -230,7 +244,22 @@ class RollResultController extends Controller {
                         foreach ($rows as $row) {
                             // Jika status bukan OK, hapus rank mutlaknya agar tidak rancu
                             $finalRank = ($row['status'] === 'OK') ? $currentRank++ : null;
-                            $finalTime = ($row['time'] === '') ? null : $row['time'];
+                            
+                            // Enforce strict MM.SS.ms format server-side
+                            if ($row['time'] === '') {
+                                $finalTime = null;
+                            } else {
+                                $cleanTime = preg_replace('/[^\d]/', '', $row['time']);
+                                if (strlen($cleanTime) >= 7) {
+                                    $cleanTime = str_pad(substr($cleanTime, -7), 7, '0', STR_PAD_LEFT);
+                                    $finalTime = substr($cleanTime, 0, 2) . '.' . substr($cleanTime, 2, 2) . '.' . substr($cleanTime, 4, 3);
+                                } elseif (strlen($cleanTime) > 0) {
+                                    $cleanTime = str_pad($cleanTime, 7, '0', STR_PAD_LEFT);
+                                    $finalTime = substr($cleanTime, 0, 2) . '.' . substr($cleanTime, 2, 2) . '.' . substr($cleanTime, 4, 3);
+                                } else {
+                                    $finalTime = null;
+                                }
+                            }
                             
                             $membersToProcess = [];
                             if ($isRelay) {
@@ -257,6 +286,7 @@ class RollResultController extends Controller {
                                         $finalRank,
                                         $row['point'],
                                         $row['status'],
+                                        $current_round_name,
                                         $mem['result_id'],
                                         $eventId
                                     ]);
@@ -264,6 +294,7 @@ class RollResultController extends Controller {
                                     $stmtInsert->execute([
                                         $eventId,
                                         $row['race_class_id'],
+                                        $current_round_name,
                                         $row['skater_id'],
                                         $row['heat_name'],
                                         $finalTime,
@@ -276,144 +307,8 @@ class RollResultController extends Controller {
                             }
                         }
                     }
-                    // --- START OF PUBLISH FINAL LOGIC ---
-                    // 0. Otomatis jadikan Official (SAHKAN)
-                    $stmtOff = $db->prepare("UPDATE roll_event_results SET is_official = 1 WHERE event_id = ? AND race_class_id = ?");
-                    $stmtOff->execute([$eventId, $filter_class_id]);
-
-                    $stmtClass = $db->prepare("SELECT ed.distance, d.distance_name, ed.result_status 
-                                               FROM roll_event_details ed 
-                                               LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id 
-                                               WHERE ed.id = ?");
-                    $stmtClass->execute([$filter_class_id]);
-                    $classInfo = $stmtClass->fetch(PDO::FETCH_ASSOC);
-
-                    $distName = strtolower($classInfo['distance_name'] ?? '');
-                    $isMassStart = false;
-                    if (strpos($distName, 'ptp') !== false || strpos($distName, 'eliminasi') !== false || strpos($distName, 'marathon') !== false) {
-                        $isMassStart = true;
-                    }
-                    $numDist = (int) filter_var($distName, FILTER_SANITIZE_NUMBER_INT);
-                    if ($numDist >= 3000) {
-                        $isMassStart = true;
-                    }
-
-                    $stmtHeats = $db->prepare("SELECT DISTINCT heat_name FROM roll_event_results WHERE event_id = ? AND race_class_id = ?");
-                    $stmtHeats->execute([$eventId, $filter_class_id]);
-                    $heats = $stmtHeats->fetchAll(PDO::FETCH_COLUMN);
                     
-                    $isFinalRace = $isMassStart || (count($heats) == 1 && $heats[0] == 'Final');
-                    $tie_breaker_skater_id = $_POST['tie_breaker_skater_id'] ?? 0;
-
-                    if ($isFinalRace) {
-                        // FINAL OR PTP: Mark Finished or Eliminated
-                        $stmtUpdateEntries = $db->prepare("
-                            UPDATE roll_entries e
-                            JOIN roll_event_results r ON e.skater_id = r.skater_id AND e.race_class_id = r.race_class_id
-                            SET e.status = IF(r.is_eliminated = 1 OR r.dq_rule_id IS NOT NULL, 'Eliminated', 'Finished')
-                            WHERE e.event_id = ? AND e.race_class_id = ?
-                        ");
-                        $stmtUpdateEntries->execute([$eventId, $filter_class_id]);
-
-                        $stmtPub = $db->prepare("UPDATE roll_event_details SET result_status = 'Published' WHERE id = ?");
-                        $stmtPub->execute([$filter_class_id]);
-
-                        $_SESSION['flash_message'] = "Hasil berhasil disimpan, disahkan (Official), dan diproses!";
-                    } else {
-                        // SPRINT PENYISIHAN: Fastest Loser
-                        $stmtAdv = $db->prepare("SELECT advancement_count, auto_qualify_per_heat, fastest_loser_count FROM roll_event_details WHERE id = ?");
-                        $stmtAdv->execute([$filter_class_id]);
-                        $advData = $stmtAdv->fetch(PDO::FETCH_ASSOC);
-                        
-                        $auto_qualify_per_heat = isset($advData['auto_qualify_per_heat']) ? (int)$advData['auto_qualify_per_heat'] : 2;
-                        $fastest_loser_count = isset($advData['fastest_loser_count']) ? (int)$advData['fastest_loser_count'] : 0;
-
-                        $stmtTimes = $db->prepare("
-                            SELECT r.id, r.skater_id, r.time, r.status, r.heat_name, r.rank
-                            FROM roll_event_results r
-                            WHERE r.event_id = ? AND r.race_class_id = ? 
-                              AND r.time IS NOT NULL 
-                              AND r.status = 'OK'
-                            ORDER BY r.heat_name ASC, r.rank ASC
-                        ");
-                        $stmtTimes->execute([$eventId, $filter_class_id]);
-                        $results = $stmtTimes->fetchAll(PDO::FETCH_ASSOC);
-
-                        $passed_skater_ids = [];
-                        $others = [];
-                        
-                        // 1. Ambil Juara [N] tiap Heat
-                        $heatRanks = [];
-                        foreach ($results as $r) {
-                            $heatRanks[$r['heat_name']][] = $r;
-                        }
-                        
-                        foreach ($heatRanks as $heatName => $heatResults) {
-                            // Rank 1 .. N
-                            foreach ($heatResults as $idx => $r) {
-                                if ($idx < $auto_qualify_per_heat) {
-                                    $passed_skater_ids[] = $r['skater_id'];
-                                } else {
-                                    $others[] = $r;
-                                }
-                            }
-                        }
-                        
-                        // 2. Sisa kuota diisi Fastest Loser
-                        $remainingQuota = $fastest_loser_count;
-                        if ($remainingQuota > 0 && count($others) > 0) {
-                            usort($others, function($a, $b) {
-                                $aTime = $a['time'] === '' ? '99:99.999' : $a['time'];
-                                $bTime = $b['time'] === '' ? '99:99.999' : $b['time'];
-                                return strcmp($aTime, $bTime);
-                            });
-                            
-                            if (count($others) > $remainingQuota) {
-                                $lastQualifiedTime = $others[$remainingQuota - 1]['time'];
-                                $firstEliminatedTime = $others[$remainingQuota]['time'];
-                                
-                                if ($lastQualifiedTime === $firstEliminatedTime && $tie_breaker_skater_id == 0) {
-                                    $db->rollBack();
-                                    $_SESSION['flash_message'] = "TIE BREAKER FASTEST LOSER! Ada atlet dengan waktu sama persis (" . $lastQualifiedTime . ") pada batas kelolosan. Silakan pilih manual!";
-                                    $_SESSION['flash_type'] = "warning";
-                                    header("Location: " . getenv('APP_URL') . "/roll/admin/results?race_class_id=" . $filter_class_id . "&tie_breaker_time=" . $lastQualifiedTime);
-                                    exit;
-                                }
-                            }
-                            
-                            $addedToQuota = 0;
-                            foreach ($others as $idx => $r) {
-                                if ($addedToQuota < $remainingQuota) {
-                                    if (isset($lastQualifiedTime) && isset($firstEliminatedTime) && $lastQualifiedTime === $firstEliminatedTime) {
-                                        if ($r['time'] === $lastQualifiedTime) {
-                                            if ($r['skater_id'] == $tie_breaker_skater_id) {
-                                                $passed_skater_ids[] = $r['skater_id'];
-                                                $addedToQuota++;
-                                            }
-                                        } else {
-                                            $passed_skater_ids[] = $r['skater_id'];
-                                            $addedToQuota++;
-                                        }
-                                    } else {
-                                        $passed_skater_ids[] = $r['skater_id'];
-                                        $addedToQuota++;
-                                    }
-                                }
-                            }
-                        }
-
-                        $stmtUpdateQ = $db->prepare("UPDATE roll_entries SET status = 'Qualified' WHERE event_id = ? AND race_class_id = ? AND skater_id = ?");
-                        foreach ($passed_skater_ids as $sid) {
-                            $stmtUpdateQ->execute([$eventId, $filter_class_id, $sid]);
-                        }
-
-                        $passed_str = empty($passed_skater_ids) ? '0' : implode(',', $passed_skater_ids);
-                        $stmtUpdateOthers = $db->prepare("UPDATE roll_entries SET status = 'Eliminated' WHERE event_id = ? AND race_class_id = ? AND skater_id NOT IN ($passed_str)");
-                        $stmtUpdateOthers->execute([$eventId, $filter_class_id]);
-
-                        $_SESSION['flash_message'] = "Data disimpan & penyisihan selesai! " . count($passed_skater_ids) . " atlet lolos (Qualified). Silakan kembali ke menu Heat.";
-                    }
-                    // --- END OF PUBLISH FINAL LOGIC ---
+                    $_SESSION['flash_message'] = "Hasil berhasil disimpan!";
                     
                     $db->commit();
                     $_SESSION['flash_type'] = "success";
@@ -528,10 +423,11 @@ class RollResultController extends Controller {
             $safeFilename = preg_replace('/[^A-Za-z0-9_]/', '_', str_replace(' ', '_', $raceLabel));
             
             $stmt = $db->prepare("
-                SELECT e.bib_number, p.heat_name, s.skater_name
+                SELECT e.bib_number, p.heat_name, s.skater_name, r.time
                 FROM roll_pelotons p
                 JOIN roll_entries e ON p.skater_id = e.skater_id AND p.race_class_id = e.race_class_id AND p.event_id = e.event_id
                 JOIN roll_skaters s ON p.skater_id = s.id
+                LEFT JOIN roll_event_results r ON p.event_id = r.event_id AND p.race_class_id = r.race_class_id AND p.skater_id = r.skater_id AND p.heat_name = r.heat_name
                 WHERE p.event_id = ? AND p.race_class_id = ?
                 ORDER BY CAST(REPLACE(p.heat_name, 'Heat ', '') AS UNSIGNED) ASC, p.heat_name ASC, p.start_grid ASC
             ");
@@ -546,7 +442,7 @@ class RollResultController extends Controller {
             fputcsv($output, ['BIB', 'TIME', 'HEAT', 'NAME']);
             
             foreach ($rows as $row) {
-                fputcsv($output, [$row['bib_number'], '00.00.000', $row['heat_name'], $row['skater_name']]);
+                fputcsv($output, [$row['bib_number'], $row['time'] ?? '', $row['heat_name'], $row['skater_name']]);
             }
             fclose($output);
             exit;
@@ -580,9 +476,20 @@ class RollResultController extends Controller {
                         
                         $time = trim($data[1]);
                         
-                        // Normalize time format to 00:00.000 if Excel truncated it (e.g., 00:00.0 -> 00:00.000)
-                        if (preg_match('/^\d{2}:\d{2}\.\d{1,2}$/', $time)) {
-                            $time = str_pad($time, 9, '0');
+                        // Force strict MM.SS.ms format for imported time
+                        if ($time !== '') {
+                            $cleanTime = preg_replace('/[^\d]/', '', $time);
+                            if (strlen($cleanTime) >= 7) {
+                                $cleanTime = str_pad(substr($cleanTime, -7), 7, '0', STR_PAD_LEFT);
+                                $time = substr($cleanTime, 0, 2) . '.' . substr($cleanTime, 2, 2) . '.' . substr($cleanTime, 4, 3);
+                            } elseif (strlen($cleanTime) > 0) {
+                                $cleanTime = str_pad($cleanTime, 7, '0', STR_PAD_LEFT);
+                                $time = substr($cleanTime, 0, 2) . '.' . substr($cleanTime, 2, 2) . '.' . substr($cleanTime, 4, 3);
+                            } else {
+                                $time = null;
+                            }
+                        } else {
+                            $time = null;
                         }
                         
                         $heat = isset($data[2]) ? trim($data[2]) : '';
@@ -657,12 +564,12 @@ class RollResultController extends Controller {
             JOIN roll_entries e ON p.skater_id = e.skater_id AND p.race_class_id = e.race_class_id AND p.event_id = e.event_id
             JOIN roll_skaters s ON p.skater_id = s.id
             LEFT JOIN roll_clubs c ON s.club_id = c.id
-            LEFT JOIN roll_event_results r ON p.event_id = r.event_id AND p.race_class_id = r.race_class_id AND p.skater_id = r.skater_id
+            LEFT JOIN roll_event_results r ON p.event_id = r.event_id AND p.race_class_id = r.race_class_id AND p.skater_id = r.skater_id AND p.heat_name = r.heat_name
             WHERE p.event_id = ? AND p.race_class_id = ?
             ORDER BY 
                 CASE WHEN COALESCE(r.status, 'OK') = 'OK' THEN 0 ELSE 1 END ASC,
                 CASE WHEN r.time IS NULL OR r.time = '' OR r.time = '00.00.000' THEN 1 ELSE 0 END ASC,
-                r.time ASC, 
+                REPLACE(r.time, ':', '.') ASC, 
                 CAST(REPLACE(p.heat_name, 'Heat ', '') AS UNSIGNED) ASC, 
                 p.start_grid ASC
         ");
@@ -674,5 +581,155 @@ class RollResultController extends Controller {
             'classInfo' => $classInfo,
             'results' => $results
         ]);
+    }
+
+    public function generate_next_round() {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $db = Database::getInstance()->getConnection();
+            $eventId = $_SESSION['roll_admin_active_event_id'] ?? 0;
+            $classId = $_POST['race_class_id'] ?? 0;
+            $advancement_count = (int)($_POST['advancement_count'] ?? 0);
+            $next_round = $_POST['next_round'] ?? '';
+            $current_round_name = $_POST['current_round_name'] ?? 'Kualifikasi';
+            $tie_breaker_skater_id = $_POST['tie_breaker_skater_id'] ?? 0;
+
+            if ($eventId > 0 && $classId > 0 && $advancement_count > 0 && !empty($next_round)) {
+                try {
+                    $db->beginTransaction();
+
+                    // 1. Simpan konfigurasi
+                    $stmtAdv = $db->prepare("UPDATE roll_event_details SET advancement_count = ?, next_round = ? WHERE id = ?");
+                    $stmtAdv->execute([$advancement_count, $next_round, $classId]);
+
+                    // 2. Ambil semua hasil pada current_round_name
+                    $stmtTimes = $db->prepare("
+                        SELECT r.id, r.skater_id, r.time, r.status, r.heat_name, r.rank
+                        FROM roll_event_results r
+                        WHERE r.event_id = ? AND r.race_class_id = ? AND r.round = ?
+                          AND r.time IS NOT NULL 
+                          AND r.status = 'OK'
+                    ");
+                    $stmtTimes->execute([$eventId, $classId, $current_round_name]);
+                    $results = $stmtTimes->fetchAll(PDO::FETCH_ASSOC);
+
+                    $passed_skater_ids = [];
+                    
+                    if (count($results) > 0) {
+                        usort($results, function($a, $b) {
+                            $aTime = $a['time'] === '' ? '99:99.999' : $a['time'];
+                            $bTime = $b['time'] === '' ? '99:99.999' : $b['time'];
+                            return strcmp($aTime, $bTime);
+                        });
+                        
+                        if (count($results) > $advancement_count) {
+                            $lastQualifiedTime = $results[$advancement_count - 1]['time'];
+                            $firstEliminatedTime = $results[$advancement_count]['time'];
+                            
+                            if ($lastQualifiedTime === $firstEliminatedTime && $tie_breaker_skater_id == 0) {
+                                $db->rollBack();
+                                $_SESSION['flash_message'] = "TIE BREAKER! Ada atlet dengan waktu sama persis (" . $lastQualifiedTime . ") pada batas kelolosan. Silakan pilih manual dengan form Edit Hasil!";
+                                $_SESSION['flash_type'] = "warning";
+                                header("Location: " . getenv('APP_URL') . "/roll/admin/results?race_class_id=" . $classId . "&round=" . urlencode($current_round_name));
+                                exit;
+                            }
+                        }
+                        
+                        $addedToQuota = 0;
+                        foreach ($results as $idx => $r) {
+                            if ($addedToQuota < $advancement_count) {
+                                if (isset($lastQualifiedTime) && isset($firstEliminatedTime) && $lastQualifiedTime === $firstEliminatedTime) {
+                                    if ($r['time'] === $lastQualifiedTime) {
+                                        if ($r['skater_id'] == $tie_breaker_skater_id) {
+                                            $passed_skater_ids[] = $r['skater_id'];
+                                            $addedToQuota++;
+                                        }
+                                    } else {
+                                        $passed_skater_ids[] = $r['skater_id'];
+                                        $addedToQuota++;
+                                    }
+                                } else {
+                                    $passed_skater_ids[] = $r['skater_id'];
+                                    $addedToQuota++;
+                                }
+                            }
+                        }
+                    }
+
+                    if (empty($passed_skater_ids)) {
+                        throw new \Exception("Tidak ada atlet yang memenuhi syarat lolos. Pastikan Anda sudah menyimpan hasil terlebih dahulu.");
+                    }
+
+                    // 3. Update status kelolosan
+                    $stmtUpdateQ = $db->prepare("UPDATE roll_entries SET status = 'Qualified' WHERE event_id = ? AND race_class_id = ? AND skater_id = ?");
+                    foreach ($passed_skater_ids as $sid) {
+                        $stmtUpdateQ->execute([$eventId, $classId, $sid]);
+                    }
+
+                    $passed_str = implode(',', $passed_skater_ids);
+                    $stmtUpdateOthers = $db->prepare("UPDATE roll_entries SET status = 'Eliminated' WHERE event_id = ? AND race_class_id = ? AND skater_id NOT IN ($passed_str)");
+                    $stmtUpdateOthers->execute([$eventId, $classId]);
+
+                    // 4. Generate Heat untuk babak selanjutnya
+                    $stmtDelete = $db->prepare("DELETE FROM roll_pelotons WHERE event_id = ? AND race_class_id = ? AND round = ?");
+                    $stmtDelete->execute([$eventId, $classId, $next_round]);
+
+                    $stmtMax = $db->prepare("SELECT max_lanes FROM roll_event_details WHERE id = ?");
+                    $stmtMax->execute([$classId]);
+                    $maxPerHeat = (int)$stmtMax->fetchColumn();
+                    if ($maxPerHeat <= 0) $maxPerHeat = 6;
+
+                    $totalAthletes = count($passed_skater_ids);
+                    $totalHeats = ceil($totalAthletes / $maxPerHeat);
+                    $heatsAssigned = array_fill(1, $totalHeats, []);
+
+                    for ($i = 0; $i < $totalAthletes; $i++) {
+                        $skaterId = $passed_skater_ids[$i];
+                        $roundIdx = floor($i / $totalHeats);
+                        $rem = $i % $totalHeats;
+                        
+                        if ($roundIdx % 2 == 0) {
+                            $targetHeat = $rem + 1; // Maju
+                        } else {
+                            $targetHeat = $totalHeats - $rem; // Mundur
+                        }
+                        
+                        $heatsAssigned[$targetHeat][] = $skaterId;
+                    }
+
+                    $stmtInsertPeloton = $db->prepare("
+                        INSERT INTO roll_pelotons (event_id, race_class_id, skater_id, round, heat_name, start_grid)
+                        VALUES (?, ?, ?, ?, ?, ?)
+                    ");
+
+                    foreach ($heatsAssigned as $heatNum => $skaters) {
+                        $heatName = ($totalHeats == 1 && $next_round === 'Final') ? 'Final' : 'Heat ' . $heatNum;
+                        foreach ($skaters as $gridIdx => $skaterId) {
+                            $stmtInsertPeloton->execute([
+                                $eventId,
+                                $classId,
+                                $skaterId,
+                                $next_round,
+                                $heatName,
+                                $gridIdx + 1
+                            ]);
+                        }
+                    }
+
+                    $db->commit();
+                    $_SESSION['flash_message'] = "Berhasil! " . count($passed_skater_ids) . " atlet diloloskan dan Heat untuk $next_round telah terbentuk.";
+                    $_SESSION['flash_type'] = "success";
+                } catch (\Exception $e) {
+                    $db->rollBack();
+                    $_SESSION['flash_message'] = "Gagal Generate Babak: " . $e->getMessage();
+                    $_SESSION['flash_type'] = "error";
+                }
+            } else {
+                $_SESSION['flash_message'] = "Data tidak lengkap untuk Generate Babak. Pastikan Anda mengisi Loloskan N Atlet dan Babak Berikutnya.";
+                $_SESSION['flash_type'] = "warning";
+            }
+
+            header("Location: " . getenv('APP_URL') . "/roll/admin/results?race_class_id=" . $classId . "&round=" . urlencode($next_round));
+            exit;
+        }
     }
 }
