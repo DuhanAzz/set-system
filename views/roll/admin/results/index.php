@@ -207,6 +207,7 @@
                                     <div class="text-[10px] text-slate-400 font-bold uppercase mt-0.5"><?= htmlspecialchars($r['club_name'] ?? 'Independen') ?></div>
                                     <input type="hidden" name="result_id[]" value="<?= $r['result_id'] ?? '' ?>">
                                     <input type="hidden" name="skater_id[]" value="<?= $r['skater_id'] ?>">
+                                    <input type="hidden" name="skater_race_class_id[]" value="<?= $r['race_class_id'] ?? '' ?>">
                                 </td>
                                 <td class="p-3">
                                     <input type="number" step="1" name="rank[]" value="<?= $r['rank'] ?>" class="input-rank shadow-sm" id="rank_<?= $r['skater_id'] ?>" <?= $is_official ? 'disabled' : '' ?>>
@@ -365,18 +366,20 @@
         }
 
         document.addEventListener('DOMContentLoaded', function() {
-            // Masking input Waktu (MM:SS.ms)
+            // Masking input Waktu (MM:SS.ms) - Kanan ke Kiri (Calculator Style)
             document.querySelectorAll('.input-time').forEach(input => {
                 input.addEventListener('input', function (e) {
                     let v = this.value.replace(/[^\d]/g, ''); 
-                    if (v.length > 7) v = v.substring(0, 7);
+                    if (v.length === 0) {
+                        this.value = '';
+                        return;
+                    }
                     
-                    let formatted = '';
-                    if (v.length > 0) formatted += v.substring(0, 2);
-                    if (v.length > 2) formatted += ':' + v.substring(2, 4);
-                    if (v.length > 4) formatted += '.' + v.substring(4, 7);
+                    if (v.length > 7) v = v.substring(v.length - 7);
                     
-                    this.value = formatted;
+                    v = v.padStart(7, '0');
+                    
+                    this.value = v.substring(0, 2) + ':' + v.substring(2, 4) + '.' + v.substring(4, 7);
                 });
             });
 
@@ -393,27 +396,9 @@
             if(firstRadio) firstRadio.checked = true;
         });
 
-        // Integrasi hardware Stopwatch Arduino
+        // Integrasi hardware Stopwatch Arduino (Dinonaktifkan)
         function receiveHardwareData(data) {
-            console.log("Hardware Data Received:", data);
-            let targetHeat = "Heat 1"; // Default fallback since radio button is removed
-            let heatTable = document.querySelector(`.heat-table[data-heat="${targetHeat}"]`);
-            
-            if (heatTable) {
-                let row = heatTable.querySelector(`tr[data-bib="${data.bib}"]`);
-                if (row) {
-                    let timeInput = row.querySelector('.input-time');
-                    if (timeInput && !timeInput.disabled) {
-                        timeInput.value = data.time;
-                        // Flash green to indicate success
-                        timeInput.style.transition = 'all 0.3s';
-                        timeInput.style.backgroundColor = '#dcfce7';
-                        setTimeout(() => { timeInput.style.backgroundColor = '#f8fafc'; }, 1000);
-                    }
-                } else {
-                    console.warn(`Skater dengan BIB ${data.bib} tidak ditemukan di seri ${heatName}`);
-                }
-            }
+            // console.log("Hardware Data Received:", data);
         }
         
         // --- CONTOH TRIGGER HARDWARE UNTUK DEMO/TESTING ---

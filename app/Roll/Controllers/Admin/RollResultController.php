@@ -71,7 +71,7 @@ class RollResultController extends Controller {
             $stmtRes = $db->prepare("
                 SELECT r.id as result_id, p.skater_id, s.skater_name, c.club_name, p.start_grid, e.bib_number,
                        r.time, r.rank, r.point, COALESCE(r.status, 'OK') as status, COALESCE(r.is_official, 0) as is_official,
-                       p.heat_name
+                       p.heat_name, e.team_name, p.race_class_id
                 FROM roll_pelotons p
                 JOIN roll_skaters s ON p.skater_id = s.id
                 LEFT JOIN roll_clubs c ON s.club_id = c.id
@@ -83,15 +83,32 @@ class RollResultController extends Controller {
             $stmtRes->execute([$eventId, $filter_class_id]);
             $raw_results = $stmtRes->fetchAll(PDO::FETCH_ASSOC);
             
+            $isRelay = stripos($raceInfo['distance_name'] ?? '', 'Relay') !== false;
+            
+            $teamAdded = []; // For relay
+            
             foreach ($raw_results as $row) {
-                $heatsData[$row['heat_name']][] = $row;
+                if ($isRelay) {
+                    $teamKey = $row['heat_name'] . '_' . ($row['team_name'] ?: $row['club_name'] ?: $row['bib_number']);
+                    if (!isset($teamAdded[$teamKey])) {
+                        // Ubah skater_name agar merender nama tim
+                        $row['skater_name'] = $row['team_name'] ?: $row['club_name'] ?: 'Regu ' . $row['bib_number'];
+                        $heatsData[$row['heat_name']][] = $row;
+                        $teamAdded[$teamKey] = true;
+                    }
+                } else {
+                    $heatsData[$row['heat_name']][] = $row;
+                }
             }
             
             $stmtCountElim = $db->prepare("SELECT heat_name, COUNT(*) as cnt FROM roll_event_results WHERE event_id = ? AND race_class_id = ? AND status != 'OK' GROUP BY heat_name");
             $stmtCountElim->execute([$eventId, $filter_class_id]);
             $elimData = $stmtCountElim->fetchAll(PDO::FETCH_ASSOC);
             foreach ($elimData as $ed) {
-                $totalEliminatedByHeat[$ed['heat_name']] = (int)$ed['cnt'];
+                // Untuk Relay, jika 3 anak dalam 1 tim tereliminasi, hitung sbg 1 tim
+                // Saat ini cukup biarkan total cnt atau bagi 3 jika relay, namun since elimination count di front-end is mostly for display, it's fine.
+                // Idealnya: if ($isRelay) $ed['cnt'] = ceil($ed['cnt']/3);
+                $totalEliminatedByHeat[$ed['heat_name']] = $isRelay ? (int)ceil($ed['cnt']/3) : (int)$ed['cnt'];
             }
         }
 
@@ -157,6 +174,11 @@ class RollResultController extends Controller {
                     
                     $skater_ids = $_POST['skater_id'] ?? [];
                     
+                    // Cek apakah lomba ini Relay
+                    $stmtC = $db->prepare("SELECT d.distance_name FROM roll_event_details ed LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id WHERE ed.id = ?");
+                    $stmtC->execute([$filter_class_id]);
+                    $isRelay = stripos($stmtC->fetchColumn() ?: '', 'Relay') !== false;
+
                     // Group rows by heat_name
                     $heatsGrouped = [];
                     foreach ($skater_ids as $index => $s_id) {
@@ -165,6 +187,7 @@ class RollResultController extends Controller {
                         
                         $heatsGrouped[$h_name][] = [
                             'skater_id' => $s_id,
+                            'race_class_id' => $filter_class_id,
                             'result_id' => trim($result_ids[$index] ?? ''),
                             'time' => trim($times[$index] ?? ''),
                             'rank' => trim($ranks[$index] ?? ''),
@@ -203,28 +226,48 @@ class RollResultController extends Controller {
                             $finalRank = ($row['status'] === 'OK') ? $currentRank++ : null;
                             $finalTime = ($row['time'] === '') ? null : $row['time'];
                             
-                            if (!empty($row['result_id'])) {
-                                $stmtUpdate->execute([
-                                    $finalTime,
-                                    $finalRank,
-                                    $row['point'],
-                                    $row['status'],
-                                    $row['result_id'],
-                                    $eventId
-                                ]);
+                            $membersToProcess = [];
+                            if ($isRelay) {
+                                // Cari anggota tim lainnya berdasarkan team_name atau bib_number di heat yang sama
+                                $stmtTeam = $db->prepare("
+                                    SELECT p.skater_id, r.id as result_id
+                                    FROM roll_pelotons p
+                                    JOIN roll_entries e ON p.skater_id = e.skater_id AND p.race_class_id = e.race_class_id AND p.event_id = e.event_id
+                                    LEFT JOIN roll_event_results r ON p.skater_id = r.skater_id AND p.race_class_id = r.race_class_id AND p.event_id = r.event_id AND p.heat_name = r.heat_name
+                                    WHERE p.event_id = ? AND p.race_class_id = ? AND p.heat_name = ?
+                                      AND (e.team_name = (SELECT team_name FROM roll_entries WHERE skater_id = ? AND race_class_id = ?) 
+                                           OR e.bib_number = (SELECT bib_number FROM roll_entries WHERE skater_id = ? AND race_class_id = ?))
+                                ");
+                                $stmtTeam->execute([$eventId, $row['race_class_id'], $row['heat_name'], $row['skater_id'], $row['race_class_id'], $row['skater_id'], $row['race_class_id']]);
+                                $membersToProcess = $stmtTeam->fetchAll(PDO::FETCH_ASSOC);
                             } else {
-                                $stmtInsert->execute([
-                                    $eventId,
-                                    $filter_class_id,
-                                    $row['skater_id'],
-                                    $row['heat_name'],
-                                    $finalTime,
-                                    $finalRank,
-                                    $row['point'],
-                                    $row['status']
-                                ]);
+                                $membersToProcess = [['skater_id' => $row['skater_id'], 'result_id' => $row['result_id']]];
                             }
-                            $count++;
+
+                            foreach ($membersToProcess as $mem) {
+                                if (!empty($mem['result_id'])) {
+                                    $stmtUpdate->execute([
+                                        $finalTime,
+                                        $finalRank,
+                                        $row['point'],
+                                        $row['status'],
+                                        $mem['result_id'],
+                                        $eventId
+                                    ]);
+                                } else {
+                                    $stmtInsert->execute([
+                                        $eventId,
+                                        $row['race_class_id'],
+                                        $row['skater_id'],
+                                        $row['heat_name'],
+                                        $finalTime,
+                                        $finalRank,
+                                        $row['point'],
+                                        $row['status']
+                                    ]);
+                                }
+                                $count++;
+                            }
                         }
                     }
                     
@@ -372,49 +415,81 @@ class RollResultController extends Controller {
                         $_SESSION['flash_message'] = "Hasil Final berhasil dikunci dan dipublish (Fase 4)!";
                     } else {
                         // SPRINT PENYISIHAN: Fastest Loser
+                        $stmtAdv = $db->prepare("SELECT advancement_count FROM roll_event_details WHERE id = ?");
+                        $stmtAdv->execute([$race_class_id]);
+                        $advancement_count = $stmtAdv->fetchColumn();
+                        $qualifiers = $advancement_count ? (int)$advancement_count : 8;
+
                         $stmtTimes = $db->prepare("
-                            SELECT r.id, r.skater_id, r.time, r.status
+                            SELECT r.id, r.skater_id, r.time, r.status, r.heat_name, r.rank
                             FROM roll_event_results r
                             WHERE r.event_id = ? AND r.race_class_id = ? 
                               AND r.time IS NOT NULL 
                               AND r.status = 'OK'
-                            ORDER BY r.time ASC
+                            ORDER BY r.heat_name ASC, r.rank ASC
                         ");
                         $stmtTimes->execute([$eventId, $race_class_id]);
                         $results = $stmtTimes->fetchAll(PDO::FETCH_ASSOC);
 
-                        $qualifiers = 8;
-                        if (count($results) > $qualifiers) {
-                            $time8 = $results[$qualifiers - 1]['time'];
-                            $time9 = $results[$qualifiers]['time'];
-
-                            if ($time8 == $time9 && $tie_breaker_skater_id == 0) {
-                                $db->rollBack();
-                                $_SESSION['flash_message'] = "TIE BREAKER! Atlet peringkat 8 dan 9 memiliki waktu sama persis (" . $time8 . "). Silakan pilih manual!";
-                                $_SESSION['flash_type'] = "warning";
-                                header("Location: " . getenv('APP_URL') . "/roll/admin/results?race_class_id=" . $race_class_id . "&tie_breaker_time=" . $time8);
-                                exit;
+                        $passed_skater_ids = [];
+                        $others = [];
+                        
+                        // 1. Ambil Juara 1 & 2 tiap Heat
+                        $heatRanks = [];
+                        foreach ($results as $r) {
+                            $heatRanks[$r['heat_name']][] = $r;
+                        }
+                        
+                        foreach ($heatRanks as $heatName => $heatResults) {
+                            // Rank 1 dan 2
+                            foreach ($heatResults as $idx => $r) {
+                                if ($idx < 2) {
+                                    $passed_skater_ids[] = $r['skater_id'];
+                                } else {
+                                    $others[] = $r;
+                                }
                             }
                         }
-
-                        $passed_skater_ids = [];
                         
-                        $count = 0;
-                        foreach ($results as $idx => $r) {
-                            if ($count < $qualifiers) {
-                                if (isset($time8) && isset($time9) && $time8 == $time9) {
-                                    if ($r['time'] == $time8) {
-                                        if ($r['skater_id'] == $tie_breaker_skater_id) {
+                        // 2. Sisa kuota diisi Fastest Loser
+                        $remainingQuota = $qualifiers - count($passed_skater_ids);
+                        if ($remainingQuota > 0 && count($others) > 0) {
+                            usort($others, function($a, $b) {
+                                $aTime = $a['time'] === '' ? '99:99.999' : $a['time'];
+                                $bTime = $b['time'] === '' ? '99:99.999' : $b['time'];
+                                return strcmp($aTime, $bTime);
+                            });
+                            
+                            if (count($others) > $remainingQuota) {
+                                $lastQualifiedTime = $others[$remainingQuota - 1]['time'];
+                                $firstEliminatedTime = $others[$remainingQuota]['time'];
+                                
+                                if ($lastQualifiedTime === $firstEliminatedTime && $tie_breaker_skater_id == 0) {
+                                    $db->rollBack();
+                                    $_SESSION['flash_message'] = "TIE BREAKER FASTEST LOSER! Ada atlet dengan waktu sama persis (" . $lastQualifiedTime . ") pada batas kelolosan. Silakan pilih manual!";
+                                    $_SESSION['flash_type'] = "warning";
+                                    header("Location: " . getenv('APP_URL') . "/roll/admin/results?race_class_id=" . $race_class_id . "&tie_breaker_time=" . $lastQualifiedTime);
+                                    exit;
+                                }
+                            }
+                            
+                            $addedToQuota = 0;
+                            foreach ($others as $idx => $r) {
+                                if ($addedToQuota < $remainingQuota) {
+                                    if (isset($lastQualifiedTime) && isset($firstEliminatedTime) && $lastQualifiedTime === $firstEliminatedTime) {
+                                        if ($r['time'] === $lastQualifiedTime) {
+                                            if ($r['skater_id'] == $tie_breaker_skater_id) {
+                                                $passed_skater_ids[] = $r['skater_id'];
+                                                $addedToQuota++;
+                                            }
+                                        } else {
                                             $passed_skater_ids[] = $r['skater_id'];
-                                            $count++;
+                                            $addedToQuota++;
                                         }
                                     } else {
                                         $passed_skater_ids[] = $r['skater_id'];
-                                        $count++;
+                                        $addedToQuota++;
                                     }
-                                } else {
-                                    $passed_skater_ids[] = $r['skater_id'];
-                                    $count++;
                                 }
                             }
                         }
