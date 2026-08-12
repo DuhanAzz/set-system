@@ -82,10 +82,18 @@ class RollEventController extends Controller {
         $db = Database::getInstance()->getConnection();
         $uid = $_SESSION['roll_user_id'];
         
-        $eventId = $_GET['id'] ?? 0;
+        $eventId = (int)($_GET['id'] ?? 0);
         if ($eventId) {
-            $_SESSION['roll_admin_active_event_id'] = $eventId;
-        } else {
+            $stmtCheck = $db->prepare("SELECT id FROM roll_events WHERE id = ? AND user_id = ?");
+            $stmtCheck->execute([$eventId, $uid]);
+            if ($stmtCheck->fetch()) {
+                $_SESSION['roll_admin_active_event_id'] = $eventId;
+            } else {
+                $eventId = 0;
+            }
+        }
+        
+        if (!$eventId) {
             $eventId = $_SESSION['roll_admin_active_event_id'] ?? 0;
             if (!$eventId) {
                 $stmtEvent = $db->prepare("SELECT id FROM roll_events WHERE user_id = ? ORDER BY id DESC LIMIT 1");

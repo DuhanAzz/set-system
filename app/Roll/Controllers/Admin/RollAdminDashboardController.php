@@ -27,14 +27,42 @@ class RollAdminDashboardController extends Controller {
 
         // 2. Determine Active Event
         if (isset($_GET['switch_event_id'])) {
-            $_SESSION['roll_admin_active_event_id'] = $_GET['switch_event_id'];
+            $switchId = (int)$_GET['switch_event_id'];
+            $isValid = false;
+            foreach ($allEvents as $e) {
+                if ($e['id'] == $switchId) {
+                    $isValid = true;
+                    break;
+                }
+            }
+            if ($isValid) {
+                $_SESSION['roll_admin_active_event_id'] = $switchId;
+            } else {
+                $_SESSION['flash_message'] = "Event tidak ditemukan atau Anda tidak memiliki akses.";
+                $_SESSION['flash_type'] = "error";
+            }
             header("Location: " . getenv('APP_URL') . "/roll/admin/dashboard");
             exit;
         }
 
-        $eventId = $_SESSION['roll_admin_active_event_id'] ?? ($allEvents[0]['id'] ?? 0);
-        if (!isset($_SESSION['roll_admin_active_event_id']) && $eventId > 0) {
-            $_SESSION['roll_admin_active_event_id'] = $eventId;
+        $eventId = (int)($_SESSION['roll_admin_active_event_id'] ?? 0);
+        $isValidSession = false;
+        if ($eventId > 0) {
+            foreach ($allEvents as $e) {
+                if ($e['id'] == $eventId) {
+                    $isValidSession = true;
+                    break;
+                }
+            }
+        }
+
+        if (!$isValidSession) {
+            $eventId = $allEvents[0]['id'] ?? 0;
+            if ($eventId > 0) {
+                $_SESSION['roll_admin_active_event_id'] = $eventId;
+            } else {
+                unset($_SESSION['roll_admin_active_event_id']);
+            }
         }
 
         // 3. Fetch Active Event Data
