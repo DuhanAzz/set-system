@@ -109,10 +109,11 @@
             <div class="flex items-center gap-2">
                 <a href="<?= $prevUrl ?? '#' ?>" class="h-10 px-4 flex items-center justify-center rounded-l-lg font-bold text-xs uppercase transition border-r border-slate-600 <?= $prevClass ?? '' ?>">&laquo; PREV</a>
                 <div class="flex bg-slate-100 rounded-none p-1 gap-1">
+                    <button type="button" onclick="window.showCustomConfirm('Apakah Anda yakin ingin MERESET SELURUH DATA untuk babak dan kelas ini? Semua waktu, status, dan babak lanjutan akan terhapus secara permanen!', function() { window.location.href = '<?= getenv('APP_URL') ?>/roll/admin/results/reset_results?race_class_id=<?= $filter_class_id ?>'; });" class="h-8 px-3 flex items-center bg-red-500 text-white rounded font-bold text-[10px] uppercase hover:bg-red-600 gap-1" title="Reset semua data dan babak">🗑️ RESET</button>
                     <a href="<?= getenv('APP_URL') ?>/roll/admin/results" class="h-8 px-3 flex items-center bg-white border border-slate-300 rounded text-slate-600 font-bold text-[10px] uppercase hover:bg-slate-50">Menu</a>
                     <a href="<?= getenv('APP_URL') ?>/roll/admin/results/export_csv?race_class_id=<?= $filter_class_id ?>" class="h-8 px-3 flex items-center bg-teal-500 text-white rounded font-bold text-[10px] uppercase hover:bg-teal-600 gap-1" title="Download Data ke CSV Format Stopwatch">📤 EXPORT</a>
                     <button type="button" onclick="document.getElementById('csvUploadForm').classList.toggle('hidden')" class="h-8 px-3 flex items-center bg-emerald-500 text-white rounded font-bold text-[10px] uppercase hover:bg-emerald-600 gap-1" title="Import CSV Backup dari Stopwatch">📝 IMPORT</button>
-                    <a href="<?= getenv('APP_URL') ?>/roll/admin/results/print_result?race_class_id=<?= $filter_class_id ?>" target="_blank" class="h-8 px-3 flex items-center bg-orange-500 text-white rounded font-bold text-[10px] uppercase hover:bg-orange-600 gap-1">🖨️ PDF</a>
+                    <a href="<?= getenv('APP_URL') ?>/roll/admin/results/print_result?race_class_id=<?= $filter_class_id ?>&round=<?= urlencode($structural_round_name) ?>" target="_blank" class="h-8 px-3 flex items-center bg-orange-500 text-white rounded font-bold text-[10px] uppercase hover:bg-orange-600 gap-1">🖨️ PDF</a>
                     <button type="submit" form="formResult" class="h-8 px-4 flex items-center bg-blue-600 text-white rounded font-bold text-[10px] uppercase hover:bg-blue-700 gap-1 shadow-sm">💾 SIMPAN</button>
                     <?php 
                     $is_official = 0;
@@ -147,12 +148,13 @@
         
         <form id="formResult" action="<?= getenv('APP_URL') ?>/roll/admin/results/save_provisional_result" method="POST">
             <input type="hidden" name="race_class_id" value="<?= htmlspecialchars($filter_class_id) ?>">
+            <input type="hidden" name="original_round_name" value="<?= htmlspecialchars($structural_round_name) ?>">
 
             <!-- Navigasi Babak -->
             <div class="mb-4 flex flex-wrap gap-2">
                 <?php foreach($available_rounds as $rnd): ?>
                     <a href="?race_class_id=<?= $filter_class_id ?>&round=<?= urlencode($rnd) ?>" 
-                       class="px-4 py-2 rounded-lg font-bold text-sm border <?= $rnd === $current_round_name ? 'bg-indigo-600 text-white border-indigo-700 shadow-md' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50' ?>">
+                       class="px-4 py-2 rounded-lg font-bold text-sm border <?= $rnd === $structural_round_name ? 'bg-indigo-600 text-white border-indigo-700 shadow-md' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50' ?>">
                         <?= htmlspecialchars($rnd) ?>
                     </a>
                 <?php endforeach; ?>
@@ -166,8 +168,12 @@
                     
                     <div class="flex items-center gap-2">
                         <label class="text-xs font-bold text-slate-600">Nama Babak:</label>
-                        <span class="px-3 py-1 bg-indigo-600 text-white rounded font-bold text-sm shadow-sm"><?= htmlspecialchars($current_round_name) ?></span>
-                        <input type="hidden" name="current_round_name" value="<?= htmlspecialchars($current_round_name) ?>">
+                        <select name="current_round_name" class="h-8 text-sm border-slate-300 rounded focus:ring-indigo-500 focus:border-indigo-500 font-bold text-indigo-700">
+                            <option value="Kualifikasi" <?= $current_round_name === 'Kualifikasi' ? 'selected' : '' ?>>Kualifikasi</option>
+                            <option value="Perempat Final" <?= $current_round_name === 'Perempat Final' ? 'selected' : '' ?>>Perempat Final</option>
+                            <option value="Semi Final" <?= $current_round_name === 'Semi Final' ? 'selected' : '' ?>>Semi Final</option>
+                            <option value="Final" <?= $current_round_name === 'Final' ? 'selected' : '' ?>>Final</option>
+                        </select>
                     </div>
 
                     <div class="hidden md:block w-px h-8 bg-indigo-200"></div>
@@ -187,7 +193,15 @@
                         </select>
                     </div>
 
-                    <button type="submit" formaction="<?= getenv('APP_URL') ?>/roll/admin/results/generate_next_round" onclick="return confirm('Apakah Anda yakin ingin melakukan Generate Babak? Sistem akan memproses kelolosan berdasarkan catatan waktu dan membuat Heat baru.')" class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-1.5 rounded font-bold text-xs whitespace-nowrap shadow-sm">
+                    <div class="flex items-center ml-1 mr-2" title="Gunakan pemanggilan tercepat setiap seri (bukan overall)">
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" name="advancement_rule" value="per_heat" class="sr-only peer" <?= ($raceInfo['advancement_rule'] ?? '') === 'per_heat' ? 'checked' : '' ?>>
+                            <div class="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+                            <span class="ml-2 text-xs font-bold text-slate-600">Per Seri</span>
+                        </label>
+                    </div>
+
+                    <button type="button" onclick="window.showCustomConfirm('Apakah Anda yakin ingin melakukan Generate Babak? Sistem akan memproses kelolosan berdasarkan catatan waktu dan membuat Heat baru.', function() { const f = document.getElementById('formResult'); const i = document.createElement('input'); i.type='hidden'; i.name='action_type'; i.value='generate'; f.appendChild(i); f.submit(); });" class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-1.5 rounded font-bold text-xs whitespace-nowrap shadow-sm">
                         <i class="fas fa-magic mr-1"></i> GENERATE BABAK
                     </button>
                 </div>
@@ -259,7 +273,7 @@
                                 <?php endif; ?>
 
                                 <td class="p-3">
-                                    <input type="text" name="time[]" value="<?= htmlspecialchars($r['time'] ?? '00.00.000') ?>" class="input-time shadow-sm <?= $raceFormat === 'ELIMINASI' ? 'opacity-40 bg-slate-100' : '' ?>" placeholder="00.00.000" id="time_<?= $r['skater_id'] ?>" tabindex="<?= $raceFormat === 'PTP' ? '2' : '1' ?>" <?= ($raceFormat === 'ELIMINASI' && !empty($r['rank'])) ? 'disabled' : '' ?> autocomplete="off" onfocus="if(this.value==='00.00.000')this.value='';" onblur="if(this.value==='')this.value='00.00.000';">
+                                    <input type="text" name="time[]" value="<?= htmlspecialchars($r['time'] ?? '00.00.000') ?>" class="input-time shadow-sm <?= ($raceFormat === 'ELIMINASI' && !empty($r['rank'])) ? 'opacity-40 bg-slate-100' : '' ?>" placeholder="00.00.000" id="time_<?= $r['skater_id'] ?>" tabindex="<?= $raceFormat === 'PTP' ? '2' : '1' ?>" <?= ($raceFormat === 'ELIMINASI' && !empty($r['rank'])) ? 'readonly tabindex="-1"' : '' ?> autocomplete="off" onfocus="if(this.value==='00.00.000')this.value='';" onblur="if(this.value==='')this.value='00.00.000';">
                                 </td>
 
                                 <?php if($raceFormat === 'ELIMINASI'): ?>
@@ -318,10 +332,12 @@
             rankInput.style.background = '#fee2e2';
             rankInput.style.color = '#ef4444';
 
-            // Disable time
+            // Disable time (use readonly to ensure it POSTs)
             timeInput.value = '';
-            timeInput.disabled = true;
+            timeInput.readOnly = true;
+            timeInput.tabIndex = -1;
             timeInput.style.background = '#eee';
+            timeInput.classList.add('opacity-40', 'bg-slate-100');
             
             // Highlight row
             row.classList.add('bg-red-50');
@@ -332,25 +348,24 @@
 
         function handleStatusChange(selectObj, skaterId) {
             let val = selectObj.value;
-            let timeInput = document.getElementById('rank_' + skaterId) ? document.getElementById('time_' + skaterId) : null;
+            let timeInput = document.getElementById('time_' + skaterId);
             let rankInput = document.getElementById('rank_' + skaterId);
             let pointInput = document.querySelector(`#row_${skaterId} .input-point`);
             let row = document.getElementById('row_' + skaterId);
-            let isOfficial = false;
 
             if(val !== 'OK') {
-                if(timeInput) { timeInput.disabled = true; timeInput.style.background = '#eee'; timeInput.value = ''; }
-                if(rankInput && val !== 'DNF') { rankInput.disabled = true; rankInput.style.background = '#eee'; rankInput.value = ''; }
-                if(pointInput) { pointInput.disabled = true; pointInput.style.background = '#eee'; pointInput.value = '0'; }
+                if(timeInput) { timeInput.readOnly = true; timeInput.tabIndex = -1; timeInput.style.background = '#eee'; timeInput.value = ''; timeInput.classList.add('opacity-40', 'bg-slate-100'); }
+                if(rankInput && val !== 'DNF') { rankInput.readOnly = true; rankInput.tabIndex = -1; rankInput.style.background = '#eee'; rankInput.value = ''; }
+                if(pointInput) { pointInput.readOnly = true; pointInput.tabIndex = -1; pointInput.style.background = '#eee'; pointInput.value = '0'; }
                 
                 row.classList.add('bg-red-50');
                 row.classList.remove('bg-white');
                 selectObj.classList.add('text-red-600', 'bg-red-100', 'border-red-200');
                 selectObj.classList.remove('text-slate-600', 'bg-slate-100');
             } else {
-                if(timeInput) { timeInput.disabled = false; timeInput.style.background = '#f8fafc'; }
-                if(rankInput) { rankInput.disabled = false; rankInput.style.background = '#fff'; }
-                if(pointInput) { pointInput.disabled = false; pointInput.style.background = '#fffbeb'; }
+                if(timeInput) { timeInput.readOnly = false; timeInput.tabIndex = 1; timeInput.style.background = '#fff'; timeInput.classList.remove('opacity-40', 'bg-slate-100'); }
+                if(rankInput) { rankInput.readOnly = false; rankInput.tabIndex = 0; rankInput.style.background = '#fff'; }
+                if(pointInput) { pointInput.readOnly = false; pointInput.tabIndex = 1; pointInput.style.background = '#fffbeb'; }
                 
                 row.classList.remove('bg-red-50');
                 row.classList.add('bg-white');

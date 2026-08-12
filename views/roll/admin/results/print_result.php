@@ -152,7 +152,7 @@
                                         <?php endforeach; ?>
                                         </div>
                                     <?php endif; ?>
-                                    <h1 style="margin: 0; font-size: 16pt; text-transform: uppercase;">Hasil Perlombaan (Result)</h1>
+                                    <h1 style="margin: 0; font-size: 16pt; text-transform: uppercase;">Hasil Perlombaan</h1>
                                     <p style="margin: 5px 0 0 0; font-size: 12pt; font-weight: bold; color: #333;"><?= htmlspecialchars($event['event_name']) ?></p>
                                 </td>
                                 <td style="width: 25%; text-align: right; vertical-align: middle;">
@@ -173,7 +173,14 @@
                 <tr>
                     <td>
                         <?php 
-                        $currentRound = !empty($results) && !empty($results[0]['round']) ? $results[0]['round'] : 'KUALIFIKASI';
+                        $currentRound = 'KUALIFIKASI';
+                        if (!empty($results) && !empty($results[0])) {
+                            if (!empty($results[0]['print_round_name'])) {
+                                $currentRound = $results[0]['print_round_name'];
+                            } elseif (!empty($results[0]['round'])) {
+                                $currentRound = $results[0]['round'];
+                            }
+                        }
                         ?>
                         <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 5px;">
                             <div style="font-size: 11pt; font-weight: bold; color: #333; text-align: left; text-transform: uppercase;">
@@ -192,15 +199,18 @@
                                 <tr>
                                     <th class="text-center" style="width: 50px;">Rank</th>
                                     <th class="text-center" style="width: 50px;">BIB</th>
-                                    <th>Atlet</th>
+                                    <th><?= isset($isRelay) && $isRelay ? 'Regu / Tim' : 'Atlet' ?></th>
                                     <th>Klub</th>
+                                    <?php if(isset($raceFormat) && $raceFormat === 'PTP'): ?>
+                                    <th class="text-center" style="width: 60px;">Poin</th>
+                                    <?php endif; ?>
                                     <th class="text-center" style="width: 80px;">Waktu</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <?php if(empty($results)): ?>
                                     <tr>
-                                        <td colspan="5" class="text-center">Belum ada hasil perlombaan.</td>
+                                        <td colspan="<?= isset($raceFormat) && $raceFormat === 'PTP' ? '6' : '5' ?>" class="text-center">Belum ada hasil perlombaan.</td>
                                     </tr>
                                 <?php else: 
                                     $adv_count = (int)($classInfo['advancement_count'] ?? 0);
@@ -209,28 +219,38 @@
                                     $globalRank = 0;
                                     foreach ($results as $res): 
                                         $globalRank++;
+                                        $displayRank = !empty($res['rank']) ? $res['rank'] : $globalRank;
                                         
                                         $statusStr = htmlspecialchars($res['status'] ?? 'OK');
+                                        
+                                        $displayTime = htmlspecialchars($res['time'] ?? '00.00.000');
+                                        if ($statusStr !== 'OK') {
+                                            $displayTime = "<strong>" . strtoupper($statusStr) . "</strong>";
+                                        }
+
                                         $statusColor = $statusStr === 'OK' ? '#16a34a' : '#dc2626';
                                         
+                                        // For advancements, usually printed on official results
+                                        $advancementLabel = '';
                                         if ($res['status'] === 'OK' && $adv_count > 0 && !empty($next_round)) {
                                             if ($globalRank <= $adv_count) {
-                                                $statusStr = htmlspecialchars(strtoupper($next_round));
-                                                $statusColor = '#2563eb'; // blue
+                                                $advancementLabel = ' ' . strtoupper($next_round);
                                             } else {
-                                                $statusStr = 'ELIMINASI';
-                                                $statusColor = '#94a3b8'; // gray
+                                                $advancementLabel = ' ELIMINASI';
                                             }
                                         }
                                 ?>
                                     <tr>
-                                        <td class="text-center font-bold" style="font-size: 12pt; vertical-align: middle;"><?= $globalRank ?></td>
+                                        <td class="text-center font-bold" style="font-size: 12pt; vertical-align: middle;"><?= htmlspecialchars($displayRank) ?></td>
                                         <td class="text-center font-bold" style="font-size: 12pt; vertical-align: middle;"><?= htmlspecialchars($res['bib_number'] ?? '-') ?></td>
                                         <td class="font-bold" style="vertical-align: middle;">
                                             <?= htmlspecialchars($res['skater_name'] ?? '-') ?>
                                         </td>
                                         <td style="vertical-align: middle;"><?= htmlspecialchars($res['club_name'] ?? '-') ?></td>
-                                        <td class="text-center font-bold" style="font-size: 11pt; vertical-align: middle;"><?= htmlspecialchars($res['time'] ?? '00.00.000') ?></td>
+                                        <?php if(isset($raceFormat) && $raceFormat === 'PTP'): ?>
+                                        <td class="text-center font-bold" style="font-size: 11pt; vertical-align: middle;"><?= htmlspecialchars($res['point'] ?? '0') ?></td>
+                                        <?php endif; ?>
+                                        <td class="text-center font-bold" style="font-size: 11pt; vertical-align: middle;"><?= $displayTime ?></td>
                                     </tr>
                                     <?php endforeach; ?>
                                 <?php endif; ?>
