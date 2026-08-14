@@ -64,9 +64,9 @@ class RollEntryController extends Controller {
         }
 
         // Fetch entry fees for dynamic calculation
-        $stmtFee = $db->prepare("SELECT fee_speed, fee_standart, fee_pemula FROM roll_events WHERE id = ?");
+        $stmtFee = $db->prepare("SELECT fee_speed, fee_standart, fee_pemula, allow_pemula_standart_mix FROM roll_events WHERE id = ?");
         $stmtFee->execute([$targetEventId]);
-        $eventFees = $stmtFee->fetch(PDO::FETCH_ASSOC) ?: ['fee_speed'=>450000, 'fee_standart'=>350000, 'fee_pemula'=>350000];
+        $eventFees = $stmtFee->fetch(PDO::FETCH_ASSOC) ?: ['fee_speed'=>450000, 'fee_standart'=>350000, 'fee_pemula'=>350000, 'allow_pemula_standart_mix'=>0];
 
         // Query List Klub & Payments
         try {
@@ -106,20 +106,8 @@ class RollEntryController extends Controller {
                     $stmtEntries->execute([$row['club_id'], $targetEventId]);
                     $entriesData = $stmtEntries->fetchAll(PDO::FETCH_ASSOC);
                     
-                    $skaterFees = [];
-                    foreach ($entriesData as $ent) {
-                        $sId = $ent['skater_id'];
-                        $cName = strtolower($ent['class_name'] ?? '');
-                        $fee = 150000;
-                        if (strpos($cName, 'speed') !== false) $fee = (float)$eventFees['fee_speed'];
-                        elseif (strpos($cName, 'standar') !== false) $fee = (float)$eventFees['fee_standart'];
-                        elseif (strpos($cName, 'pemula') !== false) $fee = (float)$eventFees['fee_pemula'];
-                        
-                        if (!isset($skaterFees[$sId]) || $fee > $skaterFees[$sId]) {
-                            $skaterFees[$sId] = $fee;
-                        }
-                    }
-                    $row['amount'] = array_sum($skaterFees);
+                    $financeCalc = \App\Helpers\RollFinanceHelper::calculateTotalTagihan($entriesData, $eventFees);
+                    $row['amount'] = $financeCalc['total_amount'];
                 }
             }
         } catch (\PDOException $e) {
@@ -201,21 +189,25 @@ class RollEntryController extends Controller {
         $payData = $stmtPay->fetch(PDO::FETCH_ASSOC);
         
         // AMBIL SEMUA ENTRI ATLET DARI KLUB INI
-        $sqlEntries = "SELECT s.id as skater_id, s.skater_name, s.gender, s.birth_date, a.group_name, d.distance_name, ed.category_name, ed.distance, e.race_class_id
+        $sqlEntries = "SELECT s.id as skater_id, s.skater_name, s.gender, s.birth_date, a.group_name, d.distance_name, ed.category_name, ed.distance, e.race_class_id, sc.class_name
                        FROM roll_entries e
                        JOIN roll_skaters s ON e.skater_id = s.id
                        LEFT JOIN roll_event_details ed ON e.race_class_id = ed.id
                        LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
                        LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id
+                       LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
                        WHERE e.event_id = ? AND s.club_id = ?
                        ORDER BY s.skater_name ASC";
         $stmtE = $db->prepare($sqlEntries);
         $stmtE->execute([$eventId, $targetClubId]);
         $allEntries = $stmtE->fetchAll(PDO::FETCH_ASSOC);
         
+        $financeCalc = \App\Helpers\RollFinanceHelper::calculateTotalTagihan($allEntries, $eventData);
+        $totalTagihan = $financeCalc['total_amount'];
+        $skaterFees = $financeCalc['skater_fees'];
+
         // KELOMPOKKAN PER ATLET
         $groupedSkaters = [];
-        $totalTagihan = 0;
         foreach($allEntries as $ent) {
             $sId = $ent['skater_id'];
             if(!isset($groupedSkaters[$sId])) {
@@ -226,14 +218,11 @@ class RollEntryController extends Controller {
                         'lahir' => $ent['birth_date']
                     ],
                     'items' => [],
-                    'subtotal' => 0
+                    'subtotal' => $skaterFees[$sId] ?? 0
                 ];
             }
             
-            $stmtCls = $db->prepare("SELECT sc.class_name FROM roll_event_details ed LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id=sc.id WHERE ed.id=?");
-            $stmtCls->execute([$ent['race_class_id']]);
-            $rawCName = $stmtCls->fetchColumn() ?: '';
-            $cName = strtolower($rawCName);
+            $rawCName = $ent['class_name'] ?? '';
             
             $groupedSkaters[$sId]['items'][] = [
                 'distance' => $ent['distance'],
@@ -241,14 +230,6 @@ class RollEntryController extends Controller {
                 'age_group' => $ent['group_name'],
                 'class_name' => $rawCName
             ];
-            
-            $hargaPerNomor = 150000;
-            if (strpos($cName, 'speed') !== false) $hargaPerNomor = (float)($eventData['fee_speed'] ?? 450000);
-            elseif (strpos($cName, 'standar') !== false) $hargaPerNomor = (float)($eventData['fee_standart'] ?? 350000);
-            elseif (strpos($cName, 'pemula') !== false) $hargaPerNomor = (float)($eventData['fee_pemula'] ?? 350000);
-            
-            $groupedSkaters[$sId]['subtotal'] += $hargaPerNomor;
-            $totalTagihan += $hargaPerNomor;
         }
         
         if(isset($payData['total_amount']) && $payData['total_amount'] > 0) {
@@ -294,21 +275,24 @@ class RollEntryController extends Controller {
         $stmtPay->execute([$eventId, $targetClubId]);
         $payData = $stmtPay->fetch(PDO::FETCH_ASSOC);
         
-        $sqlEntries = "SELECT s.id as skater_id, s.skater_name, s.gender, a.group_name, d.distance_name, ed.category_name, ed.distance, e.race_class_id
+        $sqlEntries = "SELECT s.id as skater_id, s.skater_name, s.gender, a.group_name, d.distance_name, ed.category_name, ed.distance, e.race_class_id, sc.class_name
                        FROM roll_entries e
                        JOIN roll_skaters s ON e.skater_id = s.id
                        LEFT JOIN roll_event_details ed ON e.race_class_id = ed.id
                        LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
                        LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id
+                       LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
                        WHERE e.event_id = ? AND s.club_id = ?
                        ORDER BY s.skater_name ASC";
         $stmtE = $db->prepare($sqlEntries);
         $stmtE->execute([$eventId, $targetClubId]);
         $allEntries = $stmtE->fetchAll(PDO::FETCH_ASSOC);
         
+        $financeCalc = \App\Helpers\RollFinanceHelper::calculateTotalTagihan($allEntries, $eventData);
+        $totalTagihan = $financeCalc['total_amount'];
+        $skaterFees = $financeCalc['skater_fees'];
+        
         $groupedSkaters = [];
-        $totalTagihan = 0;
-        $skaterFees = [];
         foreach($allEntries as $ent) {
             $sId = $ent['skater_id'];
             if(!isset($groupedSkaters[$sId])) {
@@ -321,10 +305,7 @@ class RollEntryController extends Controller {
                 ];
             }
             
-            $stmtCls = $db->prepare("SELECT sc.class_name FROM roll_event_details ed LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id=sc.id WHERE ed.id=?");
-            $stmtCls->execute([$ent['race_class_id']]);
-            $rawCName = $stmtCls->fetchColumn() ?: '';
-            $cName = strtolower($rawCName);
+            $rawCName = $ent['class_name'] ?? '';
             
             $groupedSkaters[$sId]['items'][] = [
                 'distance' => $ent['distance'],
@@ -332,17 +313,7 @@ class RollEntryController extends Controller {
                 'age_group' => $ent['group_name'],
                 'class_name' => $rawCName
             ];
-            
-            $hargaPerNomor = 150000;
-            if (strpos($cName, 'speed') !== false) $hargaPerNomor = (float)($eventData['fee_speed'] ?? 450000);
-            elseif (strpos($cName, 'standar') !== false) $hargaPerNomor = (float)($eventData['fee_standart'] ?? 350000);
-            elseif (strpos($cName, 'pemula') !== false) $hargaPerNomor = (float)($eventData['fee_pemula'] ?? 350000);
-            
-            if (!isset($skaterFees[$sId]) || $hargaPerNomor > $skaterFees[$sId]) {
-                $skaterFees[$sId] = $hargaPerNomor;
-            }
         }
-        $totalTagihan = array_sum($skaterFees);
         
         if(isset($payData['total_amount']) && $payData['total_amount'] > 0) {
             $totalTagihan = $payData['total_amount'];

@@ -72,31 +72,8 @@ class RollCheckoutController extends Controller {
             $rows = $stmtEntries->fetchAll(PDO::FETCH_ASSOC);
             $entries = count($rows);
             
-            $amount = 0;
-            $skaterCats = [];
-            foreach ($rows as $r) {
-                $cName = strtolower($r['class_name'] ?? '');
-                if (strpos($cName, 'speed') !== false) $skaterCats[$r['skater_id']]['speed'] = true;
-                elseif (strpos($cName, 'standar') !== false) $skaterCats[$r['skater_id']]['standar'] = true;
-                elseif (strpos($cName, 'pemula') !== false) $skaterCats[$r['skater_id']]['pemula'] = true;
-            }
-            
-            foreach ($skaterCats as $sId => $cats) {
-                $sAmount = 0;
-                if (isset($cats['speed'])) $sAmount = (float)$eventFees['fee_speed'];
-                else {
-                    if (isset($cats['standar'])) $sAmount += (float)$eventFees['fee_standart'];
-                    if (isset($cats['pemula'])) {
-                        if (isset($cats['standar']) && empty($eventFees['allow_pemula_standart_mix'])) {
-                            $sAmount = max((float)$eventFees['fee_standart'], (float)$eventFees['fee_pemula']);
-                        } else {
-                            $sAmount += (float)$eventFees['fee_pemula'];
-                        }
-                    }
-                }
-                if ($sAmount == 0) $sAmount = 150000;
-                $amount += $sAmount;
-            }
+            $financeCalc = \App\Helpers\RollFinanceHelper::calculateTotalTagihan($rows, $eventFees);
+            $amount = $financeCalc['total_amount'];
 
             $bills[] = [
                 'id'         => $eid,
@@ -166,31 +143,8 @@ class RollCheckoutController extends Controller {
             $unpaidEntries = $stmtUnpaid->fetchAll(PDO::FETCH_ASSOC);
 
             // Assign payment amount for display
-            $skaterCats = [];
-            foreach ($unpaidEntries as &$ue) {
-                $cName = strtolower($ue['skate_class_name'] ?? '');
-                if (strpos($cName, 'speed') !== false) $skaterCats[$ue['skater_id']]['speed'] = true;
-                elseif (strpos($cName, 'standar') !== false) $skaterCats[$ue['skater_id']]['standar'] = true;
-                elseif (strpos($cName, 'pemula') !== false) $skaterCats[$ue['skater_id']]['pemula'] = true;
-            }
-
-            $skaterFees = [];
-            foreach ($skaterCats as $sId => $cats) {
-                $amount = 0;
-                if (isset($cats['speed'])) $amount = (float)$eventFees['fee_speed'];
-                else {
-                    if (isset($cats['standar'])) $amount += (float)$eventFees['fee_standart'];
-                    if (isset($cats['pemula'])) {
-                        if (isset($cats['standar']) && empty($eventFees['allow_pemula_standart_mix'])) {
-                            $amount = max((float)$eventFees['fee_standart'], (float)$eventFees['fee_pemula']);
-                        } else {
-                            $amount += (float)$eventFees['fee_pemula'];
-                        }
-                    }
-                }
-                if ($amount == 0) $amount = 150000;
-                $skaterFees[$sId] = $amount;
-            }
+            $financeCalc = \App\Helpers\RollFinanceHelper::calculateTotalTagihan($unpaidEntries, $eventFees);
+            $skaterFees = $financeCalc['skater_fees'];
             
             $chargedSkaters = [];
             foreach ($unpaidEntries as &$ue) {
@@ -221,31 +175,8 @@ class RollCheckoutController extends Controller {
             $historyEntries = $stmtHistory->fetchAll(PDO::FETCH_ASSOC);
 
             // Assign payment amount for display
-            $skaterCats = [];
-            foreach ($historyEntries as &$he) {
-                $cName = strtolower($he['skate_class_name'] ?? '');
-                if (strpos($cName, 'speed') !== false) $skaterCats[$he['skater_id']]['speed'] = true;
-                elseif (strpos($cName, 'standar') !== false) $skaterCats[$he['skater_id']]['standar'] = true;
-                elseif (strpos($cName, 'pemula') !== false) $skaterCats[$he['skater_id']]['pemula'] = true;
-            }
-
-            $skaterFees = [];
-            foreach ($skaterCats as $sId => $cats) {
-                $amount = 0;
-                if (isset($cats['speed'])) $amount = (float)$eventFees['fee_speed'];
-                else {
-                    if (isset($cats['standar'])) $amount += (float)$eventFees['fee_standart'];
-                    if (isset($cats['pemula'])) {
-                        if (isset($cats['standar']) && empty($eventFees['allow_pemula_standart_mix'])) {
-                            $amount = max((float)$eventFees['fee_standart'], (float)$eventFees['fee_pemula']);
-                        } else {
-                            $amount += (float)$eventFees['fee_pemula'];
-                        }
-                    }
-                }
-                if ($amount == 0) $amount = 150000;
-                $skaterFees[$sId] = $amount;
-            }
+            $financeCalc = \App\Helpers\RollFinanceHelper::calculateTotalTagihan($historyEntries, $eventFees);
+            $skaterFees = $financeCalc['skater_fees'];
             
             $chargedSkaters = [];
             foreach ($historyEntries as &$he) {
@@ -433,30 +364,8 @@ class RollCheckoutController extends Controller {
                     $stmtCls->execute($entry_ids);
                     $classesData = $stmtCls->fetchAll(PDO::FETCH_ASSOC);
                     
-                    $skaterCats = [];
-                    foreach ($classesData as $row) {
-                        $cName = strtolower($row['class_name'] ?? '');
-                        if (strpos($cName, 'speed') !== false) $skaterCats[$row['skater_id']]['speed'] = true;
-                        elseif (strpos($cName, 'standar') !== false) $skaterCats[$row['skater_id']]['standar'] = true;
-                        elseif (strpos($cName, 'pemula') !== false) $skaterCats[$row['skater_id']]['pemula'] = true;
-                    }
-                    
-                    foreach ($skaterCats as $sId => $cats) {
-                        $amount = 0;
-                        if (isset($cats['speed'])) $amount = (float)$eventFees['fee_speed'];
-                        else {
-                            if (isset($cats['standar'])) $amount += (float)$eventFees['fee_standart'];
-                            if (isset($cats['pemula'])) {
-                                if (isset($cats['standar']) && empty($eventFees['allow_pemula_standart_mix'])) {
-                                    $amount = max((float)$eventFees['fee_standart'], (float)$eventFees['fee_pemula']);
-                                } else {
-                                    $amount += (float)$eventFees['fee_pemula'];
-                                }
-                            }
-                        }
-                        if ($amount == 0) $amount = 150000;
-                        $total_amount += $amount;
-                    }
+                    $financeCalc = \App\Helpers\RollFinanceHelper::calculateTotalTagihan($classesData, $eventFees);
+                    $total_amount = $financeCalc['total_amount'];
                 }
                 
                 // Update atau Insert ke roll_payments
