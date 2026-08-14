@@ -297,7 +297,8 @@ class RollEntryController extends Controller {
                         'nama' => $ent['skater_name'],
                         'gender' => $ent['gender'] == 'M' ? 'Putra' : 'Putri'
                     ],
-                    'items' => []
+                    'items' => [],
+                    'subtotal' => $skaterFees[$sId] ?? 0
                 ];
             }
             

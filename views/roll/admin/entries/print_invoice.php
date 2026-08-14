@@ -236,6 +236,7 @@
                                     <th>Nama Atlet</th>
                                     <th class="text-center" style="width: 80px;">Gender</th>
                                     <th>Nomor Lomba (Kelas)</th>
+                                    <th class="text-right" style="width: 120px;">Biaya</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -261,10 +262,19 @@
                                                     <?php endforeach; ?>
                                                 </ul>
                                             </td>
+                                            <td class="text-right font-bold">
+                                                Rp <?= number_format($s['subtotal'] ?? 0, 0, ',', '.') ?>
+                                            </td>
                                         </tr>
                                     <?php endforeach; ?>
                                 <?php endif; ?>
                             </tbody>
+                            <tfoot>
+                                <tr>
+                                    <td colspan="4" class="text-right font-bold" style="text-transform: uppercase;">Total Tagihan</td>
+                                    <td class="text-right font-bold" style="font-size: 11pt;">Rp <?= number_format($totalTagihan, 0, ',', '.') ?></td>
+                                </tr>
+                            </tfoot>
                         </table>
                         
                         <p style="font-size: 8pt; margin-top: 15px; text-align: justify; color: #555;">
