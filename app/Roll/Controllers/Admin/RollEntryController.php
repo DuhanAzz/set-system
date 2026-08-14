@@ -92,23 +92,21 @@ class RollEntryController extends Controller {
             $stmt->execute([$targetEventId, $targetEventId, $targetEventId]);
             $listData = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-            // Calculate dynamic amount if not paid/set
+            // Calculate dynamic amount always to ensure correctness regardless of old DB values
             foreach ($listData as &$row) {
-                if (empty($row['amount']) || $row['amount'] <= 0) {
-                    $stmtEntries = $db->prepare("
-                        SELECT s.id as skater_id, sc.class_name 
-                        FROM roll_entries e
-                        JOIN roll_skaters s ON e.skater_id = s.id
-                        JOIN roll_event_details ed ON e.race_class_id = ed.id
-                        LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
-                        WHERE s.club_id = ? AND e.event_id = ?
-                    ");
-                    $stmtEntries->execute([$row['club_id'], $targetEventId]);
-                    $entriesData = $stmtEntries->fetchAll(PDO::FETCH_ASSOC);
-                    
-                    $financeCalc = \App\Helpers\RollFinanceHelper::calculateTotalTagihan($entriesData, $eventFees);
-                    $row['amount'] = $financeCalc['total_amount'];
-                }
+                $stmtEntries = $db->prepare("
+                    SELECT s.id as skater_id, sc.class_name 
+                    FROM roll_entries e
+                    JOIN roll_skaters s ON e.skater_id = s.id
+                    JOIN roll_event_details ed ON e.race_class_id = ed.id
+                    LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
+                    WHERE s.club_id = ? AND e.event_id = ?
+                ");
+                $stmtEntries->execute([$row['club_id'], $targetEventId]);
+                $entriesData = $stmtEntries->fetchAll(PDO::FETCH_ASSOC);
+                
+                $financeCalc = \App\Helpers\RollFinanceHelper::calculateTotalTagihan($entriesData, $eventFees);
+                $row['amount'] = $financeCalc['total_amount'];
             }
         } catch (\PDOException $e) {
             $listData = [];
@@ -232,9 +230,7 @@ class RollEntryController extends Controller {
             ];
         }
         
-        if(isset($payData['total_amount']) && $payData['total_amount'] > 0) {
-            $totalTagihan = $payData['total_amount'];
-        }
+        // Override lama dihapus agar Admin selalu melihat perhitungan tagihan yang dihitung secara dinamis & akurat.
 
         return $this->view('roll/admin/entries/detail', [
             'eventId' => $eventId,
@@ -315,9 +311,7 @@ class RollEntryController extends Controller {
             ];
         }
         
-        if(isset($payData['total_amount']) && $payData['total_amount'] > 0) {
-            $totalTagihan = $payData['total_amount'];
-        }
+        // Override lama dihapus agar Admin selalu melihat perhitungan tagihan yang dihitung secara dinamis & akurat.
 
         return $this->view('roll/admin/entries/print_invoice', [
             'event' => $eventData,
