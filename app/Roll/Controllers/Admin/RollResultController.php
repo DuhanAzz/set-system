@@ -48,6 +48,12 @@ class RollResultController extends Controller {
         $prevUrl = '#'; $prevClass = 'bg-slate-200 text-slate-400 cursor-not-allowed pointer-events-none';
         $nextUrl = '#'; $nextClass = 'bg-slate-200 text-slate-400 cursor-not-allowed pointer-events-none';
         
+        // Inisialisasi variabel untuk menghindari "Undefined variable" error 500 di hosting
+        $available_rounds = ['Kualifikasi'];
+        $raceFormat = 'DTT';
+        $print_round_name = $current_round_name;
+        $raw_results = [];
+        
         if ($filter_class_id > 0) {
             foreach ($classes as $c) {
                 if ($c['id'] == $filter_class_id) $raceInfo = $c;
