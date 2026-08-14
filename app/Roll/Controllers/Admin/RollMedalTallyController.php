@@ -43,7 +43,7 @@ class RollMedalTallyController extends Controller {
               AND r.status = 'OK'
               AND r.is_official = 1
               AND (e.status = 'Finished' OR e.status = 'Qualified')
-            GROUP BY c.id
+            GROUP BY c.id, c.club_name
             ORDER BY gold DESC, silver DESC, bronze DESC, c.club_name ASC
         ");
         // Catatan: e.status = 'Qualified' juga disertakan kalau ada sistem PTP/Eliminasi yang tidak sempat update menjadi 'Finished' namun sudah final.
@@ -53,7 +53,7 @@ class RollMedalTallyController extends Controller {
 
         $stmtEvt = $db->prepare("SELECT * FROM roll_events WHERE id = ?");
         $stmtEvt->execute([$eventId]);
-        $eventInfo = $stmtEvt->fetch(PDO::FETCH_ASSOC);
+        $eventInfo = $stmtEvt->fetch(PDO::FETCH_ASSOC) ?: [];
 
         return $this->view('roll/admin/medal_tally/index', [
             'medalTally' => $medalTally,
@@ -96,7 +96,7 @@ class RollMedalTallyController extends Controller {
               AND r.status = 'OK'
               AND r.is_official = 1
               AND (e.status = 'Finished' OR e.status = 'Qualified')
-            GROUP BY s.id, ed.category_name, ag.group_name
+            GROUP BY s.id, s.skater_name, s.gender, ed.category_name, ag.group_name, c.club_name
             ORDER BY ed.category_name ASC, ag.group_name ASC, s.gender ASC, 
                      total_points DESC, gold DESC, silver DESC, total_defeated DESC, s.skater_name ASC
         ");
@@ -119,7 +119,7 @@ class RollMedalTallyController extends Controller {
 
         $stmtEvt = $db->prepare("SELECT * FROM roll_events WHERE id = ?");
         $stmtEvt->execute([$eventId]);
-        $eventInfo = $stmtEvt->fetch(PDO::FETCH_ASSOC);
+        $eventInfo = $stmtEvt->fetch(PDO::FETCH_ASSOC) ?: [];
 
         return $this->view('roll/admin/medal_tally/best_skater', [
             'groupedMVP' => $groupedMVP,
