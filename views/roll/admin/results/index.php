@@ -1,21 +1,29 @@
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap');
-    .input-time { width: 100%; border: 1px solid #e2e8f0; background: #f8fafc; padding: 4px; font-family: 'Courier Prime', monospace; font-weight: bold; text-align: center; font-size: 10pt; color: #2563eb; outline: none; border-radius: 6px; transition: all 0.2s; }
-    .input-time:focus { border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2); }
-    .input-rank { width: 100%; border: 1px solid #e2e8f0; background: #fff; padding: 4px; font-weight: 900; text-align: center; font-size: 11pt; color: #1e293b; outline: none; border-radius: 6px; }
-    .input-point { width: 100%; border: 1px solid #fde68a; background: #fffbeb; padding: 4px; font-weight: 900; text-align: center; font-size: 11pt; color: #d97706; outline: none; border-radius: 6px; }
-    .input-status { width: 100%; border: 1px solid transparent; background: transparent; font-size: 9pt; font-weight: bold; text-align: center; cursor: pointer; outline: none; border-radius: 6px; padding: 4px; }
+    .input-time { width: 100%; border: 1px solid #e2e8f0; background: #f8fafc; padding: 6px; font-family: 'Courier Prime', monospace; font-weight: bold; text-align: center; font-size: 12pt; color: #2563eb; outline: none; border-radius: 8px; transition: all 0.2s; }
+    .input-time:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2); }
+    .input-rank { width: 100%; border: 1px solid #e2e8f0; background: #fff; padding: 6px; font-weight: 900; text-align: center; font-size: 12pt; color: #1e293b; outline: none; border-radius: 8px; }
+    .input-rank:focus { border-color: #94a3b8; box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.2); }
+    .input-point { width: 100%; border: 1px solid #fcd34d; background: #fffbeb; padding: 6px; font-weight: 900; text-align: center; font-size: 13pt; color: #b45309; outline: none; border-radius: 8px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02); }
+    .input-point:focus { border-color: #f59e0b; box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.3); }
+    .input-status { width: 100%; border: 1px solid transparent; background: transparent; font-size: 10pt; font-weight: bold; text-align: center; cursor: pointer; outline: none; border-radius: 8px; padding: 6px; }
     .input-status:hover { background: #f1f5f9; border-color: #cbd5e1; }
-    .btn-elim { font-size: 10px; font-weight: 900; padding: 2px 8px; border-radius: 4px; background: #fee2e2; color: #ef4444; border: 1px solid #fca5a5; cursor: pointer; transition: all 0.2s; }
-    .btn-elim:hover { background: #ef4444; color: white; }
+    .btn-elim { font-size: 14px; font-weight: 900; padding: 6px; border-radius: 8px; background: #fee2e2; color: #ef4444; border: 1px solid #fca5a5; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; width: 100%; box-shadow: 0 2px 4px rgba(239,68,68,0.1); }
+    .btn-elim:hover { background: #ef4444; color: white; border-color: #ef4444; transform: translateY(-1px); box-shadow: 0 4px 6px rgba(239,68,68,0.2); }
+    .btn-elim:active { transform: translateY(0); box-shadow: none; }
+    .sticky-header { position: sticky; top: 0; z-index: 40; backdrop-filter: blur(12px); margin-bottom: 24px; }
+    
+    /* Animations */
+    @keyframes rowFade { from { background-color: #fee2e2; } to { background-color: #fef2f2; } }
+    .row-eliminated { animation: rowFade 0.5s ease forwards; }
 </style>
 
 <div class="-m-6 p-6 min-h-[calc(100vh-4rem)] bg-slate-50 text-slate-800 font-sans">
-    <div class="max-w-6xl mx-auto space-y-6">
+    <div class="max-w-6xl mx-auto space-y-6 relative">
         
         <!-- Flash Messages -->
         <?php if (isset($_SESSION['flash_message'])): ?>
-            <div class="p-4 rounded-xl border <?= $_SESSION['flash_type'] === 'success' ? 'bg-emerald-900/50 border-emerald-500/30 text-emerald-300' : 'bg-red-900/50 border-red-500/30 text-red-300' ?> <?= $_SESSION['flash_type'] === 'warning' ? 'bg-orange-900/50 border-orange-500/30 text-orange-300' : '' ?> flex items-center justify-between shadow-lg backdrop-blur-sm">
+            <div class="p-4 rounded-xl border <?= $_SESSION['flash_type'] === 'success' ? 'bg-emerald-900/50 border-emerald-500/30 text-emerald-300' : 'bg-red-900/50 border-red-500/30 text-red-300' ?> <?= $_SESSION['flash_type'] === 'warning' ? 'bg-orange-900/50 border-orange-500/30 text-orange-300' : '' ?> flex items-center justify-between shadow-lg backdrop-blur-sm z-50 relative mb-4">
                 <span><?= $_SESSION['flash_message'] ?></span>
                 <button onclick="this.parentElement.remove()" class="text-xl">&times;</button>
             </div>
@@ -26,7 +34,7 @@
 
         <?php if ($filter_class_id == 0): ?>
             <!-- HEADER -->
-            <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm relative overflow-hidden flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm relative overflow-hidden flex flex-col md:flex-row justify-between items-center gap-4 mb-8">
                 <div>
                     <h1 class="text-2xl font-black text-slate-800 uppercase italic">INPUT HASIL LOMBA</h1>
                     <p class="text-slate-500 text-sm font-medium">Validasi Posisi, Waktu, dan Diskualifikasi</p>
@@ -58,15 +66,15 @@
                             $genderLabel = 'Pa & Pi';
                         }
                     ?>
-                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-slate-50 rounded-xl border border-slate-200 hover:bg-slate-100 transition-colors">
-                            <div class="flex items-center gap-3">
-                                <div class="bg-blue-600 text-white font-black text-sm px-3 py-1.5 rounded-lg shadow-sm">R<?= $raceNum ?></div>
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-white rounded-xl border border-slate-200 hover:bg-slate-50 transition-colors shadow-sm hover:shadow-md">
+                            <div class="flex items-center gap-4">
+                                <div class="bg-slate-800 text-white font-black text-sm px-4 py-2 rounded-lg shadow-sm">R<?= $raceNum ?></div>
                                 <div>
                                     <div class="text-sm font-black text-slate-800 uppercase tracking-widest">
                                         <?= htmlspecialchars($ev['distance_name']) ?> - <?= htmlspecialchars($ev['group_name']) ?> <?= $genderLabel ?>
                                     </div>
-                                    <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5 flex items-center gap-2">
-                                        <span class="bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded">
+                                    <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1 flex items-center gap-2">
+                                        <span class="bg-blue-50 text-blue-600 border border-blue-200 px-2 py-0.5 rounded">
                                             Kategori: <?= htmlspecialchars($ev['skate_class_name'] ?? 'Umum') ?>
                                         </span>
                                     </div>
@@ -74,9 +82,9 @@
                             </div>
                             
                             <div class="flex items-center gap-2">
-                                <a href="?race_class_id=<?= $ev['id'] ?>" class="bg-blue-100 hover:bg-blue-200 text-blue-700 p-2 px-4 rounded-lg transition-colors flex items-center gap-2 shadow-sm border border-blue-200" title="Input Hasil">
-                                    <span class="text-sm">⏱️</span>
-                                    <span class="text-xs font-bold uppercase tracking-widest hidden sm:inline">Pilih Kelas Ini</span>
+                                <a href="?race_class_id=<?= $ev['id'] ?>" class="bg-blue-600 hover:bg-blue-700 text-white p-2 px-5 rounded-lg transition-colors flex items-center gap-2 shadow-sm font-bold uppercase text-xs tracking-widest" title="Input Hasil">
+                                    <span>Pilih Lomba</span>
+                                    <span class="text-sm ml-1">➡️</span>
                                 </a>
                             </div>
                         </div>
@@ -86,61 +94,71 @@
             </div>
         <?php else: ?>
 
-        <!-- ALL-IN-ONE PAGE FOR HEAT INPUT (SWIM CLONE) -->
+        <!-- ALL-IN-ONE PAGE FOR HEAT INPUT -->
+        <?php 
+            $is_official = 0;
+            $isDTT = false;
+            $isSprint = false;
+            if(!empty($heatsData)): 
+                $firstHeat = array_key_first($heatsData);
+                $is_official = !empty($heatsData[$firstHeat]) ? $heatsData[$firstHeat][0]['is_official'] : 0; 
+                
+                $isDTT = ($raceFormat !== 'PTP' && $raceFormat !== 'ELIMINASI' && count($heatsData) <= 1);
+                $isSprint = ($raceFormat !== 'PTP' && $raceFormat !== 'ELIMINASI' && count($heatsData) > 1);
+            endif;
+            
+            $hdrRaceNum = str_pad($raceInfo['race_number'] ?? '', 3, '0', STR_PAD_LEFT);
+            $hdrGenderDb = strtolower($raceInfo['gender'] ?? '');
+            if (strpos($hdrGenderDb, 'putra') !== false) {
+                $hdrGenderLabel = 'Pa';
+            } elseif (strpos($hdrGenderDb, 'putri') !== false) {
+                $hdrGenderLabel = 'Pi';
+            } else {
+                $hdrGenderLabel = 'Pa & Pi';
+            }
+        ?>
         
-        <!-- Navigation Top Bar (Swim Style) -->
-        <div class="bg-slate-800 rounded-lg p-2 flex flex-col md:flex-row justify-between items-center gap-2 mb-6">
-            <div class="flex items-center gap-2 text-white font-bold text-[11px] uppercase px-4 text-center md:text-left">
-                <?php 
-                    $hdrRaceNum = str_pad($raceInfo['race_number'] ?? '', 3, '0', STR_PAD_LEFT);
-                    $hdrGenderDb = strtolower($raceInfo['gender'] ?? '');
-                    if (strpos($hdrGenderDb, 'putra') !== false) {
-                        $hdrGenderLabel = 'Pa';
-                    } elseif (strpos($hdrGenderDb, 'putri') !== false) {
-                        $hdrGenderLabel = 'Pi';
-                    } else {
-                        $hdrGenderLabel = 'Pa & Pi';
-                    }
-                ?>
-                <span>R<?= $hdrRaceNum ?> - <?= htmlspecialchars($raceFormat) ?> - <?= htmlspecialchars($raceInfo['distance_name'] ?? '') ?> - <?= htmlspecialchars($raceInfo['group_name'] ?? '') ?> - <?= $hdrGenderLabel ?></span>
-                <span class="hidden md:inline opacity-50">|</span>
-                <span class="text-blue-300">Kategori: <?= htmlspecialchars($raceInfo['skate_class_name'] ?? 'Umum') ?></span>
-            </div>
-            <div class="flex items-center gap-2">
-                <a href="<?= $prevUrl ?? '#' ?>" class="h-10 px-4 flex items-center justify-center rounded-l-lg font-bold text-xs uppercase transition border-r border-slate-600 <?= $prevClass ?? '' ?>">&laquo; PREV</a>
-                <div class="flex bg-slate-100 rounded-none p-1 gap-1">
-                    <button type="button" onclick="window.showCustomConfirm('Apakah Anda yakin ingin MERESET SELURUH DATA untuk babak dan kelas ini? Semua waktu, status, dan babak lanjutan akan terhapus secara permanen!', function() { window.location.href = '<?= getenv('APP_URL') ?>/roll/admin/results/reset_results?race_class_id=<?= $filter_class_id ?>'; });" class="h-8 px-3 flex items-center bg-red-500 text-white rounded font-bold text-[10px] uppercase hover:bg-red-600 gap-1" title="Reset semua data dan babak">🗑️ RESET</button>
-                    <a href="<?= getenv('APP_URL') ?>/roll/admin/results" class="h-8 px-3 flex items-center bg-white border border-slate-300 rounded text-slate-600 font-bold text-[10px] uppercase hover:bg-slate-50">Menu</a>
-                    <a href="<?= getenv('APP_URL') ?>/roll/admin/results/export_csv?race_class_id=<?= $filter_class_id ?>" class="h-8 px-3 flex items-center bg-teal-500 text-white rounded font-bold text-[10px] uppercase hover:bg-teal-600 gap-1" title="Download Data ke CSV Format Stopwatch">📤 EXPORT</a>
-                    <button type="button" onclick="document.getElementById('csvUploadForm').classList.toggle('hidden')" class="h-8 px-3 flex items-center bg-emerald-500 text-white rounded font-bold text-[10px] uppercase hover:bg-emerald-600 gap-1" title="Import CSV Backup dari Stopwatch">📝 IMPORT</button>
-                    <a href="<?= getenv('APP_URL') ?>/roll/admin/results/print_result?race_class_id=<?= $filter_class_id ?>&round=<?= urlencode($structural_round_name) ?>" target="_blank" class="h-8 px-3 flex items-center bg-orange-500 text-white rounded font-bold text-[10px] uppercase hover:bg-orange-600 gap-1">🖨️ PDF</a>
-                    <button type="submit" form="formResult" class="h-8 px-4 flex items-center bg-blue-600 text-white rounded font-bold text-[10px] uppercase hover:bg-blue-700 gap-1 shadow-sm">💾 SIMPAN</button>
-                    <?php 
-                    $is_official = 0;
-                    $isDTT = false;
-                    $isSprint = false;
-                    if(!empty($heatsData)): 
-                        $firstHeat = array_key_first($heatsData);
-                        $is_official = !empty($heatsData[$firstHeat]) ? $heatsData[$firstHeat][0]['is_official'] : 0; 
-                        
-                        $isDTT = ($raceFormat !== 'PTP' && $raceFormat !== 'ELIMINASI' && count($heatsData) <= 1);
-                        $isSprint = ($raceFormat !== 'PTP' && $raceFormat !== 'ELIMINASI' && count($heatsData) > 1);
-                    endif;
-                    ?>
-
-
+        <!-- STICKY ACTION BAR -->
+        <div class="sticky-header bg-slate-900/95 border border-slate-700 shadow-2xl rounded-2xl p-3 flex flex-col xl:flex-row justify-between items-center gap-4 transition-all">
+            <div class="flex items-center gap-3 text-white px-2 w-full xl:w-auto overflow-hidden">
+                <a href="<?= getenv('APP_URL') ?>/roll/admin/results" class="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition border border-slate-600" title="Kembali ke Daftar Lomba">
+                    <i class="fas fa-arrow-left"></i>
+                </a>
+                <div class="flex flex-col min-w-0">
+                    <div class="font-black text-sm tracking-widest uppercase flex items-center gap-2 truncate">
+                        <span class="text-blue-400 bg-blue-400/10 px-2 py-0.5 rounded">R<?= $hdrRaceNum ?></span>
+                        <span class="text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded"><?= htmlspecialchars($raceFormat) ?></span>
+                        <span class="truncate"><?= htmlspecialchars($raceInfo['distance_name'] ?? '') ?></span>
+                    </div>
+                    <div class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1 truncate">
+                        <?= htmlspecialchars($raceInfo['group_name'] ?? '') ?> - <?= $hdrGenderLabel ?> &bull; <span class="text-slate-300"><?= htmlspecialchars($raceInfo['skate_class_name'] ?? 'Umum') ?></span>
+                    </div>
                 </div>
-                <a href="<?= $nextUrl ?? '#' ?>" class="h-10 px-4 flex items-center justify-center rounded-r-lg font-bold text-xs uppercase transition border-l border-slate-600 <?= $nextClass ?? '' ?>">NEXT &raquo;</a>
+            </div>
+            
+            <div class="flex items-center gap-2 w-full xl:w-auto overflow-x-auto pb-1 xl:pb-0 scrollbar-hide">
+                <a href="<?= $prevUrl ?? '#' ?>" class="flex-shrink-0 h-10 px-4 flex items-center justify-center rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition border border-slate-700 <?= $prevClass ?? '' ?>" title="Lomba Sebelumnya">&laquo; PREV</a>
+                
+                <div class="flex flex-shrink-0 bg-slate-800 p-1 rounded-xl border border-slate-700 gap-1 shadow-inner">
+                    <button type="button" onclick="window.showCustomConfirm('Apakah Anda yakin ingin MERESET SELURUH DATA untuk babak dan kelas ini? Semua waktu, status, dan babak lanjutan akan terhapus secara permanen!', function() { window.location.href = '<?= getenv('APP_URL') ?>/roll/admin/results/reset_results?race_class_id=<?= $filter_class_id ?>'; });" class="h-8 px-3 flex items-center bg-transparent text-slate-400 rounded-lg hover:bg-red-500/20 hover:text-red-400 font-bold text-[10px] uppercase transition" title="Reset semua data dan babak">🗑️ RESET</button>
+                    <a href="<?= getenv('APP_URL') ?>/roll/admin/results/export_csv?race_class_id=<?= $filter_class_id ?>" class="h-8 px-3 flex items-center bg-transparent text-slate-400 rounded-lg hover:bg-slate-700 hover:text-white font-bold text-[10px] uppercase transition" title="Download Data ke CSV">📤 CSV</a>
+                    <button type="button" onclick="document.getElementById('csvUploadForm').classList.toggle('hidden')" class="h-8 px-3 flex items-center bg-transparent text-slate-400 rounded-lg hover:bg-slate-700 hover:text-white font-bold text-[10px] uppercase transition" title="Import CSV Backup">📝 IMPORT</button>
+                    <a href="<?= getenv('APP_URL') ?>/roll/admin/results/print_result?race_class_id=<?= $filter_class_id ?>&round=<?= urlencode($structural_round_name) ?>" target="_blank" class="h-8 px-3 flex items-center bg-transparent text-slate-400 rounded-lg hover:bg-orange-500/20 hover:text-orange-400 font-bold text-[10px] uppercase transition" title="Cetak PDF">🖨️ PDF</a>
+                    <div class="w-px bg-slate-700 mx-1 my-1"></div>
+                    <button type="submit" form="formResult" class="h-8 px-6 flex items-center bg-blue-600 text-white rounded-lg font-black text-xs tracking-widest uppercase hover:bg-blue-500 transition shadow-[0_0_15px_rgba(37,99,235,0.4)]">💾 SIMPAN</button>
+                </div>
+
+                <a href="<?= $nextUrl ?? '#' ?>" class="flex-shrink-0 h-10 px-4 flex items-center justify-center rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition border border-slate-700 <?= $nextClass ?? '' ?>" title="Lomba Selanjutnya">NEXT &raquo;</a>
             </div>
         </div>
 
         <!-- Form Upload CSV Hidden -->
-        <div id="csvUploadForm" class="hidden w-full border-t pt-3 mb-6 bg-emerald-50 p-3 rounded-lg border border-emerald-200">
-            <label class="block text-xs font-bold text-emerald-700 mb-2">Import Hasil Lomba dari File .CSV (Format: BIB, TIME)</label>
-            <form method="POST" action="<?= getenv('APP_URL') ?>/roll/admin/results/import_csv" enctype="multipart/form-data" class="flex gap-2 items-center">
+        <div id="csvUploadForm" class="hidden w-full bg-slate-800 p-4 rounded-xl border border-slate-700 mb-6 shadow-lg">
+            <label class="block text-xs font-bold text-emerald-400 mb-2 uppercase tracking-widest">Import Hasil Lomba (CSV: BIB, TIME)</label>
+            <form method="POST" action="<?= getenv('APP_URL') ?>/roll/admin/results/import_csv" enctype="multipart/form-data" class="flex flex-col sm:flex-row gap-3 items-center">
                 <input type="hidden" name="race_class_id" value="<?= $filter_class_id ?>">
-                <input type="file" name="csv_backup" accept=".csv" required class="text-xs w-full p-1 bg-white border border-emerald-200 rounded">
-                <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-1.5 rounded font-bold text-xs whitespace-nowrap shadow-sm">Upload & Sinkron</button>
+                <input type="file" name="csv_backup" accept=".csv" required class="text-sm w-full p-2 bg-slate-900 border border-slate-600 rounded-lg text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-emerald-500 file:text-white hover:file:bg-emerald-600 cursor-pointer">
+                <button type="submit" class="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2.5 rounded-lg font-bold text-xs uppercase tracking-widest whitespace-nowrap shadow-md transition">Upload & Sinkron</button>
             </form>
         </div>
 
@@ -150,140 +168,117 @@
             <input type="hidden" name="race_class_id" value="<?= htmlspecialchars($filter_class_id) ?>">
             <input type="hidden" name="original_round_name" value="<?= htmlspecialchars($structural_round_name) ?>">
 
-            <!-- Navigasi Babak -->
-            <div class="mb-4 flex flex-wrap gap-2">
+            <!-- TABS: Navigasi Babak -->
+            <div class="mb-6 flex flex-wrap gap-2">
                 <?php foreach($available_rounds as $rnd): ?>
                     <a href="?race_class_id=<?= $filter_class_id ?>&round=<?= urlencode($rnd) ?>" 
-                       class="px-4 py-2 rounded-lg font-bold text-sm border <?= $rnd === $structural_round_name ? 'bg-indigo-600 text-white border-indigo-700 shadow-md' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50' ?>">
+                       class="px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest transition-all <?= $rnd === $structural_round_name ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 ring-2 ring-indigo-600 ring-offset-2 ring-offset-slate-50' : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-100 hover:text-slate-800' ?>">
                         <?= htmlspecialchars($rnd) ?>
                     </a>
                 <?php endforeach; ?>
             </div>
 
-            <!-- Panel Pengaturan Input Hasil -->
-            <?php if (!$isDTT): ?>
-            <div class="bg-indigo-50 border border-indigo-200 rounded-lg p-3 mb-6 shadow-sm">
-                <div class="flex flex-wrap gap-4 items-center">
-                    <div class="text-sm font-bold text-indigo-800 w-full md:w-auto flex-1">⚙️ Pengaturan Input Hasil</div>
-                    
-                    <div class="flex items-center gap-2">
-                        <label class="text-xs font-bold text-slate-600">Nama Babak:</label>
-                        <select name="current_round_name" class="h-8 text-sm border-slate-300 rounded focus:ring-indigo-500 focus:border-indigo-500 font-bold text-indigo-700">
-                            <option value="Kualifikasi" <?= $current_round_name === 'Kualifikasi' ? 'selected' : '' ?>>Kualifikasi</option>
-                            <option value="Perempat Final" <?= $current_round_name === 'Perempat Final' ? 'selected' : '' ?>>Perempat Final</option>
-                            <option value="Semi Final" <?= $current_round_name === 'Semi Final' ? 'selected' : '' ?>>Semi Final</option>
-                            <option value="Final" <?= $current_round_name === 'Final' ? 'selected' : '' ?>>Final</option>
-                        </select>
-                    </div>
-
-                    <div class="hidden md:block w-px h-8 bg-indigo-200"></div>
-
-                    <div class="flex items-center gap-2">
-                        <label class="text-xs font-bold text-slate-600">Loloskan:</label>
-                        <input type="number" name="advancement_count" value="<?= htmlspecialchars($raceInfo['advancement_count'] ?? '') ?>" class="w-16 h-8 text-center text-sm border-slate-300 rounded focus:ring-indigo-500 focus:border-indigo-500" placeholder="0" min="0">
-                        <span class="text-xs font-bold text-slate-600">Atlet ke Babak</span>
-                    </div>
-                    
-                    <div class="flex items-center gap-2">
-                        <select name="next_round" class="h-8 text-sm border-slate-300 rounded focus:ring-indigo-500 focus:border-indigo-500 font-bold text-indigo-700">
-                            <option value="">- Lolos ke Babak -</option>
-                            <option value="Perempat Final" <?= ($raceInfo['next_round'] ?? '') === 'Perempat Final' ? 'selected' : '' ?>>Perempat Final</option>
-                            <option value="Semi Final" <?= ($raceInfo['next_round'] ?? '') === 'Semi Final' ? 'selected' : '' ?>>Semi Final</option>
-                            <option value="Final" <?= ($raceInfo['next_round'] ?? '') === 'Final' ? 'selected' : '' ?>>Final</option>
-                        </select>
-                    </div>
-
-                    <div class="flex items-center ml-1 mr-2" title="Gunakan pemanggilan tercepat setiap seri (bukan overall)">
-                        <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" name="advancement_rule" value="per_heat" class="sr-only peer" <?= ($raceInfo['advancement_rule'] ?? '') === 'per_heat' ? 'checked' : '' ?>>
-                            <div class="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
-                            <span class="ml-2 text-xs font-bold text-slate-600">Per Seri</span>
-                        </label>
-                    </div>
-
-                    <button type="button" onclick="window.showCustomConfirm('Apakah Anda yakin ingin melakukan Generate Babak? Sistem akan memproses kelolosan berdasarkan catatan waktu dan membuat Heat baru.', function() { const f = document.getElementById('formResult'); const i = document.createElement('input'); i.type='hidden'; i.name='action_type'; i.value='generate'; f.appendChild(i); f.submit(); });" class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-1.5 rounded font-bold text-xs whitespace-nowrap shadow-sm">
-                        <i class="fas fa-magic mr-1"></i> GENERATE BABAK
-                    </button>
-                </div>
-            </div>
-            <?php else: ?>
-                <input type="hidden" name="current_round_name" value="<?= htmlspecialchars($current_round_name) ?>">
-            <?php endif; ?>
+            <!-- HEAT TABLES (DYNAMIC BASED ON RACE FORMAT) -->
+            <input type="hidden" name="current_round_name" value="<?= htmlspecialchars($current_round_name) ?>">
             
             <?php foreach($heatsData as $heatName => $results): ?>
             <?php $totalEliminated = $totalEliminatedByHeat[$heatName] ?? 0; ?>
+            
             <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mb-8" data-heat="<?= htmlspecialchars($heatName) ?>">
-                <div class="px-6 py-4 border-b border-slate-200 bg-slate-50 flex flex-col md:flex-row justify-between items-center gap-4">
+                <!-- Heat Header -->
+                <div class="px-6 py-4 border-b border-slate-200 bg-slate-50/80 flex flex-col sm:flex-row justify-between items-center gap-4">
                     <div class="flex items-center gap-4">
-                        <h3 class="text-lg font-black text-slate-800 uppercase tracking-widest italic"><?= htmlspecialchars($heatName) ?> <span class="text-xs font-bold text-slate-400 font-sans not-italic ml-2">(<?= count($results) ?> Peserta)</span></h3>
-                        <?php if($raceFormat === 'ELIMINASI'): ?>
-                            <span class="px-3 py-1 bg-red-100 text-red-600 border border-red-200 rounded-lg text-xs font-bold uppercase tracking-widest">Sisa <?= count($results) - $totalEliminated ?></span>
-                        <?php endif; ?>
+                        <h3 class="text-xl font-black text-slate-800 uppercase tracking-widest italic"><?= htmlspecialchars($heatName) ?> </h3>
+                        <span class="px-3 py-1 bg-white border border-slate-200 rounded-lg text-[10px] font-bold text-slate-500 uppercase tracking-widest shadow-sm"><?= count($results) ?> Peserta</span>
                     </div>
+                    <?php if($raceFormat === 'ELIMINASI'): ?>
+                        <div class="flex items-center gap-2 bg-red-50 border border-red-100 px-4 py-1.5 rounded-xl shadow-inner">
+                            <span class="text-red-500 animate-pulse">🔴</span>
+                            <span class="text-xs font-black uppercase tracking-widest text-red-800">Sisa: <span class="text-base ml-1"><?= count($results) - $totalEliminated ?></span></span>
+                        </div>
+                    <?php endif; ?>
                 </div>
                 
                 <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse heat-table" data-heat="<?= htmlspecialchars($heatName) ?>">
+                    <table class="w-full text-left border-collapse heat-table min-w-[800px]" data-heat="<?= htmlspecialchars($heatName) ?>">
                         <thead>
-                            <tr class="bg-slate-800 text-white text-[10px] uppercase tracking-widest border-b border-slate-700">
-                                <th class="p-3 font-bold text-center w-12">Grid</th>
-                                <th class="p-3 font-bold text-center w-16">BIB</th>
-                                <th class="p-3 font-bold">Atlet & Klub</th>
-                                <th class="p-3 font-bold w-20 text-center">Rank</th>
-                                <?php if($raceFormat === 'PTP'): ?>
-                                    <th class="p-3 font-bold w-20 text-center bg-amber-50 text-amber-900 border-l border-r border-amber-200">POIN</th>
-                                <?php endif; ?>
-                                <th class="p-3 font-bold w-32 text-center">Waktu</th>
+                            <tr class="bg-slate-100/50 text-slate-500 text-[10px] uppercase tracking-widest border-b border-slate-200">
+                                <th class="p-4 font-black text-center w-12">Grid</th>
+                                <th class="p-4 font-black text-center w-16">BIB</th>
+                                <th class="p-4 font-black">Atlet & Klub</th>
+                                
                                 <?php if($raceFormat === 'ELIMINASI'): ?>
-                                    <th class="p-3 font-bold w-20 text-center">Aksi</th>
+                                    <th class="p-4 font-black w-24 text-center">Aksi</th>
                                 <?php endif; ?>
-                                <th class="p-3 font-bold w-24 text-center">Status</th>
+
+                                <?php if($raceFormat === 'PTP'): ?>
+                                    <th class="p-4 font-black w-28 text-center bg-amber-50 text-amber-700 border-l border-r border-amber-200 shadow-inner">Poin ⭐</th>
+                                <?php endif; ?>
+                                
+                                <th class="p-4 font-black w-32 text-center">Waktu</th>
+                                <th class="p-4 font-black w-24 text-center">Rank</th>
+                                <th class="p-4 font-black w-28 text-center">Status</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-slate-200 text-sm">
+                        <tbody class="divide-y divide-slate-100 text-sm">
                             <?php foreach($results as $r): ?>
-                            <tr class="hover:bg-blue-50/50 transition-colors <?= $r['status'] !== 'OK' ? 'bg-red-50' : 'bg-white' ?>" id="row_<?= $r['skater_id'] ?>" data-bib="<?= htmlspecialchars($r['bib_number'] ?? '') ?>">
+                            <tr class="hover:bg-blue-50/30 transition-colors <?= $r['status'] !== 'OK' ? 'bg-red-50/50' : 'bg-white' ?>" id="row_<?= $r['skater_id'] ?>" data-bib="<?= htmlspecialchars($r['bib_number'] ?? '') ?>">
                                 <input type="hidden" name="heat_name[]" value="<?= htmlspecialchars($heatName) ?>">
-                                <td class="p-3 text-center">
-                                    <span class="inline-flex w-6 h-6 rounded-full bg-slate-100 border border-slate-200 items-center justify-center font-bold text-slate-600 text-xs">
+                                
+                                <!-- GRID -->
+                                <td class="p-4 text-center">
+                                    <span class="inline-flex w-7 h-7 rounded-full bg-slate-100 border border-slate-200 items-center justify-center font-bold text-slate-500 text-xs shadow-sm">
                                         <?= htmlspecialchars($r['start_grid'] ?? '-') ?>
                                     </span>
                                 </td>
-                                <td class="p-3 text-center">
-                                    <span class="font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded text-xs border border-blue-200">
+                                
+                                <!-- BIB -->
+                                <td class="p-4 text-center">
+                                    <span class="font-black text-indigo-700 bg-indigo-50 px-2 py-1 rounded-lg text-sm border border-indigo-100 shadow-sm">
                                         <?= htmlspecialchars($r['bib_number'] ?? '-') ?>
                                     </span>
                                 </td>
-                                <td class="p-3">
-                                    <div class="font-bold text-slate-800 text-sm leading-tight"><?= htmlspecialchars($r['skater_name']) ?></div>
-                                    <div class="text-[10px] text-slate-400 font-bold uppercase mt-0.5"><?= htmlspecialchars($r['club_name'] ?? 'Independen') ?></div>
+                                
+                                <!-- NAMA & KLUB -->
+                                <td class="p-4">
+                                    <div class="font-black text-slate-800 text-base leading-tight uppercase"><?= htmlspecialchars($r['skater_name']) ?></div>
+                                    <div class="text-[10px] text-slate-400 font-bold uppercase mt-1 tracking-widest"><?= htmlspecialchars($r['club_name'] ?? 'Independen') ?></div>
                                     <input type="hidden" name="result_id[]" value="<?= $r['result_id'] ?? '' ?>">
                                     <input type="hidden" name="skater_id[]" value="<?= $r['skater_id'] ?>">
                                     <input type="hidden" name="skater_race_class_id[]" value="<?= $r['race_class_id'] ?? '' ?>">
                                 </td>
-                                <td class="p-3">
-                                    <input type="number" step="1" name="rank[]" value="<?= $r['rank'] ?>" class="input-rank shadow-sm <?= $raceFormat === 'PTP' ? 'bg-slate-100 text-slate-400' : '' ?>" id="rank_<?= $r['skater_id'] ?>" <?= $raceFormat === 'PTP' ? 'readonly tabindex="-1"' : '' ?>>
+
+                                <!-- ELIMINASI ACTION (If Format == Eliminasi) -->
+                                <?php if($raceFormat === 'ELIMINASI'): ?>
+                                <td class="p-4 text-center align-middle">
+                                    <button type="button" class="btn-elim" onclick="eliminateSkater('<?= $r['skater_id'] ?>', '<?= htmlspecialchars($heatName, ENT_QUOTES) ?>')" title="Tarik keluar lintasan (Eliminasi)">
+                                        <i class="fas fa-flag"></i>
+                                    </button>
                                 </td>
+                                <?php endif; ?>
+
+                                <!-- POIN (If Format == PTP) -->
                                 <?php if($raceFormat === 'PTP'): ?>
-                                <td class="p-3 bg-amber-50 border-l border-r border-amber-100">
-                                    <input type="number" step="1" name="point[]" value="<?= $r['point'] ?>" class="input-point shadow-sm focus:ring-2 focus:ring-amber-500" placeholder="0" tabindex="1">
+                                <td class="p-4 bg-amber-50/50 border-l border-r border-amber-100 align-middle">
+                                    <input type="number" step="1" name="point[]" value="<?= $r['point'] ?>" class="input-point focus:ring-2 focus:ring-amber-500" placeholder="0" tabindex="1">
                                 </td>
                                 <?php else: ?>
                                     <input type="hidden" name="point[]" value="0">
                                 <?php endif; ?>
 
-                                <td class="p-3">
-                                    <input type="text" name="time[]" value="<?= htmlspecialchars($r['time'] ?? '00.00.000') ?>" class="input-time shadow-sm <?= ($raceFormat === 'ELIMINASI' && !empty($r['rank'])) ? 'opacity-40 bg-slate-100' : '' ?>" placeholder="00.00.000" id="time_<?= $r['skater_id'] ?>" tabindex="<?= $raceFormat === 'PTP' ? '2' : '1' ?>" <?= ($raceFormat === 'ELIMINASI' && !empty($r['rank'])) ? 'readonly tabindex="-1"' : '' ?> autocomplete="off" onfocus="if(this.value==='00.00.000')this.value='';" onblur="if(this.value==='')this.value='00.00.000';">
+                                <!-- WAKTU -->
+                                <td class="p-4 align-middle">
+                                    <input type="text" name="time[]" value="<?= htmlspecialchars($r['time'] ?? '00.00.000') ?>" class="input-time <?= ($raceFormat === 'ELIMINASI' && $r['status'] === 'DNF') ? 'opacity-40 bg-slate-100' : '' ?>" placeholder="00.00.000" id="time_<?= $r['skater_id'] ?>" tabindex="<?= $raceFormat === 'PTP' ? '2' : '1' ?>" <?= ($raceFormat === 'ELIMINASI' && $r['status'] === 'DNF') ? 'readonly tabindex="-1"' : '' ?> autocomplete="off" onfocus="if(this.value==='00.00.000')this.value='';" onblur="if(this.value==='')this.value='00.00.000';">
                                 </td>
 
-                                <?php if($raceFormat === 'ELIMINASI'): ?>
-                                <td class="p-3 text-center">
-                                        <button type="button" class="btn-elim shadow-sm whitespace-nowrap" onclick="eliminateSkater('<?= $r['skater_id'] ?>', '<?= htmlspecialchars($heatName, ENT_QUOTES) ?>')" title="Tarik keluar lintasan (Eliminasi)">🚩 ELIMINASI</button>
+                                <!-- RANK -->
+                                <td class="p-4 align-middle">
+                                    <input type="number" step="1" name="rank[]" value="<?= $r['rank'] ?>" class="input-rank <?= $raceFormat === 'PTP' ? 'bg-slate-50 text-slate-400 border-slate-200' : '' ?> <?= ($raceFormat === 'ELIMINASI' && $r['status'] === 'DNF') ? 'bg-red-50 text-red-500' : '' ?>" id="rank_<?= $r['skater_id'] ?>" tabindex="<?= $raceFormat === 'PTP' ? '3' : '2' ?>">
                                 </td>
-                                <?php endif; ?>
 
-                                <td class="p-3 text-center relative">
-                                    <select name="status[]" class="input-status <?= $r['status']!=='OK' ? 'text-red-600 bg-red-100 border-red-200' : 'text-slate-600 bg-slate-100' ?> border rounded-lg shadow-sm" onchange="handleStatusChange(this, '<?= $r['skater_id'] ?>')">
+                                <!-- STATUS -->
+                                <td class="p-4 text-center relative align-middle">
+                                    <select name="status[]" class="input-status <?= $r['status']!=='OK' ? 'text-red-600 bg-red-100 border-red-200' : 'text-slate-500 bg-slate-100 hover:bg-slate-200' ?>" onchange="handleStatusChange(this, '<?= $r['skater_id'] ?>')">
                                         <?php foreach(['OK', 'DNS', 'DNF', 'DQ', 'FS'] as $s): ?>
                                             <option value="<?= $s ?>" <?= $r['status'] === $s ? 'selected' : '' ?> <?= $s !== 'OK' ? 'class="text-red-600"' : '' ?>><?= $s ?></option>
                                         <?php endforeach; ?>
@@ -297,15 +292,55 @@
             </div>
             <?php endforeach; ?>
             
-            <?php if(!$is_official): ?>
-            <!-- Floating Save Button Space -->
-            <div class="h-20"></div>
+            <!-- PANEL LANGKAH SELANJUTNYA (UX BARU) -->
+            <?php if (!$isDTT && $current_round_name !== 'Final'): ?>
+            <div class="mt-12 bg-white rounded-2xl border border-indigo-200 shadow-xl overflow-hidden mb-12">
+                <div class="bg-indigo-600 p-4 text-white">
+                    <h3 class="text-lg font-black uppercase tracking-widest flex items-center gap-2">
+                        <i class="fas fa-arrow-circle-right"></i> Langkah Selanjutnya: Buat Babak Baru
+                    </h3>
+                    <p class="text-xs text-indigo-200 font-medium mt-1">Sistem akan menyaring atlet terbaik dari babak Kualifikasi ini untuk bertanding di babak selanjutnya.</p>
+                </div>
+                <div class="p-6 bg-indigo-50/30 flex flex-col xl:flex-row gap-6 items-center">
+                    
+                    <!-- Sentence Structure Form -->
+                    <div class="flex-1 flex flex-wrap items-center justify-center xl:justify-start gap-3 text-sm font-bold text-slate-700 text-center xl:text-left">
+                        <span>Buat Babak</span>
+                        <select name="next_round" class="h-10 px-4 text-sm font-black text-indigo-700 border-slate-300 rounded-xl shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-white">
+                            <option value="Perempat Final" <?= ($raceInfo['next_round'] ?? '') === 'Perempat Final' ? 'selected' : '' ?>>Perempat Final</option>
+                            <option value="Semi Final" <?= ($raceInfo['next_round'] ?? '') === 'Semi Final' ? 'selected' : '' ?>>Semi Final</option>
+                            <option value="Final" <?= ($raceInfo['next_round'] ?? '') === 'Final' ? 'selected' : '' ?>>Final</option>
+                        </select>
+                        
+                        <span>dengan mengambil</span>
+                        <input type="number" name="advancement_count" value="<?= htmlspecialchars($raceInfo['advancement_count'] ?? '') ?>" class="w-20 h-10 px-2 text-center text-lg font-black text-indigo-700 border-slate-300 rounded-xl shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-white" placeholder="0" min="0">
+                        <span>atlet tercepat dari</span>
+                        
+                        <select name="advancement_rule" class="h-10 px-4 text-sm font-black text-indigo-700 border-slate-300 rounded-xl shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-white">
+                            <option value="overall" <?= ($raceInfo['advancement_rule'] ?? '') === 'overall' ? 'selected' : '' ?>>Total Keseluruhan (Overall Time)</option>
+                            <option value="per_heat" <?= ($raceInfo['advancement_rule'] ?? '') === 'per_heat' ? 'selected' : '' ?>>Masing-masing Seri (Per Heat)</option>
+                        </select>
+                    </div>
+
+                    <!-- Action Button -->
+                    <div class="w-full xl:w-auto flex-shrink-0 mt-2 xl:mt-0">
+                        <button type="button" onclick="handleGenerateNextRound()" class="w-full h-12 bg-indigo-600 hover:bg-indigo-700 text-white px-8 rounded-xl font-black text-sm uppercase tracking-widest shadow-[0_4px_15px_rgba(79,70,229,0.4)] transition-all transform hover:-translate-y-0.5 whitespace-nowrap">
+                            Saring & Buat Babak 🚀
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <?php else: ?>
+                <?php if ($current_round_name === 'Final'): ?>
+                <div class="mt-8 text-center p-8 bg-emerald-50 rounded-2xl border border-emerald-200 shadow-sm mb-12">
+                    <span class="text-4xl block mb-3">🏆</span>
+                    <h3 class="text-base font-black text-emerald-800 uppercase tracking-widest">Babak Final</h3>
+                    <p class="text-sm text-emerald-600 mt-2 font-bold max-w-lg mx-auto">Lomba telah mencapai babak puncak. Pastikan untuk menekan tombol SIMPAN di atas, lalu menuju halaman Publikasi Hasil untuk Mengesahkannya.</p>
+                </div>
+                <?php endif; ?>
             <?php endif; ?>
+            
         </form>
-        
-
-
-
 
         <script>
         function eliminateSkater(skaterId, heatName) {
@@ -331,19 +366,20 @@
             rankInput.value = currentElimRank;
             rankInput.style.background = '#fee2e2';
             rankInput.style.color = '#ef4444';
+            rankInput.style.borderColor = '#fca5a5';
 
-            // Disable time (use readonly to ensure it POSTs)
+            // Disable time
             timeInput.value = '';
             timeInput.readOnly = true;
             timeInput.tabIndex = -1;
-            timeInput.style.background = '#eee';
-            timeInput.classList.add('opacity-40', 'bg-slate-100');
+            timeInput.style.background = '#f1f5f9';
+            timeInput.classList.add('opacity-50');
             
-            // Highlight row
-            row.classList.add('bg-red-50');
+            // Highlight row with animation
+            row.classList.add('bg-red-50/80', 'row-eliminated');
             row.classList.remove('bg-white');
             select.classList.add('text-red-600', 'bg-red-100', 'border-red-200');
-            select.classList.remove('text-slate-600', 'bg-slate-100');
+            select.classList.remove('text-slate-500', 'bg-slate-100');
         }
 
         function handleStatusChange(selectObj, skaterId) {
@@ -354,28 +390,41 @@
             let row = document.getElementById('row_' + skaterId);
 
             if(val !== 'OK') {
-                if(timeInput) { timeInput.readOnly = true; timeInput.tabIndex = -1; timeInput.style.background = '#eee'; timeInput.value = ''; timeInput.classList.add('opacity-40', 'bg-slate-100'); }
-                if(rankInput && val !== 'DNF') { rankInput.readOnly = true; rankInput.tabIndex = -1; rankInput.style.background = '#eee'; rankInput.value = ''; }
-                if(pointInput) { pointInput.readOnly = true; pointInput.tabIndex = -1; pointInput.style.background = '#eee'; pointInput.value = '0'; }
+                if(timeInput) { timeInput.readOnly = true; timeInput.tabIndex = -1; timeInput.style.background = '#f1f5f9'; timeInput.value = ''; timeInput.classList.add('opacity-50'); }
+                if(rankInput && val !== 'DNF') { rankInput.style.background = '#f1f5f9'; rankInput.value = ''; }
+                if(pointInput) { pointInput.style.background = '#f1f5f9'; pointInput.value = '0'; }
                 
-                row.classList.add('bg-red-50');
-                row.classList.remove('bg-white');
+                row.classList.add('bg-red-50/80');
+                row.classList.remove('bg-white', 'row-eliminated');
                 selectObj.classList.add('text-red-600', 'bg-red-100', 'border-red-200');
-                selectObj.classList.remove('text-slate-600', 'bg-slate-100');
+                selectObj.classList.remove('text-slate-500', 'bg-slate-100');
             } else {
-                if(timeInput) { timeInput.readOnly = false; timeInput.tabIndex = 1; timeInput.style.background = '#fff'; timeInput.classList.remove('opacity-40', 'bg-slate-100'); }
-                if(rankInput) { rankInput.readOnly = false; rankInput.tabIndex = 0; rankInput.style.background = '#fff'; }
-                if(pointInput) { pointInput.readOnly = false; pointInput.tabIndex = 1; pointInput.style.background = '#fffbeb'; }
+                if(timeInput) { timeInput.readOnly = false; timeInput.tabIndex = 1; timeInput.style.background = '#f8fafc'; timeInput.classList.remove('opacity-50'); }
+                if(rankInput) { rankInput.style.background = '#fff'; }
+                if(pointInput) { pointInput.style.background = '#fffbeb'; }
                 
-                row.classList.remove('bg-red-50');
+                row.classList.remove('bg-red-50/80', 'row-eliminated');
                 row.classList.add('bg-white');
                 selectObj.classList.remove('text-red-600', 'bg-red-100', 'border-red-200');
-                selectObj.classList.add('text-slate-600', 'bg-slate-100');
+                selectObj.classList.add('text-slate-500', 'bg-slate-100');
             }
         }
 
+        function handleGenerateNextRound() {
+            window.showCustomConfirm(
+                'Apakah Anda sudah MENYIMPAN hasil lomba untuk seri ini?\n\nPastikan Anda menekan tombol "SIMPAN" terlebih dahulu sebelum membuat babak baru agar data tidak hilang.', 
+                function() { 
+                    const f = document.getElementById('formResult'); 
+                    const i = document.createElement('input'); 
+                    i.type='hidden'; i.name='action_type'; i.value='generate'; 
+                    f.appendChild(i); 
+                    f.submit(); 
+                }
+            );
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
-            // Masking input Waktu (MM:SS.ms) - Kanan ke Kiri (Calculator Style)
+            // Masking input Waktu (MM:SS.ms)
             document.querySelectorAll('.input-time').forEach(input => {
                 input.addEventListener('input', function (e) {
                     let v = this.value.replace(/[^\d]/g, ''); 
@@ -383,11 +432,8 @@
                         this.value = '';
                         return;
                     }
-                    
                     if (v.length > 7) v = v.substring(v.length - 7);
-                    
                     v = v.padStart(7, '0');
-                    
                     this.value = v.substring(0, 2) + '.' + v.substring(2, 4) + '.' + v.substring(4, 7);
                 });
             });
@@ -413,40 +459,32 @@
             // Trigger saat load for existing status
             document.querySelectorAll('.input-status').forEach(select => {
                 let val = select.value;
-                if(val !== 'OK') {
-                    handleStatusChange(select, select.id ? select.id.replace('status_', '') : select.closest('tr').id.replace('row_', ''));
+                if(val !== 'OK' || select.closest('tr').classList.contains('bg-red-50/80')) {
+                    // Do not override values if it's already rendered as eliminated/DNF
+                    if(val === 'DNF' && document.getElementById('rank_' + select.closest('tr').id.replace('row_', '')).value !== '') {
+                        document.getElementById('rank_' + select.closest('tr').id.replace('row_', '')).style.background = '#fee2e2';
+                        document.getElementById('rank_' + select.closest('tr').id.replace('row_', '')).style.color = '#ef4444';
+                    }
                 }
             });
-            
-            // Auto-select the first radio hardware target if available
-            let firstRadio = document.querySelector('input[name="hardware_target"]');
-            if(firstRadio) firstRadio.checked = true;
         });
-
-        // Integrasi hardware Stopwatch Arduino (Dinonaktifkan)
-        function receiveHardwareData(data) {
-            // console.log("Hardware Data Received:", data);
-        }
-        
-        // --- CONTOH TRIGGER HARDWARE UNTUK DEMO/TESTING ---
-        // Buka console browser dan ketik: receiveHardwareData({bib: '123', time: '01:23.456'})
         </script>
         
         <?php else: ?>
-            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-16 text-center">
-                <div class="text-6xl mb-4 opacity-50">👥</div>
-                <h3 class="text-lg font-black text-slate-800 uppercase tracking-widest">Belum Ada Seri / Peserta</h3>
-                <p class="text-xs font-bold text-slate-400 mt-2">Lakukan Startlist/Seeding pada kelas ini terlebih dahulu.</p>
+            <div class="bg-white rounded-3xl border border-slate-200 shadow-sm p-16 text-center">
+                <div class="text-6xl mb-4 opacity-30 grayscale">👥</div>
+                <h3 class="text-lg font-black text-slate-400 uppercase tracking-widest">Belum Ada Seri / Peserta</h3>
+                <p class="text-xs font-bold text-slate-300 mt-2">Lakukan Startlist/Seeding pada kelas ini terlebih dahulu.</p>
             </div>
         <?php endif; ?>
 
         <?php endif; ?>
 
         <?php else: ?>
-            <div class="bg-slate-50/50 rounded-2xl border border-slate-200/50 shadow-xl p-12 text-center backdrop-blur-sm">
-                <span class="text-6xl mb-4 block">⚠️</span>
-                <h3 class="text-xl font-bold text-slate-600 mb-2">Tidak Ada Event Aktif</h3>
-                <p class="text-slate-500">Silakan pilih event aktif melalui Dashboard terlebih dahulu.</p>
+            <div class="bg-white rounded-3xl border border-slate-200 shadow-sm p-16 text-center mt-12">
+                <span class="text-6xl mb-4 block grayscale opacity-40">⚠️</span>
+                <h3 class="text-xl font-black text-slate-400 uppercase tracking-widest mb-2">Tidak Ada Event Aktif</h3>
+                <p class="text-sm font-bold text-slate-300">Silakan pilih event aktif melalui Dashboard terlebih dahulu.</p>
             </div>
         <?php endif; ?>
 
