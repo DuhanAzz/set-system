@@ -109,12 +109,8 @@ class RollResultController extends Controller {
                 WHERE p.event_id = ? AND p.race_class_id = ? AND p.round = ?
                 $orderBy
             ");
-            try {
-                $stmtRes->execute([$eventId, $filter_class_id, $current_round_name]);
-                $raw_results = $stmtRes->fetchAll(PDO::FETCH_ASSOC);
-            } catch (\Exception $e) {
-                die("<h1>DATABASE ERROR</h1><p>" . $e->getMessage() . "</p><pre>" . $orderBy . "</pre>");
-            }
+            $stmtRes->execute([$eventId, $filter_class_id, $current_round_name]);
+            $raw_results = $stmtRes->fetchAll(PDO::FETCH_ASSOC);
             
             $isRelay = stripos($raceInfo['distance_name'] ?? '', 'Relay') !== false;
             
