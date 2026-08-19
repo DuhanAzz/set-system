@@ -592,7 +592,11 @@ class RollResultController extends Controller {
             $raceFormat = 'PTP';
         }
 
-        if ($raceFormat === 'ELIMINASI') {
+        $isRaceBook = ($_GET['mode'] ?? '') === 'racebook';
+
+        if ($isRaceBook) {
+            $orderBy = "ORDER BY CAST(REPLACE(p.heat_name, 'Heat ', '') AS UNSIGNED) ASC, p.heat_name ASC, p.start_grid ASC";
+        } else if ($raceFormat === 'ELIMINASI') {
             $orderBy = "ORDER BY CASE WHEN COALESCE(r.status, 'OK') = 'OK' THEN 0 ELSE 1 END ASC, CASE WHEN r.rank IS NULL OR CAST(r.rank AS CHAR) = '0' OR CAST(r.rank AS CHAR) = '' THEN 0 ELSE 1 END ASC, r.rank ASC, r.time ASC, CAST(REPLACE(p.heat_name, 'Heat ', '') AS UNSIGNED) ASC, p.start_grid ASC";
         } else {
             $orderBy = "ORDER BY CASE WHEN COALESCE(r.status, 'OK') = 'OK' THEN 0 ELSE 1 END ASC, r.rank IS NULL, r.rank ASC, r.point DESC, CASE WHEN r.time IS NULL OR r.time = '' OR r.time = '00.00.000' THEN 1 ELSE 0 END ASC, REPLACE(r.time, ':', '.') ASC, CAST(REPLACE(p.heat_name, 'Heat ', '') AS UNSIGNED) ASC, p.start_grid ASC";
@@ -790,17 +794,8 @@ class RollResultController extends Controller {
 
                     $stmtInsertResult = $db->prepare("
                         INSERT INTO roll_event_results (event_id, race_class_id, round, print_round_name, skater_id, heat_name, time, status)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                        VALUES (?, ?, ?, ?, ?, ?, NULL, 'OK')
                     ");
-
-                    // Create lookup for previous times
-                    $skaterPrevData = [];
-                    foreach ($results as $res) {
-                        $skaterPrevData[$res['skater_id']] = [
-                            'time' => $res['time'],
-                            'status' => $res['status']
-                        ];
-                    }
 
                     foreach ($heatsAssigned as $heatNum => $skaters) {
                         $heatName = ($totalHeats == 1 && $next_round === 'Final') ? 'Final' : 'Heat ' . $heatNum;
@@ -814,18 +809,13 @@ class RollResultController extends Controller {
                                 $gridIdx + 1
                             ]);
 
-                            $prevTime = $skaterPrevData[$skaterId]['time'] ?? '';
-                            $prevStatus = $skaterPrevData[$skaterId]['status'] ?? 'OK';
-
                             $stmtInsertResult->execute([
                                 $eventId,
                                 $classId,
                                 $next_round,
-                                $next_round, // print_round_name defaults to the structural round name
+                                $next_round, // print round name
                                 $skaterId,
-                                $heatName,
-                                $prevTime,
-                                $prevStatus
+                                $heatName
                             ]);
                         }
                     }

@@ -146,6 +146,7 @@
                     <a href="<?= getenv('APP_URL') ?>/roll/admin/results/print_result?race_class_id=<?= $filter_class_id ?>&round=<?= urlencode($structural_round_name) ?>" target="_blank" class="h-8 px-3 flex items-center bg-transparent text-slate-400 rounded-lg hover:bg-orange-500/20 hover:text-orange-400 font-bold text-[10px] uppercase transition" title="Cetak PDF">🖨️ PDF</a>
                     <div class="w-px bg-slate-700 mx-1 my-1"></div>
                     <button type="submit" form="formResult" class="h-8 px-6 flex items-center bg-blue-600 text-white rounded-lg font-black text-xs tracking-widest uppercase hover:bg-blue-500 transition shadow-[0_0_15px_rgba(37,99,235,0.4)]">💾 SIMPAN</button>
+                    <a href="<?= getenv('APP_URL') ?>/roll/admin/results/print_result?race_class_id=<?= $filter_class_id ?>&round=<?= urlencode($structural_round_name) ?>&mode=racebook" target="_blank" class="h-8 px-3 flex items-center bg-transparent text-slate-400 rounded-lg hover:bg-indigo-500/20 hover:text-indigo-400 font-bold text-[10px] uppercase transition" title="Cetak Race Book (Startlist)">🖨️ RACE BOOK</a>
                 </div>
 
                 <a href="<?= $nextUrl ?? '#' ?>" class="flex-shrink-0 h-10 px-4 flex items-center justify-center rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition border border-slate-700 <?= $nextClass ?? '' ?>" title="Lomba Selanjutnya">NEXT &raquo;</a>

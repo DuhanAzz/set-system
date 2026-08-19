@@ -197,6 +197,15 @@
                         <table class="schedule-table">
                             <thead>
                                 <tr>
+                                    <?php if(isset($isRaceBook) && $isRaceBook): ?>
+                                    <th class="text-center" style="width: 50px;">Seri</th>
+                                    <th class="text-center" style="width: 40px;">No</th>
+                                    <th class="text-center" style="width: 50px;">BIB</th>
+                                    <th><?= isset($isRelay) && $isRelay ? 'Regu / Tim' : 'Atlet' ?></th>
+                                    <th>Klub</th>
+                                    <th class="text-center" style="width: 80px;">Waktu</th>
+                                    <th class="text-center" style="width: 50px;">Rank</th>
+                                    <?php else: ?>
                                     <th class="text-center" style="width: 50px;">Rank</th>
                                     <th class="text-center" style="width: 50px;">BIB</th>
                                     <th><?= isset($isRelay) && $isRelay ? 'Regu / Tim' : 'Atlet' ?></th>
@@ -205,6 +214,7 @@
                                     <th class="text-center" style="width: 60px;">Poin</th>
                                     <?php endif; ?>
                                     <th class="text-center" style="width: 80px;">Waktu</th>
+                                    <?php endif; ?>
                                 </tr>
                             </thead>
                             <tbody>
@@ -219,7 +229,7 @@
                                     $globalRank = 0;
                                     foreach ($results as $res): 
                                         $globalRank++;
-                                        $displayRank = !empty($res['rank']) ? $res['rank'] : $globalRank;
+                                        $displayRank = $globalRank;
                                         
                                         $statusStr = htmlspecialchars($res['status'] ?? 'OK');
                                         
@@ -241,6 +251,17 @@
                                         }
                                 ?>
                                     <tr>
+                                        <?php if(isset($isRaceBook) && $isRaceBook): ?>
+                                        <td class="text-center font-bold" style="font-size: 11pt; vertical-align: middle;"><?= htmlspecialchars(str_replace('Heat ', '', $res['heat_name'] ?? '-')) ?></td>
+                                        <td class="text-center font-bold" style="font-size: 11pt; vertical-align: middle;"><?= htmlspecialchars($res['start_grid'] ?? '-') ?></td>
+                                        <td class="text-center font-bold" style="font-size: 12pt; vertical-align: middle;"><?= htmlspecialchars($res['bib_number'] ?? '-') ?></td>
+                                        <td class="font-bold" style="vertical-align: middle;">
+                                            <?= htmlspecialchars($res['skater_name'] ?? '-') ?>
+                                        </td>
+                                        <td style="vertical-align: middle;"><?= htmlspecialchars($res['club_name'] ?? '-') ?></td>
+                                        <td></td>
+                                        <td></td>
+                                        <?php else: ?>
                                         <td class="text-center font-bold" style="font-size: 12pt; vertical-align: middle;"><?= htmlspecialchars($displayRank) ?></td>
                                         <td class="text-center font-bold" style="font-size: 12pt; vertical-align: middle;"><?= htmlspecialchars($res['bib_number'] ?? '-') ?></td>
                                         <td class="font-bold" style="vertical-align: middle;">
@@ -251,6 +272,7 @@
                                         <td class="text-center font-bold" style="font-size: 11pt; vertical-align: middle;"><?= htmlspecialchars($res['point'] ?? '0') ?></td>
                                         <?php endif; ?>
                                         <td class="text-center font-bold" style="font-size: 11pt; vertical-align: middle;"><?= $displayTime ?></td>
+                                        <?php endif; ?>
                                     </tr>
                                     <?php endforeach; ?>
                                 <?php endif; ?>
