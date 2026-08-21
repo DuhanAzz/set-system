@@ -137,6 +137,17 @@
             </div>
             
             <div class="flex items-center gap-2 w-full xl:w-auto overflow-x-auto pb-1 xl:pb-0 scrollbar-hide">
+                <!-- Dropdown Cetak Sebagai -->
+                <div class="flex flex-col justify-center mr-1">
+                    <label class="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-0.5">Cetak Sebagai</label>
+                    <select name="current_round_name" form="formResult" class="h-8 px-2 bg-slate-800 border border-slate-600 rounded-lg text-slate-300 text-xs font-bold focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer">
+                        <option value="Kualifikasi" <?= $current_round_name == 'Kualifikasi' ? 'selected' : '' ?>>Kualifikasi</option>
+                        <option value="Quarter Final" <?= $current_round_name == 'Quarter Final' ? 'selected' : '' ?>>Quarter Final</option>
+                        <option value="Semi Final" <?= $current_round_name == 'Semi Final' ? 'selected' : '' ?>>Semi Final</option>
+                        <option value="Final" <?= $current_round_name == 'Final' ? 'selected' : '' ?>>Final</option>
+                    </select>
+                </div>
+                
                 <a href="<?= $prevUrl ?? '#' ?>" class="flex-shrink-0 h-10 px-4 flex items-center justify-center rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition border border-slate-700 <?= $prevClass ?? '' ?>" title="Lomba Sebelumnya">&laquo; PREV</a>
                 
                 <div class="flex flex-shrink-0 bg-slate-800 p-1 rounded-xl border border-slate-700 gap-1 shadow-inner">
@@ -180,7 +191,6 @@
             </div>
 
             <!-- HEAT TABLES (DYNAMIC BASED ON RACE FORMAT) -->
-            <input type="hidden" name="current_round_name" value="<?= htmlspecialchars($current_round_name) ?>">
             
             <?php foreach($heatsData as $heatName => $results): ?>
             <?php $totalEliminated = $totalEliminatedByHeat[$heatName] ?? 0; ?>
