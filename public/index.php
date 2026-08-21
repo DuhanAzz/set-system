@@ -368,6 +368,16 @@ switch ($module) {
         $controller->index();
         break;
 
+    case 'tools':
+        $controller = new \App\Core\Controllers\ToolsController();
+        if ($page === 'pace-calculator' || $page === 'pace_calculator') {
+            $controller->pace_calculator();
+        } else {
+            http_response_code(404);
+            echo "<h1>404 Not Found</h1><p>Tools '{$page}' tidak ditemukan.</p>";
+        }
+        break;
+
     default:
         // Cek apakah modul ini adalah custom slug untuk landing page Roll
         // Dibungkus try-catch agar tidak Error 500 jika tabel belum dibuat di hosting
