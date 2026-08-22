@@ -435,6 +435,7 @@ class RollResultController extends Controller {
         $db = Database::getInstance()->getConnection();
         $eventId = $_SESSION['roll_admin_active_event_id'] ?? 0;
         $classId = $_GET['race_class_id'] ?? 0;
+        $round = $_GET['round'] ?? 'Kualifikasi';
 
         if ($eventId > 0 && $classId > 0) {
             $stmtC = $db->prepare("SELECT ed.race_number, d.distance_name, a.group_name, ed.gender, sc.class_name 
@@ -446,18 +447,20 @@ class RollResultController extends Controller {
             $stmtC->execute([$classId]);
             $raceInfo = $stmtC->fetch(PDO::FETCH_ASSOC);
             $raceLabel = "R" . str_pad($raceInfo['race_number'], 3, '0', STR_PAD_LEFT) . " - " . ($raceInfo['distance_name'] ?? '') . " - " . ($raceInfo['group_name'] ?? '') . " - " . ($raceInfo['gender'] ?? '') . " | Kategori: " . ($raceInfo['class_name'] ?? 'Umum');
-            $safeFilename = preg_replace('/[^A-Za-z0-9_]/', '_', str_replace(' ', '_', $raceLabel));
+            
+            $filenameLabel = $raceLabel . " - " . $round;
+            $safeFilename = preg_replace('/[^A-Za-z0-9_]/', '_', str_replace(' ', '_', $filenameLabel));
             
             $stmt = $db->prepare("
                 SELECT e.bib_number, p.heat_name, s.skater_name, r.time
                 FROM roll_pelotons p
                 JOIN roll_entries e ON p.skater_id = e.skater_id AND p.race_class_id = e.race_class_id AND p.event_id = e.event_id
                 JOIN roll_skaters s ON p.skater_id = s.id
-                LEFT JOIN roll_event_results r ON p.event_id = r.event_id AND p.race_class_id = r.race_class_id AND p.skater_id = r.skater_id AND p.heat_name = r.heat_name
-                WHERE p.event_id = ? AND p.race_class_id = ?
+                LEFT JOIN roll_event_results r ON p.event_id = r.event_id AND p.race_class_id = r.race_class_id AND p.skater_id = r.skater_id AND p.heat_name = r.heat_name AND p.round = r.round
+                WHERE p.event_id = ? AND p.race_class_id = ? AND p.round = ?
                 ORDER BY CAST(REPLACE(p.heat_name, 'Heat ', '') AS UNSIGNED) ASC, p.heat_name ASC, p.start_grid ASC
             ");
-            $stmt->execute([$eventId, $classId]);
+            $stmt->execute([$eventId, $classId, $round]);
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             header('Content-Type: text/csv; charset=utf-8');
