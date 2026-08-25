@@ -11,7 +11,7 @@
     .btn-elim { font-size: 14px; font-weight: 900; padding: 6px; border-radius: 8px; background: #fee2e2; color: #ef4444; border: 1px solid #fca5a5; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; width: 100%; box-shadow: 0 2px 4px rgba(239,68,68,0.1); }
     .btn-elim:hover { background: #ef4444; color: white; border-color: #ef4444; transform: translateY(-1px); box-shadow: 0 4px 6px rgba(239,68,68,0.2); }
     .btn-elim:active { transform: translateY(0); box-shadow: none; }
-    .sticky-header { position: sticky; top: 0; z-index: 40; backdrop-filter: blur(12px); margin-bottom: 24px; }
+    .sticky-header { z-index: 40; margin-bottom: 24px; }
     
     /* Animations */
     @keyframes rowFade { from { background-color: #fee2e2; } to { background-color: #fef2f2; } }
@@ -119,8 +119,9 @@
         ?>
         
         <!-- STICKY ACTION BAR -->
-        <div class="sticky-header bg-slate-900/95 border border-slate-700 shadow-2xl rounded-2xl p-3 flex flex-col xl:flex-row justify-between items-center gap-4 transition-all">
-            <div class="flex items-center gap-3 text-white px-2 w-full xl:w-auto overflow-hidden">
+        <div class="sticky-header bg-slate-900/95 border border-slate-700 shadow-2xl rounded-2xl p-4 flex flex-col gap-3 transition-all">
+            <!-- Row 1: Race Info -->
+            <div class="flex items-center gap-3 text-white px-2 w-full overflow-hidden border-b border-slate-700/50 pb-3">
                 <a href="<?= getenv('APP_URL') ?>/roll/admin/results" class="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition border border-slate-600" title="Kembali ke Daftar Lomba">
                     <i class="fas fa-arrow-left"></i>
                 </a>
@@ -136,40 +137,43 @@
                 </div>
             </div>
             
-            <div class="flex items-center gap-2 w-full xl:w-auto overflow-x-auto pb-1 xl:pb-0 scrollbar-hide">
-                <!-- Dropdown Cetak Sebagai -->
-                <div class="flex flex-col justify-center mr-1">
-                    <label class="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-0.5">Cetak Sebagai</label>
-                    <select name="current_round_name" form="formResult" class="h-8 px-2 bg-slate-800 border border-slate-600 rounded-lg text-slate-300 text-xs font-bold focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer">
-                        <option value="Kualifikasi" <?= $current_round_name == 'Kualifikasi' ? 'selected' : '' ?>>Kualifikasi</option>
-                        <option value="Quarter Final" <?= $current_round_name == 'Quarter Final' ? 'selected' : '' ?>>Quarter Final</option>
-                        <option value="Semi Final" <?= $current_round_name == 'Semi Final' ? 'selected' : '' ?>>Semi Final</option>
-                        <option value="Final" <?= $current_round_name == 'Final' ? 'selected' : '' ?>>Final</option>
-                    </select>
-                </div>
-                
-                <a href="<?= $prevUrl ?? '#' ?>" class="flex-shrink-0 h-10 px-4 flex items-center justify-center rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition border border-slate-700 <?= $prevClass ?? '' ?>" title="Lomba Sebelumnya">&laquo; PREV</a>
-                
-                <div class="flex flex-shrink-0 items-center gap-2">
+            <!-- Row 2: All Actions -->
+            <div class="flex flex-wrap items-center justify-center 2xl:justify-between gap-2 w-full pb-1">
+                <div class="flex flex-wrap items-center justify-center gap-2 flex-shrink-0">
+                    <a href="<?= $prevUrl ?? '#' ?>" class="flex-shrink-0 h-9 px-3 flex items-center justify-center rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-[10px] transition border border-slate-700 <?= $prevClass ?? '' ?>" title="Lomba Sebelumnya">&laquo; PREV</a>
+                    
                     <!-- Data Actions -->
-                    <div class="flex bg-slate-800 p-1 rounded-xl border border-slate-700 gap-1 shadow-inner">
-                        <button type="button" onclick="window.showCustomConfirm('Apakah Anda yakin ingin MERESET SELURUH DATA untuk babak dan kelas ini? Semua waktu, status, dan babak lanjutan akan terhapus secara permanen!', function() { window.location.href = '<?= getenv('APP_URL') ?>/roll/admin/results/reset_results?race_class_id=<?= $filter_class_id ?>'; });" class="whitespace-nowrap flex-shrink-0 h-8 px-3 flex items-center bg-transparent text-slate-400 rounded-lg hover:bg-red-500/20 hover:text-red-400 font-bold text-[10px] uppercase transition" title="Reset semua data dan babak">🗑️ RESET</button>
-                        <a href="<?= getenv('APP_URL') ?>/roll/admin/results/export_csv?race_class_id=<?= $filter_class_id ?>&round=<?= urlencode($structural_round_name) ?>" class="whitespace-nowrap flex-shrink-0 h-8 px-3 flex items-center bg-transparent text-slate-400 rounded-lg hover:bg-slate-700 hover:text-white font-bold text-[10px] uppercase transition" title="Download Data ke CSV">📤 CSV</a>
-                        <button type="button" onclick="document.getElementById('csvUploadForm').classList.toggle('hidden')" class="whitespace-nowrap flex-shrink-0 h-8 px-3 flex items-center bg-transparent text-slate-400 rounded-lg hover:bg-slate-700 hover:text-white font-bold text-[10px] uppercase transition" title="Import CSV Backup">📝 IMPORT</button>
+                    <div class="flex bg-slate-800 p-1 rounded-xl border border-slate-700 gap-0.5 shadow-inner">
+                        <button type="button" onclick="window.showCustomConfirm('Apakah Anda yakin ingin MERESET SELURUH DATA untuk babak dan kelas ini? Semua waktu, status, dan babak lanjutan akan terhapus secara permanen!', function() { window.location.href = '<?= getenv('APP_URL') ?>/roll/admin/results/reset_results?race_class_id=<?= $filter_class_id ?>'; });" class="whitespace-nowrap flex-shrink-0 h-7 px-2 flex items-center bg-transparent text-slate-400 rounded-lg hover:bg-red-500/20 hover:text-red-400 font-bold text-[9px] uppercase transition" title="Reset semua data dan babak">🗑️ RESET</button>
+                        <a href="<?= getenv('APP_URL') ?>/roll/admin/results/export_csv?race_class_id=<?= $filter_class_id ?>&round=<?= urlencode($structural_round_name) ?>" class="whitespace-nowrap flex-shrink-0 h-7 px-2 flex items-center bg-transparent text-slate-400 rounded-lg hover:bg-slate-700 hover:text-white font-bold text-[9px] uppercase transition" title="Download Data ke CSV">📤 CSV</a>
+                        <button type="button" onclick="document.getElementById('csvUploadForm').classList.toggle('hidden')" class="whitespace-nowrap flex-shrink-0 h-7 px-2 flex items-center bg-transparent text-slate-400 rounded-lg hover:bg-slate-700 hover:text-white font-bold text-[9px] uppercase transition" title="Import CSV Backup">📝 IMPORT</button>
                     </div>
 
                     <!-- Print Actions -->
-                    <div class="flex bg-slate-800 p-1 rounded-xl border border-slate-700 gap-1 shadow-inner">
-                        <a href="<?= getenv('APP_URL') ?>/roll/admin/results/print_result?race_class_id=<?= $filter_class_id ?>&round=<?= urlencode($structural_round_name) ?>" target="_blank" class="whitespace-nowrap flex-shrink-0 h-8 px-3 flex items-center bg-transparent text-slate-400 rounded-lg hover:bg-orange-500/20 hover:text-orange-400 font-bold text-[10px] uppercase transition" title="Cetak PDF">🖨️ ALL HEAT</a>
-                        <a href="<?= getenv('APP_URL') ?>/roll/admin/results/print_result?race_class_id=<?= $filter_class_id ?>&round=<?= urlencode($structural_round_name) ?>&mode=per_heat" target="_blank" class="whitespace-nowrap flex-shrink-0 h-8 px-3 flex items-center bg-transparent text-slate-400 rounded-lg hover:bg-red-500/20 hover:text-red-400 font-bold text-[10px] uppercase transition" title="Cetak PDF Per Heat">🖨️ PER HEAT</a>
-                        <a href="<?= getenv('APP_URL') ?>/roll/admin/results/print_result?race_class_id=<?= $filter_class_id ?>&round=<?= urlencode($structural_round_name) ?>&mode=racebook" target="_blank" class="whitespace-nowrap flex-shrink-0 h-8 px-3 flex items-center bg-transparent text-slate-400 rounded-lg hover:bg-indigo-500/20 hover:text-indigo-400 font-bold text-[10px] uppercase transition" title="Cetak Race Book (Startlist)">🖨️ RACE BOOK</a>
+                    <div class="flex bg-slate-800 p-1 rounded-xl border border-slate-700 gap-0.5 shadow-inner">
+                        <a href="<?= getenv('APP_URL') ?>/roll/admin/results/print_result?race_class_id=<?= $filter_class_id ?>&round=<?= urlencode($structural_round_name) ?>" target="_blank" class="whitespace-nowrap flex-shrink-0 h-7 px-2 flex items-center bg-transparent text-slate-400 rounded-lg hover:bg-orange-500/20 hover:text-orange-400 font-bold text-[9px] uppercase transition" title="Cetak PDF">🖨️ ALL HEAT</a>
+                        <a href="<?= getenv('APP_URL') ?>/roll/admin/results/print_result?race_class_id=<?= $filter_class_id ?>&round=<?= urlencode($structural_round_name) ?>&mode=per_heat" target="_blank" class="whitespace-nowrap flex-shrink-0 h-7 px-2 flex items-center bg-transparent text-slate-400 rounded-lg hover:bg-red-500/20 hover:text-red-400 font-bold text-[9px] uppercase transition" title="Cetak PDF Per Heat">🖨️ PER HEAT</a>
+                        <a href="<?= getenv('APP_URL') ?>/roll/admin/results/print_result?race_class_id=<?= $filter_class_id ?>&round=<?= urlencode($structural_round_name) ?>&mode=racebook" target="_blank" class="whitespace-nowrap flex-shrink-0 h-7 px-2 flex items-center bg-transparent text-slate-400 rounded-lg hover:bg-indigo-500/20 hover:text-indigo-400 font-bold text-[9px] uppercase transition" title="Cetak Race Book (Startlist)">🖨️ RACE BOOK</a>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap items-center justify-center gap-3 flex-shrink-0">
+                    <!-- Dropdown Cetak Sebagai -->
+                    <div class="flex items-center gap-2 bg-slate-800 p-1 px-2.5 rounded-xl border border-slate-700 shadow-inner h-9">
+                        <label class="text-[9px] font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">Cetak Sebagai:</label>
+                        <select name="current_round_name" form="formResult" class="h-7 bg-transparent text-slate-300 text-[10px] font-bold focus:ring-0 outline-none cursor-pointer border-0 p-0 pr-4">
+                            <option value="Kualifikasi" <?= $current_round_name == 'Kualifikasi' ? 'selected' : '' ?>>Kualifikasi</option>
+                            <option value="Quarter Final" <?= $current_round_name == 'Quarter Final' ? 'selected' : '' ?>>Quarter Final</option>
+                            <option value="Semi Final" <?= $current_round_name == 'Semi Final' ? 'selected' : '' ?>>Semi Final</option>
+                            <option value="Final" <?= $current_round_name == 'Final' ? 'selected' : '' ?>>Final</option>
+                        </select>
                     </div>
                     
                     <!-- Save Action -->
-                    <button type="submit" form="formResult" class="whitespace-nowrap flex-shrink-0 h-10 px-6 flex items-center bg-blue-600 text-white rounded-xl font-black text-xs tracking-widest uppercase hover:bg-blue-500 transition shadow-[0_0_15px_rgba(37,99,235,0.4)]">💾 SIMPAN</button>
+                    <button type="submit" form="formResult" class="whitespace-nowrap flex-shrink-0 h-9 px-5 flex items-center justify-center bg-blue-600 text-white rounded-xl font-black text-[11px] tracking-widest uppercase hover:bg-blue-500 transition shadow-[0_0_15px_rgba(37,99,235,0.4)]">💾 SIMPAN HASIL</button>
+                    
+                    <a href="<?= $nextUrl ?? '#' ?>" class="flex-shrink-0 h-9 px-3 flex items-center justify-center rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-[10px] transition border border-slate-700 <?= $nextClass ?? '' ?>" title="Lomba Selanjutnya">NEXT &raquo;</a>
                 </div>
-
-                <a href="<?= $nextUrl ?? '#' ?>" class="flex-shrink-0 h-10 px-4 flex items-center justify-center rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition border border-slate-700 <?= $nextClass ?? '' ?>" title="Lomba Selanjutnya">NEXT &raquo;</a>
             </div>
         </div>
 
