@@ -235,9 +235,11 @@
                                 <th class="p-4 font-black text-center w-12">Grid</th>
                                 <?php if($isTeamRace): ?>
                                     <th class="p-4 font-black text-center w-32">Nama Tim</th>
+                                    <th class="p-4 font-black">Anggota Tim</th>
+                                <?php else: ?>
+                                    <th class="p-4 font-black text-center w-16">BIB</th>
+                                    <th class="p-4 font-black">Atlet & Klub</th>
                                 <?php endif; ?>
-                                <th class="p-4 font-black text-center w-16">BIB</th>
-                                <th class="p-4 font-black">Atlet & Klub</th>
                                 
                                 <?php if($raceFormat === 'ELIMINASI'): ?>
                                     <th class="p-4 font-black w-24 text-center">Aksi</th>
@@ -254,14 +256,26 @@
                         </thead>
                         <tbody class="divide-y divide-slate-100 text-sm">
                             <?php 
-                            $teamChunks = $isTeamRace ? array_chunk($results, $teamSize) : array_chunk($results, 1);
+                            if ($isTeamRace) {
+                                $groupedTeams = [];
+                                foreach ($results as $r) {
+                                    $teamKey = $r['heat_name'] . '_' . ($r['team_name'] ?: $r['club_name'] ?: $r['bib_number']);
+                                    if (!isset($groupedTeams[$teamKey])) {
+                                        $groupedTeams[$teamKey] = [];
+                                    }
+                                    $groupedTeams[$teamKey][] = $r;
+                                }
+                                $teamChunks = array_values($groupedTeams);
+                            } else {
+                                $teamChunks = array_chunk($results, 1);
+                            }
                             $teamIndex = 1;
-                            
                             foreach($teamChunks as $teamMembers): 
                                 $isFirstMember = true;
                                 $rowspan = count($teamMembers);
                                 foreach($teamMembers as $r):
                             ?>
+                            <?php if(!$isTeamRace || $isFirstMember): ?>
                             <tr class="hover:bg-blue-50/30 transition-colors <?= $r['status'] !== 'OK' ? 'bg-red-50/50' : 'bg-white' ?>" id="row_<?= $r['skater_id'] ?>" data-bib="<?= htmlspecialchars($r['bib_number'] ?? '') ?>">
                                 <?php if($isFirstMember): ?>
                                     <input type="hidden" name="heat_name[]" value="<?= htmlspecialchars($heatName) ?>">
@@ -269,51 +283,60 @@
                                 
                                 <!-- GRID / NO TIM -->
                                 <?php if($isTeamRace): ?>
-                                    <?php if($isFirstMember): ?>
-                                    <td class="p-4 text-center align-middle" rowspan="<?= $rowspan ?>">
+                                    <td class="p-4 text-center align-middle">
                                         <span class="inline-flex w-7 h-7 rounded-full bg-slate-100 border border-slate-200 items-center justify-center font-bold text-slate-500 text-xs shadow-sm">
                                             <?= $teamIndex ?>
                                         </span>
                                     </td>
-                                    <?php endif; ?>
                                 <?php else: ?>
-                                <td class="p-4 text-center">
-                                    <span class="inline-flex w-7 h-7 rounded-full bg-slate-100 border border-slate-200 items-center justify-center font-bold text-slate-500 text-xs shadow-sm">
-                                        <?= htmlspecialchars($r['start_grid'] ?? '-') ?>
-                                    </span>
-                                </td>
+                                    <td class="p-4 text-center">
+                                        <span class="inline-flex w-7 h-7 rounded-full bg-slate-100 border border-slate-200 items-center justify-center font-bold text-slate-500 text-xs shadow-sm">
+                                            <?= htmlspecialchars($r['start_grid'] ?? '-') ?>
+                                        </span>
+                                    </td>
                                 <?php endif; ?>
                                 
                                 <!-- NAMA TIM -->
                                 <?php if($isTeamRace): ?>
-                                    <?php if($isFirstMember): ?>
-                                    <td class="p-4 text-center align-middle" rowspan="<?= $rowspan ?>" style="border-right: 2px dashed #cbd5e1;">
+                                    <td class="p-4 text-center align-middle" style="border-right: 2px dashed #cbd5e1;">
                                         <div class="font-black text-indigo-700 bg-indigo-50 px-2 py-1.5 rounded-lg text-sm border border-indigo-200 shadow-sm leading-tight uppercase">
                                             <?= htmlspecialchars(!empty($r['team_name']) && $r['team_name'] !== '-' ? $r['team_name'] : 'Tim '.$teamIndex) ?>
                                         </div>
                                     </td>
-                                    <?php endif; ?>
                                 <?php endif; ?>
                                 
-                                <!-- BIB -->
-                                <td class="p-4 text-center">
-                                    <span class="font-black text-slate-700 bg-slate-50 px-2 py-1 rounded-lg text-sm border border-slate-200 shadow-sm">
-                                        <?= htmlspecialchars($r['bib_number'] ?? '-') ?>
-                                    </span>
-                                </td>
-                                
-                                <!-- NAMA & KLUB -->
-                                <td class="p-4">
-                                    <div class="font-black text-slate-800 text-base leading-tight uppercase"><?= htmlspecialchars($r['skater_name']) ?></div>
-                                    <div class="text-[10px] text-slate-400 font-bold uppercase mt-1 tracking-widest">
-                                        <?= htmlspecialchars($r['club_name'] ?? 'Independen') ?>
-                                    </div>
-                                    <?php if($isFirstMember): ?>
+                                <!-- BIB & NAMA KLUB -->
+                                <?php if($isTeamRace): ?>
+                                    <td class="p-4 align-middle">
+                                        <div class="flex flex-col gap-1.5">
+                                        <?php foreach($teamMembers as $m): ?>
+                                            <div class="flex items-center gap-2">
+                                                <span class="font-black text-slate-700 bg-slate-50 px-1.5 py-0.5 rounded text-xs border border-slate-200 shadow-sm min-w-[32px] text-center"><?= htmlspecialchars($m['bib_number'] ?? '-') ?></span>
+                                                <span class="font-black text-slate-800 text-sm uppercase leading-none"><?= htmlspecialchars($m['skater_name']) ?></span>
+                                                <span class="text-[9px] text-slate-400 font-bold uppercase tracking-widest leading-none mt-0.5">(<?= htmlspecialchars($m['club_name'] ?? 'Independen') ?>)</span>
+                                            </div>
+                                        <?php endforeach; ?>
+                                            <input type="hidden" name="result_id[]" value="<?= $r['result_id'] ?? '' ?>">
+                                            <input type="hidden" name="skater_id[]" value="<?= $r['skater_id'] ?>">
+                                            <input type="hidden" name="skater_race_class_id[]" value="<?= $r['race_class_id'] ?? '' ?>">
+                                        </div>
+                                    </td>
+                                <?php else: ?>
+                                    <td class="p-4 text-center">
+                                        <span class="font-black text-slate-700 bg-slate-50 px-2 py-1 rounded-lg text-sm border border-slate-200 shadow-sm">
+                                            <?= htmlspecialchars($r['bib_number'] ?? '-') ?>
+                                        </span>
+                                    </td>
+                                    <td class="p-4">
+                                        <div class="font-black text-slate-800 text-base leading-tight uppercase"><?= htmlspecialchars($r['skater_name']) ?></div>
+                                        <div class="text-[10px] text-slate-400 font-bold uppercase mt-1 tracking-widest">
+                                            <?= htmlspecialchars($r['club_name'] ?? 'Independen') ?>
+                                        </div>
                                         <input type="hidden" name="result_id[]" value="<?= $r['result_id'] ?? '' ?>">
                                         <input type="hidden" name="skater_id[]" value="<?= $r['skater_id'] ?>">
                                         <input type="hidden" name="skater_race_class_id[]" value="<?= $r['race_class_id'] ?? '' ?>">
-                                    <?php endif; ?>
-                                </td>
+                                    </td>
+                                <?php endif; ?>
 
                                 <!-- ELIMINASI ACTION (If Format == Eliminasi) -->
                                 <?php if($raceFormat === 'ELIMINASI'): ?>
@@ -340,30 +363,25 @@
                                 <?php endif; ?>
 
                                 <!-- WAKTU -->
-                                <?php if($isFirstMember): ?>
-                                <td class="p-4 align-middle" rowspan="<?= $rowspan ?>" style="<?= $isTeamRace ? 'border-left: 2px dashed #cbd5e1;' : '' ?>">
+                                <td class="p-4 align-middle" <?= !$isTeamRace || $isFirstMember ? '' : 'style="display:none;"' ?> style="<?= $isTeamRace ? 'border-left: 2px dashed #cbd5e1;' : '' ?>">
                                     <input type="text" name="time[]" value="<?= htmlspecialchars($r['time'] ?? '00.00.000') ?>" class="input-time <?= ($raceFormat === 'ELIMINASI' && $r['status'] === 'DNF') ? 'opacity-40 bg-slate-100' : '' ?>" placeholder="00.00.000" id="time_<?= $r['skater_id'] ?>" tabindex="<?= $raceFormat === 'PTP' ? '2' : '1' ?>" <?= ($raceFormat === 'ELIMINASI' && $r['status'] === 'DNF') ? 'readonly tabindex="-1"' : '' ?> autocomplete="off" onfocus="if(this.value==='00.00.000')this.value='';" onblur="if(this.value==='')this.value='00.00.000';">
                                 </td>
-                                <?php endif; ?>
 
                                 <!-- RANK -->
-                                <?php if($isFirstMember): ?>
-                                <td class="p-4 align-middle" rowspan="<?= $rowspan ?>">
+                                <td class="p-4 align-middle" <?= !$isTeamRace || $isFirstMember ? '' : 'style="display:none;"' ?>>
                                     <input type="number" step="1" name="rank[]" value="<?= $r['rank'] ?>" class="input-rank <?= $raceFormat === 'PTP' ? 'bg-slate-50 text-slate-400 border-slate-200' : '' ?> <?= ($raceFormat === 'ELIMINASI' && $r['status'] === 'DNF') ? 'bg-red-50 text-red-500' : '' ?>" id="rank_<?= $r['skater_id'] ?>" tabindex="<?= $raceFormat === 'PTP' ? '3' : '2' ?>">
                                 </td>
-                                <?php endif; ?>
 
                                 <!-- STATUS -->
-                                <?php if($isFirstMember): ?>
-                                <td class="p-4 text-center relative align-middle" rowspan="<?= $rowspan ?>">
+                                <td class="p-4 text-center relative align-middle" <?= !$isTeamRace || $isFirstMember ? '' : 'style="display:none;"' ?>>
                                     <select name="status[]" class="input-status <?= $r['status']!=='OK' ? 'text-red-600 bg-red-100 border-red-200' : 'text-slate-500 bg-slate-100 hover:bg-slate-200' ?>" onchange="handleStatusChange(this, '<?= $r['skater_id'] ?>')">
                                         <?php foreach(['OK', 'DNS', 'DNF', 'DQ', 'FS'] as $s): ?>
                                             <option value="<?= $s ?>" <?= $r['status'] === $s ? 'selected' : '' ?> <?= $s !== 'OK' ? 'class="text-red-600"' : '' ?>><?= $s ?></option>
                                         <?php endforeach; ?>
                                     </select>
                                 </td>
-                                <?php endif; ?>
                             </tr>
+                            <?php endif; ?>
                             <?php 
                                 $isFirstMember = false;
                                 endforeach; // end teamMembers

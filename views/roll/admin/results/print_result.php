@@ -321,8 +321,27 @@
                                     </tr>
                                 <?php else: ?>
                                     <?php 
+                                        $grouped = [];
+                                        if (isset($isRelay) && $isRelay) {
+                                            foreach ($heatResults as $r) {
+                                                $teamKey = $r['heat_name'] . '_' . ($r['team_name'] ?: $r['club_name'] ?: $r['bib_number']);
+                                                if (!isset($grouped[$teamKey])) {
+                                                    $grouped[$teamKey] = $r;
+                                                    $grouped[$teamKey]['members'] = [];
+                                                }
+                                                $grouped[$teamKey]['members'][] = $r['skater_name'];
+                                            }
+                                            $finalList = array_values($grouped);
+                                            foreach ($finalList as &$g) {
+                                                // Simpan array members asli, jangan gabung dengan HTML di sini
+                                                $g['is_team_grouped'] = true;
+                                            }
+                                        } else {
+                                            $finalList = $heatResults;
+                                        }
+                                        
                                         $globalRank = 0;
-                                        foreach ($heatResults as $res): 
+                                        foreach ($finalList as $res): 
                                             $globalRank++;
                                             $displayRank = ($res['rank'] > 0) ? $res['rank'] : '-';
                                             if ($res['status'] !== 'OK') {
@@ -341,7 +360,13 @@
                                         <td class="text-center font-bold" style="font-size: 12pt; vertical-align: middle;"><?= htmlspecialchars($displayRank) ?></td>
                                         <td class="text-center font-bold" style="font-size: 12pt; vertical-align: middle;"><?= htmlspecialchars($res['bib_number'] ?? '-') ?></td>
                                         <td class="font-bold" style="vertical-align: middle;">
-                                            <?= htmlspecialchars($res['skater_name'] ?? '-') ?>
+                                            <?php if(isset($res['is_team_grouped']) && $res['is_team_grouped'] && !empty($res['members'])): ?>
+                                                <?php foreach($res['members'] as $idx => $mName): ?>
+                                                    <?= htmlspecialchars($mName) ?><?= $idx < count($res['members']) - 1 ? '<br>' : '' ?>
+                                                <?php endforeach; ?>
+                                            <?php else: ?>
+                                                <?= htmlspecialchars($res['skater_name'] ?? '-') ?>
+                                            <?php endif; ?>
                                         </td>
                                         <td style="vertical-align: middle;"><?= htmlspecialchars($res['club_name'] ?? '-') ?></td>
                                         <?php if(isset($raceFormat) && $raceFormat === 'PTP'): ?>
@@ -378,11 +403,30 @@
                                         <td colspan="<?= isset($raceFormat) && $raceFormat === 'PTP' ? '6' : '5' ?>" class="text-center">Belum ada hasil perlombaan.</td>
                                     </tr>
                                 <?php else: 
+                                        $grouped = [];
+                                        if (isset($isRelay) && $isRelay) {
+                                            foreach ($results as $r) {
+                                                $teamKey = $r['heat_name'] . '_' . ($r['team_name'] ?: $r['club_name'] ?: $r['bib_number']);
+                                                if (!isset($grouped[$teamKey])) {
+                                                    $grouped[$teamKey] = $r;
+                                                    $grouped[$teamKey]['members'] = [];
+                                                }
+                                                $grouped[$teamKey]['members'][] = $r['skater_name'];
+                                            }
+                                            $finalList = array_values($grouped);
+                                            foreach ($finalList as &$g) {
+                                                // Simpan array members asli, jangan gabung dengan HTML di sini
+                                                $g['is_team_grouped'] = true;
+                                            }
+                                        } else {
+                                            $finalList = $results;
+                                        }
+
                                     $adv_count = (int)($classInfo['advancement_count'] ?? 0);
                                     $next_round = $classInfo['next_round'] ?? '';
                                     
                                     $globalRank = 0;
-                                    foreach ($results as $res): 
+                                    foreach ($finalList as $res): 
                                         $globalRank++;
                                         $displayRank = $globalRank;
                                         
@@ -408,7 +452,13 @@
                                         <td class="text-center font-bold" style="font-size: 12pt; vertical-align: middle;"><?= htmlspecialchars($displayRank) ?></td>
                                         <td class="text-center font-bold" style="font-size: 12pt; vertical-align: middle;"><?= htmlspecialchars($res['bib_number'] ?? '-') ?></td>
                                         <td class="font-bold" style="vertical-align: middle;">
-                                            <?= htmlspecialchars($res['skater_name'] ?? '-') ?>
+                                            <?php if(isset($res['is_team_grouped']) && $res['is_team_grouped'] && !empty($res['members'])): ?>
+                                                <?php foreach($res['members'] as $idx => $mName): ?>
+                                                    <?= htmlspecialchars($mName) ?><?= $idx < count($res['members']) - 1 ? '<br>' : '' ?>
+                                                <?php endforeach; ?>
+                                            <?php else: ?>
+                                                <?= htmlspecialchars($res['skater_name'] ?? '-') ?>
+                                            <?php endif; ?>
                                         </td>
                                         <td style="vertical-align: middle;"><?= htmlspecialchars($res['club_name'] ?? '-') ?></td>
                                         <?php if(isset($raceFormat) && $raceFormat === 'PTP'): ?>

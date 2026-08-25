@@ -437,14 +437,33 @@ class RollResultController extends Controller {
             $filenameLabel = $raceLabel . " - " . $round;
             $safeFilename = preg_replace('/[^A-Za-z0-9_]/', '_', str_replace(' ', '_', $filenameLabel));
             
+            $isRelay = stripos($raceInfo['distance_name'] ?? '', 'Relay') !== false || stripos($raceInfo['distance_name'] ?? '', 'Pair') !== false;
+            
+            $dn = strtolower($raceInfo['distance_name'] ?? '');
+            $raceFormat = 'DTT';
+            if (strpos($dn, 'eliminasi') !== false) {
+                $raceFormat = 'ELIMINASI';
+            } elseif (strpos($dn, 'ptp') !== false || strpos($dn, 'point') !== false) {
+                $raceFormat = 'PTP';
+            }
+            
+            if ($raceFormat === 'ELIMINASI') {
+                $orderBy = "ORDER BY CASE WHEN COALESCE(r.status, 'OK') = 'OK' THEN 0 ELSE 1 END ASC, CASE WHEN r.rank IS NULL OR CAST(r.rank AS CHAR) = '0' OR CAST(r.rank AS CHAR) = '' THEN 1 ELSE 0 END ASC, r.rank ASC, r.time ASC, CAST(REPLACE(p.heat_name, 'Heat ', '') AS UNSIGNED) ASC, p.start_grid ASC";
+            } else if ($raceFormat === 'DTT') {
+                $orderBy = "ORDER BY CASE WHEN COALESCE(r.status, 'OK') = 'OK' THEN 0 ELSE 1 END ASC, CASE WHEN r.time IS NULL OR r.time = '' OR r.time = '00.00.000' THEN 1 ELSE 0 END ASC, REPLACE(r.time, ':', '.') ASC, CAST(REPLACE(p.heat_name, 'Heat ', '') AS UNSIGNED) ASC, p.start_grid ASC";
+            } else {
+                $orderBy = "ORDER BY CASE WHEN COALESCE(r.status, 'OK') = 'OK' THEN 0 ELSE 1 END ASC, r.point DESC, CASE WHEN r.time IS NULL OR r.time = '' OR r.time = '00.00.000' THEN 1 ELSE 0 END ASC, REPLACE(r.time, ':', '.') ASC, CAST(REPLACE(p.heat_name, 'Heat ', '') AS UNSIGNED) ASC, p.start_grid ASC";
+            }
+            
             $stmt = $db->prepare("
-                SELECT e.bib_number, p.heat_name, s.skater_name, r.time
+                SELECT e.bib_number, p.heat_name, s.skater_name, r.time, e.team_name, c.club_name
                 FROM roll_pelotons p
                 JOIN roll_entries e ON p.skater_id = e.skater_id AND p.race_class_id = e.race_class_id AND p.event_id = e.event_id
                 JOIN roll_skaters s ON p.skater_id = s.id
+                LEFT JOIN roll_clubs c ON s.club_id = c.id
                 LEFT JOIN roll_event_results r ON p.event_id = r.event_id AND p.race_class_id = r.race_class_id AND p.skater_id = r.skater_id AND p.heat_name = r.heat_name AND p.round = r.round
                 WHERE p.event_id = ? AND p.race_class_id = ? AND p.round = ?
-                ORDER BY CAST(REPLACE(p.heat_name, 'Heat ', '') AS UNSIGNED) ASC, p.heat_name ASC, p.start_grid ASC
+                $orderBy
             ");
             $stmt->execute([$eventId, $classId, $round]);
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -456,8 +475,29 @@ class RollResultController extends Controller {
             fputcsv($output, ['INFO', $raceLabel]);
             fputcsv($output, ['BIB', 'TIME', 'HEAT', 'NAME']);
             
-            foreach ($rows as $row) {
-                fputcsv($output, [$row['bib_number'], $row['time'] ?? '', $row['heat_name'], $row['skater_name']]);
+            if ($isRelay) {
+                $grouped = [];
+                foreach ($rows as $row) {
+                    $teamKey = $row['heat_name'] . '_' . ($row['team_name'] ?: $row['club_name'] ?: 'Regu '.$row['bib_number']);
+                    if (!isset($grouped[$teamKey])) {
+                        $grouped[$teamKey] = [
+                            'bib_number' => $row['bib_number'],
+                            'time' => $row['time'],
+                            'heat_name' => $row['heat_name'],
+                            'team_name' => $row['team_name'] ?: $row['club_name'] ?: 'Tim',
+                            'members' => []
+                        ];
+                    }
+                    $grouped[$teamKey]['members'][] = $row['skater_name'];
+                }
+                foreach ($grouped as $g) {
+                    $nameStr = "TIM " . strtoupper($g['team_name']) . " (" . implode(", ", $g['members']) . ")";
+                    fputcsv($output, [$g['bib_number'], $g['time'] ?? '', $g['heat_name'], $nameStr]);
+                }
+            } else {
+                foreach ($rows as $row) {
+                    fputcsv($output, [$row['bib_number'], $row['time'] ?? '', $row['heat_name'], $row['skater_name']]);
+                }
             }
             fclose($output);
             exit;
@@ -471,6 +511,12 @@ class RollResultController extends Controller {
             $classId = $_POST['race_class_id'] ?? 0;
 
             if ($eventId > 0 && $classId > 0 && $_FILES['csv_backup']['error'] == UPLOAD_ERR_OK) {
+                // Cek apakah relay
+                $stmtC = $db->prepare("SELECT d.distance_name FROM roll_event_details ed LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id WHERE ed.id = ?");
+                $stmtC->execute([$classId]);
+                $distName = $stmtC->fetchColumn() ?: '';
+                $isRelay = stripos($distName, 'Relay') !== false || stripos($distName, 'Pair') !== false;
+
                 $file = fopen($_FILES['csv_backup']['tmp_name'], 'r');
                 
                 $db->beginTransaction();
@@ -516,20 +562,41 @@ class RollResultController extends Controller {
                             
                             if ($skater) {
                                 $skaterId = $skater['skater_id'];
-                                // Check if result exists
-                                $stmtR = $db->prepare("SELECT id FROM roll_event_results WHERE event_id = ? AND race_class_id = ? AND skater_id = ?");
-                                $stmtR->execute([$eventId, $classId, $skaterId]);
-                                if ($stmtR->rowCount() > 0) {
-                                    $stmtUpd = $db->prepare("UPDATE roll_event_results SET time = ? WHERE event_id = ? AND race_class_id = ? AND skater_id = ?");
-                                    $stmtUpd->execute([$time, $eventId, $classId, $skaterId]);
+                                
+                                if (empty($heat)) {
+                                    $stmtP = $db->prepare("SELECT heat_name FROM roll_pelotons WHERE event_id = ? AND race_class_id = ? AND skater_id = ?");
+                                    $stmtP->execute([$eventId, $classId, $skaterId]);
+                                    $heat = $stmtP->fetchColumn() ?: 'Heat 1';
+                                }
+                                
+                                $membersToProcess = [];
+                                if ($isRelay) {
+                                    $stmtTeam = $db->prepare("
+                                        SELECT p.skater_id, r.id as result_id
+                                        FROM roll_pelotons p
+                                        JOIN roll_entries e ON p.skater_id = e.skater_id AND p.race_class_id = e.race_class_id AND p.event_id = e.event_id
+                                        LEFT JOIN roll_event_results r ON p.skater_id = r.skater_id AND p.race_class_id = r.race_class_id AND p.event_id = r.event_id AND p.heat_name = r.heat_name
+                                        WHERE p.event_id = ? AND p.race_class_id = ? AND p.heat_name = ?
+                                          AND (e.team_name = (SELECT team_name FROM roll_entries WHERE skater_id = ? AND race_class_id = ?) 
+                                               OR e.bib_number = (SELECT bib_number FROM roll_entries WHERE skater_id = ? AND race_class_id = ?))
+                                    ");
+                                    $stmtTeam->execute([$eventId, $classId, $heat, $skaterId, $classId, $skaterId, $classId]);
+                                    $membersToProcess = $stmtTeam->fetchAll(PDO::FETCH_ASSOC);
                                 } else {
-                                    $stmtIns = $db->prepare("INSERT INTO roll_event_results (event_id, race_class_id, round, skater_id, heat_name, time, status, is_official) VALUES (?, ?, 'Kualifikasi', ?, ?, ?, 'OK', 0)");
-                                    if (empty($heat)) {
-                                        $stmtP = $db->prepare("SELECT heat_name FROM roll_pelotons WHERE event_id = ? AND race_class_id = ? AND skater_id = ?");
-                                        $stmtP->execute([$eventId, $classId, $skaterId]);
-                                        $heat = $stmtP->fetchColumn() ?: 'Heat 1';
+                                    $stmtR = $db->prepare("SELECT id FROM roll_event_results WHERE event_id = ? AND race_class_id = ? AND skater_id = ?");
+                                    $stmtR->execute([$eventId, $classId, $skaterId]);
+                                    $resRow = $stmtR->fetch(PDO::FETCH_ASSOC);
+                                    $membersToProcess = [['skater_id' => $skaterId, 'result_id' => $resRow['id'] ?? null]];
+                                }
+                                
+                                foreach ($membersToProcess as $mem) {
+                                    if (!empty($mem['result_id'])) {
+                                        $stmtUpd = $db->prepare("UPDATE roll_event_results SET time = ? WHERE id = ?");
+                                        $stmtUpd->execute([$time, $mem['result_id']]);
+                                    } else {
+                                        $stmtIns = $db->prepare("INSERT INTO roll_event_results (event_id, race_class_id, round, skater_id, heat_name, time, status, is_official) VALUES (?, ?, 'Kualifikasi', ?, ?, ?, 'OK', 0)");
+                                        $stmtIns->execute([$eventId, $classId, $mem['skater_id'], $heat, $time]);
                                     }
-                                    $stmtIns->execute([$eventId, $classId, $skaterId, $heat, $time]);
                                 }
                             }
                     }
