@@ -318,9 +318,18 @@
                     <div class="flex-1 flex flex-wrap items-center justify-center xl:justify-start gap-3 text-sm font-bold text-slate-700 text-center xl:text-left">
                         <span>Buat Babak</span>
                         <select name="next_round" class="h-10 px-4 text-sm font-black text-indigo-700 border-slate-300 rounded-xl shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-white">
-                            <option value="Perempat Final" <?= ($raceInfo['next_round'] ?? '') === 'Perempat Final' ? 'selected' : '' ?>>Perempat Final</option>
-                            <option value="Semi Final" <?= ($raceInfo['next_round'] ?? '') === 'Semi Final' ? 'selected' : '' ?>>Semi Final</option>
-                            <option value="Final" <?= ($raceInfo['next_round'] ?? '') === 'Final' ? 'selected' : '' ?>>Final</option>
+                            <?php 
+                            $savedNext = $raceInfo['next_round'] ?? '';
+                            if (empty($savedNext)) {
+                                if ($current_round_name === 'Kualifikasi') $savedNext = 'Semi Final';
+                                elseif ($current_round_name === 'Perempat Final') $savedNext = 'Semi Final';
+                                elseif ($current_round_name === 'Semi Final') $savedNext = 'Final';
+                                else $savedNext = 'Final';
+                            }
+                            ?>
+                            <option value="Perempat Final" <?= $savedNext === 'Perempat Final' ? 'selected' : '' ?>>Perempat Final</option>
+                            <option value="Semi Final" <?= $savedNext === 'Semi Final' ? 'selected' : '' ?>>Semi Final</option>
+                            <option value="Final" <?= $savedNext === 'Final' ? 'selected' : '' ?>>Final</option>
                         </select>
                         
                         <span>dengan mengambil</span>

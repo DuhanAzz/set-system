@@ -601,13 +601,15 @@ class RollResultController extends Controller {
             $orderBy = "ORDER BY CAST(REPLACE(p.heat_name, 'Heat ', '') AS UNSIGNED) ASC, p.heat_name ASC, p.start_grid ASC";
         } else if ($raceFormat === 'ELIMINASI') {
             $orderBy = "ORDER BY CASE WHEN COALESCE(r.status, 'OK') = 'OK' THEN 0 ELSE 1 END ASC, CASE WHEN r.rank IS NULL OR CAST(r.rank AS CHAR) = '0' OR CAST(r.rank AS CHAR) = '' THEN 1 ELSE 0 END ASC, r.rank ASC, r.time ASC, CAST(REPLACE(p.heat_name, 'Heat ', '') AS UNSIGNED) ASC, p.start_grid ASC";
+        } else if ($raceFormat === 'DTT') {
+            $orderBy = "ORDER BY CASE WHEN COALESCE(r.status, 'OK') = 'OK' THEN 0 ELSE 1 END ASC, CASE WHEN r.time IS NULL OR r.time = '' OR r.time = '00.00.000' THEN 1 ELSE 0 END ASC, REPLACE(r.time, ':', '.') ASC, CAST(REPLACE(p.heat_name, 'Heat ', '') AS UNSIGNED) ASC, p.start_grid ASC";
         } else {
-            $orderBy = "ORDER BY CASE WHEN COALESCE(r.status, 'OK') = 'OK' THEN 0 ELSE 1 END ASC, CASE WHEN r.rank IS NULL OR CAST(r.rank AS CHAR) = '0' OR CAST(r.rank AS CHAR) = '' THEN 1 ELSE 0 END ASC, r.rank ASC, r.point DESC, CASE WHEN r.time IS NULL OR r.time = '' OR r.time = '00.00.000' THEN 1 ELSE 0 END ASC, REPLACE(r.time, ':', '.') ASC, CAST(REPLACE(p.heat_name, 'Heat ', '') AS UNSIGNED) ASC, p.start_grid ASC";
+            $orderBy = "ORDER BY CASE WHEN COALESCE(r.status, 'OK') = 'OK' THEN 0 ELSE 1 END ASC, r.point DESC, CASE WHEN r.time IS NULL OR r.time = '' OR r.time = '00.00.000' THEN 1 ELSE 0 END ASC, REPLACE(r.time, ':', '.') ASC, CAST(REPLACE(p.heat_name, 'Heat ', '') AS UNSIGNED) ASC, p.start_grid ASC";
         }
 
         // Ambil semua hasil, lalu urutkan secara global
         $stmtResults = $db->prepare("
-            SELECT e.bib_number, e.team_name, s.skater_name, s.gender, c.city_province as city, c.club_name, p.heat_name, p.start_grid,
+            SELECT p.skater_id, e.bib_number, e.team_name, s.skater_name, s.gender, c.city_province as city, c.club_name, p.heat_name, p.start_grid,
                    r.rank as heat_rank, r.rank, r.point, r.time, r.status, r.is_official, r.round, r.print_round_name
             FROM roll_pelotons p
             JOIN roll_entries e ON p.skater_id = e.skater_id AND p.race_class_id = e.race_class_id AND p.event_id = e.event_id
@@ -619,6 +621,45 @@ class RollResultController extends Controller {
         ");
         $stmtResults->execute([$eventId, $classId, $round]);
         $results = $stmtResults->fetchAll(PDO::FETCH_ASSOC);
+
+        if ($isRaceBook) {
+            $stmtPrevTime = $db->prepare("SELECT print_round_name, time FROM roll_event_results WHERE event_id = ? AND race_class_id = ? AND skater_id = ? AND round != ? AND time IS NOT NULL AND time != '' AND status = 'OK' ORDER BY id DESC LIMIT 1");
+            foreach ($results as &$res) {
+                $stmtPrevTime->execute([$eventId, $classId, $res['skater_id'] ?? 0, $round]);
+                $prev = $stmtPrevTime->fetch(PDO::FETCH_ASSOC);
+                $res['prev_round'] = $prev ? $prev['print_round_name'] : '';
+                $res['prev_time'] = $prev ? $prev['time'] : '';
+            }
+            unset($res);
+            
+            // Sort by heat_name ASC, then prev_time ASC (fastest first)
+            usort($results, function($a, $b) {
+                $heatA = (int) str_replace('Heat ', '', $a['heat_name']);
+                $heatB = (int) str_replace('Heat ', '', $b['heat_name']);
+                if ($heatA !== $heatB) return $heatA <=> $heatB;
+                
+                $timeA = $a['prev_time'] ?: '99.99.999';
+                $timeB = $b['prev_time'] ?: '99.99.999';
+                
+                // Format time string to allow clean string comparison
+                $timeA = str_pad(str_replace([':', '.'], '', $timeA), 8, '0', STR_PAD_RIGHT);
+                $timeB = str_pad(str_replace([':', '.'], '', $timeB), 8, '0', STR_PAD_RIGHT);
+                
+                return strcmp($timeA, $timeB);
+            });
+            
+            // Reassign start_grid sequentially per heat based on the new speed order
+            $currentHeat = null;
+            $grid = 1;
+            foreach ($results as &$res) {
+                if ($res['heat_name'] !== $currentHeat) {
+                    $currentHeat = $res['heat_name'];
+                    $grid = 1;
+                }
+                $res['start_grid'] = $grid++;
+            }
+            unset($res);
+        }
 
         $isRelay = (strpos($dn, 'relay') !== false || strpos($dn, 'pair') !== false);
 
@@ -641,7 +682,8 @@ class RollResultController extends Controller {
             'classInfo' => $classInfo,
             'results' => $results,
             'raceFormat' => $raceFormat,
-            'isRelay' => $isRelay
+            'isRelay' => $isRelay,
+            'isRaceBook' => $isRaceBook
         ]);
     }
 
@@ -656,7 +698,14 @@ class RollResultController extends Controller {
             $current_round_name = $_POST['original_round_name'] ?? $_POST['current_round_name'] ?? 'Kualifikasi';
             $tie_breaker_skater_id = $_POST['tie_breaker_skater_id'] ?? 0;
 
-            if ($eventId > 0 && $classId > 0 && $advancement_count > 0 && !empty($next_round)) {
+            if ($eventId > 0 && $classId > 0 && !empty($next_round)) {
+                if ($advancement_count <= 0) {
+                    $_SESSION['flash_message'] = "Silakan masukkan jumlah atlet (angka lebih dari 0) yang akan diambil untuk babak selanjutnya!";
+                    $_SESSION['flash_type'] = "error";
+                    header("Location: " . getenv('APP_URL') . "/roll/admin/results?race_class_id=" . $classId . "&round=" . urlencode($current_round_name));
+                    exit;
+                }
+                
                 try {
                     $db->beginTransaction();
 
@@ -666,18 +715,45 @@ class RollResultController extends Controller {
                     $stmtAdv = $db->prepare("UPDATE roll_event_details SET advancement_count = ?, next_round = ?, advancement_rule = ? WHERE id = ?");
                     $stmtAdv->execute([$advancement_count, $next_round, $advancement_rule, $classId]);
 
+                    // Check if Relay
+                    $stmtC = $db->prepare("SELECT d.distance_name FROM roll_event_details ed LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id WHERE ed.id = ?");
+                    $stmtC->execute([$classId]);
+                    $distName = $stmtC->fetchColumn() ?: '';
+                    $isRelay = stripos($distName, 'Relay') !== false || stripos($distName, 'Pair') !== false;
+
                     // 2. Ambil semua hasil pada current_round_name
                     $stmtTimes = $db->prepare("
-                        SELECT r.id, r.skater_id, r.time, r.status, r.heat_name, r.rank
+                        SELECT r.id, r.skater_id, r.time, r.status, r.heat_name, r.rank, e.team_name, e.bib_number, c.club_name
                         FROM roll_event_results r
+                        JOIN roll_entries e ON r.skater_id = e.skater_id AND r.race_class_id = e.race_class_id AND r.event_id = e.event_id
+                        JOIN roll_skaters s ON r.skater_id = s.id
+                        LEFT JOIN roll_clubs c ON s.club_id = c.id
                         WHERE r.event_id = ? AND r.race_class_id = ? AND r.round = ?
                           AND r.time IS NOT NULL 
                           AND r.status = 'OK'
                     ");
                     $stmtTimes->execute([$eventId, $classId, $current_round_name]);
-                    $results = $stmtTimes->fetchAll(PDO::FETCH_ASSOC);
+                    $rawResults = $stmtTimes->fetchAll(PDO::FETCH_ASSOC);
+
+                    // Group results (By Team for Relay, By Skater for Individual)
+                    $groupedResults = [];
+                    foreach ($rawResults as $r) {
+                        if ($isRelay) {
+                            $teamKey = $r['heat_name'] . '_' . ($r['team_name'] ?: $r['club_name'] ?: $r['bib_number']);
+                        } else {
+                            $teamKey = $r['skater_id'];
+                        }
+                        
+                        if (!isset($groupedResults[$teamKey])) {
+                            $groupedResults[$teamKey] = $r;
+                            $groupedResults[$teamKey]['group_skater_ids'] = [];
+                        }
+                        $groupedResults[$teamKey]['group_skater_ids'][] = $r['skater_id'];
+                    }
+                    $results = array_values($groupedResults);
 
                     $passed_skater_ids = [];
+                    $passed_groups = [];
                     
                     if (count($results) > 0) {
                         if ($advancement_rule === 'per_heat') {
@@ -687,38 +763,76 @@ class RollResultController extends Controller {
                             }
                             
                             $heatsCount = count($heats);
-                            $quotaPerHeat = $heatsCount > 0 ? max(1, floor($advancement_count / $heatsCount)) : $advancement_count;
+                            $quotaPerHeat = $heatsCount > 0 ? max(1, (int)floor($advancement_count / $heatsCount)) : $advancement_count;
                             $addedToQuota = 0;
                             
+                            $remainingPool = [];
+                            
+                            // 1. Auto Qualifiers (Top N from each heat)
                             foreach ($heats as $heatName => &$heatResults) {
                                 usort($heatResults, function($a, $b) {
-                                    $aTime = $a['time'] === '' ? '99:99.999' : $a['time'];
-                                    $bTime = $b['time'] === '' ? '99:99.999' : $b['time'];
-                                    return strcmp($aTime, $bTime);
+                                    $aTime = $a['time'] ? (int)str_replace(['.', ':'], '', $a['time']) : 9999999;
+                                    $bTime = $b['time'] ? (int)str_replace(['.', ':'], '', $b['time']) : 9999999;
+                                    if ($aTime !== $bTime) return $aTime <=> $bTime;
+                                    $aRank = (int)$a['rank'] ?: 999;
+                                    $bRank = (int)$b['rank'] ?: 999;
+                                    return $aRank <=> $bRank;
                                 });
                                 
                                 $heatQuota = 0;
                                 foreach ($heatResults as $r) {
                                     if ($heatQuota < $quotaPerHeat && $addedToQuota < $advancement_count) {
-                                        $passed_skater_ids[] = $r['skater_id'];
+                                        $passed_groups[] = $r['group_skater_ids'];
+                                        foreach ($r['group_skater_ids'] as $sid) {
+                                            $passed_skater_ids[] = $sid;
+                                        }
                                         $heatQuota++;
                                         $addedToQuota++;
+                                    } else {
+                                        $remainingPool[] = $r;
+                                    }
+                                }
+                            }
+                            
+                            // 2. Fastest Losers (Fill the rest of the quota from remaining pool based on overall time)
+                            if ($addedToQuota < $advancement_count && !empty($remainingPool)) {
+                                usort($remainingPool, function($a, $b) {
+                                    $aTime = $a['time'] ? (int)str_replace(['.', ':'], '', $a['time']) : 9999999;
+                                    $bTime = $b['time'] ? (int)str_replace(['.', ':'], '', $b['time']) : 9999999;
+                                    if ($aTime !== $bTime) return $aTime <=> $bTime;
+                                    $aRank = (int)$a['rank'] ?: 999;
+                                    $bRank = (int)$b['rank'] ?: 999;
+                                    return $aRank <=> $bRank;
+                                });
+                                
+                                foreach ($remainingPool as $r) {
+                                    if ($addedToQuota < $advancement_count) {
+                                        $passed_groups[] = $r['group_skater_ids'];
+                                        foreach ($r['group_skater_ids'] as $sid) {
+                                            $passed_skater_ids[] = $sid;
+                                        }
+                                        $addedToQuota++;
+                                    } else {
+                                        break;
                                     }
                                 }
                             }
                         } else {
                             // Overall fastest
                             usort($results, function($a, $b) {
-                                $aTime = $a['time'] === '' ? '99:99.999' : $a['time'];
-                                $bTime = $b['time'] === '' ? '99:99.999' : $b['time'];
-                                return strcmp($aTime, $bTime);
+                                $aTime = $a['time'] ? (int)str_replace(['.', ':'], '', $a['time']) : 9999999;
+                                $bTime = $b['time'] ? (int)str_replace(['.', ':'], '', $b['time']) : 9999999;
+                                if ($aTime !== $bTime) return $aTime <=> $bTime;
+                                $aRank = (int)$a['rank'] ?: 999;
+                                $bRank = (int)$b['rank'] ?: 999;
+                                return $aRank <=> $bRank;
                             });
                             
                             if (count($results) > $advancement_count) {
-                                $lastQualifiedTime = $results[$advancement_count - 1]['time'];
-                                $firstEliminatedTime = $results[$advancement_count]['time'];
+                                $lastQualifiedTime = $results[$advancement_count - 1]['time'] ?: '';
+                                $firstEliminatedTime = $results[$advancement_count]['time'] ?: '';
                                 
-                                if ($lastQualifiedTime === $firstEliminatedTime && $tie_breaker_skater_id == 0) {
+                                if ($lastQualifiedTime !== '' && $lastQualifiedTime === $firstEliminatedTime && $tie_breaker_skater_id == 0) {
                                     $db->rollBack();
                                     $_SESSION['flash_message'] = "TIE BREAKER! Ada atlet dengan waktu sama persis (" . $lastQualifiedTime . ") pada batas kelolosan. Silakan pilih manual dengan form Edit Hasil!";
                                     $_SESSION['flash_type'] = "warning";
@@ -729,23 +843,32 @@ class RollResultController extends Controller {
                             
                             $addedToQuota = 0;
                             foreach ($results as $idx => $r) {
-                                if ($addedToQuota < $advancement_count) {
-                                    if (isset($lastQualifiedTime) && isset($firstEliminatedTime) && $lastQualifiedTime === $firstEliminatedTime) {
-                                        if ($r['time'] === $lastQualifiedTime) {
-                                            if ($r['skater_id'] == $tie_breaker_skater_id) {
-                                                $passed_skater_ids[] = $r['skater_id'];
+                                    if ($addedToQuota < $advancement_count) {
+                                        if (isset($lastQualifiedTime) && isset($firstEliminatedTime) && $lastQualifiedTime !== '' && $lastQualifiedTime === $firstEliminatedTime) {
+                                            if ($r['time'] === $lastQualifiedTime) {
+                                                if ($r['skater_id'] == $tie_breaker_skater_id) { // Still use single skater_id for tie breaker form for simplicity
+                                                    $passed_groups[] = $r['group_skater_ids'];
+                                                    foreach ($r['group_skater_ids'] as $sid) {
+                                                        $passed_skater_ids[] = $sid;
+                                                    }
+                                                    $addedToQuota++;
+                                                }
+                                            } else {
+                                                $passed_groups[] = $r['group_skater_ids'];
+                                                foreach ($r['group_skater_ids'] as $sid) {
+                                                    $passed_skater_ids[] = $sid;
+                                                }
                                                 $addedToQuota++;
                                             }
                                         } else {
-                                            $passed_skater_ids[] = $r['skater_id'];
+                                            $passed_groups[] = $r['group_skater_ids'];
+                                            foreach ($r['group_skater_ids'] as $sid) {
+                                                $passed_skater_ids[] = $sid;
+                                            }
                                             $addedToQuota++;
                                         }
-                                    } else {
-                                        $passed_skater_ids[] = $r['skater_id'];
-                                        $addedToQuota++;
                                     }
                                 }
-                            }
                         }
                     }
 
@@ -772,12 +895,12 @@ class RollResultController extends Controller {
                     $maxPerHeat = (int)$stmtMax->fetchColumn();
                     if ($maxPerHeat <= 0) $maxPerHeat = 6;
 
-                    $totalAthletes = count($passed_skater_ids);
-                    $totalHeats = ceil($totalAthletes / $maxPerHeat);
+                    $totalGroups = count($passed_groups);
+                    $totalHeats = ceil($totalGroups / $maxPerHeat);
                     $heatsAssigned = array_fill(1, $totalHeats, []);
 
-                    for ($i = 0; $i < $totalAthletes; $i++) {
-                        $skaterId = $passed_skater_ids[$i];
+                    for ($i = 0; $i < $totalGroups; $i++) {
+                        $groupSkaters = $passed_groups[$i];
                         $roundIdx = floor($i / $totalHeats);
                         $rem = $i % $totalHeats;
                         
@@ -787,7 +910,9 @@ class RollResultController extends Controller {
                             $targetHeat = $totalHeats - $rem; // Mundur
                         }
                         
-                        $heatsAssigned[$targetHeat][] = $skaterId;
+                        foreach ($groupSkaters as $skaterId) {
+                            $heatsAssigned[$targetHeat][] = $skaterId;
+                        }
                     }
 
                     $stmtInsertPeloton = $db->prepare("

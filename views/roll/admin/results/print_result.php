@@ -152,7 +152,9 @@
                                         <?php endforeach; ?>
                                         </div>
                                     <?php endif; ?>
-                                    <h1 style="margin: 0; font-size: 16pt; text-transform: uppercase;">Hasil Perlombaan</h1>
+                                    <h1 style="margin: 0; font-size: 16pt; text-transform: uppercase;">
+                                        <?= isset($isRaceBook) && $isRaceBook ? 'STARTLIST / RACE BOOK' : 'Hasil Perlombaan' ?>
+                                    </h1>
                                     <p style="margin: 5px 0 0 0; font-size: 12pt; font-weight: bold; color: #333;"><?= htmlspecialchars($event['event_name']) ?></p>
                                 </td>
                                 <td style="width: 25%; text-align: right; vertical-align: middle;">
@@ -182,6 +184,7 @@
                             }
                         }
                         ?>
+                        <?php if(!isset($isRaceBook) || !$isRaceBook): ?>
                         <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 5px;">
                             <div style="font-size: 11pt; font-weight: bold; color: #333; text-align: left; text-transform: uppercase;">
                                 R<?= htmlspecialchars($classInfo['race_number']) ?> - 
@@ -194,18 +197,102 @@
                                 <?= htmlspecialchars($currentRound) ?>
                             </div>
                         </div>
+                        <?php endif; ?>
+                        <?php if(isset($isRaceBook) && $isRaceBook): 
+                            // Group by Heat Name
+                            $heats = [];
+                            foreach ($results as $r) {
+                                $h = $r['heat_name'] ?? 'Final';
+                                $heats[$h][] = $r;
+                            }
+                            
+                            $isHeat = (stripos($currentRound, 'Final') === false);
+                            
+                            if (empty($heats)): ?>
+                                <table class="schedule-table">
+                                    <tr><td class="text-center">Belum ada startlist.</td></tr>
+                                </table>
+                            <?php else: ?>
+                                <?php
+                                $start = strtotime($event['event_date_start'] ?? '');
+                                $end = strtotime($event['event_date_end'] ?? '');
+                                $dateStr = '';
+                                if ($start && $end) {
+                                    $ind = ['JANUARI','FEBRUARI','MARET','APRIL','MEI','JUNI','JULI','AGUSTUS','SEPTEMBER','OKTOBER','NOVEMBER','DESEMBER'];
+                                    $m1 = $ind[date('n', $start)-1];
+                                    $m2 = $ind[date('n', $end)-1];
+                                    if (date('m Y', $start) == date('m Y', $end)) {
+                                        $dateStr = date('d', $start) . ' - ' . date('d', $end) . ' ' . $m2 . ' ' . date('Y', $end);
+                                    } else {
+                                        $dateStr = date('d', $start) . ' ' . $m1 . ' - ' . date('d', $end) . ' ' . $m2 . ' ' . date('Y', $end);
+                                    }
+                                }
+                                ?>
+                                <div style="display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #000; padding-bottom: 2px; margin-bottom: 4px; margin-top: 10px; page-break-inside: avoid;">
+                                    <div style="display: flex; flex-direction: column; gap: 2px; min-width: 120px;">
+                                        <div style="font-size: 9pt; font-weight: 900; background: #000; color: #fff; display: inline-block; padding: 2px 6px; border-radius: 4px 4px 0 0; align-self: flex-start;">RACE <?= htmlspecialchars(str_pad($classInfo['race_number'], 3, '0', STR_PAD_LEFT)) ?></div>
+                                        <?php if($dateStr): ?>
+                                            <div style="font-size: 7.5pt; font-weight: bold; color: #555;"><?= $dateStr ?></div>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div style="flex-grow: 1; text-align: center;">
+                                        <div style="font-size: 13pt; font-weight: 900; text-transform: uppercase; color: #000; font-style: italic;">
+                                            <?= htmlspecialchars($classInfo['group_name'] ?? '') ?> - <?= htmlspecialchars($classInfo['gender'] ?? '') ?> - <?= htmlspecialchars($classInfo['distance_name'] ?? $classInfo['distance'] ?? '') ?>
+                                        </div>
+                                    </div>
+                                    <div style="min-width: 120px; text-align: right; font-size: 9pt; font-weight: 900; color: #000; text-transform: uppercase;">
+                                        <?= htmlspecialchars($currentRound) ?>
+                                    </div>
+                                </div>
+                                
+                                <?php foreach ($heats as $heatName => $heatMembers): ?>
+                                    <div style="font-size: 9pt; font-weight: 900; text-transform: uppercase; margin-bottom: 2px; margin-top: 4px; border-bottom: 1px dashed #000; padding-bottom: 2px;">
+                                        <?= htmlspecialchars($heatName) ?> <span style="font-size: 8pt; color: #666; font-weight: normal; margin-left: 10px;">(<?= count($heatMembers) ?> ATLET)</span>
+                                    </div>
+                                    
+                                    <table style="table-layout: fixed; width: 100%; border-collapse: collapse; font-size: 10pt; margin-bottom: 2mm; margin-top: 1mm; border: 1px solid #000;">
+                                        <thead>
+                                            <?php
+                                            $prevRoundName = 'SEBELUMNYA';
+                                            if (!empty($heatMembers) && !empty($heatMembers[0]['prev_round'])) {
+                                                $prevRoundName = $heatMembers[0]['prev_round'];
+                                            }
+                                            ?>
+                                            <tr>
+                                                <th style="width: 40px; text-align: center; border: 1px solid #000; padding: 4px; background: #f0f0f0; font-weight: bold; font-size: 9pt;">NO</th>
+                                                <th style="width: 60px; text-align: center; border: 1px solid #000; padding: 4px; background: #f0f0f0; font-weight: bold; font-size: 9pt;">NO. BIB</th>
+                                                <th style="width: 40%; border: 1px solid #000; padding: 4px; background: #f0f0f0; font-weight: bold; font-size: 9pt; text-align: left;"><?= isset($isRelay) && $isRelay ? 'NAMA TIM' : 'NAMA ATLET' ?></th>
+                                                <th style="border: 1px solid #000; padding: 4px; background: #f0f0f0; font-weight: bold; font-size: 9pt; text-align: left;">KLUB / KONTINGEN</th>
+                                                <th style="width: 160px; text-align: center; border: 1px solid #000; padding: 4px; background: #f0f0f0; font-weight: bold; font-size: 9pt;">HASIL <?= strtoupper(htmlspecialchars($prevRoundName)) ?></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <?php foreach ($heatMembers as $res): ?>
+                                            <tr>
+                                                <td style="text-align: center; border: 1px solid #000; padding: 4px; font-weight: bold; font-size: 11pt;"><?= htmlspecialchars($res['start_grid'] ?? '-') ?></td>
+                                                <td style="text-align: center; border: 1px solid #000; padding: 4px; font-weight: bold; font-size: 14pt; background-color: #f8fafc;"><?= htmlspecialchars($res['bib_number'] ?? '-') ?></td>
+                                                <td style="border: 1px solid #000; padding: 4px; font-weight: bold; text-transform: uppercase;">
+                                                    <?= htmlspecialchars($res['skater_name'] ?? '-') ?>
+                                                </td>
+                                                <td style="border: 1px solid #000; padding: 4px; font-weight: bold; color: #444;"><?= htmlspecialchars($res['club_name'] ?? '-') ?></td>
+                                                <td style="text-align: center; border: 1px solid #000; padding: 4px;">
+                                                    <?php if(!empty($res['prev_time'])): ?>
+                                                        <span style="font-weight: bold; font-size: 11pt;"><?= htmlspecialchars($res['prev_time']) ?></span>
+                                                    <?php else: ?>
+                                                        <span style="color: #cbd5e1;">-</span>
+                                                    <?php endif; ?>
+                                                </td>
+                                            </tr>
+                                            <?php endforeach; ?>
+                                        </tbody>
+                                    </table>
+                                <?php endforeach; 
+                            endif; ?>
+                        <?php else: ?>
+                        <!-- START: TAMPILAN HASIL PERLOMBAAN -->
                         <table class="schedule-table">
                             <thead>
                                 <tr>
-                                    <?php if(isset($isRaceBook) && $isRaceBook): ?>
-                                    <th class="text-center" style="width: 50px;">Seri</th>
-                                    <th class="text-center" style="width: 40px;">No</th>
-                                    <th class="text-center" style="width: 50px;">BIB</th>
-                                    <th><?= isset($isRelay) && $isRelay ? 'Regu / Tim' : 'Atlet' ?></th>
-                                    <th>Klub</th>
-                                    <th class="text-center" style="width: 80px;">Waktu</th>
-                                    <th class="text-center" style="width: 50px;">Rank</th>
-                                    <?php else: ?>
                                     <th class="text-center" style="width: 50px;">Rank</th>
                                     <th class="text-center" style="width: 50px;">BIB</th>
                                     <th><?= isset($isRelay) && $isRelay ? 'Regu / Tim' : 'Atlet' ?></th>
@@ -214,7 +301,6 @@
                                     <th class="text-center" style="width: 60px;">Poin</th>
                                     <?php endif; ?>
                                     <th class="text-center" style="width: 80px;">Waktu</th>
-                                    <?php endif; ?>
                                 </tr>
                             </thead>
                             <tbody>
@@ -240,7 +326,6 @@
 
                                         $statusColor = $statusStr === 'OK' ? '#16a34a' : '#dc2626';
                                         
-                                        // For advancements, usually printed on official results
                                         $advancementLabel = '';
                                         if ($res['status'] === 'OK' && $adv_count > 0 && !empty($next_round)) {
                                             if ($globalRank <= $adv_count) {
@@ -251,17 +336,6 @@
                                         }
                                 ?>
                                     <tr>
-                                        <?php if(isset($isRaceBook) && $isRaceBook): ?>
-                                        <td class="text-center font-bold" style="font-size: 11pt; vertical-align: middle;"><?= htmlspecialchars(str_replace('Heat ', '', $res['heat_name'] ?? '-')) ?></td>
-                                        <td class="text-center font-bold" style="font-size: 11pt; vertical-align: middle;"><?= htmlspecialchars($res['start_grid'] ?? '-') ?></td>
-                                        <td class="text-center font-bold" style="font-size: 12pt; vertical-align: middle;"><?= htmlspecialchars($res['bib_number'] ?? '-') ?></td>
-                                        <td class="font-bold" style="vertical-align: middle;">
-                                            <?= htmlspecialchars($res['skater_name'] ?? '-') ?>
-                                        </td>
-                                        <td style="vertical-align: middle;"><?= htmlspecialchars($res['club_name'] ?? '-') ?></td>
-                                        <td></td>
-                                        <td></td>
-                                        <?php else: ?>
                                         <td class="text-center font-bold" style="font-size: 12pt; vertical-align: middle;"><?= htmlspecialchars($displayRank) ?></td>
                                         <td class="text-center font-bold" style="font-size: 12pt; vertical-align: middle;"><?= htmlspecialchars($res['bib_number'] ?? '-') ?></td>
                                         <td class="font-bold" style="vertical-align: middle;">
@@ -272,12 +346,13 @@
                                         <td class="text-center font-bold" style="font-size: 11pt; vertical-align: middle;"><?= htmlspecialchars($res['point'] ?? '0') ?></td>
                                         <?php endif; ?>
                                         <td class="text-center font-bold" style="font-size: 11pt; vertical-align: middle;"><?= $displayTime ?></td>
-                                        <?php endif; ?>
                                     </tr>
                                     <?php endforeach; ?>
                                 <?php endif; ?>
                             </tbody>
                         </table>
+                        <!-- END: TAMPILAN HASIL PERLOMBAAN -->
+                        <?php endif; ?>
 
                     </td>
                 </tr>
