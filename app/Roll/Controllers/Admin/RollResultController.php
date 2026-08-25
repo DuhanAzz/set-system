@@ -596,9 +596,18 @@ class RollResultController extends Controller {
         }
 
         $isRaceBook = ($_GET['mode'] ?? '') === 'racebook';
+        $isPerHeat = ($_GET['mode'] ?? '') === 'per_heat';
 
         if ($isRaceBook) {
             $orderBy = "ORDER BY CAST(REPLACE(p.heat_name, 'Heat ', '') AS UNSIGNED) ASC, p.heat_name ASC, p.start_grid ASC";
+        } else if ($isPerHeat) {
+            if ($raceFormat === 'ELIMINASI') {
+                $orderBy = "ORDER BY CAST(REPLACE(p.heat_name, 'Heat ', '') AS UNSIGNED) ASC, p.heat_name ASC, CASE WHEN COALESCE(r.status, 'OK') = 'OK' THEN 0 ELSE 1 END ASC, CASE WHEN r.rank IS NULL OR CAST(r.rank AS CHAR) = '0' OR CAST(r.rank AS CHAR) = '' THEN 1 ELSE 0 END ASC, r.rank ASC, r.time ASC, p.start_grid ASC";
+            } else if ($raceFormat === 'DTT') {
+                $orderBy = "ORDER BY CAST(REPLACE(p.heat_name, 'Heat ', '') AS UNSIGNED) ASC, p.heat_name ASC, CASE WHEN COALESCE(r.status, 'OK') = 'OK' THEN 0 ELSE 1 END ASC, CASE WHEN r.time IS NULL OR r.time = '' OR r.time = '00.00.000' THEN 1 ELSE 0 END ASC, REPLACE(r.time, ':', '.') ASC, p.start_grid ASC";
+            } else {
+                $orderBy = "ORDER BY CAST(REPLACE(p.heat_name, 'Heat ', '') AS UNSIGNED) ASC, p.heat_name ASC, CASE WHEN COALESCE(r.status, 'OK') = 'OK' THEN 0 ELSE 1 END ASC, r.point DESC, CASE WHEN r.time IS NULL OR r.time = '' OR r.time = '00.00.000' THEN 1 ELSE 0 END ASC, REPLACE(r.time, ':', '.') ASC, p.start_grid ASC";
+            }
         } else if ($raceFormat === 'ELIMINASI') {
             $orderBy = "ORDER BY CASE WHEN COALESCE(r.status, 'OK') = 'OK' THEN 0 ELSE 1 END ASC, CASE WHEN r.rank IS NULL OR CAST(r.rank AS CHAR) = '0' OR CAST(r.rank AS CHAR) = '' THEN 1 ELSE 0 END ASC, r.rank ASC, r.time ASC, CAST(REPLACE(p.heat_name, 'Heat ', '') AS UNSIGNED) ASC, p.start_grid ASC";
         } else if ($raceFormat === 'DTT') {
@@ -683,7 +692,8 @@ class RollResultController extends Controller {
             'results' => $results,
             'raceFormat' => $raceFormat,
             'isRelay' => $isRelay,
-            'isRaceBook' => $isRaceBook
+            'isRaceBook' => $isRaceBook,
+            'isPerHeat' => $isPerHeat
         ]);
     }
 
@@ -782,7 +792,13 @@ class RollResultController extends Controller {
                                 $heatQuota = 0;
                                 foreach ($heatResults as $r) {
                                     if ($heatQuota < $quotaPerHeat && $addedToQuota < $advancement_count) {
-                                        $passed_groups[] = $r['group_skater_ids'];
+                                        $passed_groups[] = [
+                                            'skater_ids' => $r['group_skater_ids'],
+                                            'source_heat' => (int)str_replace('Heat ', '', $r['heat_name']),
+                                            'is_auto' => true,
+                                            'time' => $r['time'],
+                                            'rank' => $r['rank']
+                                        ];
                                         foreach ($r['group_skater_ids'] as $sid) {
                                             $passed_skater_ids[] = $sid;
                                         }
@@ -807,7 +823,13 @@ class RollResultController extends Controller {
                                 
                                 foreach ($remainingPool as $r) {
                                     if ($addedToQuota < $advancement_count) {
-                                        $passed_groups[] = $r['group_skater_ids'];
+                                        $passed_groups[] = [
+                                            'skater_ids' => $r['group_skater_ids'],
+                                            'source_heat' => (int)str_replace('Heat ', '', $r['heat_name']),
+                                            'is_auto' => false,
+                                            'time' => $r['time'],
+                                            'rank' => $r['rank']
+                                        ];
                                         foreach ($r['group_skater_ids'] as $sid) {
                                             $passed_skater_ids[] = $sid;
                                         }
@@ -843,32 +865,37 @@ class RollResultController extends Controller {
                             
                             $addedToQuota = 0;
                             foreach ($results as $idx => $r) {
-                                    if ($addedToQuota < $advancement_count) {
-                                        if (isset($lastQualifiedTime) && isset($firstEliminatedTime) && $lastQualifiedTime !== '' && $lastQualifiedTime === $firstEliminatedTime) {
-                                            if ($r['time'] === $lastQualifiedTime) {
-                                                if ($r['skater_id'] == $tie_breaker_skater_id) { // Still use single skater_id for tie breaker form for simplicity
-                                                    $passed_groups[] = $r['group_skater_ids'];
-                                                    foreach ($r['group_skater_ids'] as $sid) {
-                                                        $passed_skater_ids[] = $sid;
-                                                    }
-                                                    $addedToQuota++;
-                                                }
-                                            } else {
-                                                $passed_groups[] = $r['group_skater_ids'];
-                                                foreach ($r['group_skater_ids'] as $sid) {
-                                                    $passed_skater_ids[] = $sid;
-                                                }
-                                                $addedToQuota++;
+                                if ($addedToQuota < $advancement_count) {
+                                    $groupInfo = [
+                                        'skater_ids' => $r['group_skater_ids'],
+                                        'source_heat' => (int)str_replace('Heat ', '', $r['heat_name']),
+                                        'is_auto' => false,
+                                        'time' => $r['time'],
+                                        'rank' => $r['rank']
+                                    ];
+                                    
+                                    $shouldAdd = false;
+                                    if (isset($lastQualifiedTime) && isset($firstEliminatedTime) && $lastQualifiedTime !== '' && $lastQualifiedTime === $firstEliminatedTime) {
+                                        if ($r['time'] === $lastQualifiedTime) {
+                                            if ($r['skater_id'] == $tie_breaker_skater_id) { // Still use single skater_id for tie breaker form for simplicity
+                                                $shouldAdd = true;
                                             }
                                         } else {
-                                            $passed_groups[] = $r['group_skater_ids'];
-                                            foreach ($r['group_skater_ids'] as $sid) {
-                                                $passed_skater_ids[] = $sid;
-                                            }
-                                            $addedToQuota++;
+                                            $shouldAdd = true;
                                         }
+                                    } else {
+                                        $shouldAdd = true;
+                                    }
+                                    
+                                    if ($shouldAdd) {
+                                        $passed_groups[] = $groupInfo;
+                                        foreach ($groupInfo['skater_ids'] as $sid) {
+                                            $passed_skater_ids[] = $sid;
+                                        }
+                                        $addedToQuota++;
                                     }
                                 }
+                            }
                         }
                     }
 
@@ -899,19 +926,57 @@ class RollResultController extends Controller {
                     $totalHeats = ceil($totalGroups / $maxPerHeat);
                     $heatsAssigned = array_fill(1, $totalHeats, []);
 
-                    for ($i = 0; $i < $totalGroups; $i++) {
-                        $groupSkaters = $passed_groups[$i];
-                        $roundIdx = floor($i / $totalHeats);
-                        $rem = $i % $totalHeats;
-                        
-                        if ($roundIdx % 2 == 0) {
-                            $targetHeat = $rem + 1; // Maju
+                    // BRACKET LOGIC & SNAKE SEEDING
+                    $useBracket = ($advancement_rule === 'per_heat' && $totalHeats > 0 && isset($heatsCount) && ($heatsCount % $totalHeats == 0));
+                    $unassignedGroups = [];
+                    
+                    // Pass 1: Auto Qualifiers with Bracket Logic
+                    foreach ($passed_groups as $group) {
+                        if ($useBracket && $group['is_auto']) {
+                            $sHeat = $group['source_heat'];
+                            $roundIdx = floor(($sHeat - 1) / $totalHeats);
+                            $rem = ($sHeat - 1) % $totalHeats;
+                            
+                            if ($roundIdx % 2 == 0) {
+                                $targetHeat = $rem + 1; // Maju
+                            } else {
+                                $targetHeat = $totalHeats - $rem; // Mundur
+                            }
+                            
+                            foreach ($group['skater_ids'] as $skaterId) {
+                                $heatsAssigned[$targetHeat][] = $skaterId;
+                            }
                         } else {
-                            $targetHeat = $totalHeats - $rem; // Mundur
+                            $unassignedGroups[] = $group;
                         }
+                    }
+                    
+                    // Pass 2: Remaining Groups (Fastest Losers or Overall Snake Seeding)
+                    if (!empty($unassignedGroups)) {
+                        usort($unassignedGroups, function($a, $b) {
+                            $aTime = $a['time'] ? (int)str_replace(['.', ':'], '', $a['time']) : 9999999;
+                            $bTime = $b['time'] ? (int)str_replace(['.', ':'], '', $b['time']) : 9999999;
+                            if ($aTime !== $bTime) return $aTime <=> $bTime;
+                            $aRank = (int)$a['rank'] ?: 999;
+                            $bRank = (int)$b['rank'] ?: 999;
+                            return $aRank <=> $bRank;
+                        });
                         
-                        foreach ($groupSkaters as $skaterId) {
-                            $heatsAssigned[$targetHeat][] = $skaterId;
+                        $snakePointer = 0;
+                        foreach ($unassignedGroups as $group) {
+                            $roundIdx = floor($snakePointer / $totalHeats);
+                            $rem = $snakePointer % $totalHeats;
+                            
+                            if ($roundIdx % 2 == 0) {
+                                $targetHeat = $rem + 1; // Maju
+                            } else {
+                                $targetHeat = $totalHeats - $rem; // Mundur
+                            }
+                            
+                            foreach ($group['skater_ids'] as $skaterId) {
+                                $heatsAssigned[$targetHeat][] = $skaterId;
+                            }
+                            $snakePointer++;
                         }
                     }
 

@@ -289,6 +289,75 @@
                                 <?php endforeach; 
                             endif; ?>
                         <?php else: ?>
+                        <?php 
+                            if (isset($isPerHeat) && $isPerHeat): 
+                                $heats = [];
+                                foreach ($results as $res) {
+                                    $heats[$res['heat_name']][] = $res;
+                                }
+                                foreach ($heats as $heatName => $heatResults):
+                        ?>
+                        <!-- START: TAMPILAN HASIL PERLOMBAAN PER HEAT -->
+                        <div style="font-size: 11pt; font-weight: 900; text-transform: uppercase; margin-bottom: 5px; margin-top: 15px; border-bottom: 2px solid #000; padding-bottom: 3px; display: flex; justify-content: space-between; align-items: center;">
+                            <div><?= htmlspecialchars($heatName) ?></div>
+                        </div>
+                        <table class="schedule-table">
+                            <thead>
+                                <tr>
+                                    <th class="text-center" style="width: 50px;">Rank</th>
+                                    <th class="text-center" style="width: 50px;">BIB</th>
+                                    <th><?= isset($isRelay) && $isRelay ? 'Regu / Tim' : 'Atlet' ?></th>
+                                    <th>Klub</th>
+                                    <?php if(isset($raceFormat) && $raceFormat === 'PTP'): ?>
+                                    <th class="text-center" style="width: 60px;">Poin</th>
+                                    <?php endif; ?>
+                                    <th class="text-center" style="width: 80px;">Waktu</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php if(empty($heatResults)): ?>
+                                    <tr>
+                                        <td colspan="6" class="text-center font-bold" style="padding: 10px;">Belum ada hasil untuk heat ini.</td>
+                                    </tr>
+                                <?php else: ?>
+                                    <?php 
+                                        $globalRank = 0;
+                                        foreach ($heatResults as $res): 
+                                            $globalRank++;
+                                            $displayRank = ($res['rank'] > 0) ? $res['rank'] : '-';
+                                            if ($res['status'] !== 'OK') {
+                                                $displayRank = $res['status'];
+                                            }
+
+                                            $displayTime = '-';
+                                            if ($res['time']) {
+                                                $displayTime = $res['time'];
+                                            }
+                                            if ($res['status'] !== 'OK') {
+                                                $displayTime = $res['status'];
+                                            }
+                                    ?>
+                                    <tr>
+                                        <td class="text-center font-bold" style="font-size: 12pt; vertical-align: middle;"><?= htmlspecialchars($displayRank) ?></td>
+                                        <td class="text-center font-bold" style="font-size: 12pt; vertical-align: middle;"><?= htmlspecialchars($res['bib_number'] ?? '-') ?></td>
+                                        <td class="font-bold" style="vertical-align: middle;">
+                                            <?= htmlspecialchars($res['skater_name'] ?? '-') ?>
+                                        </td>
+                                        <td style="vertical-align: middle;"><?= htmlspecialchars($res['club_name'] ?? '-') ?></td>
+                                        <?php if(isset($raceFormat) && $raceFormat === 'PTP'): ?>
+                                        <td class="text-center font-bold" style="font-size: 11pt; vertical-align: middle;"><?= htmlspecialchars($res['point'] ?? '0') ?></td>
+                                        <?php endif; ?>
+                                        <td class="text-center font-bold" style="font-size: 11pt; vertical-align: middle;"><?= $displayTime ?></td>
+                                    </tr>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
+                        <!-- END: TAMPILAN HASIL PERLOMBAAN PER HEAT -->
+                        <?php 
+                                endforeach; 
+                            else: 
+                        ?>
                         <!-- START: TAMPILAN HASIL PERLOMBAAN -->
                         <table class="schedule-table">
                             <thead>
@@ -352,7 +421,10 @@
                             </tbody>
                         </table>
                         <!-- END: TAMPILAN HASIL PERLOMBAAN -->
-                        <?php endif; ?>
+                        <?php 
+                            endif;
+                        endif; 
+                        ?>
 
                     </td>
                 </tr>
