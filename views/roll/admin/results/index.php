@@ -224,10 +224,18 @@
                 </div>
                 
                 <div class="overflow-x-auto">
+                    <?php 
+                    $isTeamRace = (stripos($raceInfo['distance_name'] ?? '', 'pair') !== false || stripos($raceInfo['distance_name'] ?? '', 'relay') !== false);
+                    $teamSize = stripos($raceInfo['distance_name'] ?? '', 'pair') !== false ? 2 : (stripos($raceInfo['distance_name'] ?? '', 'relay') !== false ? 3 : 1);
+                    if (empty($teamSize) || $teamSize < 1) $teamSize = 1;
+                    ?>
                     <table class="w-full text-left border-collapse heat-table min-w-[800px]" data-heat="<?= htmlspecialchars($heatName) ?>">
                         <thead>
                             <tr class="bg-slate-100/50 text-slate-500 text-[10px] uppercase tracking-widest border-b border-slate-200">
                                 <th class="p-4 font-black text-center w-12">Grid</th>
+                                <?php if($isTeamRace): ?>
+                                    <th class="p-4 font-black text-center w-32">Nama Tim</th>
+                                <?php endif; ?>
                                 <th class="p-4 font-black text-center w-16">BIB</th>
                                 <th class="p-4 font-black">Atlet & Klub</th>
                                 
@@ -245,20 +253,51 @@
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 text-sm">
-                            <?php foreach($results as $r): ?>
+                            <?php 
+                            $teamChunks = $isTeamRace ? array_chunk($results, $teamSize) : array_chunk($results, 1);
+                            $teamIndex = 1;
+                            
+                            foreach($teamChunks as $teamMembers): 
+                                $isFirstMember = true;
+                                $rowspan = count($teamMembers);
+                                foreach($teamMembers as $r):
+                            ?>
                             <tr class="hover:bg-blue-50/30 transition-colors <?= $r['status'] !== 'OK' ? 'bg-red-50/50' : 'bg-white' ?>" id="row_<?= $r['skater_id'] ?>" data-bib="<?= htmlspecialchars($r['bib_number'] ?? '') ?>">
-                                <input type="hidden" name="heat_name[]" value="<?= htmlspecialchars($heatName) ?>">
+                                <?php if($isFirstMember): ?>
+                                    <input type="hidden" name="heat_name[]" value="<?= htmlspecialchars($heatName) ?>">
+                                <?php endif; ?>
                                 
-                                <!-- GRID -->
+                                <!-- GRID / NO TIM -->
+                                <?php if($isTeamRace): ?>
+                                    <?php if($isFirstMember): ?>
+                                    <td class="p-4 text-center align-middle" rowspan="<?= $rowspan ?>">
+                                        <span class="inline-flex w-7 h-7 rounded-full bg-slate-100 border border-slate-200 items-center justify-center font-bold text-slate-500 text-xs shadow-sm">
+                                            <?= $teamIndex ?>
+                                        </span>
+                                    </td>
+                                    <?php endif; ?>
+                                <?php else: ?>
                                 <td class="p-4 text-center">
                                     <span class="inline-flex w-7 h-7 rounded-full bg-slate-100 border border-slate-200 items-center justify-center font-bold text-slate-500 text-xs shadow-sm">
                                         <?= htmlspecialchars($r['start_grid'] ?? '-') ?>
                                     </span>
                                 </td>
+                                <?php endif; ?>
+                                
+                                <!-- NAMA TIM -->
+                                <?php if($isTeamRace): ?>
+                                    <?php if($isFirstMember): ?>
+                                    <td class="p-4 text-center align-middle" rowspan="<?= $rowspan ?>" style="border-right: 2px dashed #cbd5e1;">
+                                        <div class="font-black text-indigo-700 bg-indigo-50 px-2 py-1.5 rounded-lg text-sm border border-indigo-200 shadow-sm leading-tight uppercase">
+                                            <?= htmlspecialchars(!empty($r['team_name']) && $r['team_name'] !== '-' ? $r['team_name'] : 'Tim '.$teamIndex) ?>
+                                        </div>
+                                    </td>
+                                    <?php endif; ?>
+                                <?php endif; ?>
                                 
                                 <!-- BIB -->
                                 <td class="p-4 text-center">
-                                    <span class="font-black text-indigo-700 bg-indigo-50 px-2 py-1 rounded-lg text-sm border border-indigo-100 shadow-sm">
+                                    <span class="font-black text-slate-700 bg-slate-50 px-2 py-1 rounded-lg text-sm border border-slate-200 shadow-sm">
                                         <?= htmlspecialchars($r['bib_number'] ?? '-') ?>
                                     </span>
                                 </td>
@@ -266,50 +305,71 @@
                                 <!-- NAMA & KLUB -->
                                 <td class="p-4">
                                     <div class="font-black text-slate-800 text-base leading-tight uppercase"><?= htmlspecialchars($r['skater_name']) ?></div>
-                                    <div class="text-[10px] text-slate-400 font-bold uppercase mt-1 tracking-widest"><?= htmlspecialchars($r['club_name'] ?? 'Independen') ?></div>
-                                    <input type="hidden" name="result_id[]" value="<?= $r['result_id'] ?? '' ?>">
-                                    <input type="hidden" name="skater_id[]" value="<?= $r['skater_id'] ?>">
-                                    <input type="hidden" name="skater_race_class_id[]" value="<?= $r['race_class_id'] ?? '' ?>">
+                                    <div class="text-[10px] text-slate-400 font-bold uppercase mt-1 tracking-widest">
+                                        <?= htmlspecialchars($r['club_name'] ?? 'Independen') ?>
+                                    </div>
+                                    <?php if($isFirstMember): ?>
+                                        <input type="hidden" name="result_id[]" value="<?= $r['result_id'] ?? '' ?>">
+                                        <input type="hidden" name="skater_id[]" value="<?= $r['skater_id'] ?>">
+                                        <input type="hidden" name="skater_race_class_id[]" value="<?= $r['race_class_id'] ?? '' ?>">
+                                    <?php endif; ?>
                                 </td>
 
                                 <!-- ELIMINASI ACTION (If Format == Eliminasi) -->
                                 <?php if($raceFormat === 'ELIMINASI'): ?>
-                                <td class="p-4 text-center align-middle">
-                                    <button type="button" class="btn-elim" onclick="eliminateSkater('<?= $r['skater_id'] ?>', '<?= htmlspecialchars($heatName, ENT_QUOTES) ?>')" title="Tarik keluar lintasan (Eliminasi)">
-                                        <i class="fas fa-flag"></i>
-                                    </button>
-                                </td>
+                                    <?php if($isFirstMember): ?>
+                                    <td class="p-4 text-center align-middle" rowspan="<?= $rowspan ?>">
+                                        <button type="button" class="btn-elim" onclick="eliminateSkater('<?= $r['skater_id'] ?>', '<?= htmlspecialchars($heatName, ENT_QUOTES) ?>')" title="Tarik keluar lintasan (Eliminasi)">
+                                            <i class="fas fa-flag"></i>
+                                        </button>
+                                    </td>
+                                    <?php endif; ?>
                                 <?php endif; ?>
 
                                 <!-- POIN (If Format == PTP) -->
                                 <?php if($raceFormat === 'PTP'): ?>
-                                <td class="p-4 bg-amber-50/50 border-l border-r border-amber-100 align-middle">
-                                    <input type="number" step="1" name="point[]" value="<?= $r['point'] ?>" class="input-point focus:ring-2 focus:ring-amber-500" placeholder="0" tabindex="1">
-                                </td>
+                                    <?php if($isFirstMember): ?>
+                                    <td class="p-4 bg-amber-50/50 border-l border-r border-amber-100 align-middle" rowspan="<?= $rowspan ?>">
+                                        <input type="number" step="1" name="point[]" value="<?= $r['point'] ?>" class="input-point focus:ring-2 focus:ring-amber-500" placeholder="0" tabindex="1">
+                                    </td>
+                                    <?php endif; ?>
                                 <?php else: ?>
+                                    <?php if($isFirstMember): ?>
                                     <input type="hidden" name="point[]" value="0">
+                                    <?php endif; ?>
                                 <?php endif; ?>
 
                                 <!-- WAKTU -->
-                                <td class="p-4 align-middle">
+                                <?php if($isFirstMember): ?>
+                                <td class="p-4 align-middle" rowspan="<?= $rowspan ?>" style="<?= $isTeamRace ? 'border-left: 2px dashed #cbd5e1;' : '' ?>">
                                     <input type="text" name="time[]" value="<?= htmlspecialchars($r['time'] ?? '00.00.000') ?>" class="input-time <?= ($raceFormat === 'ELIMINASI' && $r['status'] === 'DNF') ? 'opacity-40 bg-slate-100' : '' ?>" placeholder="00.00.000" id="time_<?= $r['skater_id'] ?>" tabindex="<?= $raceFormat === 'PTP' ? '2' : '1' ?>" <?= ($raceFormat === 'ELIMINASI' && $r['status'] === 'DNF') ? 'readonly tabindex="-1"' : '' ?> autocomplete="off" onfocus="if(this.value==='00.00.000')this.value='';" onblur="if(this.value==='')this.value='00.00.000';">
                                 </td>
+                                <?php endif; ?>
 
                                 <!-- RANK -->
-                                <td class="p-4 align-middle">
+                                <?php if($isFirstMember): ?>
+                                <td class="p-4 align-middle" rowspan="<?= $rowspan ?>">
                                     <input type="number" step="1" name="rank[]" value="<?= $r['rank'] ?>" class="input-rank <?= $raceFormat === 'PTP' ? 'bg-slate-50 text-slate-400 border-slate-200' : '' ?> <?= ($raceFormat === 'ELIMINASI' && $r['status'] === 'DNF') ? 'bg-red-50 text-red-500' : '' ?>" id="rank_<?= $r['skater_id'] ?>" tabindex="<?= $raceFormat === 'PTP' ? '3' : '2' ?>">
                                 </td>
+                                <?php endif; ?>
 
                                 <!-- STATUS -->
-                                <td class="p-4 text-center relative align-middle">
+                                <?php if($isFirstMember): ?>
+                                <td class="p-4 text-center relative align-middle" rowspan="<?= $rowspan ?>">
                                     <select name="status[]" class="input-status <?= $r['status']!=='OK' ? 'text-red-600 bg-red-100 border-red-200' : 'text-slate-500 bg-slate-100 hover:bg-slate-200' ?>" onchange="handleStatusChange(this, '<?= $r['skater_id'] ?>')">
                                         <?php foreach(['OK', 'DNS', 'DNF', 'DQ', 'FS'] as $s): ?>
                                             <option value="<?= $s ?>" <?= $r['status'] === $s ? 'selected' : '' ?> <?= $s !== 'OK' ? 'class="text-red-600"' : '' ?>><?= $s ?></option>
                                         <?php endforeach; ?>
                                     </select>
                                 </td>
+                                <?php endif; ?>
                             </tr>
-                            <?php endforeach; ?>
+                            <?php 
+                                $isFirstMember = false;
+                                endforeach; // end teamMembers
+                                $teamIndex++;
+                            endforeach; // end teamChunks
+                            ?>
                         </tbody>
                     </table>
                 </div>
@@ -468,6 +528,19 @@
                     if (v.length > 7) v = v.substring(v.length - 7);
                     v = v.padStart(7, '0');
                     this.value = v.substring(0, 2) + '.' + v.substring(2, 4) + '.' + v.substring(4, 7);
+                    
+                    // UX Pintar: Jika admin mengedit waktu, kosongkan Rank manual agar sistem otomatis meranking ulang
+                    let tr = this.closest('tr');
+                    let rankInput = tr ? tr.querySelector('.input-rank') : null;
+                    let statusInput = tr ? tr.querySelector('.input-status') : null;
+                    if (rankInput && statusInput && statusInput.value === 'OK') {
+                        if (rankInput.value !== '') {
+                            rankInput.value = '';
+                            rankInput.style.transition = 'background 0.3s';
+                            rankInput.style.background = '#fef08a'; // Flash kuning
+                            setTimeout(() => { rankInput.style.background = ''; }, 500);
+                        }
+                    }
                 });
             });
 

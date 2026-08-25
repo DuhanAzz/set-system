@@ -112,22 +112,8 @@ class RollResultController extends Controller {
             $stmtRes->execute([$eventId, $filter_class_id, $current_round_name]);
             $raw_results = $stmtRes->fetchAll(PDO::FETCH_ASSOC);
             
-            $isRelay = stripos($raceInfo['distance_name'] ?? '', 'Relay') !== false;
-            
-            $teamAdded = []; // For relay
-            
             foreach ($raw_results as $row) {
-                if ($isRelay) {
-                    $teamKey = $row['heat_name'] . '_' . ($row['team_name'] ?: $row['club_name'] ?: $row['bib_number']);
-                    if (!isset($teamAdded[$teamKey])) {
-                        // Ubah skater_name agar merender nama tim
-                        $row['skater_name'] = $row['team_name'] ?: $row['club_name'] ?: 'Regu ' . $row['bib_number'];
-                        $heatsData[$row['heat_name']][] = $row;
-                        $teamAdded[$teamKey] = true;
-                    }
-                } else {
-                    $heatsData[$row['heat_name']][] = $row;
-                }
+                $heatsData[$row['heat_name']][] = $row;
             }
             
             $stmtCountElim = $db->prepare("SELECT heat_name, COUNT(*) as cnt FROM roll_event_results WHERE event_id = ? AND race_class_id = ? AND status != 'OK' GROUP BY heat_name");
@@ -236,8 +222,8 @@ class RollResultController extends Controller {
                             'result_id' => trim($result_ids[$index] ?? ''),
                             'time' => trim($times[$index] ?? ''),
                             'rank' => trim($ranks[$index] ?? ''),
-                            'point' => (int)trim($points[$index] ?? '0'),
                             'status' => trim($statuses[$index] ?? 'OK'),
+                            'point' => (trim($statuses[$index] ?? 'OK') !== 'OK') ? 0 : (int)trim($points[$index] ?? '0'),
                             'heat_name' => $h_name
                         ];
                     }
@@ -267,8 +253,8 @@ class RollResultController extends Controller {
 
                         $currentRank = 1;
                         foreach ($rows as $row) {
-                            // Jika status bukan OK, hapus rank mutlaknya agar tidak rancu
-                            $finalRank = ($row['status'] === 'OK') ? $currentRank++ : null;
+                            // Jika status bukan OK, simpan rank mutlaknya (dari eliminasi bottom-up) agar tidak hilang
+                            $finalRank = ($row['status'] === 'OK') ? $currentRank++ : ($row['rank'] !== '' ? (int)$row['rank'] : null);
                             
                             // Enforce strict MM.SS.ms format server-side
                             if ($row['time'] === '') {
