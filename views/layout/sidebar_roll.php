@@ -203,8 +203,7 @@ if (!function_exists('isGroupActive')) {
          <div id="dd-hasil" class="bg-[#0b1120] py-2 <?= $a3Active ? '' : 'hidden' ?>">
              <a href="<?= getenv('APP_URL') ?>/roll/admin/results" class="<?= (strpos($req,"admin/results")!==false && strpos($req,"publish")===false) ? $childActiveLink : $childBaseLink ?>">Input Hasil</a>
              <a href="<?= getenv('APP_URL') ?>/roll/admin/results/publish" class="<?= (strpos($req,"publish")!==false) ? $childActiveLink : $childBaseLink ?>">Publikasi Hasil</a>
-             <a href="<?= getenv('APP_URL') ?>/roll/admin/medal_tally" class="<?= (strpos($req,"admin/medal_tally")!==false && strpos($req,"best_skater")===false) ? $childActiveLink : $childBaseLink ?>">Rekap Medali</a>
-             <a href="<?= getenv('APP_URL') ?>/roll/admin/medal_tally/best_skater" class="<?= (strpos($req,"best_skater")!==false) ? $childActiveLink : $childBaseLink ?>">Pesepatu Roda Terbaik</a>
+             <a href="<?= getenv('APP_URL') ?>/roll/admin/medal_tally" class="<?= (strpos($req,"admin/medal_tally")!==false) ? $childActiveLink : $childBaseLink ?>">Rekap Medali</a>
              <a href="<?= getenv('APP_URL') ?>/roll/admin/export" class="<?= (strpos($req,"admin/export")!==false) ? $childActiveLink : $childBaseLink ?>">Ekspor & Laporan</a>
          </div>
 
