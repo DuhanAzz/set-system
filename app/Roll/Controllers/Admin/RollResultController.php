@@ -368,6 +368,49 @@ class RollResultController extends Controller {
                 exit; 
             }
             
+            if ($_POST['action'] === 'upload_pdf') {
+                $classId = $_POST['class_id'] ?? 0;
+                if (!isset($_FILES['result_pdf']) || $_FILES['result_pdf']['error'] !== UPLOAD_ERR_OK) {
+                    echo json_encode(['success' => false, 'message' => 'Gagal mengunggah PDF.']);
+                    exit;
+                }
+                
+                $uploadDir = __DIR__ . '/../../../../public/uploads/results/';
+                if (!is_dir($uploadDir)) {
+                    mkdir($uploadDir, 0777, true);
+                }
+                
+                $fileTmp = $_FILES['result_pdf']['tmp_name'];
+                $fileName = time() . '_' . preg_replace("/[^a-zA-Z0-9.\-_]/", "", basename($_FILES['result_pdf']['name']));
+                $destination = $uploadDir . $fileName;
+                
+                if (move_uploaded_file($fileTmp, $destination)) {
+                    try {
+                        $stmt = $db->prepare("UPDATE roll_event_details SET result_pdf = ?, result_status = 'Published' WHERE id = ?");
+                        $stmt->execute([$fileName, $classId]);
+                        echo json_encode(['success' => true, 'message' => 'PDF berhasil diunggah dan status dipublikasikan!', 'filename' => $fileName]);
+                    } catch (\Exception $e) {
+                        echo json_encode(['success' => false, 'message' => 'Error DB: ' . $e->getMessage()]);
+                    }
+                } else {
+                    echo json_encode(['success' => false, 'message' => 'Gagal memindahkan file yang diunggah.']);
+                }
+                exit;
+            }
+            
+            if ($_POST['action'] === 'delete_pdf') {
+                $classId = $_POST['class_id'] ?? 0;
+                try {
+                    // Opsional: Hapus file fisik jika diperlukan, di sini kita hanya update DB untuk keamanan riwayat
+                    $stmt = $db->prepare("UPDATE roll_event_details SET result_pdf = NULL, result_status = 'Draft' WHERE id = ?");
+                    $stmt->execute([$classId]);
+                    echo json_encode(['success' => true, 'message' => 'PDF berhasil dihapus dan status dikembalikan ke Draft.']);
+                } catch (\Exception $e) {
+                    echo json_encode(['success' => false, 'message' => 'Error DB: ' . $e->getMessage()]);
+                }
+                exit;
+            }
+            
             if ($_POST['action'] === 'toggle_event_publish') {
                 $evId = $_POST['event_id'] ?? 0;
                 $status = $_POST['is_result_published'] ?? 0;
@@ -402,10 +445,11 @@ class RollResultController extends Controller {
         $eventInfo = $stmtEv->fetch(PDO::FETCH_ASSOC);
 
         // Fetch Classes
-        $stmtClasses = $db->prepare("SELECT ed.id, d.distance_name, a.group_name, ed.category_name, ed.result_status 
+        $stmtClasses = $db->prepare("SELECT ed.id, ed.race_number, d.distance_name, a.group_name, ed.category_name, ed.gender, sc.class_name, ed.result_status, ed.result_pdf 
                                      FROM roll_event_details ed 
                                      LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id 
                                      LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id 
+                                     LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
                                      WHERE ed.event_id = ?
                                      ORDER BY ed.id ASC");
         $stmtClasses->execute([$eventId]);

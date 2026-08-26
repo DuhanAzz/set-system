@@ -72,75 +72,35 @@ $siteDesc     = $s['site_description'] ?? 'Platform manajemen lomba sepatu roda 
             </div>
         </div>
 
-        <div class="bg-slate-900/80 backdrop-blur p-2 rounded-full shadow-2xl border border-slate-800 mb-8 flex items-center gap-2 sticky top-24 z-40 focus-within:border-orange-500 focus-within:ring-2 focus-within:ring-orange-950/50 transition-all">
+        <div class="bg-slate-900/80 backdrop-blur p-2 rounded-full shadow-2xl border border-slate-800 mb-8 flex items-center gap-2 sticky top-24 z-40 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-950/50 transition-all">
             <span class="text-lg ml-4 opacity-40">🔍</span>
-            <input type="text" id="searchInput" placeholder="Cari nama atlet atau tim..." class="w-full bg-transparent border-none focus:outline-none focus:ring-0 text-sm font-bold text-slate-100 uppercase placeholder:text-slate-500 placeholder:normal-case placeholder:font-medium py-2">
+            <input type="text" id="searchInput" placeholder="Cari nomor lomba atau kategori..." class="w-full bg-transparent border-none focus:outline-none focus:ring-0 text-sm font-bold text-slate-100 uppercase placeholder:text-slate-500 placeholder:normal-case placeholder:font-medium py-2">
         </div>
 
-        <?php if (empty($groupedResults)): ?>
+        <?php if (empty($publishedClasses)): ?>
             <div class="bg-slate-900/60 p-12 text-center rounded-3xl border border-slate-800 shadow-xl">
                 <span class="text-5xl block mb-5 opacity-20">⏳</span>
                 <p class="text-sm font-bold text-slate-400 uppercase tracking-widest">Hasil Belum Tersedia</p>
-                <p class="text-[10px] text-slate-500 mt-2">Panitia belum mengunggah waktu finish perlombaan di event ini.</p>
+                <p class="text-[10px] text-slate-500 mt-2">Panitia belum mengunggah PDF hasil perlombaan di event ini.</p>
             </div>
         <?php else: ?>
             <div id="resultContainer" class="space-y-4">
-                <?php foreach ($groupedResults as $heatName => $atletList): ?>
+                <?php foreach ($publishedClasses as $c): ?>
+                    <?php 
+                        $className = "{$c['class_name']} - {$c['distance_name']} - {$c['category_name']} - {$c['group_name']} - {$c['gender']} - FINAL";
+                    ?>
                     
-                    <div class="bg-slate-900 rounded-2xl border border-slate-800 shadow-xl overflow-hidden result-card transition-all duration-300 hover:border-slate-700">
-                        
-                        <button onclick="toggleAccordion(this)" class="w-full flex items-center justify-between px-5 sm:px-6 py-4 bg-gradient-to-r from-slate-800/40 to-slate-800/5 text-left focus:outline-none transition-colors hover:bg-slate-800/60 group">
+                    <div class="bg-slate-900 rounded-2xl border border-slate-800 shadow-xl overflow-hidden result-card transition-all duration-300 hover:border-slate-700" data-classname="<?= strtolower(htmlspecialchars($className)) ?>">
+                        <a href="<?= getenv('APP_URL') ?>/uploads/results/<?= htmlspecialchars($c['result_pdf']) ?>" target="_blank" class="w-full flex items-center justify-between px-5 sm:px-6 py-4 bg-gradient-to-r from-slate-800/40 to-slate-800/5 text-left transition-colors hover:bg-slate-800/60 group">
                             <h2 class="text-xs sm:text-sm font-black text-white uppercase italic tracking-tight flex items-center gap-3">
-                                <span class="w-1.5 h-3 bg-orange-500 rounded-full block group-hover:bg-orange-400 transition-colors"></span>
-                                <?= htmlspecialchars($heatName) ?>
+                                <span class="w-1.5 h-3 bg-blue-500 rounded-full block group-hover:bg-blue-400 transition-colors"></span>
+                                <?= htmlspecialchars($className) ?>
                             </h2>
-                            <svg class="w-5 h-5 text-slate-400 group-hover:text-white accordion-arrow transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"></path>
-                            </svg>
-                        </button>
-                        
-                        <div class="accordion-body hidden border-t border-slate-800/60 transition-all duration-300">
-                            <div class="overflow-x-auto">
-                                <table class="w-full text-left border-collapse min-w-[650px]">
-                                    <thead>
-                                        <tr class="bg-slate-950/50 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-800">
-                                            <th class="py-4 px-4 w-14 text-center">Rank</th>
-                                            <th class="py-4 px-4">Nama Skater</th>
-                                            <th class="py-4 px-4">Klub / Tim</th>
-                                            <th class="py-4 px-4 text-right w-28 text-slate-500">Wkt. Final</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="divide-y divide-slate-800/40">
-                                        <?php foreach ($atletList as $atlet): ?>
-                                            <?php
-                                            $rankBadge = $atlet['rank'] ?? '-';
-                                            $rankClass = 'text-slate-500';
-                                            if ($rankBadge == 1) { $rankBadge = '🥇 1'; $rankClass = 'text-amber-400'; }
-                                            elseif ($rankBadge == 2) { $rankBadge = '🥈 2'; $rankClass = 'text-slate-300'; }
-                                            elseif ($rankBadge == 3) { $rankBadge = '🥉 3'; $rankClass = 'text-orange-400'; }
-                                            ?>
-                                        <tr class="searchable-row hover:bg-slate-800/30 transition-colors">
-                                            <td class="py-3.5 px-4 text-center text-xs font-bold <?= $rankClass ?>">
-                                                <?= $rankBadge ?>
-                                            </td>
-                                            <td class="py-3.5 px-4">
-                                                <span class="text-xs sm:text-sm font-extrabold uppercase athlete-name text-slate-100 tracking-tight">
-                                                    <?= htmlspecialchars($atlet['skater_name'] ?? '-') ?>
-                                                </span>
-                                            </td>
-                                            <td class="py-3.5 px-4 text-[10px] font-bold uppercase tracking-widest team-name text-slate-400">
-                                                <?= htmlspecialchars($atlet['club_name'] ?: '-') ?>
-                                            </td>
-                                            <td class="py-3.5 px-4 text-right font-mono text-sm font-black text-white">
-                                                <?= htmlspecialchars($atlet['time'] ?? '-') ?>
-                                            </td>
-                                        </tr>
-                                        <?php endforeach; ?>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-
+                            <span class="px-3 py-1 bg-blue-500/20 text-blue-400 rounded-lg text-[10px] font-bold uppercase tracking-widest group-hover:bg-blue-500/30 transition-colors flex items-center gap-2 whitespace-nowrap ml-4">
+                                BUKA PDF
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                            </span>
+                        </a>
                     </div>
                 <?php endforeach; ?>
             </div>
@@ -148,7 +108,7 @@ $siteDesc     = $s['site_description'] ?? 'Platform manajemen lomba sepatu roda 
     </div>
 
     <script>
-        // Pencarian Atlet
+        // Pencarian Kelas Lomba
         const searchInput = document.getElementById('searchInput');
         if (searchInput) {
             searchInput.addEventListener('input', function() {
@@ -156,58 +116,16 @@ $siteDesc     = $s['site_description'] ?? 'Platform manajemen lomba sepatu roda 
                 const cards = document.querySelectorAll('.result-card');
                 
                 cards.forEach(card => {
-                    let hasMatch = false;
-                    const rows = card.querySelectorAll('.searchable-row');
-                    
-                    rows.forEach(row => {
-                        const name = row.querySelector('.athlete-name').innerText.toLowerCase();
-                        const team = row.querySelector('.team-name').innerText.toLowerCase();
-                        if (name.includes(keyword) || team.includes(keyword)) {
-                            row.style.display = '';
-                            hasMatch = true;
-                        } else {
-                            row.style.display = 'none';
-                        }
-                    });
-
-                    // Tampilkan atau sembunyikan akordion jika ada yang cocok
-                    if (hasMatch) {
+                    const className = card.getAttribute('data-classname');
+                    if (className.includes(keyword)) {
                         card.style.display = '';
-                        if (keyword !== '') {
-                            // Expand otomatis jika ada pencarian
-                            const body = card.querySelector('.accordion-body');
-                            const arrow = card.querySelector('.accordion-arrow');
-                            body.classList.remove('hidden');
-                            arrow.classList.add('rotate-180');
-                        }
                     } else {
                         card.style.display = 'none';
                     }
                 });
             });
         }
-
-        // Accordion Toggle
-        function toggleAccordion(btn) {
-            const body = btn.nextElementSibling;
-            const arrow = btn.querySelector('.accordion-arrow');
-            if (body.classList.contains('hidden')) {
-                body.classList.remove('hidden');
-                arrow.classList.add('rotate-180');
-            } else {
-                body.classList.add('hidden');
-                arrow.classList.remove('rotate-180');
-            }
-        }
         
-        // Expand akordion pertama secara default jika ada
-        window.addEventListener('load', () => {
-            const firstAccordion = document.querySelector('.result-card button');
-            if(firstAccordion) {
-                toggleAccordion(firstAccordion);
-            }
-        });
-
         // NAVBAR SCROLL EFFECT
         const navbar = document.getElementById('navbar');
         const logo = document.getElementById('nav-logo');

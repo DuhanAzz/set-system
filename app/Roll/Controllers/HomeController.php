@@ -192,29 +192,23 @@ class HomeController extends Controller {
             exit;
         }
 
-        // Ambil data hasil dari roll_event_results yang kelasnya sudah di-Published
-        $stmtRes = $db->prepare("
-            SELECT r.*, s.skater_name, c.club_name 
-            FROM roll_event_results r
-            JOIN roll_skaters s ON r.skater_id = s.id
-            LEFT JOIN roll_clubs c ON s.club_id = c.id
-            JOIN roll_event_details ed ON r.race_class_id = ed.id
-            WHERE r.event_id = ? AND ed.result_status = 'Published'
-            ORDER BY r.heat_name ASC, CASE WHEN r.status = 'OK' THEN 0 ELSE 1 END ASC, r.rank IS NULL, r.rank ASC, r.time ASC
+        // Ambil kelas lomba yang sudah di-publish dan ada file PDF-nya
+        $stmtClasses = $db->prepare("
+            SELECT ed.id, d.distance_name, a.group_name, ed.category_name, ed.gender, ed.result_pdf, sc.class_name
+            FROM roll_event_details ed
+            LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
+            LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id
+            LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
+            WHERE ed.event_id = ? AND ed.result_status = 'Published' AND ed.result_pdf IS NOT NULL AND ed.result_pdf != ''
+            ORDER BY a.min_year ASC, d.distance_name ASC
         ");
-        $stmtRes->execute([$event_id]);
-        $rawResults = $stmtRes->fetchAll(PDO::FETCH_ASSOC);
-
-        $groupedResults = [];
-        foreach ($rawResults as $res) {
-            $heatName = $res['heat_name'] ?: 'Tanpa Heat';
-            $groupedResults[$heatName][] = $res;
-        }
+        $stmtClasses->execute([$event_id]);
+        $publishedClasses = $stmtClasses->fetchAll(PDO::FETCH_ASSOC);
 
         return $this->view('roll/live_result', [
             's' => $s,
             'event' => $event,
-            'groupedResults' => $groupedResults
+            'publishedClasses' => $publishedClasses
         ]);
     }
 }
