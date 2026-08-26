@@ -41,7 +41,6 @@ class RollMedalTallyController extends Controller {
             WHERE r.event_id = ? 
               AND r.rank IN (1, 2, 3) 
               AND r.status = 'OK'
-              AND r.is_official = 1
               AND (e.status = 'Finished' OR e.status = 'Qualified')
             GROUP BY c.id, c.club_name
             ORDER BY gold DESC, silver DESC, bronze DESC, c.club_name ASC
@@ -94,7 +93,6 @@ class RollMedalTallyController extends Controller {
             WHERE r.event_id = ? 
               AND r.rank IN (1, 2, 3) 
               AND r.status = 'OK'
-              AND r.is_official = 1
               AND (e.status = 'Finished' OR e.status = 'Qualified')
             GROUP BY s.id, s.skater_name, s.gender, ed.category_name, ag.group_name, c.club_name
             ORDER BY ed.category_name ASC, ag.group_name ASC, s.gender ASC, 

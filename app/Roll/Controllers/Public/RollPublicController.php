@@ -50,7 +50,6 @@ class RollPublicController extends Controller {
             WHERE r.event_id = ? 
               AND r.rank IN (1, 2, 3)
               AND r.status = 'OK'
-              AND r.is_official = 1
               AND e.status = 'Finished'
               AND ed.result_status = 'Published'
             GROUP BY c.id
@@ -68,7 +67,7 @@ class RollPublicController extends Controller {
             JOIN roll_event_details ed ON r.race_class_id = ed.id
             LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
             LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id
-            WHERE r.event_id = ? AND r.is_official = 1 AND ed.result_status = 'Published'
+            WHERE r.event_id = ? AND ed.result_status = 'Published'
             ORDER BY a.min_year ASC, d.distance_name ASC, CASE WHEN r.status = 'OK' THEN 0 ELSE 1 END ASC, r.rank IS NULL, r.rank ASC, r.time ASC
         ");
         $stmtRes->execute([$eventId]);

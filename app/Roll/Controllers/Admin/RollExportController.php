@@ -99,7 +99,6 @@ class RollExportController extends Controller {
             WHERE r.event_id = ? 
               AND r.rank IN (1, 2, 3) 
               AND r.status = 'OK'
-              AND r.is_official = 1
               AND e.status = 'Finished'
             GROUP BY c.id
             ORDER BY gold DESC, silver DESC, bronze DESC, c.club_name ASC
@@ -116,7 +115,7 @@ class RollExportController extends Controller {
             JOIN roll_event_details ed ON r.race_class_id = ed.id
             LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
             LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id
-            WHERE r.event_id = ? AND r.is_official = 1
+            WHERE r.event_id = ?
             ORDER BY a.min_age ASC, d.distance ASC, CASE WHEN r.status = 'OK' THEN 0 ELSE 1 END ASC, r.rank IS NULL, r.rank ASC, r.time ASC
         ");
         $stmtRes->execute([$eventId]);
