@@ -192,13 +192,14 @@ class HomeController extends Controller {
             exit;
         }
 
-        // Ambil data hasil dari roll_event_results
+        // Ambil data hasil dari roll_event_results yang kelasnya sudah di-Published
         $stmtRes = $db->prepare("
             SELECT r.*, s.skater_name, c.club_name 
             FROM roll_event_results r
             JOIN roll_skaters s ON r.skater_id = s.id
             LEFT JOIN roll_clubs c ON s.club_id = c.id
-            WHERE r.event_id = ?
+            JOIN roll_event_details ed ON r.race_class_id = ed.id
+            WHERE r.event_id = ? AND ed.result_status = 'Published'
             ORDER BY r.heat_name ASC, CASE WHEN r.status = 'OK' THEN 0 ELSE 1 END ASC, r.rank IS NULL, r.rank ASC, r.time ASC
         ");
         $stmtRes->execute([$event_id]);

@@ -113,7 +113,7 @@ $siteDesc     = $s['site_description'] ?? 'Platform manajemen lomba sepatu roda 
                                     <tbody class="divide-y divide-slate-800/40">
                                         <?php foreach ($atletList as $atlet): ?>
                                             <?php
-                                            $rankBadge = $atlet['rank_final'] ?: '-';
+                                            $rankBadge = $atlet['rank'] ?? '-';
                                             $rankClass = 'text-slate-500';
                                             if ($rankBadge == 1) { $rankBadge = '🥇 1'; $rankClass = 'text-amber-400'; }
                                             elseif ($rankBadge == 2) { $rankBadge = '🥈 2'; $rankClass = 'text-slate-300'; }
@@ -125,14 +125,14 @@ $siteDesc     = $s['site_description'] ?? 'Platform manajemen lomba sepatu roda 
                                             </td>
                                             <td class="py-3.5 px-4">
                                                 <span class="text-xs sm:text-sm font-extrabold uppercase athlete-name text-slate-100 tracking-tight">
-                                                    <?= htmlspecialchars($atlet['skater_name']) ?>
+                                                    <?= htmlspecialchars($atlet['skater_name'] ?? '-') ?>
                                                 </span>
                                             </td>
                                             <td class="py-3.5 px-4 text-[10px] font-bold uppercase tracking-widest team-name text-slate-400">
                                                 <?= htmlspecialchars($atlet['club_name'] ?: '-') ?>
                                             </td>
                                             <td class="py-3.5 px-4 text-right font-mono text-sm font-black text-white">
-                                                <?= htmlspecialchars($atlet['time_final'] ?: '-') ?>
+                                                <?= htmlspecialchars($atlet['time'] ?? '-') ?>
                                             </td>
                                         </tr>
                                         <?php endforeach; ?>

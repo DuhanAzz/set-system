@@ -281,8 +281,11 @@ class RollResultController extends Controller {
                                     JOIN roll_entries e ON p.skater_id = e.skater_id AND p.race_class_id = e.race_class_id AND p.event_id = e.event_id
                                     LEFT JOIN roll_event_results r ON p.skater_id = r.skater_id AND p.race_class_id = r.race_class_id AND p.event_id = r.event_id AND p.heat_name = r.heat_name
                                     WHERE p.event_id = ? AND p.race_class_id = ? AND p.heat_name = ?
-                                      AND (e.team_name = (SELECT team_name FROM roll_entries WHERE skater_id = ? AND race_class_id = ?) 
-                                           OR e.bib_number = (SELECT bib_number FROM roll_entries WHERE skater_id = ? AND race_class_id = ?))
+                                      AND (
+                                            (e.team_name != '' AND e.team_name IS NOT NULL AND e.team_name = (SELECT team_name FROM roll_entries WHERE skater_id = ? AND race_class_id = ?)) 
+                                            OR 
+                                            (e.bib_number = (SELECT bib_number FROM roll_entries WHERE skater_id = ? AND race_class_id = ?))
+                                          )
                                 ");
                                 $stmtTeam->execute([$eventId, $row['race_class_id'], $row['heat_name'], $row['skater_id'], $row['race_class_id'], $row['skater_id'], $row['race_class_id']]);
                                 $membersToProcess = $stmtTeam->fetchAll(PDO::FETCH_ASSOC);
