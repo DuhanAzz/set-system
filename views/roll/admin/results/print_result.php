@@ -260,22 +260,72 @@
                                             ?>
                                             <tr>
                                                 <th style="width: 40px; text-align: center; border: 1px solid #000; padding: 4px; background: #f0f0f0; font-weight: bold; font-size: 9pt;">NO</th>
+                                                <?php if(isset($isRelay) && $isRelay): ?>
+                                                <th style="width: 20%; border: 1px solid #000; padding: 4px; background: #f0f0f0; font-weight: bold; font-size: 9pt; text-align: left;">NAMA TIM</th>
+                                                <?php endif; ?>
                                                 <th style="width: 60px; text-align: center; border: 1px solid #000; padding: 4px; background: #f0f0f0; font-weight: bold; font-size: 9pt;">NO. BIB</th>
-                                                <th style="width: 40%; border: 1px solid #000; padding: 4px; background: #f0f0f0; font-weight: bold; font-size: 9pt; text-align: left;"><?= isset($isRelay) && $isRelay ? 'NAMA TIM' : 'NAMA ATLET' ?></th>
+                                                <th style="width: <?= isset($isRelay) && $isRelay ? '25%' : '40%' ?>; border: 1px solid #000; padding: 4px; background: #f0f0f0; font-weight: bold; font-size: 9pt; text-align: left;">NAMA ATLET</th>
                                                 <th style="border: 1px solid #000; padding: 4px; background: #f0f0f0; font-weight: bold; font-size: 9pt; text-align: left;">KLUB / KONTINGEN</th>
                                                 <th style="width: 160px; text-align: center; border: 1px solid #000; padding: 4px; background: #f0f0f0; font-weight: bold; font-size: 9pt;">HASIL <?= strtoupper(htmlspecialchars($prevRoundName)) ?></th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            <?php foreach ($heatMembers as $res): ?>
+                                            <?php 
+                                            // Lakukan grouping khusus untuk Relay
+                                            $finalHeatMembers = [];
+                                            if (isset($isRelay) && $isRelay) {
+                                                $grouped = [];
+                                                foreach ($heatMembers as $r) {
+                                                    $teamKey = ($r['team_name'] ?: $r['club_name'] ?: $r['bib_number']);
+                                                    if (!isset($grouped[$teamKey])) {
+                                                        $grouped[$teamKey] = $r;
+                                                        $grouped[$teamKey]['members'] = [];
+                                                    }
+                                                    $grouped[$teamKey]['members'][] = [
+                                                        'name' => $r['skater_name'],
+                                                        'bib' => $r['bib_number']
+                                                    ];
+                                                }
+                                                $finalList = array_values($grouped);
+                                                foreach ($finalList as &$g) {
+                                                    $g['is_team_grouped'] = true;
+                                                }
+                                                $finalHeatMembers = $finalList;
+                                            } else {
+                                                $finalHeatMembers = $heatMembers;
+                                            }
+                                            
+                                            foreach ($finalHeatMembers as $idx => $res): 
+                                            ?>
                                             <tr>
-                                                <td style="text-align: center; border: 1px solid #000; padding: 4px; font-weight: bold; font-size: 11pt;"><?= htmlspecialchars($res['start_grid'] ?? '-') ?></td>
-                                                <td style="text-align: center; border: 1px solid #000; padding: 4px; font-weight: bold; font-size: 14pt; background-color: #f8fafc;"><?= htmlspecialchars($res['bib_number'] ?? '-') ?></td>
-                                                <td style="border: 1px solid #000; padding: 4px; font-weight: bold; text-transform: uppercase;">
-                                                    <?= htmlspecialchars($res['skater_name'] ?? '-') ?>
+                                                <td style="text-align: center; border: 1px solid #000; padding: 4px; font-weight: bold; font-size: 11pt; vertical-align: middle;"><?= ($idx + 1) ?></td>
+                                                
+                                                <?php if(isset($isRelay) && $isRelay): ?>
+                                                <td style="border: 1px solid #000; padding: 4px; font-weight: bold; text-transform: uppercase; vertical-align: middle;">
+                                                    <?= htmlspecialchars($res['team_name'] ?: $res['club_name']) ?>
                                                 </td>
-                                                <td style="border: 1px solid #000; padding: 4px; font-weight: bold; color: #444;"><?= htmlspecialchars($res['club_name'] ?? '-') ?></td>
-                                                <td style="text-align: center; border: 1px solid #000; padding: 4px;">
+                                                <?php endif; ?>
+
+                                                <td style="text-align: center; border: 1px solid #000; padding: 4px; font-weight: bold; font-size: 12pt; background-color: #f8fafc; vertical-align: middle;">
+                                                    <?php if(isset($res['is_team_grouped']) && $res['is_team_grouped'] && !empty($res['members'])): ?>
+                                                        <?php foreach($res['members'] as $midx => $m): ?>
+                                                            <?= htmlspecialchars($m['bib'] ?? '-') ?><?= $midx < count($res['members']) - 1 ? '<br>' : '' ?>
+                                                        <?php endforeach; ?>
+                                                    <?php else: ?>
+                                                        <?= htmlspecialchars($res['bib_number'] ?? '-') ?>
+                                                    <?php endif; ?>
+                                                </td>
+                                                <td style="border: 1px solid #000; padding: 4px; font-weight: bold; text-transform: uppercase; vertical-align: middle;">
+                                                    <?php if(isset($res['is_team_grouped']) && $res['is_team_grouped'] && !empty($res['members'])): ?>
+                                                        <?php foreach($res['members'] as $midx => $m): ?>
+                                                            <?= htmlspecialchars($m['name'] ?? '-') ?><?= $midx < count($res['members']) - 1 ? '<br>' : '' ?>
+                                                        <?php endforeach; ?>
+                                                    <?php else: ?>
+                                                        <?= htmlspecialchars($res['skater_name'] ?? '-') ?>
+                                                    <?php endif; ?>
+                                                </td>
+                                                <td style="border: 1px solid #000; padding: 4px; font-weight: bold; color: #444; vertical-align: middle;"><?= htmlspecialchars($res['club_name'] ?? '-') ?></td>
+                                                <td style="text-align: center; border: 1px solid #000; padding: 4px; vertical-align: middle;">
                                                     <?php if(!empty($res['prev_time'])): ?>
                                                         <span style="font-weight: bold; font-size: 11pt;"><?= htmlspecialchars($res['prev_time']) ?></span>
                                                     <?php else: ?>
@@ -305,8 +355,11 @@
                             <thead>
                                 <tr>
                                     <th class="text-center" style="width: 50px;">Rank</th>
+                                    <?php if(isset($isRelay) && $isRelay): ?>
+                                    <th>Nama Tim</th>
+                                    <?php endif; ?>
                                     <th class="text-center" style="width: 50px;">BIB</th>
-                                    <th><?= isset($isRelay) && $isRelay ? 'Regu / Tim' : 'Atlet' ?></th>
+                                    <th>Nama Atlet</th>
                                     <th>Klub</th>
                                     <?php if(isset($raceFormat) && $raceFormat === 'PTP'): ?>
                                     <th class="text-center" style="width: 60px;">Poin</th>
@@ -329,7 +382,10 @@
                                                     $grouped[$teamKey] = $r;
                                                     $grouped[$teamKey]['members'] = [];
                                                 }
-                                                $grouped[$teamKey]['members'][] = $r['skater_name'];
+                                                $grouped[$teamKey]['members'][] = [
+                                                    'name' => $r['skater_name'],
+                                                    'bib' => $r['bib_number']
+                                                ];
                                             }
                                             $finalList = array_values($grouped);
                                             foreach ($finalList as &$g) {
@@ -358,11 +414,26 @@
                                     ?>
                                     <tr>
                                         <td class="text-center font-bold" style="font-size: 12pt; vertical-align: middle;"><?= htmlspecialchars($displayRank) ?></td>
-                                        <td class="text-center font-bold" style="font-size: 12pt; vertical-align: middle;"><?= htmlspecialchars($res['bib_number'] ?? '-') ?></td>
+                                        
+                                        <?php if(isset($isRelay) && $isRelay): ?>
+                                        <td class="font-bold" style="vertical-align: middle; text-transform: uppercase;">
+                                            <?= htmlspecialchars($res['team_name'] ?: $res['club_name']) ?>
+                                        </td>
+                                        <?php endif; ?>
+
+                                        <td class="text-center font-bold" style="font-size: 12pt; vertical-align: middle;">
+                                            <?php if(isset($res['is_team_grouped']) && $res['is_team_grouped'] && !empty($res['members'])): ?>
+                                                <?php foreach($res['members'] as $idx => $m): ?>
+                                                    <?= htmlspecialchars($m['bib'] ?? '-') ?><?= $idx < count($res['members']) - 1 ? '<br>' : '' ?>
+                                                <?php endforeach; ?>
+                                            <?php else: ?>
+                                                <?= htmlspecialchars($res['bib_number'] ?? '-') ?>
+                                            <?php endif; ?>
+                                        </td>
                                         <td class="font-bold" style="vertical-align: middle;">
                                             <?php if(isset($res['is_team_grouped']) && $res['is_team_grouped'] && !empty($res['members'])): ?>
-                                                <?php foreach($res['members'] as $idx => $mName): ?>
-                                                    <?= htmlspecialchars($mName) ?><?= $idx < count($res['members']) - 1 ? '<br>' : '' ?>
+                                                <?php foreach($res['members'] as $idx => $m): ?>
+                                                    <?= htmlspecialchars($m['name'] ?? '-') ?><?= $idx < count($res['members']) - 1 ? '<br>' : '' ?>
                                                 <?php endforeach; ?>
                                             <?php else: ?>
                                                 <?= htmlspecialchars($res['skater_name'] ?? '-') ?>
@@ -388,8 +459,11 @@
                             <thead>
                                 <tr>
                                     <th class="text-center" style="width: 50px;">Rank</th>
+                                    <?php if(isset($isRelay) && $isRelay): ?>
+                                    <th>Nama Tim</th>
+                                    <?php endif; ?>
                                     <th class="text-center" style="width: 50px;">BIB</th>
-                                    <th><?= isset($isRelay) && $isRelay ? 'Regu / Tim' : 'Atlet' ?></th>
+                                    <th>Nama Atlet</th>
                                     <th>Klub</th>
                                     <?php if(isset($raceFormat) && $raceFormat === 'PTP'): ?>
                                     <th class="text-center" style="width: 60px;">Poin</th>
@@ -411,7 +485,10 @@
                                                     $grouped[$teamKey] = $r;
                                                     $grouped[$teamKey]['members'] = [];
                                                 }
-                                                $grouped[$teamKey]['members'][] = $r['skater_name'];
+                                                $grouped[$teamKey]['members'][] = [
+                                                    'name' => $r['skater_name'],
+                                                    'bib' => $r['bib_number']
+                                                ];
                                             }
                                             $finalList = array_values($grouped);
                                             foreach ($finalList as &$g) {
@@ -450,11 +527,26 @@
                                 ?>
                                     <tr>
                                         <td class="text-center font-bold" style="font-size: 12pt; vertical-align: middle;"><?= htmlspecialchars($displayRank) ?></td>
-                                        <td class="text-center font-bold" style="font-size: 12pt; vertical-align: middle;"><?= htmlspecialchars($res['bib_number'] ?? '-') ?></td>
+                                        
+                                        <?php if(isset($isRelay) && $isRelay): ?>
+                                        <td class="font-bold" style="vertical-align: middle; text-transform: uppercase;">
+                                            <?= htmlspecialchars($res['team_name'] ?: $res['club_name']) ?>
+                                        </td>
+                                        <?php endif; ?>
+
+                                        <td class="text-center font-bold" style="font-size: 12pt; vertical-align: middle;">
+                                            <?php if(isset($res['is_team_grouped']) && $res['is_team_grouped'] && !empty($res['members'])): ?>
+                                                <?php foreach($res['members'] as $idx => $m): ?>
+                                                    <?= htmlspecialchars($m['bib'] ?? '-') ?><?= $idx < count($res['members']) - 1 ? '<br>' : '' ?>
+                                                <?php endforeach; ?>
+                                            <?php else: ?>
+                                                <?= htmlspecialchars($res['bib_number'] ?? '-') ?>
+                                            <?php endif; ?>
+                                        </td>
                                         <td class="font-bold" style="vertical-align: middle;">
                                             <?php if(isset($res['is_team_grouped']) && $res['is_team_grouped'] && !empty($res['members'])): ?>
-                                                <?php foreach($res['members'] as $idx => $mName): ?>
-                                                    <?= htmlspecialchars($mName) ?><?= $idx < count($res['members']) - 1 ? '<br>' : '' ?>
+                                                <?php foreach($res['members'] as $idx => $m): ?>
+                                                    <?= htmlspecialchars($m['name'] ?? '-') ?><?= $idx < count($res['members']) - 1 ? '<br>' : '' ?>
                                                 <?php endforeach; ?>
                                             <?php else: ?>
                                                 <?= htmlspecialchars($res['skater_name'] ?? '-') ?>

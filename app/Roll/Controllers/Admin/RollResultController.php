@@ -725,20 +725,6 @@ class RollResultController extends Controller {
 
         $isRelay = (strpos($dn, 'relay') !== false || strpos($dn, 'pair') !== false);
 
-        if ($isRelay) {
-            $relayResults = [];
-            $seenTeams = [];
-            foreach ($results as $r) {
-                $teamKey = $r['heat_name'] . '_' . ($r['team_name'] ?: $r['club_name'] ?: $r['bib_number']);
-                if (!isset($seenTeams[$teamKey])) {
-                    $seenTeams[$teamKey] = true;
-                    $r['skater_name'] = $r['team_name'] ?: $r['club_name'] ?: 'Regu ' . $r['bib_number'];
-                    $relayResults[] = $r;
-                }
-            }
-            $results = $relayResults;
-        }
-
         return $this->view('roll/admin/results/print_result', [
             'event' => $event,
             'classInfo' => $classInfo,
