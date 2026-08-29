@@ -189,6 +189,16 @@ class RollResultController extends Controller {
             if ($eventId > 0 && $filter_class_id > 0) {
                 try {
                     $db->beginTransaction();
+
+                    if ($structural_round !== $print_round_name) {
+                        $stmtRP = $db->prepare("UPDATE roll_pelotons SET round = ? WHERE event_id = ? AND race_class_id = ? AND round = ?");
+                        $stmtRP->execute([$print_round_name, $eventId, $filter_class_id, $structural_round]);
+                        
+                        $stmtRR = $db->prepare("UPDATE roll_event_results SET round = ? WHERE event_id = ? AND race_class_id = ? AND round = ?");
+                        $stmtRR->execute([$print_round_name, $eventId, $filter_class_id, $structural_round]);
+                        
+                        $structural_round = $print_round_name;
+                    }
             
             $auto_qualify_per_heat = $_POST['auto_qualify_per_heat'] ?? null;
             if ($auto_qualify_per_heat === '') $auto_qualify_per_heat = null;
@@ -323,14 +333,12 @@ class RollResultController extends Controller {
                         }
                     }
                     
-                    $_SESSION['flash_message'] = "Hasil berhasil disimpan!";
-                    
                     $db->commit();
-                    $_SESSION['flash_type'] = "success";
+                    $_SESSION['flash_message'] = "Hasil sementara berhasil disimpan!";
                     $_SESSION['flash_type'] = "success";
                 } catch (\Exception $e) {
                     $db->rollBack();
-                    $_SESSION['flash_message'] = "Terjadi Kesalahan: " . $e->getMessage();
+                    $_SESSION['flash_message'] = "Gagal menyimpan: " . $e->getMessage();
                     $_SESSION['flash_type'] = "error";
                 }
             }
