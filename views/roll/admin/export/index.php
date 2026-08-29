@@ -9,14 +9,14 @@
     <!-- CARD 1: CSV -->
     <div class="bg-gradient-to-br from-indigo-600 to-blue-700 rounded-2xl p-8 text-white shadow-lg relative overflow-hidden group">
         <div class="relative z-10">
-            <h3 class="text-2xl font-black mb-2 flex items-center gap-2">📊 Ekspor CSV Start List</h3>
-            <p class="text-blue-100 text-sm font-medium mb-6">Format data mentah seluruh peserta yang dapat diolah lebih lanjut menggunakan Spreadsheet (Excel/Google Sheets) maupun sistem lain.</p>
+            <h3 class="text-2xl font-black mb-2 flex items-center gap-2">📊 Kumpulan CSV (ZIP)</h3>
+            <p class="text-blue-100 text-sm font-medium mb-6">Unduh bundel file `.zip` berisi seluruh file CSV siap pakai yang sudah dipisah-pisah berdasarkan nomor kelas lomba dan babaknya (Kualifikasi, Final, dsb) untuk sistem hardware.</p>
             
             <a href="<?= getenv('APP_URL') ?>/roll/admin/export/generate_start_list" class="block text-center w-full bg-white text-indigo-700 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-indigo-50 transition shadow-md">
-                📥 UNDUH CSV
+                📥 UNDUH ZIP CSV
             </a>
         </div>
-        <div class="absolute right-[-20px] bottom-[-20px] opacity-10 group-hover:scale-110 transition text-8xl">📋</div>
+        <div class="absolute right-[-20px] bottom-[-20px] opacity-10 group-hover:scale-110 transition text-8xl">🗂️</div>
     </div>
 
     <!-- CARD 2: LAPORAN -->

@@ -33,7 +33,6 @@ class RollExportController extends Controller {
     }
 
     public function generate_start_list() {
-        // Simple CSV Output for Enterprise Export
         $db = Database::getInstance()->getConnection();
         $eventId = $_SESSION['roll_admin_active_event_id'] ?? 0;
 
@@ -41,38 +40,109 @@ class RollExportController extends Controller {
             die("Event not selected.");
         }
 
-        $stmt = $db->prepare("
-            SELECT p.heat_name, p.start_grid, s.skater_name, c.club_name, d.distance_name, a.group_name
-            FROM roll_pelotons p
-            JOIN roll_skaters s ON p.skater_id = s.id
-            LEFT JOIN roll_clubs c ON s.club_id = c.id
-            JOIN roll_event_details ed ON p.race_class_id = ed.id
+        $stmtClasses = $db->prepare("
+            SELECT ed.id, ed.race_number, d.distance_name, a.group_name, ed.gender, sc.class_name 
+            FROM roll_event_details ed
             LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
             LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id
-            WHERE p.event_id = ?
-            ORDER BY ed.id ASC, p.heat_name ASC, p.start_grid ASC
+            LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
+            WHERE ed.event_id = ?
         ");
-        $stmt->execute([$eventId]);
-        $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $stmtClasses->execute([$eventId]);
+        $classes = $stmtClasses->fetchAll(PDO::FETCH_ASSOC);
 
-        header('Content-Type: text/csv');
-        header('Content-Disposition: attachment; filename="Start_List_Event_'.$eventId.'.csv"');
+        $stmtRounds = $db->prepare("SELECT DISTINCT round FROM roll_pelotons WHERE event_id = ? AND race_class_id = ?");
+
+        $zip = new \ZipArchive();
         
-        $output = fopen('php://output', 'w');
-        fputcsv($output, ['Class', 'Distance', 'Age Group', 'Heat', 'Grid (0-9)', 'Skater Name', 'Club']);
-        
-        foreach($data as $row) {
-            fputcsv($output, [
-                $row['group_name'] . ' ' . $row['distance_name'],
-                $row['distance_name'],
-                $row['group_name'],
-                $row['heat_name'],
-                $row['start_grid'],
-                $row['skater_name'],
-                $row['club_name']
-            ]);
+        $zipDir = __DIR__ . '/../../../../public/uploads/export';
+        if (!is_dir($zipDir)) {
+            mkdir($zipDir, 0777, true);
         }
-        fclose($output);
+        $zipFilename = $zipDir . '/Event_' . $eventId . '_All_CSV_' . time() . '.zip';
+
+        if ($zip->open($zipFilename, \ZipArchive::CREATE) !== TRUE) {
+            die("Cannot create zip file in " . $zipFilename);
+        }
+
+        $hasFiles = false;
+
+        foreach ($classes as $raceInfo) {
+            $classId = $raceInfo['id'];
+            $stmtRounds->execute([$eventId, $classId]);
+            $rounds = $stmtRounds->fetchAll(PDO::FETCH_COLUMN);
+
+            if (empty($rounds)) continue;
+
+            $dn = strtolower($raceInfo['distance_name'] ?? '');
+            $raceFormat = 'DTT';
+            if (strpos($dn, 'eliminasi') !== false) {
+                $raceFormat = 'ELIMINASI';
+            } elseif (strpos($dn, 'ptp') !== false || strpos($dn, 'point') !== false) {
+                $raceFormat = 'PTP';
+            }
+
+            if ($raceFormat === 'ELIMINASI') {
+                $orderBy = "ORDER BY CASE WHEN COALESCE(r.status, 'OK') = 'OK' THEN 0 ELSE 1 END ASC, CASE WHEN r.rank IS NULL OR CAST(r.rank AS CHAR) = '0' OR CAST(r.rank AS CHAR) = '' THEN 1 ELSE 0 END ASC, r.rank ASC, r.time ASC, CAST(REPLACE(p.heat_name, 'Heat ', '') AS UNSIGNED) ASC, p.start_grid ASC";
+            } else if ($raceFormat === 'DTT') {
+                $orderBy = "ORDER BY CASE WHEN COALESCE(r.status, 'OK') = 'OK' THEN 0 ELSE 1 END ASC, CASE WHEN r.time IS NULL OR r.time = '' OR r.time = '00.00.000' THEN 1 ELSE 0 END ASC, REPLACE(r.time, ':', '.') ASC, CAST(REPLACE(p.heat_name, 'Heat ', '') AS UNSIGNED) ASC, p.start_grid ASC";
+            } else {
+                $orderBy = "ORDER BY CASE WHEN COALESCE(r.status, 'OK') = 'OK' THEN 0 ELSE 1 END ASC, r.point DESC, CASE WHEN r.time IS NULL OR r.time = '' OR r.time = '00.00.000' THEN 1 ELSE 0 END ASC, REPLACE(r.time, ':', '.') ASC, CAST(REPLACE(p.heat_name, 'Heat ', '') AS UNSIGNED) ASC, p.start_grid ASC";
+            }
+
+            $stmtData = $db->prepare("
+                SELECT e.bib_number, p.heat_name, s.skater_name, r.time, e.team_name, c.club_name
+                FROM roll_pelotons p
+                JOIN roll_entries e ON p.skater_id = e.skater_id AND p.race_class_id = e.race_class_id AND p.event_id = e.event_id
+                JOIN roll_skaters s ON p.skater_id = s.id
+                LEFT JOIN roll_clubs c ON s.club_id = c.id
+                LEFT JOIN roll_event_results r ON p.event_id = r.event_id AND p.race_class_id = r.race_class_id AND p.skater_id = r.skater_id AND p.heat_name = r.heat_name AND p.round = r.round
+                WHERE p.event_id = ? AND p.race_class_id = ? AND p.round = ?
+                $orderBy
+            ");
+
+            foreach ($rounds as $round) {
+                $stmtData->execute([$eventId, $classId, $round]);
+                $rows = $stmtData->fetchAll(PDO::FETCH_ASSOC);
+
+                if (empty($rows)) continue;
+
+                $raceLabel = "R" . str_pad($raceInfo['race_number'], 3, '0', STR_PAD_LEFT) . "_" . ($raceInfo['class_name'] ?? 'Umum') . "_" . ($raceInfo['distance_name'] ?? '') . "_" . ($raceInfo['group_name'] ?? '') . "_" . ($raceInfo['gender'] ?? '');
+                $filenameLabel = $raceLabel . "_" . $round;
+                $safeFilename = preg_replace('/[^A-Za-z0-9_]/', '_', str_replace(' ', '_', $filenameLabel)) . '.csv';
+
+                $tempCsv = fopen('php://temp', 'r+');
+                fputcsv($tempCsv, ['BIB', 'HEAT', 'ATHLETE', 'TIME', 'TEAM']);
+                foreach ($rows as $r) {
+                    $timeFmt = $r['time'] ? str_replace(':', '.', $r['time']) : '';
+                    fputcsv($tempCsv, [
+                        $r['bib_number'] ?? '',
+                        $r['heat_name'] ?? '',
+                        $r['skater_name'] ?? '',
+                        $timeFmt,
+                        $r['team_name'] ?: ($r['club_name'] ?? '')
+                    ]);
+                }
+                rewind($tempCsv);
+                $csvContent = stream_get_contents($tempCsv);
+                fclose($tempCsv);
+
+                $zip->addFromString($safeFilename, $csvContent);
+                $hasFiles = true;
+            }
+        }
+
+        $zip->close();
+
+        if (!$hasFiles) {
+            die("Tidak ada data peloton/start list pada event ini.");
+        }
+
+        header('Content-Type: application/zip');
+        header('Content-Disposition: attachment; filename="Event_'.$eventId.'_CSV_Results.zip"');
+        header('Content-Length: ' . filesize($zipFilename));
+        readfile($zipFilename);
+        unlink($zipFilename);
         exit;
     }
 
@@ -108,7 +178,7 @@ class RollExportController extends Controller {
 
         // Results
         $stmtRes = $db->prepare("
-            SELECT r.*, s.skater_name, s.bib_number, c.club_name, ed.distance, d.distance_name, a.group_name
+            SELECT r.*, s.skater_name, s.bib_number, c.club_name, d.distance_name, a.group_name
             FROM roll_event_results r
             JOIN roll_skaters s ON r.skater_id = s.id
             LEFT JOIN roll_clubs c ON s.club_id = c.id
@@ -116,7 +186,7 @@ class RollExportController extends Controller {
             LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
             LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id
             WHERE r.event_id = ?
-            ORDER BY a.min_age ASC, d.distance ASC, CASE WHEN r.status = 'OK' THEN 0 ELSE 1 END ASC, r.rank IS NULL, r.rank ASC, r.time ASC
+            ORDER BY a.min_year ASC, d.distance_name ASC, CASE WHEN r.status = 'OK' THEN 0 ELSE 1 END ASC, r.rank IS NULL, r.rank ASC, r.time ASC
         ");
         $stmtRes->execute([$eventId]);
         $results = $stmtRes->fetchAll(PDO::FETCH_ASSOC);
@@ -140,7 +210,7 @@ class RollExportController extends Controller {
 
         // Pelotons
         $stmtP = $db->prepare("
-            SELECT p.*, s.skater_name, s.bib_number, c.club_name, ed.distance, d.distance_name, a.group_name, ed.category_name
+            SELECT p.*, s.skater_name, s.bib_number, c.club_name, d.distance_name, a.group_name, ed.category_name, ed.race_number
             FROM roll_pelotons p
             JOIN roll_skaters s ON p.skater_id = s.id
             LEFT JOIN roll_clubs c ON s.club_id = c.id
@@ -148,7 +218,7 @@ class RollExportController extends Controller {
             LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
             LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id
             WHERE p.event_id = ?
-            ORDER BY a.min_age ASC, d.distance ASC, p.heat_name ASC, p.start_grid ASC
+            ORDER BY CAST(ed.race_number AS UNSIGNED) ASC, a.min_year ASC, d.distance_name ASC, p.heat_name ASC, p.start_grid ASC
         ");
         $stmtP->execute([$eventId]);
         $pelotonsData = $stmtP->fetchAll(PDO::FETCH_ASSOC);
