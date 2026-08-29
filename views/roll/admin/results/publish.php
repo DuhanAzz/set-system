@@ -72,18 +72,27 @@
                                 <span class="px-2 py-1 bg-amber-100 text-amber-700 rounded text-[9px] font-black uppercase tracking-widest">⏳ Draft</span>
                             <?php endif; ?>
                         </td>
-                        <td class="px-6 py-4 text-right">
-                            <div class="flex flex-col gap-1.5 w-32 ml-auto">
-                                <?php if (!empty($c['result_pdf'])): ?>
-                                    <div class="flex gap-1.5 w-full">
-                                        <button type="button" onclick="deletePdf(<?= $c['id'] ?>)" class="flex-1 px-2 py-1.5 bg-red-50 text-red-600 border border-red-200 text-[10px] font-bold rounded-lg hover:bg-red-100 transition-colors text-center" title="Hapus PDF">🗑️</button>
-                                        <a href="<?= getenv('APP_URL') ?>/uploads/results/<?= htmlspecialchars($c['result_pdf']) ?>" target="_blank" class="flex-[3] px-2 py-1.5 bg-blue-50 text-blue-600 border border-blue-200 text-[10px] font-bold rounded-lg hover:bg-blue-100 transition-colors text-center">Lihat PDF</a>
+                        <td class="px-6 py-4">
+                            <div class="flex flex-col gap-2">
+                                <?php foreach ($c['available_rounds'] as $roundName): ?>
+                                    <div class="bg-slate-50 p-2 rounded-lg border border-slate-200 flex items-center justify-between gap-3">
+                                        <div class="text-[10px] font-black text-slate-600 uppercase tracking-widest w-24 whitespace-nowrap">
+                                            <?= htmlspecialchars($roundName) ?>
+                                        </div>
+                                        <div class="flex flex-col gap-1.5 w-32 ml-auto">
+                                            <?php if (isset($c['pdfs'][$roundName])): ?>
+                                                <div class="flex gap-1.5 w-full">
+                                                    <button type="button" onclick="deletePdf(<?= $c['id'] ?>, '<?= htmlspecialchars($roundName) ?>')" class="flex-1 px-2 py-1.5 bg-red-50 text-red-600 border border-red-200 text-[10px] font-bold rounded-lg hover:bg-red-100 transition-colors text-center" title="Hapus PDF">🗑️</button>
+                                                    <a href="<?= getenv('APP_URL') ?>/uploads/results/<?= htmlspecialchars($c['pdfs'][$roundName]) ?>" target="_blank" class="flex-[3] px-2 py-1.5 bg-blue-50 text-blue-600 border border-blue-200 text-[10px] font-bold rounded-lg hover:bg-blue-100 transition-colors text-center">Lihat PDF</a>
+                                                </div>
+                                            <?php endif; ?>
+                                            <input type="file" id="pdf_<?= $c['id'] ?>_<?= md5($roundName) ?>" class="hidden" accept=".pdf" onchange="uploadPdf(this, <?= $c['id'] ?>, '<?= htmlspecialchars($roundName) ?>')">
+                                            <button type="button" onclick="document.getElementById('pdf_<?= $c['id'] ?>_<?= md5($roundName) ?>').click()" class="w-full px-3 py-1.5 bg-slate-800 hover:bg-slate-900 text-white text-[10px] font-bold rounded-lg transition-colors shadow-sm">
+                                                <?= isset($c['pdfs'][$roundName]) ? 'Ganti PDF' : 'Unggah PDF' ?>
+                                            </button>
+                                        </div>
                                     </div>
-                                <?php endif; ?>
-                                <input type="file" id="pdf_<?= $c['id'] ?>" class="hidden" accept=".pdf" onchange="uploadPdf(this, <?= $c['id'] ?>)">
-                                <button type="button" onclick="document.getElementById('pdf_<?= $c['id'] ?>').click()" class="w-full px-3 py-1.5 bg-slate-800 hover:bg-slate-900 text-white text-[10px] font-bold rounded-lg transition-colors shadow-sm">
-                                    <?= !empty($c['result_pdf']) ? 'Ganti PDF' : 'Unggah PDF' ?>
-                                </button>
+                                <?php endforeach; ?>
                             </div>
                         </td>
                     </tr>
@@ -164,7 +173,7 @@ function togglePublish(checkboxElem, classId) {
     });
 }
 
-function uploadPdf(inputElem, classId) {
+function uploadPdf(inputElem, classId, roundName) {
     if (inputElem.files.length === 0) return;
     const file = inputElem.files[0];
     if (file.type !== 'application/pdf') {
@@ -176,6 +185,7 @@ function uploadPdf(inputElem, classId) {
     const formData = new FormData();
     formData.append('action', 'upload_pdf');
     formData.append('class_id', classId);
+    formData.append('round', roundName);
     formData.append('result_pdf', file);
 
     Swal.fire({
@@ -215,10 +225,10 @@ function uploadPdf(inputElem, classId) {
     });
 }
 
-function deletePdf(classId) {
+function deletePdf(classId, roundName) {
     Swal.fire({
-        title: 'Hapus Dokumen PDF?',
-        text: "Jika dihapus, kelas ini akan otomatis berstatus Draft dan hilang dari layar penonton.",
+        title: `Hapus PDF ${roundName}?`,
+        text: "Jika dihapus, PDF untuk babak ini akan hilang dari layar penonton.",
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#ef4444',
@@ -230,6 +240,7 @@ function deletePdf(classId) {
             const formData = new FormData();
             formData.append('action', 'delete_pdf');
             formData.append('class_id', classId);
+            formData.append('round', roundName);
 
             fetch('<?= getenv('APP_URL') ?>/roll/admin/results/publish', {
                 method: 'POST',

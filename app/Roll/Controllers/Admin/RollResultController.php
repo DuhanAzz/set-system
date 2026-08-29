@@ -370,6 +370,7 @@ class RollResultController extends Controller {
             
             if ($_POST['action'] === 'upload_pdf') {
                 $classId = $_POST['class_id'] ?? 0;
+                $round = $_POST['round'] ?? 'Kualifikasi';
                 if (!isset($_FILES['result_pdf']) || $_FILES['result_pdf']['error'] !== UPLOAD_ERR_OK) {
                     echo json_encode(['success' => false, 'message' => 'Gagal mengunggah PDF.']);
                     exit;
@@ -386,9 +387,18 @@ class RollResultController extends Controller {
                 
                 if (move_uploaded_file($fileTmp, $destination)) {
                     try {
-                        $stmt = $db->prepare("UPDATE roll_event_details SET result_pdf = ?, result_status = 'Published' WHERE id = ?");
-                        $stmt->execute([$fileName, $classId]);
-                        echo json_encode(['success' => true, 'message' => 'PDF berhasil diunggah dan status dipublikasikan!', 'filename' => $fileName]);
+                        $stmt = $db->prepare("SELECT result_pdf FROM roll_event_details WHERE id = ?");
+                        $stmt->execute([$classId]);
+                        $curr = $stmt->fetchColumn();
+                        $pdfs = $curr ? json_decode($curr, true) : [];
+                        if (!is_array($pdfs)) $pdfs = $curr ? ['Kualifikasi' => $curr] : [];
+                        
+                        $pdfs[$round] = $fileName;
+                        $jsonPdf = json_encode($pdfs);
+                        
+                        $stmtU = $db->prepare("UPDATE roll_event_details SET result_pdf = ?, result_status = 'Published' WHERE id = ?");
+                        $stmtU->execute([$jsonPdf, $classId]);
+                        echo json_encode(['success' => true, 'message' => 'PDF babak ' . $round . ' berhasil diunggah!', 'filename' => $fileName]);
                     } catch (\Exception $e) {
                         echo json_encode(['success' => false, 'message' => 'Error DB: ' . $e->getMessage()]);
                     }
@@ -400,11 +410,25 @@ class RollResultController extends Controller {
             
             if ($_POST['action'] === 'delete_pdf') {
                 $classId = $_POST['class_id'] ?? 0;
+                $round = $_POST['round'] ?? 'Kualifikasi';
                 try {
-                    // Opsional: Hapus file fisik jika diperlukan, di sini kita hanya update DB untuk keamanan riwayat
-                    $stmt = $db->prepare("UPDATE roll_event_details SET result_pdf = NULL, result_status = 'Draft' WHERE id = ?");
+                    $stmt = $db->prepare("SELECT result_pdf FROM roll_event_details WHERE id = ?");
                     $stmt->execute([$classId]);
-                    echo json_encode(['success' => true, 'message' => 'PDF berhasil dihapus dan status dikembalikan ke Draft.']);
+                    $curr = $stmt->fetchColumn();
+                    $pdfs = $curr ? json_decode($curr, true) : [];
+                    if (!is_array($pdfs)) $pdfs = $curr ? ['Kualifikasi' => $curr] : [];
+                    
+                    if (isset($pdfs[$round])) {
+                        unset($pdfs[$round]);
+                    }
+                    
+                    $jsonPdf = empty($pdfs) ? null : json_encode($pdfs);
+                    $status = empty($pdfs) ? 'Draft' : 'Published';
+                    
+                    $stmtU = $db->prepare("UPDATE roll_event_details SET result_pdf = ?, result_status = ? WHERE id = ?");
+                    $stmtU->execute([$jsonPdf, $status, $classId]);
+                    
+                    echo json_encode(['success' => true, 'message' => 'PDF babak ' . $round . ' berhasil dihapus.']);
                 } catch (\Exception $e) {
                     echo json_encode(['success' => false, 'message' => 'Error DB: ' . $e->getMessage()]);
                 }
@@ -450,10 +474,25 @@ class RollResultController extends Controller {
                                      LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id 
                                      LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id 
                                      LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
-                                     WHERE ed.event_id = ?
+                                     WHERE ed.event_id = ? 
                                      ORDER BY ed.id ASC");
         $stmtClasses->execute([$eventId]);
         $classes = $stmtClasses->fetchAll(PDO::FETCH_ASSOC);
+        
+        $stmtRounds = $db->prepare("SELECT DISTINCT round FROM roll_pelotons WHERE event_id = ? AND race_class_id = ? ORDER BY CASE round WHEN 'Kualifikasi' THEN 1 WHEN 'Perempat Final' THEN 2 WHEN 'Semi Final' THEN 3 WHEN 'Final' THEN 4 ELSE 5 END");
+        foreach ($classes as &$c) {
+            $stmtRounds->execute([$eventId, $c['id']]);
+            $rnds = $stmtRounds->fetchAll(PDO::FETCH_COLUMN);
+            $c['available_rounds'] = empty($rnds) ? ['Kualifikasi'] : $rnds;
+            
+            $pdfs = $c['result_pdf'] ? json_decode($c['result_pdf'], true) : [];
+            if (!is_array($pdfs) && !empty($c['result_pdf'])) {
+                // Backward compatibility if it was just a string filename
+                $pdfs = ['Kualifikasi' => $c['result_pdf']];
+            }
+            $c['pdfs'] = $pdfs ?: [];
+        }
+        unset($c);
 
         return $this->view('roll/admin/results/publish', [
             'classes' => $classes,

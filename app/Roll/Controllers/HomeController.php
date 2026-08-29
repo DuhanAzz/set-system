@@ -194,16 +194,29 @@ class HomeController extends Controller {
 
         // Ambil kelas lomba yang sudah di-publish dan ada file PDF-nya
         $stmtClasses = $db->prepare("
-            SELECT ed.id, d.distance_name, a.group_name, ed.category_name, ed.gender, ed.result_pdf, sc.class_name
+            SELECT ed.id, ed.race_number, d.distance_name, a.group_name, ed.category_name, ed.gender, ed.result_pdf, sc.class_name
             FROM roll_event_details ed
             LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
             LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id
             LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
-            WHERE ed.event_id = ? AND ed.result_status = 'Published' AND ed.result_pdf IS NOT NULL AND ed.result_pdf != ''
-            ORDER BY a.min_year ASC, d.distance_name ASC
+            WHERE ed.event_id = ? AND ed.result_status = 'Published' AND ed.result_pdf IS NOT NULL AND ed.result_pdf != '' AND ed.result_pdf != '{}'
+            ORDER BY CAST(ed.race_number AS UNSIGNED) ASC, a.min_year ASC, d.distance_name ASC
         ");
         $stmtClasses->execute([$event_id]);
-        $publishedClasses = $stmtClasses->fetchAll(PDO::FETCH_ASSOC);
+        $rawClasses = $stmtClasses->fetchAll(PDO::FETCH_ASSOC);
+
+        $publishedClasses = [];
+        foreach ($rawClasses as $pc) {
+            $pdfs = $pc['result_pdf'] ? json_decode($pc['result_pdf'], true) : [];
+            if (!is_array($pdfs) && !empty($pc['result_pdf'])) {
+                $pdfs = ['Kualifikasi' => $pc['result_pdf']];
+            }
+            
+            if (!empty($pdfs)) {
+                $pc['pdfs'] = $pdfs;
+                $publishedClasses[] = $pc;
+            }
+        }
 
         return $this->view('roll/live_result', [
             's' => $s,

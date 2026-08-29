@@ -87,20 +87,25 @@ $siteDesc     = $s['site_description'] ?? 'Platform manajemen lomba sepatu roda 
             <div id="resultContainer" class="space-y-4">
                 <?php foreach ($publishedClasses as $c): ?>
                     <?php 
-                        $className = "{$c['class_name']} - {$c['distance_name']} - {$c['category_name']} - {$c['group_name']} - {$c['gender']} - FINAL";
+                        $raceNo = !empty($c['race_number']) ? "[No. {$c['race_number']}] " : "";
+                        $className = "{$raceNo}{$c['class_name']} - {$c['distance_name']} - {$c['category_name']} - {$c['group_name']} - {$c['gender']}";
                     ?>
                     
                     <div class="bg-slate-900 rounded-2xl border border-slate-800 shadow-xl overflow-hidden result-card transition-all duration-300 hover:border-slate-700" data-classname="<?= strtolower(htmlspecialchars($className)) ?>">
-                        <a href="<?= getenv('APP_URL') ?>/uploads/results/<?= htmlspecialchars($c['result_pdf']) ?>" target="_blank" class="w-full flex items-center justify-between px-5 sm:px-6 py-4 bg-gradient-to-r from-slate-800/40 to-slate-800/5 text-left transition-colors hover:bg-slate-800/60 group">
+                        <div class="w-full flex flex-col md:flex-row md:items-center justify-between px-5 sm:px-6 py-4 bg-gradient-to-r from-slate-800/40 to-slate-800/5 text-left transition-colors group gap-4">
                             <h2 class="text-xs sm:text-sm font-black text-white uppercase italic tracking-tight flex items-center gap-3">
                                 <span class="w-1.5 h-3 bg-blue-500 rounded-full block group-hover:bg-blue-400 transition-colors"></span>
                                 <?= htmlspecialchars($className) ?>
                             </h2>
-                            <span class="px-3 py-1 bg-blue-500/20 text-blue-400 rounded-lg text-[10px] font-bold uppercase tracking-widest group-hover:bg-blue-500/30 transition-colors flex items-center gap-2 whitespace-nowrap ml-4">
-                                BUKA PDF
-                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
-                            </span>
-                        </a>
+                            <div class="flex items-center gap-2 flex-wrap justify-end">
+                                <?php foreach ($c['pdfs'] as $roundName => $pdfFile): ?>
+                                    <a href="<?= getenv('APP_URL') ?>/uploads/results/<?= htmlspecialchars($pdfFile) ?>" target="_blank" class="px-3 py-1.5 bg-blue-500/20 text-blue-400 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-blue-500 hover:text-white transition-colors flex items-center gap-2 whitespace-nowrap border border-blue-500/30">
+                                        <?= htmlspecialchars($roundName) ?>
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                                    </a>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
                     </div>
                 <?php endforeach; ?>
             </div>
