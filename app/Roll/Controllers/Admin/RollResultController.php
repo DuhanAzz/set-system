@@ -556,6 +556,7 @@ class RollResultController extends Controller {
             $db = Database::getInstance()->getConnection();
             $eventId = $_SESSION['roll_admin_active_event_id'] ?? 0;
             $classId = $_POST['race_class_id'] ?? 0;
+            $round = $_POST['round'] ?? 'Kualifikasi';
 
             if ($eventId > 0 && $classId > 0 && $_FILES['csv_backup']['error'] == UPLOAD_ERR_OK) {
                 // Cek apakah relay
@@ -611,8 +612,8 @@ class RollResultController extends Controller {
                                 $skaterId = $skater['skater_id'];
                                 
                                 if (empty($heat)) {
-                                    $stmtP = $db->prepare("SELECT heat_name FROM roll_pelotons WHERE event_id = ? AND race_class_id = ? AND skater_id = ?");
-                                    $stmtP->execute([$eventId, $classId, $skaterId]);
+                                    $stmtP = $db->prepare("SELECT heat_name FROM roll_pelotons WHERE event_id = ? AND race_class_id = ? AND skater_id = ? AND round = ?");
+                                    $stmtP->execute([$eventId, $classId, $skaterId, $round]);
                                     $heat = $stmtP->fetchColumn() ?: 'Heat 1';
                                 }
                                 
@@ -622,16 +623,16 @@ class RollResultController extends Controller {
                                         SELECT p.skater_id, r.id as result_id
                                         FROM roll_pelotons p
                                         JOIN roll_entries e ON p.skater_id = e.skater_id AND p.race_class_id = e.race_class_id AND p.event_id = e.event_id
-                                        LEFT JOIN roll_event_results r ON p.skater_id = r.skater_id AND p.race_class_id = r.race_class_id AND p.event_id = r.event_id AND p.heat_name = r.heat_name
-                                        WHERE p.event_id = ? AND p.race_class_id = ? AND p.heat_name = ?
+                                        LEFT JOIN roll_event_results r ON p.skater_id = r.skater_id AND p.race_class_id = r.race_class_id AND p.event_id = r.event_id AND p.heat_name = r.heat_name AND p.round = r.round
+                                        WHERE p.event_id = ? AND p.race_class_id = ? AND p.heat_name = ? AND p.round = ?
                                           AND (e.team_name = (SELECT team_name FROM roll_entries WHERE skater_id = ? AND race_class_id = ?) 
                                                OR e.bib_number = (SELECT bib_number FROM roll_entries WHERE skater_id = ? AND race_class_id = ?))
                                     ");
-                                    $stmtTeam->execute([$eventId, $classId, $heat, $skaterId, $classId, $skaterId, $classId]);
+                                    $stmtTeam->execute([$eventId, $classId, $heat, $round, $skaterId, $classId, $skaterId, $classId]);
                                     $membersToProcess = $stmtTeam->fetchAll(PDO::FETCH_ASSOC);
                                 } else {
-                                    $stmtR = $db->prepare("SELECT id FROM roll_event_results WHERE event_id = ? AND race_class_id = ? AND skater_id = ?");
-                                    $stmtR->execute([$eventId, $classId, $skaterId]);
+                                    $stmtR = $db->prepare("SELECT id FROM roll_event_results WHERE event_id = ? AND race_class_id = ? AND skater_id = ? AND round = ?");
+                                    $stmtR->execute([$eventId, $classId, $skaterId, $round]);
                                     $resRow = $stmtR->fetch(PDO::FETCH_ASSOC);
                                     $membersToProcess = [['skater_id' => $skaterId, 'result_id' => $resRow['id'] ?? null]];
                                 }
@@ -641,8 +642,8 @@ class RollResultController extends Controller {
                                         $stmtUpd = $db->prepare("UPDATE roll_event_results SET time = ? WHERE id = ?");
                                         $stmtUpd->execute([$time, $mem['result_id']]);
                                     } else {
-                                        $stmtIns = $db->prepare("INSERT INTO roll_event_results (event_id, race_class_id, round, skater_id, heat_name, time, status, is_official) VALUES (?, ?, 'Kualifikasi', ?, ?, ?, 'OK', 0)");
-                                        $stmtIns->execute([$eventId, $classId, $mem['skater_id'], $heat, $time]);
+                                        $stmtIns = $db->prepare("INSERT INTO roll_event_results (event_id, race_class_id, round, skater_id, heat_name, time, status, is_official) VALUES (?, ?, ?, ?, ?, ?, 'OK', 0)");
+                                        $stmtIns->execute([$eventId, $classId, $round, $mem['skater_id'], $heat, $time]);
                                     }
                                 }
                             }
@@ -658,7 +659,7 @@ class RollResultController extends Controller {
                     $_SESSION['flash_type'] = "error";
                 }
             }
-            header("Location: " . getenv('APP_URL') . "/roll/admin/results?race_class_id=" . $classId);
+            header("Location: " . getenv('APP_URL') . "/roll/admin/results?race_class_id=" . $classId . "&round=" . urlencode($round));
             exit;
         }
     }
@@ -825,7 +826,6 @@ class RollResultController extends Controller {
                         JOIN roll_skaters s ON r.skater_id = s.id
                         LEFT JOIN roll_clubs c ON s.club_id = c.id
                         WHERE r.event_id = ? AND r.race_class_id = ? AND r.round = ?
-                          AND r.time IS NOT NULL 
                           AND r.status = 'OK'
                     ");
                     $stmtTimes->execute([$eventId, $classId, $current_round_name]);

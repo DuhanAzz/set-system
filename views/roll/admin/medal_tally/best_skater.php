@@ -72,6 +72,51 @@
         </div>
     </div>
 
+    <!-- Filter Form -->
+    <div class="bg-white p-4 rounded-xl shadow border border-slate-200 flex flex-col gap-4">
+        <form method="GET" action="<?= getenv('APP_URL') ?>/roll/admin/medal_tally/best_skater" class="flex flex-col md:flex-row gap-4 w-full items-end">
+            <div class="flex-1 w-full">
+                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Kategori Lomba</label>
+                <select name="category" class="w-full text-sm border-slate-300 rounded-lg p-2 bg-slate-50 focus:border-blue-500 focus:ring-blue-500">
+                    <option value="">Semua Kategori</option>
+                    <?php foreach($filterCategories as $cat): ?>
+                        <option value="<?= htmlspecialchars($cat) ?>" <?= ($selectedCategory == $cat) ? 'selected' : '' ?>><?= htmlspecialchars($cat) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            
+            <div class="flex-1 w-full">
+                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Kelompok Umur</label>
+                <select name="group" class="w-full text-sm border-slate-300 rounded-lg p-2 bg-slate-50 focus:border-blue-500 focus:ring-blue-500">
+                    <option value="">Semua Umur</option>
+                    <?php foreach($filterGroups as $grp): ?>
+                        <option value="<?= htmlspecialchars($grp) ?>" <?= ($selectedGroup == $grp) ? 'selected' : '' ?>><?= htmlspecialchars($grp) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            
+            <div class="flex-1 w-full">
+                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Jenis Kelamin</label>
+                <select name="gender" class="w-full text-sm border-slate-300 rounded-lg p-2 bg-slate-50 focus:border-blue-500 focus:ring-blue-500">
+                    <option value="">Semua</option>
+                    <option value="Putra" <?= ($selectedGender == 'Putra') ? 'selected' : '' ?>>Putra</option>
+                    <option value="Putri" <?= ($selectedGender == 'Putri') ? 'selected' : '' ?>>Putri</option>
+                </select>
+            </div>
+
+            <div class="flex gap-2 w-full md:w-auto">
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-xs font-bold uppercase shadow-sm transition flex-1 md:flex-none">
+                    🔍 Filter
+                </button>
+                <?php if(!empty($selectedCategory) || !empty($selectedGroup) || !empty($selectedGender)): ?>
+                    <a href="<?= getenv('APP_URL') ?>/roll/admin/medal_tally/best_skater" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-5 py-2 rounded-lg text-xs font-bold uppercase shadow-sm transition flex-1 md:flex-none text-center">
+                        Reset
+                    </a>
+                <?php endif; ?>
+            </div>
+        </form>
+    </div>
+
     <div class="flex justify-end mt-4">
         <button onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white px-6 py-2 rounded text-xs font-bold uppercase shadow flex items-center gap-2">
             🖨️ Cetak Laporan

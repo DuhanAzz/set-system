@@ -177,11 +177,11 @@
             </div>
         </div>
 
-        <!-- Form Upload CSV Hidden -->
         <div id="csvUploadForm" class="hidden w-full bg-slate-800 p-4 rounded-xl border border-slate-700 mb-6 shadow-lg">
             <label class="block text-xs font-bold text-emerald-400 mb-2 uppercase tracking-widest">Import Hasil Lomba (CSV: BIB, TIME)</label>
             <form method="POST" action="<?= getenv('APP_URL') ?>/roll/admin/results/import_csv" enctype="multipart/form-data" class="flex flex-col sm:flex-row gap-3 items-center">
                 <input type="hidden" name="race_class_id" value="<?= $filter_class_id ?>">
+                <input type="hidden" name="round" value="<?= htmlspecialchars($structural_round_name) ?>">
                 <input type="file" name="csv_backup" accept=".csv" required class="text-sm w-full p-2 bg-slate-900 border border-slate-600 rounded-lg text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-emerald-500 file:text-white hover:file:bg-emerald-600 cursor-pointer">
                 <button type="submit" class="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2.5 rounded-lg font-bold text-xs uppercase tracking-widest whitespace-nowrap shadow-md transition">Upload & Sinkron</button>
             </form>
