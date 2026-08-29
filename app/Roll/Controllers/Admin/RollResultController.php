@@ -29,7 +29,7 @@ class RollResultController extends Controller {
         
         $filter_class_id = $_GET['race_class_id'] ?? 0;
         $filter_heat = $_GET['heat_name'] ?? '';
-        $current_round_name = $_GET['round'] ?? 'Kualifikasi';
+        $current_round_name = $_GET['round'] ?? null;
 
         // Fetch Classes (roll_event_details) for dropdown
         $stmtClasses = $db->prepare("SELECT ed.id, ed.race_number, d.distance_name, a.group_name, sc.class_name as skate_class_name, ed.gender
@@ -81,6 +81,10 @@ class RollResultController extends Controller {
             $available_rounds = $stmtRounds->fetchAll(PDO::FETCH_COLUMN);
             if (empty($available_rounds)) {
                 $available_rounds = ['Kualifikasi'];
+            }
+            
+            if (empty($current_round_name)) {
+                $current_round_name = end($available_rounds);
             }
 
             $raceFormat = 'DTT';
