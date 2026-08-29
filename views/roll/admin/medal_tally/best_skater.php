@@ -112,7 +112,7 @@
                                     </div>
                                     <div class="eh-center"><div class="eh-title">PESEPATU RODA TERBAIK</div></div>
                                     <div class="eh-right">
-                                        <div class="eh-number">MVP Porserosi</div>
+                                        <div class="eh-number">MVP</div>
                                     </div>
                                 </div>
 
@@ -122,11 +122,9 @@
                                             <th class="col-rank">RANK</th>
                                             <th class="col-nama">NAMA SKATER</th>
                                             <th class="col-tim">KLUB / TIM</th>
-                                            <th class="col-med bg-total" style="width:10%">POIN</th>
-                                            <th class="col-med bg-gold">E</th>
-                                            <th class="col-med bg-silver">P</th>
-                                            <th class="col-med bg-bronze">P</th>
-                                            <th class="col-med" style="background:#e5e7eb; width:8%" title="Defeated">DEF</th>
+                                            <th class="col-med bg-gold" style="width:10%">EMAS</th>
+                                            <th class="col-med bg-silver" style="width:10%">PERAK</th>
+                                            <th class="col-med bg-bronze" style="width:10%">PERUNGGU</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -140,11 +138,9 @@
                                                 <?= htmlspecialchars($row['skater_name']) ?>
                                             </td>
                                             <td class="col-tim"><?= htmlspecialchars($row['club_name']) ?></td>
-                                            <td class="col-med bg-total" style="font-size:11pt;"><?= $row['total_points'] ?></td>
                                             <td class="col-med bg-gold"><?= $row['gold'] ?></td>
                                             <td class="col-med bg-silver"><?= $row['silver'] ?></td>
                                             <td class="col-med bg-bronze"><?= $row['bronze'] ?></td>
-                                            <td class="col-med" style="font-size:9pt;"><?= $row['total_defeated'] ?></td>
                                         </tr>
                                         <?php endforeach; ?>
                                     </tbody>

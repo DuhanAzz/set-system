@@ -72,18 +72,12 @@ class RollMedalTallyController extends Controller {
             exit;
         }
 
-        // MVP Tally Calculation berdasarkan Poin Porserosi
+        // MVP Tally Calculation berdasarkan Medali saja
         $stmtMVP = $db->prepare("
             SELECT s.id, s.skater_name, s.gender, ed.category_name, ag.group_name, c.club_name,
                 SUM(CASE WHEN r.rank = 1 THEN 1 ELSE 0 END) as gold,
                 SUM(CASE WHEN r.rank = 2 THEN 1 ELSE 0 END) as silver,
-                SUM(CASE WHEN r.rank = 3 THEN 1 ELSE 0 END) as bronze,
-                SUM(CASE WHEN r.rank = 1 THEN 5 WHEN r.rank = 2 THEN 3 WHEN r.rank = 3 THEN 1 ELSE 0 END) as total_points,
-                SUM(CASE WHEN r.rank = 1 THEN (
-                    SELECT COUNT(r2.id) - 1
-                    FROM roll_event_results r2 
-                    WHERE r2.race_class_id = r.race_class_id AND r2.event_id = r.event_id AND r2.status = 'OK'
-                ) ELSE 0 END) as total_defeated
+                SUM(CASE WHEN r.rank = 3 THEN 1 ELSE 0 END) as bronze
             FROM roll_event_results r
             JOIN roll_skaters s ON r.skater_id = s.id
             LEFT JOIN roll_clubs c ON s.club_id = c.id
@@ -96,7 +90,7 @@ class RollMedalTallyController extends Controller {
               AND (e.status = 'Finished' OR e.status = 'Qualified')
             GROUP BY s.id, s.skater_name, s.gender, ed.category_name, ag.group_name, c.club_name
             ORDER BY ed.category_name ASC, ag.group_name ASC, s.gender ASC, 
-                     total_points DESC, gold DESC, silver DESC, total_defeated DESC, s.skater_name ASC
+                     gold DESC, silver DESC, bronze DESC, s.skater_name ASC
         ");
         $stmtMVP->execute([$eventId]);
         $mvpTally = $stmtMVP->fetchAll(PDO::FETCH_ASSOC);
