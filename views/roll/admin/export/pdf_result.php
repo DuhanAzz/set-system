@@ -119,6 +119,26 @@ $sponsors = !empty($event['sponsor_logos']) ? json_decode($event['sponsor_logos'
     <button onclick="window.print()" class="btn-print"><i class="fas fa-print"></i> Print PDF</button>
     <button onclick="window.close()" class="btn-close"><i class="fas fa-times"></i> Tutup</button>
 
+    <!-- Halaman Pertama: Cover -->
+    <div class="full-page" style="display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; border: 10px solid #f97316; margin: 10mm; width: calc(210mm - 20mm); height: calc(297mm - 20mm); padding: 20px;">
+        <h1 style="font-size: 32pt; margin: 0; text-transform: uppercase; font-weight: 900; letter-spacing: 2px;">RESULT BOOK</h1>
+        <h2 style="font-size: 20pt; margin: 10px 0 30px 0; font-style: italic; color: #555;">(HASIL RESMI)</h2>
+        <div style="height: 4px; width: 100px; background: #000; margin-bottom: 30px;"></div>
+        <p style="font-size: 24pt; font-weight: bold; text-transform: uppercase; margin: 0;"><?= htmlspecialchars($event['event_name']) ?></p>
+        <p style="font-size: 16pt; margin: 10px 0 0 0; color: #333;"><?= htmlspecialchars($event['event_location'] ?? '') ?> | <?= htmlspecialchars($dateRange) ?></p>
+        
+        <?php if(!empty($sponsors)): ?>
+        <div style="margin-top: 80px;">
+            <p style="font-size: 10pt; color: #666; margin-bottom: 10px; font-weight: bold;">SUPPORTED BY:</p>
+            <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 15px;">
+                <?php foreach ($sponsors as $logo): ?>
+                    <img src="<?= getenv('APP_URL') ?>/<?= ltrim($logo, '/') ?>" alt="Sponsor" style="height: 60px; max-width: 150px; object-fit: contain;">
+                <?php endforeach; ?>
+            </div>
+        </div>
+        <?php endif; ?>
+    </div>
+
     <table class="master-layout">
         <thead>
             <tr>
@@ -154,7 +174,7 @@ $sponsors = !empty($event['sponsor_logos']) ? json_decode($event['sponsor_logos'
                             <div class="eh-number" style="font-size: 11pt;">REKAP KLUB / TIM</div>
                             <div class="eh-date">KLASEMEN AKHIR</div>
                         </div>
-                        <div class="eh-center"><div class="eh-title">KLASEMEN JUARA UMUM</div></div>
+                        <div class="eh-center"><div class="eh-title">REKAPITULASI JUARA UMUM (KLUB)</div></div>
                         <div class="eh-right"></div>
                     </div>
                     <table class="data-table" style="margin-bottom: 30px;">
@@ -204,7 +224,67 @@ $sponsors = !empty($event['sponsor_logos']) ? json_decode($event['sponsor_logos'
 
                     <div style="page-break-before: always;"></div>
 
-                    <div class="section-title text-center" style="border: none; margin-bottom: 20px;">HASIL PERLOMBAAN LENGKAP</div>
+                    <div class="event-header">
+                        <div class="eh-left-group">
+                            <div class="eh-number" style="font-size: 11pt;">REKAP ATLET</div>
+                            <div class="eh-date">KLASEMEN AKHIR</div>
+                        </div>
+                        <div class="eh-center"><div class="eh-title">REKAPITULASI PESEPATU RODA TERBAIK</div></div>
+                        <div class="eh-right"></div>
+                    </div>
+                    <table class="data-table" style="margin-bottom: 30px;">
+                        <thead>
+                            <tr>
+                                <th class="col-rank" style="width: 15%;">KATEGORI / KU</th>
+                                <th class="col-nama" style="width: 30%;">NAMA ATLET</th>
+                                <th class="col-med" style="width: 15%;">TIM</th>
+                                <th class="col-med bg-gold">E</th>
+                                <th class="col-med bg-silver">P</th>
+                                <th class="col-med bg-bronze">P</th>
+                                <th class="col-med bg-total">TOT</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if(empty($groupedMVP)): ?>
+                                <tr><td colspan="7" class="text-center">Belum ada data pesepatu roda terbaik.</td></tr>
+                            <?php else: ?>
+                                <?php foreach($groupedMVP as $groupKey => $skaters): ?>
+                                    <tr>
+                                        <td colspan="7" style="background: #e2e8f0; font-weight: 900; font-size: 10pt; text-transform: uppercase;">
+                                            <?= htmlspecialchars($groupKey) ?>
+                                        </td>
+                                    </tr>
+                                    <?php 
+                                    $rank = 1;
+                                    foreach($skaters as $idx => $s): 
+                                        $total = $s['gold'] + $s['silver'] + $s['bronze'];
+                                        // Cek apakah poinnya sama dengan posisi sebelumnya
+                                        if ($idx > 0) {
+                                            $prev = $skaters[$idx-1];
+                                            if (!($prev['gold'] == $s['gold'] && $prev['silver'] == $s['silver'] && $prev['bronze'] == $s['bronze'])) {
+                                                $rank++;
+                                            }
+                                        }
+                                        if ($rank > 5) continue; // Hanya top 5 yang tampil
+                                    ?>
+                                    <tr>
+                                        <td class="text-center font-bold" style="font-size: 10pt; color: #555;">Pos <?= $rank ?></td>
+                                        <td class="col-nama font-bold" style="font-size: 10pt;"><?= htmlspecialchars($s['skater_name']) ?></td>
+                                        <td class="text-center" style="font-size: 8pt;"><?= htmlspecialchars($s['club_name'] ?? '-') ?></td>
+                                        <td class="col-med bg-gold"><?= $s['gold'] ?></td>
+                                        <td class="col-med bg-silver"><?= $s['silver'] ?></td>
+                                        <td class="col-med bg-bronze"><?= $s['bronze'] ?></td>
+                                        <td class="col-med bg-total"><?= $total ?></td>
+                                    </tr>
+                                    <?php endforeach; ?>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+
+                    <div style="page-break-before: always;"></div>
+
+                    <div class="section-title text-center" style="border: none; margin-bottom: 20px;">HASIL PERLOMBAAN</div>
 
                     <?php if (!empty($comprehensiveResults)): ?>
                         <?php foreach ($comprehensiveResults as $cr): 

@@ -176,6 +176,43 @@ class RollExportController extends Controller {
         $stmtTally->execute([$eventId]);
         $medalTally = $stmtTally->fetchAll(PDO::FETCH_ASSOC);
 
+        // MVP Tally
+        $stmtMVP = $db->prepare("
+            SELECT s.id, s.skater_name, s.gender, s.birth_date, sc.class_name as category_name, ag.group_name, c.club_name,
+                SUM(CASE WHEN r.rank = 1 THEN 1 ELSE 0 END) as gold,
+                SUM(CASE WHEN r.rank = 2 THEN 1 ELSE 0 END) as silver,
+                SUM(CASE WHEN r.rank = 3 THEN 1 ELSE 0 END) as bronze
+            FROM roll_event_results r
+            JOIN roll_skaters s ON r.skater_id = s.id
+            LEFT JOIN roll_clubs c ON s.club_id = c.id
+            JOIN roll_event_details ed ON r.race_class_id = ed.id
+            LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
+            JOIN roll_ref_age_groups ag ON ed.age_group_id = ag.id
+            JOIN roll_entries e ON r.skater_id = e.skater_id AND r.race_class_id = e.race_class_id
+            WHERE r.event_id = ? 
+              AND r.rank IN (1, 2, 3) 
+              AND r.status = 'OK'
+              AND (e.status = 'Finished' OR e.status = 'Qualified')
+            GROUP BY s.id, s.skater_name, s.gender, s.birth_date, sc.class_name, ag.group_name, c.club_name
+            ORDER BY sc.class_name ASC, ag.group_name ASC, s.gender ASC, 
+                     gold DESC, silver DESC, bronze DESC, s.birth_date DESC, s.skater_name ASC
+        ");
+        $stmtMVP->execute([$eventId]);
+        $mvpTally = $stmtMVP->fetchAll(PDO::FETCH_ASSOC);
+
+        $groupedMVP = [];
+        foreach ($mvpTally as $mvp) {
+            $cat = $mvp['category_name'];
+            $ku = $mvp['group_name'];
+            $gender = ($mvp['gender'] == 'M' || $mvp['gender'] == 'L') ? 'Putra' : 'Putri';
+            
+            $key = "{$cat} - {$ku} - {$gender}";
+            if (!isset($groupedMVP[$key])) {
+                $groupedMVP[$key] = [];
+            }
+            $groupedMVP[$key][] = $mvp;
+        }
+
         // Ambil SEMUA KELAS yang PUBLISHED
         $stmtClasses = $db->prepare("
             SELECT ed.*, d.distance_name, a.group_name, sc.class_name as roller_name
