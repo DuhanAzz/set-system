@@ -77,6 +77,34 @@ $siteDesc     = $s['site_description'] ?? 'Platform manajemen lomba sepatu roda 
             <input type="text" id="searchInput" placeholder="Cari nomor lomba atau kategori..." class="w-full bg-transparent border-none focus:outline-none focus:ring-0 text-sm font-bold text-slate-100 uppercase placeholder:text-slate-500 placeholder:normal-case placeholder:font-medium py-2">
         </div>
 
+        <?php if (!empty($event['medal_tally_pdf']) || !empty($event['best_skater_pdf'])): ?>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+            <?php if (!empty($event['medal_tally_pdf'])): ?>
+            <div class="bg-slate-900 rounded-2xl border border-orange-500/30 shadow-xl p-5 flex items-center justify-between transition-all hover:border-orange-500/60">
+                <div>
+                    <div class="text-[9px] font-black text-orange-500 uppercase tracking-widest mb-1">REKAPITULASI</div>
+                    <div class="text-sm font-black text-white">🏆 Juara Umum (Klub)</div>
+                </div>
+                <a href="<?= getenv('APP_URL') ?>/uploads/results/<?= htmlspecialchars($event['medal_tally_pdf']) ?>" target="_blank" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-bold uppercase tracking-widest rounded-xl transition-colors shadow-md">
+                    Lihat PDF
+                </a>
+            </div>
+            <?php endif; ?>
+            
+            <?php if (!empty($event['best_skater_pdf'])): ?>
+            <div class="bg-slate-900 rounded-2xl border border-orange-500/30 shadow-xl p-5 flex items-center justify-between transition-all hover:border-orange-500/60">
+                <div>
+                    <div class="text-[9px] font-black text-orange-500 uppercase tracking-widest mb-1">REKAPITULASI</div>
+                    <div class="text-sm font-black text-white">🛼 Pesepatu Roda Terbaik</div>
+                </div>
+                <a href="<?= getenv('APP_URL') ?>/uploads/results/<?= htmlspecialchars($event['best_skater_pdf']) ?>" target="_blank" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-bold uppercase tracking-widest rounded-xl transition-colors shadow-md">
+                    Lihat PDF
+                </a>
+            </div>
+            <?php endif; ?>
+        </div>
+        <?php endif; ?>
+
         <?php if (empty($publishedClasses)): ?>
             <div class="bg-slate-900/60 p-12 text-center rounded-3xl border border-slate-800 shadow-xl">
                 <span class="text-5xl block mb-5 opacity-20">⏳</span>

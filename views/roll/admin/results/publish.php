@@ -311,7 +311,6 @@ function deletePdf(classId, roundName) {
         }
     });
 }
-}
 
 function uploadEventPdf(inputElem, eventId, type) {
     if (inputElem.files.length === 0) return;
