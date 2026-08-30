@@ -176,27 +176,85 @@ class RollExportController extends Controller {
         $stmtTally->execute([$eventId]);
         $medalTally = $stmtTally->fetchAll(PDO::FETCH_ASSOC);
 
-        // Results
-        $stmtRes = $db->prepare("
-            SELECT r.*, s.skater_name, s.bib_number, c.club_name, d.distance_name, a.group_name
-            FROM roll_event_results r
-            JOIN roll_skaters s ON r.skater_id = s.id
-            LEFT JOIN roll_clubs c ON s.club_id = c.id
-            JOIN roll_event_details ed ON r.race_class_id = ed.id
+        // Ambil SEMUA KELAS yang PUBLISHED
+        $stmtClasses = $db->prepare("
+            SELECT ed.*, d.distance_name, a.group_name, sc.class_name as roller_name
+            FROM roll_event_details ed
             LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
             LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id
-            WHERE r.event_id = ?
-            ORDER BY a.min_year ASC, d.distance_name ASC, CASE WHEN r.status = 'OK' THEN 0 ELSE 1 END ASC, r.rank IS NULL, r.rank ASC, r.time ASC
+            LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
+            WHERE ed.event_id = ? AND ed.result_status = 'Published'
+            ORDER BY CAST(ed.race_number AS UNSIGNED) ASC
         ");
-        $stmtRes->execute([$eventId]);
-        $results = $stmtRes->fetchAll(PDO::FETCH_ASSOC);
+        $stmtClasses->execute([$eventId]);
+        $publishedClasses = $stmtClasses->fetchAll(PDO::FETCH_ASSOC);
 
-        // Kita gunakan view yang sama (jika ada file di reports/, kita pindahkan)
-        return $this->view('roll/admin/export/pdf_result', [
-            'event' => $event,
-            'medalTally' => $medalTally,
-            'results' => $results
-        ]);
+        $comprehensiveResults = [];
+
+        foreach ($publishedClasses as $classInfo) {
+            $pdfs = $classInfo['result_pdf'] ? json_decode($classInfo['result_pdf'], true) : [];
+            if (!is_array($pdfs) && $classInfo['result_pdf']) {
+                $pdfs = ['Kualifikasi' => $classInfo['result_pdf']];
+            }
+            
+            // Loop melalui setiap babak yang sudah di-publish untuk kelas ini
+            $rounds = array_keys($pdfs);
+            
+            // Urutkan babak (misal Kualifikasi lalu Final) secara sederhana
+            usort($rounds, function($a, $b) {
+                if ($a === 'Final') return 1;
+                if ($b === 'Final') return -1;
+                return strcmp($a, $b);
+            });
+            
+            $dn = strtolower($classInfo['distance_name'] ?? '');
+            $raceFormat = 'DTT';
+            if (strpos($dn, 'eliminasi') !== false) {
+                $raceFormat = 'ELIMINASI';
+            } elseif (strpos($dn, 'ptp') !== false || strpos($dn, 'point') !== false) {
+                $raceFormat = 'PTP';
+            }
+            $isRelay = (strpos($dn, 'relay') !== false || strpos($dn, 'pair') !== false);
+
+            foreach ($rounds as $round) {
+                // Logic urutan sama persis dengan print_result
+                if ($raceFormat === 'ELIMINASI') {
+                    $orderBy = "ORDER BY CASE WHEN COALESCE(r.status, 'OK') = 'OK' THEN 0 ELSE 1 END ASC, CASE WHEN r.rank IS NULL OR CAST(r.rank AS CHAR) = '0' OR CAST(r.rank AS CHAR) = '' THEN 1 ELSE 0 END ASC, r.rank ASC, r.time ASC, CAST(REPLACE(p.heat_name, 'Heat ', '') AS UNSIGNED) ASC, p.start_grid ASC";
+                } else if ($raceFormat === 'DTT') {
+                    $orderBy = "ORDER BY CASE WHEN COALESCE(r.status, 'OK') = 'OK' THEN 0 ELSE 1 END ASC, CASE WHEN r.time IS NULL OR r.time = '' OR r.time = '00.00.000' THEN 1 ELSE 0 END ASC, REPLACE(r.time, ':', '.') ASC, CAST(REPLACE(p.heat_name, 'Heat ', '') AS UNSIGNED) ASC, p.start_grid ASC";
+                } else {
+                    $orderBy = "ORDER BY CASE WHEN COALESCE(r.status, 'OK') = 'OK' THEN 0 ELSE 1 END ASC, r.point DESC, CASE WHEN r.time IS NULL OR r.time = '' OR r.time = '00.00.000' THEN 1 ELSE 0 END ASC, REPLACE(r.time, ':', '.') ASC, CAST(REPLACE(p.heat_name, 'Heat ', '') AS UNSIGNED) ASC, p.start_grid ASC";
+                }
+
+                $stmtResults = $db->prepare("
+                    SELECT p.skater_id, e.bib_number, e.team_name, s.skater_name, s.gender, c.city_province as city, c.club_name, p.heat_name, p.start_grid,
+                           r.rank as heat_rank, r.rank, r.point, r.time, r.status, r.is_official, r.round, r.print_round_name
+                    FROM roll_pelotons p
+                    JOIN roll_entries e ON p.skater_id = e.skater_id AND p.race_class_id = e.race_class_id AND p.event_id = e.event_id
+                    JOIN roll_skaters s ON p.skater_id = s.id
+                    LEFT JOIN roll_clubs c ON s.club_id = c.id
+                    LEFT JOIN roll_event_results r ON p.event_id = r.event_id AND p.race_class_id = r.race_class_id AND p.skater_id = r.skater_id AND p.heat_name = r.heat_name AND p.round = r.round
+                    WHERE p.event_id = ? AND p.race_class_id = ? AND p.round = ?
+                    $orderBy
+                ");
+                $stmtResults->execute([$eventId, $classInfo['id'], $round]);
+                $roundResults = $stmtResults->fetchAll(PDO::FETCH_ASSOC);
+
+                if (empty($roundResults)) continue;
+
+                $comprehensiveResults[] = [
+                    'classInfo' => $classInfo,
+                    'round' => $round,
+                    'raceFormat' => $raceFormat,
+                    'isRelay' => $isRelay,
+                    'results' => $roundResults
+                ];
+            }
+        }
+
+        // Render view langsung tanpa template admin (topbar/sidebar)
+        require_once __DIR__ . '/../../../../views/roll/admin/export/pdf_result.php';
+        exit;
     }
 
     public function print_race_book() {
@@ -210,9 +268,10 @@ class RollExportController extends Controller {
 
         // Pelotons
         $stmtP = $db->prepare("
-            SELECT p.*, s.skater_name, s.bib_number, c.club_name, d.distance_name, a.group_name, ed.category_name, ed.race_number
+            SELECT p.*, s.skater_name, e.bib_number, c.club_name, d.distance_name, a.group_name, ed.category_name, ed.race_number
             FROM roll_pelotons p
             JOIN roll_skaters s ON p.skater_id = s.id
+            JOIN roll_entries e ON p.skater_id = e.skater_id AND p.race_class_id = e.race_class_id AND p.event_id = e.event_id
             LEFT JOIN roll_clubs c ON s.club_id = c.id
             JOIN roll_event_details ed ON p.race_class_id = ed.id
             LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id

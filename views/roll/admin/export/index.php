@@ -26,7 +26,7 @@
             <p class="text-slate-300 text-sm font-medium mb-6">Cetak dokumen lomba dalam format PDF (Print Ready) yang cocok untuk dibagikan kepada klub, juri, maupun penonton.</p>
             
             <div class="flex flex-col sm:flex-row gap-3">
-                <a target="_blank" href="<?= getenv('APP_URL') ?>/roll/admin/export/print_race_book" class="flex-1 text-center bg-blue-500 text-white py-3 px-4 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-blue-400 transition shadow-md">
+                <a target="_blank" href="<?= getenv('APP_URL') ?>/roll/admin/pelotons/printFull" class="flex-1 text-center bg-blue-500 text-white py-3 px-4 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-blue-400 transition shadow-md">
                     📖 RACE BOOK
                 </a>
                 
