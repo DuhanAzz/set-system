@@ -5,6 +5,11 @@
     
     .page-wrapper { background: white; width: 210mm; margin: 20px auto; padding: 0 10mm; min-height: 297mm; position: relative; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
     
+    /* FOOTER SPONSOR */
+    .footer-fixed { position: fixed; bottom: 0; left: 0; right: 0; height: 20mm; background: white; border-top: 2px double #000; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 5px 10mm 15px 10mm; z-index: 999; display: none; }
+    .footer-sponsors { display: flex; gap: 10px; align-items: center; justify-content: center; flex: 1; flex-wrap: wrap; }
+    .footer-sponsors img { height: 35px; object-fit: contain; margin: 0 10px; }
+    
     /* KOP SURAT */
     .header-fixed { position: fixed; top: 0; left: 0; right: 0; height: 35mm; background: white; border-bottom: 3px double #000; display: grid; grid-template-columns: 110px 1fr 110px; align-items: flex-end; padding: 5px 10mm 3px 10mm; z-index: 999; display: none; }
     .header-center { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; text-align: center; line-height: 1.2; color: #000; }
@@ -47,16 +52,17 @@
     @media print {
         @page { size: A4; margin: 0; }
         nav, aside, header, .sidebar, .no-print, .fixed, .navbar, .topbar, .sticky, #sidebar { display: none !important; }
-        #main-content { padding: 0 !important; margin: 0 !important; min-height: auto !important; background: white !important; }
+        #main-wrapper { padding: 0 !important; margin: 0 !important; min-height: auto !important; background: white !important; }
         body, html { margin: 0 !important; padding: 0 !important; background: white !important; width: 100%; height: 100%; font-family: 'Arial', sans-serif; }
         .page-wrapper { margin: 0; width: 100%; box-shadow: none; padding: 0 10mm; min-height: auto; position: relative; }
         .header-fixed { display: grid !important; }
+        .footer-fixed { display: flex !important; justify-content: center !important; }
         .layout-table > thead { display: table-header-group !important; }
         .data-table > thead { display: table-row-group !important; }
     }
 </style>
 
-<div class="max-w-[210mm] mx-auto mb-6 space-y-4 no-print" id="main-content">
+<div class="max-w-[210mm] mx-auto mb-6 space-y-4 no-print">
     <div class="bg-white p-4 rounded-xl shadow border border-slate-200 flex flex-col md:flex-row justify-between items-center gap-4">
         <div>
             <h1 class="font-bold text-lg text-slate-800">REKAPITULASI MEDALI</h1>
@@ -117,23 +123,63 @@
         </form>
     </div>
 
-    <div class="flex justify-end mt-4">
-        <button onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white px-6 py-2 rounded text-xs font-bold uppercase shadow flex items-center gap-2">
+    <div class="flex justify-end mt-4 no-print">
+        <button onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white px-6 py-2 rounded text-xs font-bold uppercase shadow flex items-center gap-2 no-print">
             🖨️ Cetak Laporan
         </button>
     </div>
 </div>
 
+<?php
+$rawHeader = !empty($eventInfo['header_logos']) ? json_decode($eventInfo['header_logos'], true) : [];
+$headerLogos = ['left' => [], 'center' => [], 'right' => []];
+if (isset($rawHeader[0]) && !is_array($rawHeader[0])) {
+    $headerLogos['left'] = $rawHeader;
+} else {
+    $headerLogos = array_merge($headerLogos, $rawHeader);
+}
+$sponsors = !empty($eventInfo['sponsor_logos']) ? json_decode($eventInfo['sponsor_logos'], true) : [];
+?>
 <div class="header-fixed">
-    <div style="text-align: left;"></div>
+    <div style="text-align: left; vertical-align: bottom;">
+        <?php if(!empty($headerLogos['left'])): ?>
+            <?php foreach($headerLogos['left'] as $logo): ?>
+                <img src="<?= getenv('APP_URL') ?>/<?= ltrim(str_replace('public/', '', $logo), '/') ?>" style="height: 60px; max-width: 100px; object-fit: contain; margin-right: 5px; display: inline-block;">
+            <?php endforeach; ?>
+        <?php endif; ?>
+    </div>
     <div class="header-center">
+        <?php if(!empty($headerLogos['center'])): ?>
+            <div style="margin-bottom: 5px;">
+            <?php foreach($headerLogos['center'] as $logo): ?>
+                <img src="<?= getenv('APP_URL') ?>/<?= ltrim(str_replace('public/', '', $logo), '/') ?>" style="height: 60px; max-width: 100px; object-fit: contain; margin: 0 5px; display: inline-block;">
+            <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
         <div class="header-line-1"><?= htmlspecialchars($eventInfo['event_name'] ?? '') ?></div>
         <div class="header-line-2"></div>
         <div class="header-line-3"><?= htmlspecialchars($eventInfo['start_date'] ?? '') ?></div>
         <div class="header-line-4"></div>
-        <div class="header-line-5">KLASEMEN AKHIR</div>
+        <div class="header-line-5">KLASEMEN MVP</div>
     </div>
-    <div style="text-align: right;"></div>
+    <div style="text-align: right; vertical-align: bottom;">
+        <?php if(!empty($headerLogos['right'])): ?>
+            <?php foreach($headerLogos['right'] as $logo): ?>
+                <img src="<?= getenv('APP_URL') ?>/<?= ltrim(str_replace('public/', '', $logo), '/') ?>" style="height: 60px; max-width: 100px; object-fit: contain; margin-left: 5px; display: inline-block;">
+            <?php endforeach; ?>
+        <?php endif; ?>
+    </div>
+</div>
+
+<div class="footer-fixed">
+    <?php if(!empty($sponsors)): ?>
+        <p style="font-size: 8pt; color: #888; margin: 0 0 5px 0; text-transform: uppercase; font-weight: bold; letter-spacing: 2px; text-align: center;">Supported By</p>
+        <div class="footer-sponsors">
+            <?php foreach($sponsors as $sponsor): ?>
+                <img src="<?= getenv('APP_URL') ?>/<?= ltrim(str_replace('public/', '', $sponsor), '/') ?>" alt="Sponsor">
+            <?php endforeach; ?>
+        </div>
+    <?php endif; ?>
 </div>
 
 <div class="page-wrapper">
