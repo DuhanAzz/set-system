@@ -447,6 +447,64 @@ class RollResultController extends Controller {
                 exit;
             }
             
+            if ($_POST['action'] === 'upload_event_pdf') {
+                $eventId = $_POST['event_id'] ?? 0;
+                $type = $_POST['type'] ?? 'medal_tally'; // 'medal_tally' or 'best_skater'
+                
+                if (!in_array($type, ['medal_tally', 'best_skater'])) {
+                    echo json_encode(['success' => false, 'message' => 'Tipe PDF tidak valid.']);
+                    exit;
+                }
+                
+                if (!isset($_FILES['event_pdf']) || $_FILES['event_pdf']['error'] !== UPLOAD_ERR_OK) {
+                    echo json_encode(['success' => false, 'message' => 'Gagal mengunggah PDF.']);
+                    exit;
+                }
+                
+                $uploadDir = __DIR__ . '/../../../../public/uploads/results/';
+                if (!is_dir($uploadDir)) {
+                    mkdir($uploadDir, 0777, true);
+                }
+                
+                $fileTmp = $_FILES['event_pdf']['tmp_name'];
+                $fileName = time() . '_' . $type . '_' . preg_replace("/[^a-zA-Z0-9.\-_]/", "", basename($_FILES['event_pdf']['name']));
+                $destination = $uploadDir . $fileName;
+                
+                if (move_uploaded_file($fileTmp, $destination)) {
+                    try {
+                        $col = $type === 'medal_tally' ? 'medal_tally_pdf' : 'best_skater_pdf';
+                        $stmt = $db->prepare("UPDATE roll_events SET {$col} = ? WHERE id = ?");
+                        $stmt->execute([$fileName, $eventId]);
+                        echo json_encode(['success' => true, 'message' => 'PDF rekapitulasi berhasil diunggah!', 'filename' => $fileName]);
+                    } catch (\Exception $e) {
+                        echo json_encode(['success' => false, 'message' => 'Error DB: ' . $e->getMessage()]);
+                    }
+                } else {
+                    echo json_encode(['success' => false, 'message' => 'Gagal memindahkan file yang diunggah.']);
+                }
+                exit;
+            }
+            
+            if ($_POST['action'] === 'delete_event_pdf') {
+                $eventId = $_POST['event_id'] ?? 0;
+                $type = $_POST['type'] ?? 'medal_tally';
+                
+                if (!in_array($type, ['medal_tally', 'best_skater'])) {
+                    echo json_encode(['success' => false, 'message' => 'Tipe PDF tidak valid.']);
+                    exit;
+                }
+                
+                try {
+                    $col = $type === 'medal_tally' ? 'medal_tally_pdf' : 'best_skater_pdf';
+                    $stmt = $db->prepare("UPDATE roll_events SET {$col} = NULL WHERE id = ?");
+                    $stmt->execute([$eventId]);
+                    echo json_encode(['success' => true, 'message' => 'PDF rekapitulasi berhasil dihapus.']);
+                } catch (\Exception $e) {
+                    echo json_encode(['success' => false, 'message' => 'Error DB: ' . $e->getMessage()]);
+                }
+                exit;
+            }
+            
             if ($_POST['action'] === 'toggle_event_publish') {
                 $evId = $_POST['event_id'] ?? 0;
                 $status = $_POST['is_result_published'] ?? 0;
@@ -470,12 +528,13 @@ class RollResultController extends Controller {
         }
 
         // Coba periksa apakah kolom is_result_published ada, jika tidak tambah otomatis saat halaman dimuat
+        // Coba periksa apakah kolom is_result_published ada, jika tidak tambah otomatis saat halaman dimuat
         try {
-            $stmtEv = $db->prepare("SELECT id, event_name, is_result_published FROM roll_events WHERE id = ?");
+            $stmtEv = $db->prepare("SELECT id, event_name, is_result_published, medal_tally_pdf, best_skater_pdf FROM roll_events WHERE id = ?");
             $stmtEv->execute([$eventId]);
         } catch (\Exception $e) {
             $db->exec("ALTER TABLE roll_events ADD COLUMN is_result_published TINYINT(1) DEFAULT 0");
-            $stmtEv = $db->prepare("SELECT id, event_name, is_result_published FROM roll_events WHERE id = ?");
+            $stmtEv = $db->prepare("SELECT id, event_name, is_result_published, medal_tally_pdf, best_skater_pdf FROM roll_events WHERE id = ?");
             $stmtEv->execute([$eventId]);
         }
         $eventInfo = $stmtEv->fetch(PDO::FETCH_ASSOC);

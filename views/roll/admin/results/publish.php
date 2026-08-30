@@ -25,6 +25,48 @@
         </div>
     </div>
 
+    <div class="mb-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Rekap Medali Klub -->
+        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4">
+            <div>
+                <div class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">REKAPITULASI</div>
+                <div class="font-black text-slate-800 text-sm">🏆 Juara Umum (Klub)</div>
+            </div>
+            <div class="flex flex-col sm:flex-row gap-2 w-full xl:w-auto">
+                <?php if (!empty($eventInfo['medal_tally_pdf'])): ?>
+                    <div class="flex gap-1.5 w-full xl:w-48">
+                        <button type="button" onclick="deleteEventPdf(<?= $eventId ?>, 'medal_tally')" class="flex-1 px-2 py-2 bg-red-50 text-red-600 border border-red-200 text-[10px] font-bold rounded-lg hover:bg-red-100 transition-colors text-center" title="Hapus PDF">🗑️</button>
+                        <a href="<?= getenv('APP_URL') ?>/uploads/results/<?= htmlspecialchars($eventInfo['medal_tally_pdf']) ?>" target="_blank" class="flex-[3] px-2 py-2 bg-blue-50 text-blue-600 border border-blue-200 text-[10px] font-bold rounded-lg hover:bg-blue-100 transition-colors text-center flex items-center justify-center">Lihat PDF</a>
+                    </div>
+                <?php endif; ?>
+                <input type="file" id="pdf_medal_tally" class="hidden" accept=".pdf" onchange="uploadEventPdf(this, <?= $eventId ?>, 'medal_tally')">
+                <button type="button" onclick="document.getElementById('pdf_medal_tally').click()" class="w-full xl:w-32 px-3 py-2 bg-slate-800 hover:bg-slate-900 text-white text-[10px] font-bold rounded-lg transition-colors shadow-sm whitespace-nowrap">
+                    <?= !empty($eventInfo['medal_tally_pdf']) ? 'Ganti PDF' : 'Unggah PDF' ?>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Rekap Pesepatu Roda Terbaik -->
+        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4">
+            <div>
+                <div class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">REKAPITULASI</div>
+                <div class="font-black text-slate-800 text-sm">🛼 Pesepatu Roda Terbaik</div>
+            </div>
+            <div class="flex flex-col sm:flex-row gap-2 w-full xl:w-auto">
+                <?php if (!empty($eventInfo['best_skater_pdf'])): ?>
+                    <div class="flex gap-1.5 w-full xl:w-48">
+                        <button type="button" onclick="deleteEventPdf(<?= $eventId ?>, 'best_skater')" class="flex-1 px-2 py-2 bg-red-50 text-red-600 border border-red-200 text-[10px] font-bold rounded-lg hover:bg-red-100 transition-colors text-center" title="Hapus PDF">🗑️</button>
+                        <a href="<?= getenv('APP_URL') ?>/uploads/results/<?= htmlspecialchars($eventInfo['best_skater_pdf']) ?>" target="_blank" class="flex-[3] px-2 py-2 bg-blue-50 text-blue-600 border border-blue-200 text-[10px] font-bold rounded-lg hover:bg-blue-100 transition-colors text-center flex items-center justify-center">Lihat PDF</a>
+                    </div>
+                <?php endif; ?>
+                <input type="file" id="pdf_best_skater" class="hidden" accept=".pdf" onchange="uploadEventPdf(this, <?= $eventId ?>, 'best_skater')">
+                <button type="button" onclick="document.getElementById('pdf_best_skater').click()" class="w-full xl:w-32 px-3 py-2 bg-slate-800 hover:bg-slate-900 text-white text-[10px] font-bold rounded-lg transition-colors shadow-sm whitespace-nowrap">
+                    <?= !empty($eventInfo['best_skater_pdf']) ? 'Ganti PDF' : 'Unggah PDF' ?>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <?php if(empty($classes)): ?>
         <div class="bg-white p-12 text-center rounded-[2rem] shadow-sm border border-slate-200 border-dashed">
             <span class="text-5xl block mb-4 opacity-50">📋</span>
@@ -241,6 +283,105 @@ function deletePdf(classId, roundName) {
             formData.append('action', 'delete_pdf');
             formData.append('class_id', classId);
             formData.append('round', roundName);
+
+            fetch('<?= getenv('APP_URL') ?>/roll/admin/results/publish', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'success',
+                        title: data.message,
+                        showConfirmButton: false,
+                        timer: 1500
+                    }).then(() => {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire('Gagal!', data.message, 'error');
+                }
+            })
+            .catch(error => {
+                Swal.fire('Gagal!', 'Terjadi kesalahan sistem.', 'error');
+            });
+        }
+    });
+}
+}
+
+function uploadEventPdf(inputElem, eventId, type) {
+    if (inputElem.files.length === 0) return;
+    const file = inputElem.files[0];
+    if (file.type !== 'application/pdf') {
+        Swal.fire('Gagal!', 'Hanya file PDF yang diperbolehkan.', 'error');
+        inputElem.value = '';
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('action', 'upload_event_pdf');
+    formData.append('event_id', eventId);
+    formData.append('type', type);
+    formData.append('event_pdf', file);
+
+    Swal.fire({
+        title: 'Mengunggah...',
+        text: 'Mohon tunggu sebentar',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+
+    fetch('<?= getenv('APP_URL') ?>/roll/admin/results/publish', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'success',
+                title: data.message,
+                showConfirmButton: false,
+                timer: 1500
+            }).then(() => {
+                location.reload();
+            });
+        } else {
+            Swal.fire('Gagal!', data.message, 'error');
+            inputElem.value = '';
+        }
+    })
+    .catch(error => {
+        Swal.fire('Gagal!', 'Terjadi kesalahan sistem.', 'error');
+        inputElem.value = '';
+    });
+}
+
+function deleteEventPdf(eventId, type) {
+    let title = type === 'medal_tally' ? 'Juara Umum' : 'Pesepatu Roda Terbaik';
+    Swal.fire({
+        title: `Hapus PDF ${title}?`,
+        text: "File PDF rekapitulasi ini akan dihapus dari sistem.",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#94a3b8',
+        confirmButtonText: 'Ya, Hapus!',
+        cancelButtonText: 'Batal'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const formData = new FormData();
+            formData.append('action', 'delete_event_pdf');
+            formData.append('event_id', eventId);
+            formData.append('type', type);
 
             fetch('<?= getenv('APP_URL') ?>/roll/admin/results/publish', {
                 method: 'POST',
