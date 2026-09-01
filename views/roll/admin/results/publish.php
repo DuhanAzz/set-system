@@ -75,13 +75,13 @@
             <div class="flex flex-col sm:flex-row gap-2 w-full xl:w-auto">
                 <?php if (!empty($eventInfo['cover_pdf'])): ?>
                     <div class="flex gap-1.5 w-full xl:w-48">
-                        <button type="button" onclick="deleteEventPdf(<?= $eventId ?>, 'cover_result')" class="flex-1 px-2 py-2 bg-red-50 text-red-600 border border-red-200 text-[10px] font-bold rounded-lg hover:bg-red-100 transition-colors text-center" title="Hapus PDF">🗑️</button>
-                        <a href="<?= getenv('APP_URL') ?>/uploads/results/<?= htmlspecialchars($eventInfo['cover_pdf']) ?>" target="_blank" class="flex-[3] px-2 py-2 bg-blue-50 text-blue-600 border border-blue-200 text-[10px] font-bold rounded-lg hover:bg-blue-100 transition-colors text-center flex items-center justify-center">Lihat PDF</a>
+                        <button type="button" onclick="deleteEventPdf(<?= $eventId ?>, 'cover_result')" class="flex-1 px-2 py-2 bg-red-50 text-red-600 border border-red-200 text-[10px] font-bold rounded-lg hover:bg-red-100 transition-colors text-center" title="Hapus Cover">🗑️</button>
+                        <a href="<?= getenv('APP_URL') ?>/uploads/results/<?= htmlspecialchars($eventInfo['cover_pdf']) ?>" target="_blank" class="flex-[3] px-2 py-2 bg-blue-50 text-blue-600 border border-blue-200 text-[10px] font-bold rounded-lg hover:bg-blue-100 transition-colors text-center flex items-center justify-center">Lihat Cover</a>
                     </div>
                 <?php endif; ?>
-                <input type="file" id="pdf_cover_result" class="hidden" accept=".pdf" onchange="uploadEventPdf(this, <?= $eventId ?>, 'cover_result')">
+                <input type="file" id="pdf_cover_result" class="hidden" accept="image/*,.pdf" onchange="uploadEventPdf(this, <?= $eventId ?>, 'cover_result')">
                 <button type="button" onclick="document.getElementById('pdf_cover_result').click()" class="w-full xl:w-32 px-3 py-2 bg-slate-800 hover:bg-slate-900 text-white text-[10px] font-bold rounded-lg transition-colors shadow-sm whitespace-nowrap">
-                    <?= !empty($eventInfo['cover_pdf']) ? 'Ganti PDF' : 'Unggah PDF' ?>
+                    <?= !empty($eventInfo['cover_pdf']) ? 'Ganti Cover' : 'Unggah Cover' ?>
                 </button>
             </div>
         </div>
