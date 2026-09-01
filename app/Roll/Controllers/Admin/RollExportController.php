@@ -333,4 +333,127 @@ class RollExportController extends Controller {
             'classes' => $classes
         ]);
     }
+
+    public function export_meal_vouchers() {
+        $db = Database::getInstance()->getConnection();
+        $eventId = $_SESSION['roll_admin_active_event_id'] ?? 0;
+
+        if ($eventId == 0) {
+            die("Event not selected.");
+        }
+
+        // Get Event Info
+        $stmtEvt = $db->prepare("SELECT event_name FROM roll_events WHERE id = ?");
+        $stmtEvt->execute([$eventId]);
+        $eventName = $stmtEvt->fetchColumn() ?: 'Event';
+
+        // Get all entered skaters with their race numbers
+        // A skater could have multiple races on the same day, so we group by Day and skater
+        $sql = "
+            SELECT 
+                s.skater_name, 
+                e.bib_number, 
+                c.club_name,
+                ed.race_number
+            FROM roll_entries e
+            JOIN roll_skaters s ON e.skater_id = s.id
+            LEFT JOIN roll_clubs c ON s.club_id = c.id
+            JOIN roll_event_details ed ON e.race_class_id = ed.id
+            WHERE e.event_id = ?
+            ORDER BY c.club_name ASC, s.skater_name ASC
+        ";
+        $stmt = $db->prepare($sql);
+        $stmt->execute([$eventId]);
+        $rawData = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $vouchersByDay = [];
+        
+        foreach ($rawData as $row) {
+            $rn = $row['race_number'];
+            if (!$rn) continue;
+            
+            // Extract day from first digit of race number
+            $dayDigit = (int)substr($rn, 0, 1);
+            if ($dayDigit === 0) $dayDigit = 1;
+
+            $skaterKey = $row['bib_number'] . '_' . $row['skater_name'];
+
+            if (!isset($vouchersByDay[$dayDigit])) {
+                $vouchersByDay[$dayDigit] = [];
+            }
+
+            // Ensure unique skater per day
+            if (!isset($vouchersByDay[$dayDigit][$skaterKey])) {
+                $vouchersByDay[$dayDigit][$skaterKey] = [
+                    'skater_name' => $row['skater_name'],
+                    'bib_number'  => $row['bib_number'],
+                    'club_name'   => $row['club_name']
+                ];
+            }
+        }
+
+        ksort($vouchersByDay);
+
+        // Generate XML Spreadsheet 2003
+        $filename = "Voucher_Makan_" . preg_replace('/[^a-zA-Z0-9_-]/', '_', $eventName) . ".xls";
+
+        header("Content-Type: application/vnd.ms-excel; charset=utf-8");
+        header("Content-Disposition: attachment; filename=\"$filename\"");
+        header("Pragma: no-cache");
+        header("Expires: 0");
+
+        echo '<?xml version="1.0"?>' . "\n";
+        echo '<?mso-application progid="Excel.Sheet"?>' . "\n";
+        echo '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"' . "\n";
+        echo ' xmlns:o="urn:schemas-microsoft-com:office:office"' . "\n";
+        echo ' xmlns:x="urn:schemas-microsoft-com:office:excel"' . "\n";
+        echo ' xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"' . "\n";
+        echo ' xmlns:html="http://www.w3.org/TR/REC-html40">' . "\n";
+
+        // Styles
+        echo ' <Styles>' . "\n";
+        echo '  <Style ss:ID="Default" ss:Name="Normal">' . "\n";
+        echo '   <Alignment ss:Vertical="Bottom"/>' . "\n";
+        echo '   <Borders/>' . "\n";
+        echo '   <Font ss:FontName="Calibri" x:Family="Swiss" ss:Size="11" ss:Color="#000000"/>' . "\n";
+        echo '   <Interior/>' . "\n";
+        echo '   <NumberFormat/>' . "\n";
+        echo '   <Protection/>' . "\n";
+        echo '  </Style>' . "\n";
+        echo '  <Style ss:ID="sHeader">' . "\n";
+        echo '   <Font ss:FontName="Calibri" x:Family="Swiss" ss:Size="11" ss:Color="#FFFFFF" ss:Bold="1"/>' . "\n";
+        echo '   <Interior ss:Color="#4F81BD" ss:Pattern="Solid"/>' . "\n";
+        echo '  </Style>' . "\n";
+        echo ' </Styles>' . "\n";
+
+        foreach ($vouchersByDay as $day => $skaters) {
+            echo ' <Worksheet ss:Name="Hari ' . $day . '">' . "\n";
+            echo '  <Table>' . "\n";
+            
+            // Header Row
+            echo '   <Row>' . "\n";
+            echo '    <Cell ss:StyleID="sHeader"><Data ss:Type="String">No.</Data></Cell>' . "\n";
+            echo '    <Cell ss:StyleID="sHeader"><Data ss:Type="String">BIB</Data></Cell>' . "\n";
+            echo '    <Cell ss:StyleID="sHeader"><Data ss:Type="String">Nama Atlet</Data></Cell>' . "\n";
+            echo '    <Cell ss:StyleID="sHeader"><Data ss:Type="String">Klub</Data></Cell>' . "\n";
+            echo '   </Row>' . "\n";
+
+            // Data Rows
+            $no = 1;
+            foreach ($skaters as $skater) {
+                echo '   <Row>' . "\n";
+                echo '    <Cell><Data ss:Type="Number">' . $no++ . '</Data></Cell>' . "\n";
+                echo '    <Cell><Data ss:Type="String">' . htmlspecialchars($skater['bib_number'] ?? '') . '</Data></Cell>' . "\n";
+                echo '    <Cell><Data ss:Type="String">' . htmlspecialchars($skater['skater_name'] ?? '') . '</Data></Cell>' . "\n";
+                echo '    <Cell><Data ss:Type="String">' . htmlspecialchars($skater['club_name'] ?? '') . '</Data></Cell>' . "\n";
+                echo '   </Row>' . "\n";
+            }
+
+            echo '  </Table>' . "\n";
+            echo ' </Worksheet>' . "\n";
+        }
+
+        echo '</Workbook>';
+        exit;
+    }
 }
