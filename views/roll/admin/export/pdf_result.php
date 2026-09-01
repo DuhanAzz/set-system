@@ -110,7 +110,7 @@ $sponsors = !empty($event['sponsor_logos']) ? json_decode($event['sponsor_logos'
             body { background: white; margin: 0; }
             table.master-layout { margin: 0; max-width: 100%; min-height: auto; width: 100%; }
             .btn-print, .btn-close { display: none !important; }
-            @page { margin: 0; size: A4 portrait; }
+            @page { margin: 15mm; size: A4 portrait; }
         }
     </style>
     <style>
@@ -122,43 +122,17 @@ $sponsors = !empty($event['sponsor_logos']) ? json_decode($event['sponsor_logos'
     <button onclick="window.print()" class="btn-print"><i class="fas fa-print"></i> Print PDF</button>
     <button onclick="window.close()" class="btn-close"><i class="fas fa-times"></i> Tutup</button>
 
-    <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px;">
-        <h1 style="font-size: 18pt; margin: 0; text-transform: uppercase;">Result Book (Hasil Resmi)</h1>
-        <p style="margin: 5px 0 0 0; font-size: 12pt;"><?= htmlspecialchars($event['event_name']) ?></p>
-        <p style="margin: 5px 0 0 0; font-size: 12pt;"><?= htmlspecialchars($event['event_location'] ?? '') ?> | <?= htmlspecialchars($dateRange) ?></p>
-    </div>
+    <?php if(!empty($event['cover_pdf'])): ?>
+        <div id="pdf-cover" class="pdf-container"></div>
+    <?php else: ?>
+        <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px;">
+            <h1 style="font-size: 18pt; margin: 0; text-transform: uppercase;">Result Book (Hasil Resmi)</h1>
+            <p style="margin: 5px 0 0 0; font-size: 12pt;"><?= htmlspecialchars($event['event_name']) ?></p>
+            <p style="margin: 5px 0 0 0; font-size: 12pt;"><?= htmlspecialchars($event['event_location'] ?? '') ?> | <?= htmlspecialchars($dateRange) ?></p>
+        </div>
+    <?php endif; ?>
 
-    <table class="master-layout">
-        <thead>
-            <tr>
-                <td>
-                    <div class="kop-surat-wrapper">
-                        <table class="kop-surat">
-                            <tr>
-                                <td style="width: 25%; text-align: left; vertical-align: middle;">
-                                    <?php if($logoLeft): ?><img src="<?= $logoLeft ?>" style="height: 70px; max-width: 100%; object-fit: contain;"><?php endif; ?>
-                                </td>
-                                <td style="width: 50%; text-align: center; vertical-align: middle; line-height: 1.2;">
-                                    <div class="header-line-1"><?= htmlspecialchars($eventName) ?></div>
-                                    <div class="header-line-2"><?= htmlspecialchars($venueName) ?></div>
-                                    <div class="header-line-3"><?= htmlspecialchars($dateRange) ?></div>
-                                    <div class="header-line-4"></div>
-                                    <div class="header-line-5">RESULT BOOK</div>
-                                </td>
-                                <td style="width: 25%; text-align: right; vertical-align: middle;">
-                                    <?php if($logoRight): ?><img src="<?= $logoRight ?>" style="height: 70px; max-width: 100%; object-fit: contain;"><?php endif; ?>
-                                </td>
-                            </tr>
-                        </table>
-                    </div>
-                </td>
-            </tr>
-        </thead>
-        
-        <tbody>
-            <tr>
-                <td>
-                    <?php if(!empty($event['medal_tally_pdf'])): ?>
+    <?php if(!empty($event['medal_tally_pdf'])): ?>
                         <div id="pdf-medal" class="pdf-container"></div>
                     <?php else: ?>
                         <div class="event-header">
@@ -305,8 +279,15 @@ $sponsors = !empty($event['sponsor_logos']) ? json_decode($event['sponsor_logos'
                                     $dateStr = date('d', $start) . ' ' . $m1 . ' - ' . date('d', $end) . ' ' . $m2 . ' ' . date('Y', $end);
                                 }
                             }
+
+                            $classPdfs = !empty($classInfo['result_pdf']) ? json_decode($classInfo['result_pdf'], true) : [];
+                            $classPdfFile = $classPdfs[$round] ?? null;
                             ?>
-                            <div class="event-header">
+
+                            <?php if($classPdfFile): ?>
+                                <div class="pdf-container class-pdf" data-url="<?= getenv('APP_URL') ?>/uploads/results/<?= htmlspecialchars($classPdfFile) ?>"></div>
+                            <?php else: ?>
+                                <div class="event-header">
                                 <div class="eh-left-group">
                                     <div class="eh-number">RACE <?= htmlspecialchars(str_pad($classInfo['race_number'], 3, '0', STR_PAD_LEFT)) ?></div>
                                     <?php if($dateStr): ?><div class="eh-date"><?= $dateStr ?></div><?php endif; ?>
@@ -412,28 +393,11 @@ $sponsors = !empty($event['sponsor_logos']) ? json_decode($event['sponsor_logos'
                                     <?php endif; ?>
                                 </tbody>
                             </table>
+                            <?php endif; ?>
                         <?php endforeach; ?>
                     <?php else: ?>
                         <div class="text-center font-bold" style="padding: 20px;">Belum ada hasil yang dipublikasikan (Published).</div>
                     <?php endif; ?>
-                </td>
-            </tr>
-        </tbody>
-        
-        <tfoot>
-            <tr>
-                <td>
-                    <div class="footer-wrapper">
-                        <div class="sponsor-footer">
-                            <?php if(!empty($sponsors)): foreach($sponsors as $img): ?>
-                                <img src="<?= getenv('APP_URL') . '/' . ltrim(str_replace('public/', '', $img), '/') ?>">
-                            <?php endforeach; endif; ?>
-                        </div>
-                    </div>
-                </td>
-            </tr>
-        </tfoot>
-    </table>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
     <script>
@@ -464,6 +428,11 @@ $sponsors = !empty($event['sponsor_logos']) ? json_decode($event['sponsor_logos'
 
         async function loadAllPdfs() {
             let promises = [];
+            
+            <?php if(!empty($event['cover_pdf'])): ?>
+                promises.push(renderPdf("<?= getenv('APP_URL') ?>/uploads/results/<?= htmlspecialchars($event['cover_pdf']) ?>", 'pdf-cover'));
+            <?php endif; ?>
+
             <?php if(!empty($event['medal_tally_pdf'])): ?>
                 promises.push(renderPdf("<?= getenv('APP_URL') ?>/uploads/results/<?= htmlspecialchars($event['medal_tally_pdf']) ?>", 'pdf-medal'));
             <?php endif; ?>
@@ -471,6 +440,14 @@ $sponsors = !empty($event['sponsor_logos']) ? json_decode($event['sponsor_logos'
             <?php if(!empty($event['best_skater_pdf'])): ?>
                 promises.push(renderPdf("<?= getenv('APP_URL') ?>/uploads/results/<?= htmlspecialchars($event['best_skater_pdf']) ?>", 'pdf-mvp'));
             <?php endif; ?>
+
+            const classPdfs = document.querySelectorAll('.class-pdf');
+            classPdfs.forEach((container, index) => {
+                const url = container.getAttribute('data-url');
+                const id = 'pdf-class-' + index;
+                container.id = id;
+                promises.push(renderPdf(url, id));
+            });
             
             if(promises.length > 0) {
                 await Promise.all(promises);

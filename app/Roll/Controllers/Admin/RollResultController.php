@@ -449,9 +449,9 @@ class RollResultController extends Controller {
             
             if ($_POST['action'] === 'upload_event_pdf') {
                 $eventId = $_POST['event_id'] ?? 0;
-                $type = $_POST['type'] ?? 'medal_tally'; // 'medal_tally' or 'best_skater'
+                $type = $_POST['type'] ?? 'medal_tally'; // 'medal_tally' or 'best_skater' or 'cover_result'
                 
-                if (!in_array($type, ['medal_tally', 'best_skater'])) {
+                if (!in_array($type, ['medal_tally', 'best_skater', 'cover_result'])) {
                     echo json_encode(['success' => false, 'message' => 'Tipe PDF tidak valid.']);
                     exit;
                 }
@@ -472,7 +472,7 @@ class RollResultController extends Controller {
                 
                 if (move_uploaded_file($fileTmp, $destination)) {
                     try {
-                        $col = $type === 'medal_tally' ? 'medal_tally_pdf' : 'best_skater_pdf';
+                        $col = $type === 'medal_tally' ? 'medal_tally_pdf' : ($type === 'best_skater' ? 'best_skater_pdf' : 'cover_pdf');
                         $stmt = $db->prepare("UPDATE roll_events SET {$col} = ? WHERE id = ?");
                         $stmt->execute([$fileName, $eventId]);
                         echo json_encode(['success' => true, 'message' => 'PDF rekapitulasi berhasil diunggah!', 'filename' => $fileName]);
@@ -489,13 +489,13 @@ class RollResultController extends Controller {
                 $eventId = $_POST['event_id'] ?? 0;
                 $type = $_POST['type'] ?? 'medal_tally';
                 
-                if (!in_array($type, ['medal_tally', 'best_skater'])) {
+                if (!in_array($type, ['medal_tally', 'best_skater', 'cover_result'])) {
                     echo json_encode(['success' => false, 'message' => 'Tipe PDF tidak valid.']);
                     exit;
                 }
                 
                 try {
-                    $col = $type === 'medal_tally' ? 'medal_tally_pdf' : 'best_skater_pdf';
+                    $col = $type === 'medal_tally' ? 'medal_tally_pdf' : ($type === 'best_skater' ? 'best_skater_pdf' : 'cover_pdf');
                     $stmt = $db->prepare("UPDATE roll_events SET {$col} = NULL WHERE id = ?");
                     $stmt->execute([$eventId]);
                     echo json_encode(['success' => true, 'message' => 'PDF rekapitulasi berhasil dihapus.']);

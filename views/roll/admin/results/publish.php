@@ -25,7 +25,7 @@
         </div>
     </div>
 
-    <div class="mb-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div class="mb-8 grid grid-cols-1 md:grid-cols-3 gap-4">
         <!-- Rekap Medali Klub -->
         <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4">
             <div>
@@ -62,6 +62,26 @@
                 <input type="file" id="pdf_best_skater" class="hidden" accept=".pdf" onchange="uploadEventPdf(this, <?= $eventId ?>, 'best_skater')">
                 <button type="button" onclick="document.getElementById('pdf_best_skater').click()" class="w-full xl:w-32 px-3 py-2 bg-slate-800 hover:bg-slate-900 text-white text-[10px] font-bold rounded-lg transition-colors shadow-sm whitespace-nowrap">
                     <?= !empty($eventInfo['best_skater_pdf']) ? 'Ganti PDF' : 'Unggah PDF' ?>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Cover Result Book -->
+        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4">
+            <div>
+                <div class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">REKAPITULASI</div>
+                <div class="font-black text-slate-800 text-sm">📖 Cover Result Book</div>
+            </div>
+            <div class="flex flex-col sm:flex-row gap-2 w-full xl:w-auto">
+                <?php if (!empty($eventInfo['cover_pdf'])): ?>
+                    <div class="flex gap-1.5 w-full xl:w-48">
+                        <button type="button" onclick="deleteEventPdf(<?= $eventId ?>, 'cover_result')" class="flex-1 px-2 py-2 bg-red-50 text-red-600 border border-red-200 text-[10px] font-bold rounded-lg hover:bg-red-100 transition-colors text-center" title="Hapus PDF">🗑️</button>
+                        <a href="<?= getenv('APP_URL') ?>/uploads/results/<?= htmlspecialchars($eventInfo['cover_pdf']) ?>" target="_blank" class="flex-[3] px-2 py-2 bg-blue-50 text-blue-600 border border-blue-200 text-[10px] font-bold rounded-lg hover:bg-blue-100 transition-colors text-center flex items-center justify-center">Lihat PDF</a>
+                    </div>
+                <?php endif; ?>
+                <input type="file" id="pdf_cover_result" class="hidden" accept=".pdf" onchange="uploadEventPdf(this, <?= $eventId ?>, 'cover_result')">
+                <button type="button" onclick="document.getElementById('pdf_cover_result').click()" class="w-full xl:w-32 px-3 py-2 bg-slate-800 hover:bg-slate-900 text-white text-[10px] font-bold rounded-lg transition-colors shadow-sm whitespace-nowrap">
+                    <?= !empty($eventInfo['cover_pdf']) ? 'Ganti PDF' : 'Unggah PDF' ?>
                 </button>
             </div>
         </div>
