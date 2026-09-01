@@ -25,7 +25,34 @@
         </div>
     </div>
 
-    <div class="mb-8 grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div class="mb-4">
+        <!-- Cover Result Book -->
+        <div class="bg-indigo-50 p-5 rounded-2xl shadow-sm border border-indigo-100 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div class="flex items-center gap-4">
+                <div class="text-3xl">📖</div>
+                <div>
+                    <div class="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1">DOKUMEN</div>
+                    <div class="font-black text-indigo-900 text-base">Cover Result Book</div>
+                    <p class="text-xs text-indigo-600/70 font-medium mt-1 max-w-xl">Unggah file Cover untuk halaman pertama Result Book. Dapat berupa gambar (JPG/PNG) atau dokumen PDF.</p>
+                </div>
+            </div>
+            <div class="flex flex-col sm:flex-row gap-2 w-full md:w-auto shrink-0">
+                <?php if (!empty($eventInfo['cover_pdf'])): ?>
+                    <div class="flex gap-1.5 w-full md:w-auto">
+                        <button type="button" onclick="deleteEventPdf(<?= $eventId ?>, 'cover_result')" class="px-3 py-2 bg-red-100 text-red-600 border border-red-200 text-xs font-bold rounded-lg hover:bg-red-200 transition-colors text-center" title="Hapus Cover">🗑️</button>
+                        <a href="<?= getenv('APP_URL') ?>/uploads/results/<?= htmlspecialchars($eventInfo['cover_pdf']) ?>" target="_blank" class="px-5 py-2 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700 transition-colors text-center flex items-center justify-center">Lihat Cover</a>
+                    </div>
+                <?php endif; ?>
+                <input type="file" id="pdf_cover_result" class="hidden" accept="image/*,.pdf" onchange="uploadEventPdf(this, <?= $eventId ?>, 'cover_result')">
+                <button type="button" onclick="document.getElementById('pdf_cover_result').click()" class="w-full md:w-auto px-5 py-2 bg-indigo-100 text-indigo-700 border border-indigo-200 hover:bg-indigo-200 hover:border-indigo-300 text-xs font-bold rounded-lg transition-colors whitespace-nowrap">
+                    <?= !empty($eventInfo['cover_pdf']) ? 'Ganti Cover' : 'Unggah Cover' ?>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="mb-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+
         <!-- Rekap Medali Klub -->
         <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4">
             <div>
@@ -66,25 +93,7 @@
             </div>
         </div>
         
-        <!-- Cover Result Book -->
-        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4">
-            <div>
-                <div class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">REKAPITULASI</div>
-                <div class="font-black text-slate-800 text-sm">📖 Cover Result Book</div>
-            </div>
-            <div class="flex flex-col sm:flex-row gap-2 w-full xl:w-auto">
-                <?php if (!empty($eventInfo['cover_pdf'])): ?>
-                    <div class="flex gap-1.5 w-full xl:w-48">
-                        <button type="button" onclick="deleteEventPdf(<?= $eventId ?>, 'cover_result')" class="flex-1 px-2 py-2 bg-red-50 text-red-600 border border-red-200 text-[10px] font-bold rounded-lg hover:bg-red-100 transition-colors text-center" title="Hapus Cover">🗑️</button>
-                        <a href="<?= getenv('APP_URL') ?>/uploads/results/<?= htmlspecialchars($eventInfo['cover_pdf']) ?>" target="_blank" class="flex-[3] px-2 py-2 bg-blue-50 text-blue-600 border border-blue-200 text-[10px] font-bold rounded-lg hover:bg-blue-100 transition-colors text-center flex items-center justify-center">Lihat Cover</a>
-                    </div>
-                <?php endif; ?>
-                <input type="file" id="pdf_cover_result" class="hidden" accept="image/*,.pdf" onchange="uploadEventPdf(this, <?= $eventId ?>, 'cover_result')">
-                <button type="button" onclick="document.getElementById('pdf_cover_result').click()" class="w-full xl:w-32 px-3 py-2 bg-slate-800 hover:bg-slate-900 text-white text-[10px] font-bold rounded-lg transition-colors shadow-sm whitespace-nowrap">
-                    <?= !empty($eventInfo['cover_pdf']) ? 'Ganti Cover' : 'Unggah Cover' ?>
-                </button>
-            </div>
-        </div>
+
     </div>
 
     <?php if(empty($classes)): ?>
@@ -335,10 +344,18 @@ function deletePdf(classId, roundName) {
 function uploadEventPdf(inputElem, eventId, type) {
     if (inputElem.files.length === 0) return;
     const file = inputElem.files[0];
-    if (file.type !== 'application/pdf') {
-        Swal.fire('Gagal!', 'Hanya file PDF yang diperbolehkan.', 'error');
-        inputElem.value = '';
-        return;
+    if (type === 'cover_result') {
+        if (file.type !== 'application/pdf' && !file.type.startsWith('image/')) {
+            Swal.fire('Gagal!', 'Hanya file PDF atau Gambar yang diperbolehkan untuk Cover.', 'error');
+            inputElem.value = '';
+            return;
+        }
+    } else {
+        if (file.type !== 'application/pdf') {
+            Swal.fire('Gagal!', 'Hanya file PDF yang diperbolehkan.', 'error');
+            inputElem.value = '';
+            return;
+        }
     }
 
     const formData = new FormData();

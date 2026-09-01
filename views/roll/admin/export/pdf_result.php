@@ -49,6 +49,7 @@ $sponsors = !empty($event['sponsor_logos']) ? json_decode($event['sponsor_logos'
             z-index: 99999; background: white; display: flex; justify-content: center; align-items: center; overflow: hidden;
             page-break-after: always;
         }
+        .full-page-img { width: 100%; height: 100%; object-fit: contain; }
         
         /* --- MASTER TABLE UNTUK HEADER/FOOTER BERULANG NATIVE --- */
         table.master-layout { width: 100%; max-width: 210mm; margin: 0 auto; background: white; border: none; border-collapse: collapse; min-height: 297mm; }
@@ -122,8 +123,16 @@ $sponsors = !empty($event['sponsor_logos']) ? json_decode($event['sponsor_logos'
     <button onclick="window.print()" class="btn-print"><i class="fas fa-print"></i> Print PDF</button>
     <button onclick="window.close()" class="btn-close"><i class="fas fa-times"></i> Tutup</button>
 
-    <?php if(!empty($event['cover_pdf'])): ?>
+    <?php if(!empty($event['cover_pdf'])): 
+        $ext = pathinfo($event['cover_pdf'], PATHINFO_EXTENSION);
+        if(in_array(strtolower($ext), ['jpg','jpeg','png','gif','webp'])):
+    ?>
+        <div class="full-page">
+            <img src="<?= getenv('APP_URL') ?>/uploads/results/<?= htmlspecialchars($event['cover_pdf']) ?>" class="full-page-img">
+        </div>
+    <?php else: ?>
         <div id="pdf-cover" class="pdf-container"></div>
+    <?php endif; ?>
     <?php else: ?>
         <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px;">
             <h1 style="font-size: 18pt; margin: 0; text-transform: uppercase;">Result Book (Hasil Resmi)</h1>
@@ -429,9 +438,12 @@ $sponsors = !empty($event['sponsor_logos']) ? json_decode($event['sponsor_logos'
         async function loadAllPdfs() {
             let promises = [];
             
-            <?php if(!empty($event['cover_pdf'])): ?>
+            <?php if(!empty($event['cover_pdf'])): 
+                $ext = pathinfo($event['cover_pdf'], PATHINFO_EXTENSION);
+                if(!in_array(strtolower($ext), ['jpg','jpeg','png','gif','webp'])):
+            ?>
                 promises.push(renderPdf("<?= getenv('APP_URL') ?>/uploads/results/<?= htmlspecialchars($event['cover_pdf']) ?>", 'pdf-cover'));
-            <?php endif; ?>
+            <?php endif; endif; ?>
 
             <?php if(!empty($event['medal_tally_pdf'])): ?>
                 promises.push(renderPdf("<?= getenv('APP_URL') ?>/uploads/results/<?= htmlspecialchars($event['medal_tally_pdf']) ?>", 'pdf-medal'));
