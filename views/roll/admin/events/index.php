@@ -45,6 +45,10 @@
                             <input type="text" name="location" value="<?= htmlspecialchars($eventProfile['location']) ?>" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 transition-all">
                         </div>
                         <div>
+                            <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">No. WA Konfirmasi Pembayaran</label>
+                            <input type="text" name="contact_phone" value="<?= htmlspecialchars($eventProfile['contact_phone'] ?? '') ?>" placeholder="Misal: 6281234567890" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 transition-all">
+                        </div>
+                        <div>
                             <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Logo Baru (Opsional)</label>
                             <input type="file" name="logo" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-blue-500 transition-all file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-blue-600 file:text-white hover:file:bg-blue-700">
                         </div>
