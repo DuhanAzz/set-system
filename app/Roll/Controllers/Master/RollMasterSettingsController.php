@@ -200,6 +200,8 @@ class RollMasterSettingsController extends Controller {
         return $this->view('roll/master/settings/dq_rules', [
             'rules' => $rules
         ]);
+    }
+
     public function event_landing_pages() {
         $db = Database::getInstance()->getConnection();
         

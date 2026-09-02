@@ -7,12 +7,6 @@
             </h1>
             <p class="text-sm text-slate-500 font-medium mt-1">Manajemen terpusat halaman publikasi dan profil masing-masing event.</p>
         </div>
-        
-        <div class="bg-white p-1 rounded-xl shadow-sm border border-slate-200 flex">
-            <a href="<?= getenv('APP_URL') ?>/roll/master/settings/public_page" class="px-4 py-2 text-xs font-bold uppercase tracking-widest text-slate-500 hover:text-slate-800 transition">Landing Web</a>
-            <a href="<?= getenv('APP_URL') ?>/roll/master/settings/global_config" class="px-4 py-2 text-xs font-bold uppercase tracking-widest text-slate-500 hover:text-slate-800 transition">Global Config</a>
-            <a href="<?= getenv('APP_URL') ?>/roll/master/settings/event_landing_pages" class="px-4 py-2 text-xs font-bold uppercase tracking-widest bg-blue-50 text-blue-700 rounded-lg shadow-sm">Landing Event</a>
-        </div>
     </div>
 
     <?php if (isset($_SESSION['flash_message'])): ?>
