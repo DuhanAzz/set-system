@@ -198,9 +198,58 @@
                             </table>
                         </div>
                         
-                        <div class="mt-8 flex justify-end pt-4 border-t border-slate-200">
-                            <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-10 rounded-xl shadow-lg hover:shadow-blue-500/30 transition-all uppercase tracking-widest text-sm flex items-center gap-2">
-                                💾 Simpan Matriks
+                        <div class="mt-8 flex flex-col lg:flex-row justify-between items-center pt-6 border-t border-slate-200 gap-6">
+                            
+                            <!-- BATCH LIMITS PER KATEGORI -->
+                            <div class="flex flex-wrap justify-center gap-4">
+                                <!-- SPEED -->
+                                <div class="bg-fuchsia-50/50 border border-fuchsia-200 p-3 rounded-xl flex flex-col shadow-sm">
+                                    <span class="text-[10px] font-black text-fuchsia-600 uppercase tracking-widest text-center mb-2">Limit Speed</span>
+                                    <div class="flex gap-3">
+                                        <div class="flex flex-col text-center">
+                                            <span class="text-[9px] text-fuchsia-500 font-bold mb-1">Max Individu</span>
+                                            <input type="number" name="limit_speed_ind" value="<?= htmlspecialchars($row['limit_speed_ind'] ?? 2) ?>" class="w-16 h-8 text-center bg-white border border-fuchsia-300 rounded text-fuchsia-700 font-bold text-xs focus:ring-1 focus:ring-fuchsia-500 outline-none" min="1">
+                                        </div>
+                                        <div class="flex flex-col text-center">
+                                            <span class="text-[9px] text-fuchsia-500 font-bold mb-1">Max Beregu</span>
+                                            <input type="number" name="limit_speed_team" value="<?= htmlspecialchars($row['limit_speed_team'] ?? 1) ?>" class="w-16 h-8 text-center bg-white border border-fuchsia-300 rounded text-fuchsia-700 font-bold text-xs focus:ring-1 focus:ring-fuchsia-500 outline-none" min="0">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- STANDAR -->
+                                <div class="bg-amber-50/50 border border-amber-200 p-3 rounded-xl flex flex-col shadow-sm">
+                                    <span class="text-[10px] font-black text-amber-600 uppercase tracking-widest text-center mb-2">Limit Standar</span>
+                                    <div class="flex gap-3">
+                                        <div class="flex flex-col text-center">
+                                            <span class="text-[9px] text-amber-500 font-bold mb-1">Max Individu</span>
+                                            <input type="number" name="limit_std_ind" value="<?= htmlspecialchars($row['limit_std_ind'] ?? 2) ?>" class="w-16 h-8 text-center bg-white border border-amber-300 rounded text-amber-700 font-bold text-xs focus:ring-1 focus:ring-amber-500 outline-none" min="1">
+                                        </div>
+                                        <div class="flex flex-col text-center">
+                                            <span class="text-[9px] text-amber-500 font-bold mb-1">Max Beregu</span>
+                                            <input type="number" name="limit_std_team" value="<?= htmlspecialchars($row['limit_std_team'] ?? 1) ?>" class="w-16 h-8 text-center bg-white border border-amber-300 rounded text-amber-700 font-bold text-xs focus:ring-1 focus:ring-amber-500 outline-none" min="0">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- PEMULA -->
+                                <div class="bg-emerald-50/50 border border-emerald-200 p-3 rounded-xl flex flex-col shadow-sm">
+                                    <span class="text-[10px] font-black text-emerald-600 uppercase tracking-widest text-center mb-2">Limit Pemula</span>
+                                    <div class="flex gap-3">
+                                        <div class="flex flex-col text-center">
+                                            <span class="text-[9px] text-emerald-500 font-bold mb-1">Max Individu</span>
+                                            <input type="number" name="limit_pemula_ind" value="<?= htmlspecialchars($row['limit_pemula_ind'] ?? 2) ?>" class="w-16 h-8 text-center bg-white border border-emerald-300 rounded text-emerald-700 font-bold text-xs focus:ring-1 focus:ring-emerald-500 outline-none" min="1">
+                                        </div>
+                                        <div class="flex flex-col text-center">
+                                            <span class="text-[9px] text-emerald-500 font-bold mb-1">Max Beregu</span>
+                                            <input type="number" name="limit_pemula_team" value="<?= htmlspecialchars($row['limit_pemula_team'] ?? 1) ?>" class="w-16 h-8 text-center bg-white border border-emerald-300 rounded text-emerald-700 font-bold text-xs focus:ring-1 focus:ring-emerald-500 outline-none" min="0">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 px-10 rounded-xl shadow-lg hover:shadow-blue-500/30 transition-all uppercase tracking-widest text-sm flex items-center gap-2 h-fit">
+                                💾 Simpan Matriks & Limit
                             </button>
                         </div>
                     </form>

@@ -93,14 +93,6 @@
                                 <option value="Finished" <?= ($row['status'] == 'Finished') ? 'selected' : '' ?>>Finished</option>
                             </select>
                         </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Max Individu / Atlet</label>
-                            <input type="number" name="max_individual_races" value="<?= htmlspecialchars($row['max_individual_races'] ?? '2') ?>" min="1" max="10" class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-800 focus:ring-2 focus:ring-blue-500" required>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Max Beregu / Atlet</label>
-                            <input type="number" name="max_team_races" value="<?= htmlspecialchars($row['max_team_races'] ?? '1') ?>" min="0" max="10" class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-800 focus:ring-2 focus:ring-blue-500" required>
-                        </div>
                     </div>
 
                     <!-- Kategori Biaya Lomba -->

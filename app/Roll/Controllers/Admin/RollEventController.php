@@ -378,8 +378,6 @@ class RollEventController extends Controller {
             $feeSpeed = $_POST['fee_speed'] ?? 450000;
             $feeStandart = $_POST['fee_standart'] ?? 350000;
             $feePemula = $_POST['fee_pemula'] ?? 350000;
-            $maxIndividu = $_POST['max_individual_races'] ?? 2;
-            $maxTeam = $_POST['max_team_races'] ?? 1;
             $allowPemulaStandartMix = isset($_POST['allow_pemula_standart_mix']) ? 1 : 0;
             $bankName = $_POST['bank_name'] ?? null;
             $bankAccount = $_POST['bank_account'] ?? null;
@@ -387,8 +385,8 @@ class RollEventController extends Controller {
             $contactPhone = $_POST['contact_phone'] ?? null;
             $headerLogosJson = json_encode($headerLogosArray);
 
-            $stmt = $db->prepare("UPDATE roll_events SET event_name=?, event_date_start=?, event_date_end=?, event_location=?, event_city=?, race_format=?, status=?, fee_speed=?, fee_standart=?, fee_pemula=?, allow_pemula_standart_mix=?, bank_name=?, bank_account=?, bank_account_name=?, contact_phone=?, max_individual_races=?, max_team_races=?, poster_image=?, sponsor_logos=?, header_logos=? WHERE id=?");
-            $stmt->execute([$eventName, $eventDateStart, $eventDateEnd, $eventLoc, $eventCity, $raceFormat, $status, $feeSpeed, $feeStandart, $feePemula, $allowPemulaStandartMix, $bankName, $bankAccount, $bankAccountName, $contactPhone, $maxIndividu, $maxTeam, $posterImage, $sponsorLogosJson, $headerLogosJson, $eventId]);
+            $stmt = $db->prepare("UPDATE roll_events SET event_name=?, event_date_start=?, event_date_end=?, event_location=?, event_city=?, race_format=?, status=?, fee_speed=?, fee_standart=?, fee_pemula=?, allow_pemula_standart_mix=?, bank_name=?, bank_account=?, bank_account_name=?, contact_phone=?, poster_image=?, sponsor_logos=?, header_logos=? WHERE id=?");
+            $stmt->execute([$eventName, $eventDateStart, $eventDateEnd, $eventLoc, $eventCity, $raceFormat, $status, $feeSpeed, $feeStandart, $feePemula, $allowPemulaStandartMix, $bankName, $bankAccount, $bankAccountName, $contactPhone, $posterImage, $sponsorLogosJson, $headerLogosJson, $eventId]);
 
             $_SESSION['flash_message'] = "Profil Event berhasil diperbarui!";
             $_SESSION['flash_type'] = "success";
@@ -571,6 +569,17 @@ class RollEventController extends Controller {
             }
 
             $matrix = $_POST['matrix'] ?? [];
+
+            // Update limits
+            $ls_ind = (int)($_POST['limit_speed_ind'] ?? 2);
+            $ls_team = (int)($_POST['limit_speed_team'] ?? 1);
+            $lst_ind = (int)($_POST['limit_std_ind'] ?? 2);
+            $lst_team = (int)($_POST['limit_std_team'] ?? 1);
+            $lp_ind = (int)($_POST['limit_pemula_ind'] ?? 2);
+            $lp_team = (int)($_POST['limit_pemula_team'] ?? 1);
+
+            $stmtUpdateLimits = $db->prepare("UPDATE roll_events SET limit_speed_ind=?, limit_speed_team=?, limit_std_ind=?, limit_std_team=?, limit_pemula_ind=?, limit_pemula_team=? WHERE id=?");
+            $stmtUpdateLimits->execute([$ls_ind, $ls_team, $lst_ind, $lst_team, $lp_ind, $lp_team, $eventId]);
 
             // Fetch distances
             $dists = [];

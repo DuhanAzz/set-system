@@ -354,7 +354,7 @@
                 </div>
 
                 <div class="mb-4">
-                    <label class="block text-[10px] font-bold text-slate-700 mb-1.5 uppercase tracking-widest">Pilih Nomor Lomba (Max <?= htmlspecialchars($event['max_individual_races'] ?? 99) ?>) <span class="text-red-500">*</span></label>
+                    <label class="block text-[10px] font-bold text-slate-700 mb-1.5 uppercase tracking-widest">Pilih Nomor Lomba <span id="max_indv_label" class="text-blue-600"></span> <span class="text-red-500">*</span></label>
                     <div id="race_class_checkboxes" class="space-y-2 bg-white border border-slate-300 rounded-xl p-3 text-slate-800 max-h-48 overflow-y-auto">
                         <div class="text-xs text-slate-400 italic text-center p-2">- Pilih Kategori Terlebih Dahulu -</div>
                     </div>
@@ -515,7 +515,12 @@ function onSkaterChange(sel) {
     filterClasses();
 }
 
-const maxIndv = <?= (int)($event['max_individual_races'] ?? 99) ?>;
+const limits = {
+    speed: <?= (int)($event['limit_speed_ind'] ?? 2) ?>,
+    standar: <?= (int)($event['limit_std_ind'] ?? 2) ?>,
+    pemula: <?= (int)($event['limit_pemula_ind'] ?? 2) ?>
+};
+let maxIndv = 99;
 
 function filterClasses() {
     const skaterSelect = document.getElementById('skater_select');
@@ -546,6 +551,16 @@ function filterClasses() {
         else if (eCatStr.includes('pemula')) eGroup = 'pemula';
     }
     
+    // Determine category text to set limit
+    let targetGroupForLimit = '';
+    const catNameText = catSelect.options[catSelect.selectedIndex].text.toLowerCase();
+    if (catNameText.includes('speed')) { targetGroupForLimit = 'speed'; maxIndv = limits.speed; }
+    else if (catNameText.includes('standar')) { targetGroupForLimit = 'standar'; maxIndv = limits.standar; }
+    else if (catNameText.includes('pemula')) { targetGroupForLimit = 'pemula'; maxIndv = limits.pemula; }
+    else { maxIndv = 99; }
+    
+    document.getElementById('max_indv_label').innerText = maxIndv !== 99 ? '(Max ' + maxIndv + ')' : '';
+
     // Filter classes
     let validCount = 0;
     classContainer.innerHTML = '';

@@ -246,11 +246,9 @@ class RollRegistrationController extends Controller {
         }
         
         // Fetch event limits
-        $stmtLimit = $db->prepare("SELECT max_individual_races, max_team_races FROM roll_events WHERE id = ?");
+        $stmtLimit = $db->prepare("SELECT limit_speed_ind, limit_speed_team, limit_std_ind, limit_std_team, limit_pemula_ind, limit_pemula_team FROM roll_events WHERE id = ?");
         $stmtLimit->execute([$event_id]);
         $eventLimits = $stmtLimit->fetch(PDO::FETCH_ASSOC);
-        $maxIndv = $eventLimits['max_individual_races'] ?? 99;
-        $maxTeam = $eventLimits['max_team_races'] ?? 99;
         
         $successCount = 0;
         $failMessages = [];
@@ -319,6 +317,29 @@ class RollRegistrationController extends Controller {
             foreach ($race_class_ids as $race_class_id) {
                 $race_class_id = (int)$race_class_id;
 
+                // Determine target category for limits
+                $stmtTargetCat = $db->prepare("
+                    SELECT sc.class_name 
+                    FROM roll_event_details ed
+                    JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
+                    WHERE ed.id = ?
+                ");
+                $stmtTargetCat->execute([$race_class_id]);
+                $targetCatStr = strtolower((string)$stmtTargetCat->fetchColumn());
+                
+                $maxIndv = 99;
+                $maxTeam = 99;
+                if (strpos($targetCatStr, 'speed') !== false) {
+                    $maxIndv = $eventLimits['limit_speed_ind'] ?? 99;
+                    $maxTeam = $eventLimits['limit_speed_team'] ?? 99;
+                } elseif (strpos($targetCatStr, 'standar') !== false) {
+                    $maxIndv = $eventLimits['limit_std_ind'] ?? 99;
+                    $maxTeam = $eventLimits['limit_std_team'] ?? 99;
+                } elseif (strpos($targetCatStr, 'pemula') !== false) {
+                    $maxIndv = $eventLimits['limit_pemula_ind'] ?? 99;
+                    $maxTeam = $eventLimits['limit_pemula_team'] ?? 99;
+                }
+
                 // Check limits
                 if ($is_team_reg && $currTeam >= $maxTeam) {
                     $failMessages[] = "$skater_name mencapai batas maksimal Team ($maxTeam).";
@@ -349,14 +370,8 @@ class RollRegistrationController extends Controller {
                 $existingCat = $stmtCat->fetchColumn();
 
                 if ($existingCat) {
-                    $stmtTargetCat = $db->prepare("
-                        SELECT sc.class_name 
-                        FROM roll_event_details ed
-                        JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
-                        WHERE ed.id = ?
-                    ");
-                    $stmtTargetCat->execute([$race_class_id]);
-                    $targetCat = $stmtTargetCat->fetchColumn();
+                    // $stmtTargetCat already executed above, reuse $targetCatStr
+                    $targetCat = $targetCatStr;
                     
                     $eCatStr = strtolower($existingCat);
                     $tCatStr = strtolower($targetCat);
