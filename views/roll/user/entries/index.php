@@ -525,7 +525,8 @@ let maxIndv = 99;
 function filterClasses() {
     const skaterSelect = document.getElementById('skater_select');
     const skaterId = skaterSelect.value;
-    const catId = document.getElementById('skate_category_select').value;
+    const catSelect = document.getElementById('skate_category_select');
+    const catId = catSelect.value;
     const classContainer = document.getElementById('race_class_checkboxes');
     
     // Reset options
