@@ -96,7 +96,7 @@ if (!function_exists('isGroupActive')) {
          </div>
 
          <!-- GROUP 4: Konfigurasi Web -->
-         <?php $g4Active = isGroupActive($req, ['master/settings/public_page', 'master/settings/global_config']); ?>
+         <?php $g4Active = isGroupActive($req, ['master/settings/public_page', 'master/settings/global_config', 'master/settings/event_landing_pages']); ?>
          <button onclick="toggleSidebarDropdown('dd-web')" class="<?= $g4Active ? $dropdownBtnActive : $dropdownBtnBase ?>">
             <div class="flex items-center">
                <span class="w-6 text-center mr-3 text-lg opacity-80">🌍</span>
@@ -107,6 +107,7 @@ if (!function_exists('isGroupActive')) {
          <div id="dd-web" class="bg-[#0b1120] py-2 <?= $g4Active ? '' : 'hidden' ?>">
              <a href="<?= getenv('APP_URL') ?>/roll/master/settings/public_page" class="<?= (strpos($req,"master/settings/public_page")!==false) ? $childActiveLink : $childBaseLink ?>">Landing Page</a>
              <a href="<?= getenv('APP_URL') ?>/roll/master/settings/global_config" class="<?= (strpos($req,"master/settings/global_config")!==false) ? $childActiveLink : $childBaseLink ?>">Global Config</a>
+             <a href="<?= getenv('APP_URL') ?>/roll/master/settings/event_landing_pages" class="<?= (strpos($req,"master/settings/event_landing_pages")!==false) ? $childActiveLink : $childBaseLink ?>">Landing Pages Event</a>
          </div>
 
          <!-- GROUP 5: Data Referensi -->
