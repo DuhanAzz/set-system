@@ -797,7 +797,7 @@ class RollEventController extends Controller {
         // Get existing data to keep old files if not uploaded
         $stmtExist = $db->prepare("SELECT * FROM roll_event_landing_pages WHERE event_id = ?");
         $stmtExist->execute([$event_id]);
-        $existing = $stmtExist->fetch(PDO::FETCH_ASSOC);
+        $existing = $stmtExist->fetch(PDO::FETCH_ASSOC) ?: [];
 
         $logo_image = $existing['logo_image'] ?? null;
         $hero_slider_images = $existing['hero_slider_images'] ?? null;

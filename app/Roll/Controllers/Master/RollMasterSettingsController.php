@@ -213,7 +213,8 @@ class RollMasterSettingsController extends Controller {
             LEFT JOIN roll_users u ON e.user_id = u.id
             ORDER BY u.nama_lengkap ASC, e.event_date_start DESC
         ";
-        $landing_pages = $db->query($query)->fetchAll(PDO::FETCH_ASSOC);
+        $stmt = $db->query($query);
+        $landing_pages = $stmt ? $stmt->fetchAll(PDO::FETCH_ASSOC) : [];
 
         // Group by admin_name
         $grouped = [];
@@ -294,7 +295,7 @@ class RollMasterSettingsController extends Controller {
         // Get existing data
         $stmtExist = $db->prepare("SELECT * FROM roll_event_landing_pages WHERE event_id = ?");
         $stmtExist->execute([$event_id]);
-        $existing = $stmtExist->fetch(PDO::FETCH_ASSOC);
+        $existing = $stmtExist->fetch(PDO::FETCH_ASSOC) ?: [];
 
         $logo_image = $existing['logo_image'] ?? null;
         $hero_slider_images = $existing['hero_slider_images'] ?? null;
