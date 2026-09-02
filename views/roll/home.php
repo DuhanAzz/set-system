@@ -92,7 +92,8 @@ $eventFallbackImg = !empty($s['event_fallback_image']) ? rtrim(getenv('APP_URL')
                 </div>
                 <div class="hidden lg:flex items-center border-l border-white/20 pl-10">
                     <?php if(isset($_SESSION['roll_user_id'])): 
-                        $dashLink = getenv('APP_URL') . '/roll/dashboard';
+                        $role = $_SESSION['role'] ?? 'user';
+                        $dashLink = getenv('APP_URL') . '/roll/' . $role . '/dashboard';
                     ?>
                         <a href="<?= $dashLink ?>" class="bg-orange-600 hover:bg-orange-700 text-white px-10 py-3 rounded-full font-black text-xs uppercase tracking-widest shadow-xl transition transform hover:scale-105">Dashboard</a>
                     <?php else: ?>
@@ -136,7 +137,8 @@ $eventFallbackImg = !empty($s['event_fallback_image']) ? rtrim(getenv('APP_URL')
             
             <div class="mt-12">
                 <?php if(isset($_SESSION['roll_user_id'])): 
-                    $dashLink = getenv('APP_URL') . '/roll/dashboard';
+                    $role = $_SESSION['role'] ?? 'user';
+                    $dashLink = getenv('APP_URL') . '/roll/' . $role . '/dashboard';
                 ?>
                     <a href="<?= $dashLink ?>" class="inline-block w-full max-w-xs mx-auto bg-gradient-to-r from-[#ea580c] to-orange-500 text-white px-8 py-4 rounded-full font-black text-sm uppercase tracking-widest shadow-[0_10px_20px_-10px_rgba(234,88,12,0.5)] active:scale-95 transition-transform mobile-nav-link">Dashboard</a>
                 <?php else: ?>
