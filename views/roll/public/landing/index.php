@@ -215,12 +215,12 @@
                 THB <span class="text-theme">(Technical Hand Book)</span>
             </h2>
             <p class="text-slate-500 text-lg max-w-2xl mx-auto">
-                Silakan unduh atau baca dokumen THB (Technical Hand Book) secara detail sebelum melakukan pendaftaran event.
+                Silakan baca dokumen THB (Technical Hand Book) secara detail sebelum melakukan pendaftaran event.
             </p>
             <div class="pt-6">
-                <a href="<?= getenv('APP_URL') ?>/uploads/landing/<?= $landing['juknis_pdf'] ?>" target="_blank" class="inline-flex items-center gap-3 bg-theme hover:bg-theme/90 text-white font-bold py-4 px-10 rounded-full shadow-2xl hover:-translate-y-1 transition duration-300 uppercase tracking-widest text-sm">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                    Lihat & Unduh PDF THB
+                <a href="<?= getenv('APP_URL') ?>/uploads/landing/<?= $landing['juknis_pdf'] ?>#toolbar=0" target="_blank" class="inline-flex items-center gap-3 bg-theme hover:bg-theme/90 text-white font-bold py-4 px-10 rounded-full shadow-2xl hover:-translate-y-1 transition duration-300 uppercase tracking-widest text-sm">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                    Lihat PDF THB
                 </a>
             </div>
         </div>
