@@ -516,10 +516,17 @@ class RollEventController extends Controller {
             
             $stmt = $db->prepare("UPDATE roll_events SET sponsor_logos = ? WHERE id = ?");
             $stmt->execute([$sponsorsJson, $eventId]);
+            
+            // Delete physical file
+            $filePath = __DIR__ . '/../../../../public/' . $sponsorFile;
+            if (file_exists($filePath) && strpos($sponsorFile, 'uploads/sponsors/') !== false) {
+                unlink($filePath);
+            }
+
             $_SESSION['flash_message'] = "Logo sponsor berhasil dihapus!";
             $_SESSION['flash_type'] = "success";
         }
-        header("Location: " . getenv('APP_URL') . "/roll/admin/events");
+        header("Location: " . getenv('APP_URL') . "/roll/admin/events/profile?id=" . $eventId);
         exit;
     }
 
