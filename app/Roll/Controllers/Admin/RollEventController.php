@@ -336,12 +336,18 @@ class RollEventController extends Controller {
                     mkdir($uploadDir, 0777, true);
                 }
                 for ($i = 0; $i < count($_FILES['sponsors']['name']); $i++) {
-                    if ($_FILES['sponsors']['error'][$i] === UPLOAD_ERR_OK) {
+                    $err = $_FILES['sponsors']['error'][$i];
+                    if ($err === UPLOAD_ERR_OK) {
                         $tmpName = $_FILES['sponsors']['tmp_name'][$i];
                         $fileName = time() . '_' . rand(1000,9999) . '_' . preg_replace("/[^a-zA-Z0-9.-]/", "_", $_FILES['sponsors']['name'][$i]);
                         if (move_uploaded_file($tmpName, $uploadDir . $fileName)) {
                             $sponsorsArray[] = 'uploads/sponsors/' . $fileName;
                         }
+                    } elseif ($err !== UPLOAD_ERR_NO_FILE) {
+                        $_SESSION['flash_message'] = "Gagal upload sponsor (Error code: " . $err . ").";
+                        $_SESSION['flash_type'] = "error";
+                        header("Location: " . getenv('APP_URL') . "/roll/admin/events/profile?id=" . $eventId);
+                        exit;
                     }
                 }
             }
@@ -365,12 +371,18 @@ class RollEventController extends Controller {
                     }
                     for ($i = 0; $i < count($_FILES[$inputName]['name']); $i++) {
                         if (count($headerLogosArray[$pos]) >= 2) break; // Max 2 logos per position
-                        if ($_FILES[$inputName]['error'][$i] === UPLOAD_ERR_OK) {
+                        $err = $_FILES[$inputName]['error'][$i];
+                        if ($err === UPLOAD_ERR_OK) {
                             $tmpName = $_FILES[$inputName]['tmp_name'][$i];
                             $fileName = time() . "_h_{$pos}_" . rand(1000,9999) . '_' . preg_replace("/[^a-zA-Z0-9.-]/", "_", $_FILES[$inputName]['name'][$i]);
                             if (move_uploaded_file($tmpName, $uploadDir . $fileName)) {
                                 $headerLogosArray[$pos][] = 'uploads/logos/' . $fileName;
                             }
+                        } elseif ($err !== UPLOAD_ERR_NO_FILE) {
+                            $_SESSION['flash_message'] = "Gagal upload header logo $pos (Error code: " . $err . ").";
+                            $_SESSION['flash_type'] = "error";
+                            header("Location: " . getenv('APP_URL') . "/roll/admin/events/profile?id=" . $eventId);
+                            exit;
                         }
                     }
                 }
