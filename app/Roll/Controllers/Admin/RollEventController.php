@@ -343,6 +343,11 @@ class RollEventController extends Controller {
                         $fileName = time() . '_' . rand(1000,9999) . '_' . preg_replace("/[^a-zA-Z0-9.-]/", "_", $_FILES['sponsors']['name'][$i]);
                         if (move_uploaded_file($tmpName, $uploadDir . $fileName)) {
                             $sponsorsArray[] = 'uploads/sponsors/' . $fileName;
+                        } else {
+                            $_SESSION['flash_message'] = "Gagal memindahkan file upload ke folder tujuan (izin server).";
+                            $_SESSION['flash_type'] = "error";
+                            header("Location: " . getenv('APP_URL') . "/roll/admin/events/profile?id=" . $eventId);
+                            exit;
                         }
                     } elseif ($err !== UPLOAD_ERR_NO_FILE) {
                         $_SESSION['flash_message'] = "Gagal upload sponsor (Error code: " . $err . ").";
@@ -378,6 +383,11 @@ class RollEventController extends Controller {
                             $fileName = time() . "_h_{$pos}_" . rand(1000,9999) . '_' . preg_replace("/[^a-zA-Z0-9.-]/", "_", $_FILES[$inputName]['name'][$i]);
                             if (move_uploaded_file($tmpName, $uploadDir . $fileName)) {
                                 $headerLogosArray[$pos][] = 'uploads/logos/' . $fileName;
+                            } else {
+                                $_SESSION['flash_message'] = "Gagal memindahkan file header ke folder tujuan (izin server).";
+                                $_SESSION['flash_type'] = "error";
+                                header("Location: " . getenv('APP_URL') . "/roll/admin/events/profile?id=" . $eventId);
+                                exit;
                             }
                         } elseif ($err !== UPLOAD_ERR_NO_FILE) {
                             $_SESSION['flash_message'] = "Gagal upload header logo $pos (Error code: " . $err . ").";
