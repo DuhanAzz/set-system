@@ -330,6 +330,7 @@ class RollEventController extends Controller {
             if (!empty($evt['sponsor_logos'])) {
                 $sponsorsArray = json_decode($evt['sponsor_logos'], true) ?: [];
             }
+            file_put_contents(__DIR__ . '/debug_sponsors.txt', print_r($_FILES['sponsors'] ?? 'no sponsors field', true) . "\n", FILE_APPEND);
             if (isset($_FILES['sponsors']) && is_array($_FILES['sponsors']['name'])) {
                 $uploadDir = __DIR__ . '/../../../../public/uploads/sponsors/';
                 if (!is_dir($uploadDir)) {
