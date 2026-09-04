@@ -10,7 +10,7 @@ class RollAdminSeriesController extends Controller {
 
     public function __construct() {
         if (session_status() === PHP_SESSION_NONE) session_start();
-        if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+        if (!isset($_SESSION['roll_role']) || $_SESSION['roll_role'] !== 'admin') {
             header("Location: " . getenv('APP_URL') . "/roll/login");
             exit;
         }
@@ -18,7 +18,7 @@ class RollAdminSeriesController extends Controller {
 
     public function index() {
         $db = Database::getInstance()->getConnection();
-        $userId = $_SESSION['user_id'];
+        $userId = $_SESSION['roll_user_id'];
 
         // Get series that this admin is assigned to
         $stmt = $db->prepare("
@@ -38,7 +38,7 @@ class RollAdminSeriesController extends Controller {
 
     public function edit() {
         $seriesId = $_GET['id'] ?? 0;
-        $userId = $_SESSION['user_id'];
+        $userId = $_SESSION['roll_user_id'];
         $db = Database::getInstance()->getConnection();
 
         // Verify access
@@ -62,7 +62,7 @@ class RollAdminSeriesController extends Controller {
 
     public function save() {
         $seriesId = $_POST['series_id'] ?? 0;
-        $userId = $_SESSION['user_id'];
+        $userId = $_SESSION['roll_user_id'];
         $db = Database::getInstance()->getConnection();
 
         // Verify access

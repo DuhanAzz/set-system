@@ -11,10 +11,10 @@ class Database {
 
     // Private constructor agar tidak bisa diinstansiasi secara langsung (Singleton)
     private function __construct() {
-        $host = getenv('DB_HOST');
-        $db_name = getenv('DB_NAME');
-        $username = getenv('DB_USER');
-        $password = getenv('DB_PASS');
+        $host = getenv('DB_HOST') ?: ($_ENV['DB_HOST'] ?? ($_SERVER['DB_HOST'] ?? 'localhost'));
+        $db_name = getenv('DB_NAME') ?: ($_ENV['DB_NAME'] ?? ($_SERVER['DB_NAME'] ?? ''));
+        $username = getenv('DB_USER') ?: ($_ENV['DB_USER'] ?? ($_SERVER['DB_USER'] ?? 'root'));
+        $password = getenv('DB_PASS') ?: ($_ENV['DB_PASS'] ?? ($_SERVER['DB_PASS'] ?? ''));
 
         try {
             $this->conn = new PDO("mysql:host=" . $host . ";dbname=" . $db_name, $username, $password);

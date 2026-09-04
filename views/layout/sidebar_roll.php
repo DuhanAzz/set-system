@@ -146,7 +146,7 @@ if (!function_exists('isGroupActive')) {
             // Check if admin is assigned to any series
             $dbSide = \App\Core\Database::getInstance()->getConnection();
             $stmtHasSeries = $dbSide->prepare("SELECT COUNT(*) FROM roll_series_admins WHERE user_id = ?");
-            $stmtHasSeries->execute([$_SESSION['user_id']]);
+            $stmtHasSeries->execute([$_SESSION['roll_user_id']]);
             $hasSeriesAccess = $stmtHasSeries->fetchColumn() > 0;
          ?>
 
