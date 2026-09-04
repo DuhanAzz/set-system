@@ -142,7 +142,23 @@ if (!function_exists('isGroupActive')) {
                $stmtSide->execute([$activeEventId]);
                $sidebarDistances = $stmtSide->fetchAll(PDO::FETCH_ASSOC);
             }
+            
+            // Check if admin is assigned to any series
+            $dbSide = \App\Core\Database::getInstance()->getConnection();
+            $stmtHasSeries = $dbSide->prepare("SELECT COUNT(*) FROM roll_series_admins WHERE user_id = ?");
+            $stmtHasSeries->execute([$_SESSION['user_id']]);
+            $hasSeriesAccess = $stmtHasSeries->fetchColumn() > 0;
          ?>
+
+         <?php if ($hasSeriesAccess): ?>
+             <?php $seriesActive = isGroupActive($req, ['admin/series']); ?>
+             <a href="<?= getenv('APP_URL') ?>/roll/admin/series/index" class="<?= $seriesActive ? $activeLinkClass : $baseLinkClass ?>">
+                <div class="flex items-center">
+                   <span class="w-6 text-xl mr-3 text-center opacity-80">🏆</span>
+                   <span class="font-bold text-[11px] tracking-widest uppercase">Pengelola Series</span>
+                </div>
+             </a>
+         <?php endif; ?>
 
          <!-- GROUP 1: Setup Kejuaraan -->
          <?php $setupActive = isGroupActive($req, ['admin/events']); ?>

@@ -300,7 +300,8 @@ switch ($module) {
                     'pelotons'  => '\\App\\Roll\\Controllers\\Admin\\RollPelotonController',
                     'results'   => '\\App\\Roll\\Controllers\\Admin\\RollResultController',
                     'medal_tally'=> '\\App\\Roll\\Controllers\\Admin\\RollMedalTallyController',
-                    'export'    => '\\App\\Roll\\Controllers\\Admin\\RollExportController'
+                    'export'    => '\\App\\Roll\\Controllers\\Admin\\RollExportController',
+                    'series'    => '\\App\\Roll\\Controllers\\Admin\\RollAdminSeriesController'
                 ],
                 'User' => [
                     'dashboard'    => '\\App\\Roll\\Controllers\\User\\RollUserDashboardController',
@@ -393,6 +394,19 @@ switch ($module) {
                     $controller = new $controllerClass();
                     $controller->index($module);
                     break;
+                }
+            } else {
+                // Cek apakah slug adalah milik Series
+                $stmtSeries = $db->prepare("SELECT id FROM roll_series WHERE slug = ? AND status = 'Published'");
+                $stmtSeries->execute([$module]);
+                $seriesPage = $stmtSeries->fetch();
+                if ($seriesPage) {
+                    $controllerClass = "\\App\\Roll\\Controllers\\PublicSeriesController";
+                    if (class_exists($controllerClass)) {
+                        $controller = new $controllerClass();
+                        $controller->index($module);
+                        break;
+                    }
                 }
             }
         } catch (\PDOException $e) {

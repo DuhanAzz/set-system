@@ -228,6 +228,221 @@ class RollMasterSettingsController extends Controller {
         ]);
     }
 
+    public function series_landing_pages() {
+        $db = Database::getInstance()->getConnection();
+        
+        $stmt = $db->query("SELECT * FROM roll_series ORDER BY created_at DESC");
+        $series_list = $stmt ? $stmt->fetchAll(PDO::FETCH_ASSOC) : [];
+
+        // Count events and admins for each series
+        foreach ($series_list as &$s) {
+            $stmtEvt = $db->prepare("SELECT COUNT(*) FROM roll_series_events WHERE series_id = ?");
+            $stmtEvt->execute([$s['id']]);
+            $s['event_count'] = $stmtEvt->fetchColumn();
+
+            $stmtAdm = $db->prepare("SELECT u.nama_lengkap FROM roll_series_admins sa JOIN roll_users u ON sa.user_id = u.id WHERE sa.series_id = ?");
+            $stmtAdm->execute([$s['id']]);
+            $s['admins'] = $stmtAdm->fetchAll(PDO::FETCH_COLUMN);
+        }
+
+        return $this->view('roll/master/settings/series_landing_pages', [
+            'series_list' => $series_list
+        ]);
+    }
+
+    public function create_series() {
+        return $this->view('roll/master/settings/edit_series', [
+            'series' => [],
+            'selected_events' => [],
+            'selected_admins' => [],
+            'all_events' => $this->getAllEvents(),
+            'all_admins' => $this->getAllAdmins()
+        ]);
+    }
+
+    public function edit_series() {
+        $seriesId = $_GET['id'] ?? 0;
+        if (!$seriesId) {
+            header("Location: " . getenv('APP_URL') . "/roll/master/settings/series_landing_pages");
+            exit;
+        }
+
+        $db = Database::getInstance()->getConnection();
+        
+        $stmtSeries = $db->prepare("SELECT * FROM roll_series WHERE id = ?");
+        $stmtSeries->execute([$seriesId]);
+        $series = $stmtSeries->fetch(PDO::FETCH_ASSOC);
+
+        if (!$series) {
+            header("Location: " . getenv('APP_URL') . "/roll/master/settings/series_landing_pages");
+            exit;
+        }
+
+        $stmtEvents = $db->prepare("SELECT event_id FROM roll_series_events WHERE series_id = ?");
+        $stmtEvents->execute([$seriesId]);
+        $selected_events = $stmtEvents->fetchAll(PDO::FETCH_COLUMN);
+
+        $stmtAdmins = $db->prepare("SELECT user_id FROM roll_series_admins WHERE series_id = ?");
+        $stmtAdmins->execute([$seriesId]);
+        $selected_admins = $stmtAdmins->fetchAll(PDO::FETCH_COLUMN);
+
+        return $this->view('roll/master/settings/edit_series', [
+            'series' => $series,
+            'selected_events' => $selected_events,
+            'selected_admins' => $selected_admins,
+            'all_events' => $this->getAllEvents(),
+            'all_admins' => $this->getAllAdmins()
+        ]);
+    }
+
+    private function getAllEvents() {
+        $db = Database::getInstance()->getConnection();
+        return $db->query("SELECT id, event_name FROM roll_events ORDER BY event_date_start DESC")->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    private function getAllAdmins() {
+        $db = Database::getInstance()->getConnection();
+        return $db->query("SELECT id, nama_lengkap FROM roll_users WHERE role IN ('admin', 'master') ORDER BY nama_lengkap ASC")->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    public function saveSeriesData() {
+        $db = Database::getInstance()->getConnection();
+        $seriesId = $_POST['series_id'] ?? 0;
+        $seriesName = trim($_POST['series_name'] ?? '');
+        $slug = preg_replace('/[^a-zA-Z0-9-]/', '', strtolower($_POST['slug'] ?? ''));
+        $heroTitle = $_POST['hero_title'] ?? '';
+        $heroSubtitle = $_POST['hero_subtitle'] ?? '';
+        $aboutText = $_POST['about_text'] ?? '';
+        $themeColor = $_POST['theme_color'] ?? '#2563eb';
+        $status = $_POST['status'] ?? 'Draft';
+        $showStandings = isset($_POST['show_standings']) ? 1 : 0;
+        
+        $selectedEvents = $_POST['events'] ?? [];
+        $selectedAdmins = $_POST['admins'] ?? [];
+
+        if (empty($seriesName) || empty($slug)) {
+            $_SESSION['flash_message'] = "Nama Series dan Slug wajib diisi!";
+            $_SESSION['flash_type'] = "error";
+            header("Location: " . getenv('APP_URL') . "/roll/master/settings/series_landing_pages");
+            exit;
+        }
+
+        // Check unique slug
+        $stmtCheck = $db->prepare("SELECT id FROM roll_series WHERE slug = ? AND id != ?");
+        $stmtCheck->execute([$slug, $seriesId]);
+        if ($stmtCheck->fetchColumn()) {
+            $_SESSION['flash_message'] = "Slug '$slug' sudah dipakai oleh Series lain!";
+            $_SESSION['flash_type'] = "error";
+            header("Location: " . getenv('APP_URL') . "/roll/master/settings/series_landing_pages");
+            exit;
+        }
+
+        // File uploads (similar to saveLandingPage)
+        $existing = [];
+        if ($seriesId) {
+            $stmtEx = $db->prepare("SELECT * FROM roll_series WHERE id = ?");
+            $stmtEx->execute([$seriesId]);
+            $existing = $stmtEx->fetch(PDO::FETCH_ASSOC) ?: [];
+        }
+
+        $logo_image = $existing['logo_image'] ?? null;
+        $hero_slider_images = $existing['hero_slider_images'] ?? null;
+        $promo_image = $existing['promo_image'] ?? null;
+
+        $uploadDir = __DIR__ . '/../../../../public/uploads/series/';
+        if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
+
+        if (!empty($_POST['delete_logo']) && $logo_image && file_exists($uploadDir . $logo_image)) {
+            unlink($uploadDir . $logo_image);
+            $logo_image = null;
+        }
+        if (!empty($_POST['delete_promo']) && $promo_image && file_exists($uploadDir . $promo_image)) {
+            unlink($uploadDir . $promo_image);
+            $promo_image = null;
+        }
+        if (!empty($_POST['delete_hero_slider'])) {
+            $oldSliders = json_decode($hero_slider_images, true) ?: [];
+            foreach ($oldSliders as $img) if (file_exists($uploadDir . $img)) unlink($uploadDir . $img);
+            $hero_slider_images = null;
+        }
+
+        if (isset($_FILES['logo_image']) && $_FILES['logo_image']['error'] === UPLOAD_ERR_OK) {
+            $ext = pathinfo($_FILES['logo_image']['name'], PATHINFO_EXTENSION);
+            $newName = 'logo_' . time() . '_' . rand(100, 999) . '.' . $ext;
+            if (move_uploaded_file($_FILES['logo_image']['tmp_name'], $uploadDir . $newName)) $logo_image = $newName;
+        }
+        if (isset($_FILES['promo_image']) && $_FILES['promo_image']['error'] === UPLOAD_ERR_OK) {
+            $ext = pathinfo($_FILES['promo_image']['name'], PATHINFO_EXTENSION);
+            $newName = 'promo_' . time() . '_' . rand(100, 999) . '.' . $ext;
+            if (move_uploaded_file($_FILES['promo_image']['tmp_name'], $uploadDir . $newName)) $promo_image = $newName;
+        }
+        
+        $newSliders = [];
+        if (isset($_FILES['hero_slider']) && !empty($_FILES['hero_slider']['name'][0])) {
+            foreach ($_FILES['hero_slider']['tmp_name'] as $idx => $tmpName) {
+                if ($_FILES['hero_slider']['error'][$idx] === UPLOAD_ERR_OK) {
+                    $ext = pathinfo($_FILES['hero_slider']['name'][$idx], PATHINFO_EXTENSION);
+                    $newName = 'slider_' . time() . '_' . rand(1000, 9999) . '.' . $ext;
+                    if (move_uploaded_file($tmpName, $uploadDir . $newName)) $newSliders[] = $newName;
+                }
+            }
+        }
+        if (!empty($newSliders)) {
+            $oldSliders = json_decode($hero_slider_images, true) ?: [];
+            $hero_slider_images = json_encode(array_merge($oldSliders, $newSliders));
+        }
+
+        try {
+            $db->beginTransaction();
+
+            if ($seriesId) {
+                $stmt = $db->prepare("UPDATE roll_series SET series_name = ?, slug = ?, hero_title = ?, hero_subtitle = ?, about_text = ?, theme_color = ?, status = ?, logo_image = ?, hero_slider_images = ?, promo_image = ?, show_standings = ? WHERE id = ?");
+                $stmt->execute([$seriesName, $slug, $heroTitle, $heroSubtitle, $aboutText, $themeColor, $status, $logo_image, $hero_slider_images, $promo_image, $showStandings, $seriesId]);
+            } else {
+                $stmt = $db->prepare("INSERT INTO roll_series (series_name, slug, hero_title, hero_subtitle, about_text, theme_color, status, logo_image, hero_slider_images, promo_image, show_standings) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                $stmt->execute([$seriesName, $slug, $heroTitle, $heroSubtitle, $aboutText, $themeColor, $status, $logo_image, $hero_slider_images, $promo_image, $showStandings]);
+                $seriesId = $db->lastInsertId();
+            }
+
+            // Sync Events
+            $db->prepare("DELETE FROM roll_series_events WHERE series_id = ?")->execute([$seriesId]);
+            if (!empty($selectedEvents)) {
+                $stmtEv = $db->prepare("INSERT INTO roll_series_events (series_id, event_id) VALUES (?, ?)");
+                foreach ($selectedEvents as $evId) $stmtEv->execute([$seriesId, $evId]);
+            }
+
+            // Sync Admins
+            $db->prepare("DELETE FROM roll_series_admins WHERE series_id = ?")->execute([$seriesId]);
+            if (!empty($selectedAdmins)) {
+                $stmtAd = $db->prepare("INSERT INTO roll_series_admins (series_id, user_id) VALUES (?, ?)");
+                foreach ($selectedAdmins as $adId) $stmtAd->execute([$seriesId, $adId]);
+            }
+
+            $db->commit();
+            $_SESSION['flash_message'] = "Series '$seriesName' berhasil disimpan!";
+            $_SESSION['flash_type'] = "success";
+        } catch (\Exception $e) {
+            $db->rollBack();
+            $_SESSION['flash_message'] = "Gagal menyimpan: " . $e->getMessage();
+            $_SESSION['flash_type'] = "error";
+        }
+
+        header("Location: " . getenv('APP_URL') . "/roll/master/settings/series_landing_pages");
+        exit;
+    }
+
+    public function delete_series() {
+        $seriesId = $_POST['series_id'] ?? 0;
+        if ($seriesId) {
+            $db = Database::getInstance()->getConnection();
+            $db->prepare("DELETE FROM roll_series WHERE id = ?")->execute([$seriesId]);
+            $_SESSION['flash_message'] = "Series berhasil dihapus.";
+            $_SESSION['flash_type'] = "success";
+        }
+        header("Location: " . getenv('APP_URL') . "/roll/master/settings/series_landing_pages");
+        exit;
+    }
+
     public function edit_landing_page() {
         $eventId = $_GET['event_id'] ?? 0;
         if (!$eventId) {
