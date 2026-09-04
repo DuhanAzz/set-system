@@ -10,7 +10,7 @@ class RollAdminSeriesController extends Controller {
 
     public function __construct() {
         if (session_status() === PHP_SESSION_NONE) session_start();
-        if (!isset($_SESSION['roll_role']) || $_SESSION['roll_role'] !== 'admin') {
+        if (!isset($_SESSION['roll_role']) || strtolower($_SESSION['roll_role']) !== 'admin') {
             header("Location: " . getenv('APP_URL') . "/roll/login");
             exit;
         }

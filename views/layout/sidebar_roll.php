@@ -3,7 +3,7 @@ if (session_status() === PHP_SESSION_NONE) session_start();
 
 
 
-$role = $_SESSION['role'] ?? 'guest'; 
+$role = strtolower($_SESSION['roll_role'] ?? $_SESSION['role'] ?? 'guest'); 
 $adminMode = $_SESSION['event_type'] ?? 'Langsung Final'; // Deteksi Mode EO
 $page = basename($_SERVER['PHP_SELF']);
 $req = $_SERVER['REQUEST_URI']; 
@@ -143,11 +143,16 @@ if (!function_exists('isGroupActive')) {
                $sidebarDistances = $stmtSide->fetchAll(PDO::FETCH_ASSOC);
             }
             
-            // Check if admin is assigned to any series
-            $dbSide = \App\Core\Database::getInstance()->getConnection();
-            $stmtHasSeries = $dbSide->prepare("SELECT COUNT(*) FROM roll_series_admins WHERE user_id = ?");
-            $stmtHasSeries->execute([$_SESSION['roll_user_id']]);
-            $hasSeriesAccess = $stmtHasSeries->fetchColumn() > 0;
+            // Check if admin is assigned to any series (dibungkus try-catch agar tidak crash jika tabel belum ada)
+            $hasSeriesAccess = false;
+            try {
+                $dbSide = \App\Core\Database::getInstance()->getConnection();
+                $stmtHasSeries = $dbSide->prepare("SELECT COUNT(*) FROM roll_series_admins WHERE user_id = ?");
+                $stmtHasSeries->execute([$_SESSION['roll_user_id'] ?? 0]);
+                $hasSeriesAccess = $stmtHasSeries->fetchColumn() > 0;
+            } catch (\Exception $e) {
+                // Ignore exception, tabel mungkin belum di migrasi
+            }
          ?>
 
          <?php if ($hasSeriesAccess): ?>
