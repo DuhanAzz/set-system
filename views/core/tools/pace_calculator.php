@@ -35,17 +35,26 @@ $appName = $settings['app_name'] ?? 'Universal SET System';
 
         /* Print styles */
         @media print {
+            @page {
+                size: A4 portrait;
+                margin: 15mm; 
+            }
+            
             body { background: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             .print-hidden { display: none !important; }
             .print-visible { display: block !important; }
             #navbar { display: none !important; }
             
-            .excel-table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 12px; }
-            .excel-table th, .excel-table td { border: 1px solid #000; padding: 4px 8px; color: #000; }
-            .excel-table .title-row th { font-size: 16px; border: none !important; padding-bottom: 15px; }
+            main { padding: 0 !important; margin: 0 !important; }
+            .max-w-4xl { padding: 0 !important; margin: 0 !important; max-width: 100% !important; }
+            .rounded-3xl { border: none !important; box-shadow: none !important; padding: 0 !important; }
+            
+            .excel-table { width: 100%; border-collapse: collapse; margin-top: 0; font-size: 13px; }
+            .excel-table th, .excel-table td { border: 1px solid #000; padding: 6px 8px; color: #000; }
+            .excel-table .title-row th { font-size: 20px; border: none !important; padding-bottom: 20px; }
             .excel-table .thick-bottom { border-bottom: 2px solid #000 !important; }
             .excel-table .thick-top { border-top: 2px solid #000 !important; }
-            .excel-table td[colspan="4"], .excel-table td[colspan="3"] { border: none !important; padding: 2px 8px; }
+            .excel-table td[colspan="4"], .excel-table td[colspan="3"] { border: none !important; padding: 4px 8px; }
             .text-red { color: red !important; }
         }
     </style>
