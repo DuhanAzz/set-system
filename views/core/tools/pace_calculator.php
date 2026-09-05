@@ -36,7 +36,7 @@ $appName = $settings['app_name'] ?? 'Universal SET System';
         /* Print styles */
         @media print {
             @page {
-                size: A4 portrait;
+                size: A5 portrait;
                 margin: 15mm; 
             }
             
