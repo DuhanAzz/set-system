@@ -36,11 +36,28 @@ $appName = $settings['app_name'] ?? 'Universal SET System';
         /* Print styles */
         @media print {
             @page {
-                size: A5 portrait;
-                margin: 15mm; 
+                size: A4 portrait;
+                margin: 0mm; /* Memaksa browser menghapus margin default */
             }
             
-            body { background: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            body { 
+                background: white !important; 
+                -webkit-print-color-adjust: exact; 
+                print-color-adjust: exact; 
+                margin: 0 !important; 
+                padding: 0 !important; 
+            }
+            
+            #print-container {
+                /* Kita gunakan padding di container sebagai pengganti margin halaman */
+                padding-top: 10mm !important;
+                padding-bottom: 10mm !important;
+                padding-left: 10mm !important;
+                padding-right: 10mm !important;
+                width: 100% !important;
+                box-sizing: border-box !important;
+            }
+            
             .print-hidden { display: none !important; }
             .print-visible { display: block !important; }
             #navbar { display: none !important; }
@@ -179,7 +196,7 @@ $appName = $settings['app_name'] ?? 'Universal SET System';
                         <h4 class="font-teko text-3xl font-black uppercase tracking-wide text-blue-900">Hasil Kalkulasi</h4>
                         <div class="flex gap-2 w-full sm:w-auto">
                             <button onclick="resetForm()" class="flex-1 sm:flex-none px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs uppercase tracking-widest rounded-lg transition">Edit Data</button>
-                            <button onclick="window.print()" class="flex-1 sm:flex-none px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-widest rounded-lg shadow-lg shadow-emerald-500/30 transition flex items-center justify-center gap-2">
+                            <button onclick="printChart()" class="flex-1 sm:flex-none px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-widest rounded-lg shadow-lg shadow-emerald-500/30 transition flex items-center justify-center gap-2">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M2.5 8a.5.5 0 1 0 0-1 .5.5 0 0 0 0 1"/><path d="M5 1a2 2 0 0 0-2 2v2H2a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h1v1a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-1h1a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-1V3a2 2 0 0 0-2-2zM4 3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2H4zm1 5a2 2 0 0 0-2 2v1H2a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v-1a2 2 0 0 0-2-2zm7 2v3a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1"/></svg>
                                 Cetak PDF
                             </button>
@@ -577,6 +594,28 @@ $appName = $settings['app_name'] ?? 'Universal SET System';
             document.getElementById('input-section').style.display = 'block';
             document.getElementById('output-section').style.display = 'none';
             document.querySelector('#chartTable tbody').innerHTML = '';
+        }
+
+        function printChart() {
+            const originalTitle = document.title;
+            const nameInput = document.getElementById('swimmerName');
+            let name = "Tanpa_Nama";
+            if (nameInput && nameInput.value.trim() !== "") {
+                name = nameInput.value.trim();
+            }
+            
+            const dateObj = new Date();
+            const dateStr = dateObj.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+            
+            // Format: "Nama Perenang _Training Chart_Tanggal"
+            document.title = `${name} _Training Chart_${dateStr}`;
+            
+            window.print();
+            
+            // Restore title after print dialog
+            setTimeout(() => {
+                document.title = originalTitle;
+            }, 1000);
         }
     </script>
 </body>
