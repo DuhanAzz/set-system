@@ -71,6 +71,8 @@ try {
     
     // Inject new columns securely (if table already exists)
     $columnsToAdd = [
+        'show_standings' => 'TINYINT(1) DEFAULT 0',
+        'point_rules' => 'JSON NULL',
         'sponsor_images' => 'TEXT NULL',
         'published_ku_standings' => 'TEXT NULL',
         'merchandise_images' => 'TEXT NULL',
