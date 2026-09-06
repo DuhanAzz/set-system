@@ -142,6 +142,42 @@ $point_rules = json_decode($series['point_rules'] ?? '{}', true) ?: [
                                 </div>
                             <?php endif; ?>
                         </div>
+                        <div class="md:col-span-2 mt-4 border-t border-slate-200 pt-4">
+                            <h4 class="text-sm font-bold text-slate-800 uppercase tracking-widest mb-3 flex items-center gap-2">🛒 Katalog Merchandise</h4>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Upload Gambar Merchandise</label>
+                                    <input type="file" name="merchandise[]" multiple accept="image/png, image/jpeg, image/webp" class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-800 text-sm">
+                                    <div class="text-[10px] text-slate-400 mt-1">Bisa pilih banyak file sekaligus.</div>
+                                    <?php if(!empty($series['merchandise_images'])): ?>
+                                        <?php $merch = json_decode($series['merchandise_images'], true) ?: []; ?>
+                                        <div class="mt-3 p-3 bg-white rounded-lg border border-slate-200">
+                                            <div class="flex items-center justify-between mb-2">
+                                                <div class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Current Merch (<?= count($merch) ?>)</div>
+                                                <label class="flex items-center gap-1 text-xs text-red-500 font-bold cursor-pointer px-2 py-1 hover:bg-red-50 rounded transition">
+                                                    <input type="checkbox" name="delete_merchandise" value="1" class="rounded border-red-300 text-red-500 w-3 h-3"> Hapus Semua
+                                                </label>
+                                            </div>
+                                            <div class="flex gap-2 overflow-x-auto pb-2">
+                                                <?php foreach($merch as $m): ?>
+                                                    <img src="<?= getenv('APP_URL') ?>/uploads/series/<?= htmlspecialchars($m) ?>" class="h-16 w-12 object-cover bg-slate-100 rounded border border-slate-200 flex-shrink-0">
+                                                <?php endforeach; ?>
+                                            </div>
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Nomor WhatsApp Pembelian</label>
+                                    <div class="relative">
+                                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                            <span class="text-slate-400 text-sm">WA</span>
+                                        </div>
+                                        <input type="text" name="merchandise_wa" placeholder="628123456789" value="<?= htmlspecialchars($series['merchandise_wa'] ?? '') ?>" class="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-800 text-sm">
+                                    </div>
+                                    <div class="text-[10px] text-slate-400 mt-1">Gunakan format internasional (contoh: 628...). Semua gambar merchandise akan diarahkan ke nomor ini saat diklik.</div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 

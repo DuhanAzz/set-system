@@ -510,6 +510,7 @@ class RollMasterSettingsController extends Controller {
         $hero_slider_images = $existing['hero_slider_images'] ?? null;
         $promo_image = $existing['promo_image'] ?? null;
         $sponsor_images = $existing['sponsor_images'] ?? null;
+        $merchandise_images = $existing['merchandise_images'] ?? null;
 
         $uploadDir = __DIR__ . '/../../../../public/uploads/series/';
         if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
@@ -531,6 +532,11 @@ class RollMasterSettingsController extends Controller {
             $oldSponsors = json_decode($sponsor_images, true) ?: [];
             foreach ($oldSponsors as $img) if (file_exists($uploadDir . $img)) unlink($uploadDir . $img);
             $sponsor_images = null;
+        }
+        if (!empty($_POST['delete_merchandise'])) {
+            $oldMerchandise = json_decode($merchandise_images, true) ?: [];
+            foreach ($oldMerchandise as $img) if (file_exists($uploadDir . $img)) unlink($uploadDir . $img);
+            $merchandise_images = null;
         }
 
         if (isset($_FILES['logo_image']) && $_FILES['logo_image']['error'] === UPLOAD_ERR_OK) {
@@ -573,6 +579,25 @@ class RollMasterSettingsController extends Controller {
             $oldSponsors = json_decode($sponsor_images, true) ?: [];
             $sponsor_images = json_encode(array_merge($oldSponsors, $newSponsors));
         }
+
+        $newMerchandise = [];
+        if (isset($_FILES['merchandise']) && !empty($_FILES['merchandise']['name'][0])) {
+            foreach ($_FILES['merchandise']['tmp_name'] as $idx => $tmpName) {
+                if ($_FILES['merchandise']['error'][$idx] === UPLOAD_ERR_OK) {
+                    $ext = pathinfo($_FILES['merchandise']['name'][$idx], PATHINFO_EXTENSION);
+                    $newName = 'merch_' . time() . '_' . rand(1000, 9999) . '.' . $ext;
+                    if (move_uploaded_file($tmpName, $uploadDir . $newName)) $newMerchandise[] = $newName;
+                }
+            }
+        }
+        if (!empty($newMerchandise)) {
+            $oldMerchandise = json_decode($merchandise_images, true) ?: [];
+            $merchandise_images = json_encode(array_merge($oldMerchandise, $newMerchandise));
+        }
+        
+        $merchandise_wa = $_POST['merchandise_wa'] ?? null;
+        if (empty(trim($merchandise_wa))) $merchandise_wa = null;
+
         $showStandings = isset($_POST['show_standings']) ? 1 : 0;
         
         // Handle point rules
@@ -589,17 +614,17 @@ class RollMasterSettingsController extends Controller {
                 // Update
                 $stmt = $db->prepare("
                     UPDATE roll_series 
-                    SET series_name = ?, slug = ?, hero_title = ?, hero_subtitle = ?, about_text = ?, theme_color = ?, status = ?, show_standings = ?, point_rules = ?, logo_image = ?, hero_slider_images = ?, promo_image = ?, sponsor_images = ?, published_ku_standings = ?
+                    SET series_name = ?, slug = ?, hero_title = ?, hero_subtitle = ?, about_text = ?, theme_color = ?, status = ?, show_standings = ?, point_rules = ?, logo_image = ?, hero_slider_images = ?, promo_image = ?, sponsor_images = ?, published_ku_standings = ?, merchandise_images = ?, merchandise_wa = ?
                     WHERE id = ?
                 ");
-                $stmt->execute([$seriesName, $slug, $heroTitle, $heroSubtitle, $aboutText, $themeColor, $status, $showStandings, $pointRulesJson, $logo_image, $hero_slider_images, $promo_image, $sponsor_images, $publishedKuJson, $seriesId]);
+                $stmt->execute([$seriesName, $slug, $heroTitle, $heroSubtitle, $aboutText, $themeColor, $status, $showStandings, $pointRulesJson, $logo_image, $hero_slider_images, $promo_image, $sponsor_images, $publishedKuJson, $merchandise_images, $merchandise_wa, $seriesId]);
             } else {
                 // Insert
                 $stmt = $db->prepare("
-                    INSERT INTO roll_series (series_name, slug, hero_title, hero_subtitle, about_text, theme_color, status, show_standings, point_rules, logo_image, hero_slider_images, promo_image, sponsor_images, published_ku_standings)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    INSERT INTO roll_series (series_name, slug, hero_title, hero_subtitle, about_text, theme_color, status, show_standings, point_rules, logo_image, hero_slider_images, promo_image, sponsor_images, published_ku_standings, merchandise_images, merchandise_wa)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ");
-                $stmt->execute([$seriesName, $slug, $heroTitle, $heroSubtitle, $aboutText, $themeColor, $status, $showStandings, $pointRulesJson, $logo_image, $hero_slider_images, $promo_image, $sponsor_images, $publishedKuJson]);
+                $stmt->execute([$seriesName, $slug, $heroTitle, $heroSubtitle, $aboutText, $themeColor, $status, $showStandings, $pointRulesJson, $logo_image, $hero_slider_images, $promo_image, $sponsor_images, $publishedKuJson, $merchandise_images, $merchandise_wa]);
                 $seriesId = $db->lastInsertId();
             }
 

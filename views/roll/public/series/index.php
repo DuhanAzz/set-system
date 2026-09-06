@@ -321,7 +321,110 @@
         </section>
     <?php endif; ?>
 
-    <!-- PROMO MERCH SECTION -->
+    <!-- MERCHANDISE SECTION -->
+    <?php if (!empty($series['merchandise_images'])): ?>
+        <?php $merch = json_decode($series['merchandise_images'], true) ?: []; ?>
+        <?php if(!empty($merch)): ?>
+        <section id="merchandise" class="py-24 bg-[#09090b] relative">
+            <div class="max-w-7xl mx-auto px-6">
+                <div class="text-center mb-12 space-y-4">
+                    <div class="inline-block px-4 py-1.5 rounded-full glass border border-theme text-theme font-bold text-xs uppercase tracking-widest">
+                        Official Store
+                    </div>
+                    <h2 class="text-4xl md:text-5xl font-display font-bold uppercase text-white tracking-tighter">Merchandise</h2>
+                </div>
+                
+                <div class="relative max-w-5xl mx-auto">
+                    <!-- Carousel Container -->
+                    <div id="merch-carousel" class="flex gap-6 overflow-x-auto snap-x snap-mandatory pb-8 pt-4 px-4 -mx-4 hide-scrollbar" style="scroll-behavior: smooth;">
+                        <?php 
+                        $wa_link = !empty($series['merchandise_wa']) ? 'https://wa.me/' . preg_replace('/[^0-9]/', '', $series['merchandise_wa']) : '#';
+                        foreach($merch as $idx => $m): 
+                        ?>
+                        <div class="snap-center shrink-0 w-[280px] md:w-[320px] rounded-2xl glass border border-white/10 overflow-hidden group hover:border-theme transition-all duration-300 transform hover:-translate-y-1">
+                            <a href="<?= $wa_link ?>" target="<?= $wa_link !== '#' ? '_blank' : '_self' ?>" class="block relative aspect-[4/5] bg-slate-900">
+                                <img src="<?= getenv('APP_URL') ?>/uploads/series/<?= htmlspecialchars($m) ?>" class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110">
+                                <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-6">
+                                    <span class="btn-primary px-6 py-2 rounded-full text-white font-bold uppercase tracking-widest text-xs inline-flex items-center gap-2">
+                                        Pesan via WA
+                                    </span>
+                                </div>
+                            </a>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
+                    
+                    <!-- Indicators -->
+                    <div class="flex justify-center gap-2 mt-4">
+                        <?php foreach($merch as $idx => $m): ?>
+                        <button type="button" class="w-8 h-1.5 rounded-full bg-white/20 transition-all duration-300 merch-indicator" data-index="<?= $idx ?>"></button>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            </div>
+            
+            <style>
+                .hide-scrollbar::-webkit-scrollbar { display: none; }
+                .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+            </style>
+            
+            <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    const carousel = document.getElementById('merch-carousel');
+                    const indicators = document.querySelectorAll('.merch-indicator');
+                    const cards = carousel.children;
+                    let currentIndex = 0;
+                    
+                    if(cards.length === 0) return;
+                    
+                    // Update indicator based on scroll position
+                    carousel.addEventListener('scroll', () => {
+                        let scrollLeft = carousel.scrollLeft;
+                        let cardWidth = cards[0].offsetWidth + 24; // width + gap
+                        let index = Math.round(scrollLeft / cardWidth);
+                        
+                        indicators.forEach((ind, i) => {
+                            if (i === index) {
+                                ind.classList.replace('bg-white/20', 'bg-theme');
+                                ind.classList.add('w-12');
+                            } else {
+                                ind.classList.replace('bg-theme', 'bg-white/20');
+                                ind.classList.remove('w-12');
+                            }
+                        });
+                        currentIndex = index;
+                    });
+                    
+                    // Trigger initial scroll event to set first indicator
+                    carousel.dispatchEvent(new Event('scroll'));
+                    
+                    // Click indicator to scroll
+                    indicators.forEach((ind, i) => {
+                        ind.addEventListener('click', () => {
+                            let cardWidth = cards[0].offsetWidth + 24;
+                            carousel.scrollTo({
+                                left: i * cardWidth,
+                                behavior: 'smooth'
+                            });
+                        });
+                    });
+                    
+                    // Auto slide every 5 seconds
+                    setInterval(() => {
+                        let nextIndex = (currentIndex + 1) % cards.length;
+                        let cardWidth = cards[0].offsetWidth + 24;
+                        carousel.scrollTo({
+                            left: nextIndex * cardWidth,
+                            behavior: 'smooth'
+                        });
+                    }, 5000);
+                });
+            </script>
+        </section>
+        <?php endif; ?>
+    <?php endif; ?>
+
+    <!-- PROMO PARALLAX SECTION -->
     <?php if (!empty($series['promo_image'])): ?>
     <section id="promo" class="w-full relative bg-[#09090b] pt-24 border-t border-white/5">
         <div class="w-full mx-auto relative min-h-[300px] md:min-h-[500px] bg-scroll md:bg-fixed bg-center bg-cover bg-no-repeat" style="background-image: url('<?= getenv('APP_URL') ?>/uploads/series/<?= htmlspecialchars($series['promo_image']) ?>');">
