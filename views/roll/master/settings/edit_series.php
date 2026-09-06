@@ -86,7 +86,7 @@ $point_rules = json_decode($series['point_rules'] ?? '{}', true) ?: [
                             <?php endif; ?>
                         </div>
                         <div>
-                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Banner Promo</label>
+                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Parallax Image</label>
                             <input type="file" name="promo_image" accept="image/png, image/jpeg, image/webp" class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-800 text-sm">
                             <?php if(!empty($series['promo_image'])): ?>
                                 <div class="flex items-center gap-3 mt-3 p-2 bg-white rounded-lg border border-slate-200">
@@ -217,7 +217,7 @@ $point_rules = json_decode($series['point_rules'] ?? '{}', true) ?: [
     <?php if (!empty($series['id']) && !empty($leaderboard_data['overall'])): ?>
     <div id="preview-klasemen" class="mt-8 bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200">
         <div class="p-8">
-            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+            <div class="flex flex-col xl:flex-row xl:items-start justify-between gap-4 mb-6">
                 <h2 class="text-2xl font-black text-slate-800 uppercase italic tracking-tighter flex items-center gap-3">
                     <span class="text-3xl">⭐</span> Hasil Penghitungan Klasemen (Preview)
                 </h2>
@@ -237,7 +237,7 @@ $point_rules = json_decode($series['point_rules'] ?? '{}', true) ?: [
                     </div>
                     
                     <div class="text-[10px] text-blue-800 font-bold uppercase tracking-widest mb-2">Pilih KU yang Ditampilkan:</div>
-                    <div class="flex flex-wrap gap-2">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 max-h-64 overflow-y-auto pr-2">
                         <?php 
                         $pubKu = json_decode($series['published_ku_standings'] ?? '[]', true) ?: []; 
                         foreach(array_keys($leaderboard_data['overall']) as $ku): 

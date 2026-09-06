@@ -90,7 +90,7 @@
             </div>
 
             <div>
-                <a href="#events" class="btn-primary px-6 py-2.5 rounded-full text-white font-bold uppercase tracking-widest text-sm inline-flex items-center gap-2">
+                <a href="<?= getenv('APP_URL') ?>/roll" class="btn-primary px-6 py-2.5 rounded-full text-white font-bold uppercase tracking-widest text-sm inline-flex items-center gap-2">
                     Daftar Event
                 </a>
             </div>
@@ -208,22 +208,17 @@
                                 <div class="flex items-start gap-2 mb-4 text-xs font-bold text-slate-400 uppercase tracking-widest">
                                     <span class="mt-0.5">📍</span> 
                                     <span>
-                                        <?= htmlspecialchars($ev['location'] ?? $ev['event_city'] ?? 'TBA') ?>
-                                        <?php if(!empty($ev['event_city']) && $ev['location'] != $ev['event_city']): ?>
+                                        <?php $loc = $ev['event_location'] ?: ($ev['location'] ?: 'TBA'); ?>
+                                        <?= htmlspecialchars($loc) ?>
+                                        <?php if(!empty($ev['event_city']) && $loc != $ev['event_city']): ?>
                                             <br><span class="text-[10px] text-slate-500"><?= htmlspecialchars($ev['event_city']) ?></span>
                                         <?php endif; ?>
                                     </span>
                                 </div>
                                 <div class="mt-auto pt-6 border-t border-white/10">
-                                    <?php if (!empty($ev['landing_slug'])): ?>
-                                        <a href="<?= getenv('APP_URL') ?>/<?= htmlspecialchars($ev['landing_slug']) ?>" class="block w-full py-3 bg-white/5 text-white hover:bg-theme hover:text-white text-center font-bold uppercase tracking-widest text-xs rounded-xl transition border border-white/10">
-                                            Info Lengkap
-                                        </a>
-                                    <?php else: ?>
-                                        <button disabled class="block w-full py-3 bg-white/5 text-slate-500 text-center font-bold uppercase tracking-widest text-xs rounded-xl cursor-not-allowed border border-white/5">
-                                            Belum Dibuka
-                                        </button>
-                                    <?php endif; ?>
+                                    <a href="<?= getenv('APP_URL') ?>/roll" class="block w-full py-3 bg-white/5 text-white hover:bg-theme hover:text-white text-center font-bold uppercase tracking-widest text-xs rounded-xl transition border border-white/10">
+                                        Info Event
+                                    </a>
                                 </div>
                             </div>
                         </div>
@@ -247,17 +242,17 @@
 
                 <!-- Navigation Tabs -->
                 <div class="flex flex-wrap justify-center gap-3 mb-10">
-                    <?php $first = true; foreach(array_keys($bestSkaters) as $ku): $tabId = 'public-' . preg_replace('/[^a-z0-9]/i', '', $ku); ?>
-                    <button type="button" onclick="switchPublicTab('<?= $tabId ?>')" class="public-tab-btn px-6 py-3 text-sm font-bold uppercase tracking-widest rounded-full transition-all <?= $first ? 'bg-theme text-white shadow-neon border border-theme' : 'glass text-slate-400 border border-white/10 hover:bg-white/10 hover:text-white' ?>" data-target="<?= $tabId ?>">
+                    <?php foreach(array_keys($bestSkaters) as $ku): $tabId = 'public-' . preg_replace('/[^a-z0-9]/i', '', $ku); ?>
+                    <button type="button" onclick="switchPublicTab('<?= $tabId ?>')" class="public-tab-btn px-6 py-3 text-sm font-bold uppercase tracking-widest rounded-full transition-all glass text-slate-400 border border-white/10 hover:bg-white/10 hover:text-white" data-target="<?= $tabId ?>">
                         <?= htmlspecialchars($ku) ?>
                     </button>
-                    <?php $first = false; endforeach; ?>
+                    <?php endforeach; ?>
                 </div>
 
                 <!-- Tab Contents -->
                 <div class="space-y-8 max-w-5xl mx-auto">
-                    <?php $first = true; foreach($bestSkaters as $ku => $genders): $tabId = 'public-' . preg_replace('/[^a-z0-9]/i', '', $ku); ?>
-                    <div id="<?= $tabId ?>" class="public-tab-content glass rounded-2xl border border-white/10 overflow-hidden shadow-2xl transition-opacity duration-300 <?= $first ? 'block' : 'hidden' ?>">
+                    <?php foreach($bestSkaters as $ku => $genders): $tabId = 'public-' . preg_replace('/[^a-z0-9]/i', '', $ku); ?>
+                    <div id="<?= $tabId ?>" class="public-tab-content glass rounded-2xl border border-white/10 overflow-hidden shadow-2xl transition-opacity duration-300 hidden">
                         <div class="grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-white/10">
                             <!-- Putra -->
                             <div>
@@ -331,8 +326,6 @@
     <section id="promo" class="w-full relative bg-[#09090b] pt-24 border-t border-white/5">
         <div class="w-full mx-auto relative min-h-[300px] md:min-h-[500px] bg-scroll md:bg-fixed bg-center bg-cover bg-no-repeat" style="background-image: url('<?= getenv('APP_URL') ?>/uploads/series/<?= htmlspecialchars($series['promo_image']) ?>');">
             <div class="absolute inset-0 bg-black/60 flex items-center justify-center">
-                 <div class="text-center p-6">
-                     <h3 class="text-white text-4xl md:text-6xl font-display font-bold uppercase tracking-tighter mb-6">Series Highlights</h3>
                  </div>
             </div>
         </div>

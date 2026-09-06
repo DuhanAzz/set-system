@@ -26,10 +26,11 @@ class PublicSeriesController extends Controller {
 
         // 2. Dapatkan daftar event yang tergabung
         $stmtEvents = $db->prepare("
-            SELECT e.*, lp.slug as landing_slug, lp.hero_title
+            SELECT e.*, lp.slug as landing_slug, lp.hero_title, u.nama_lengkap as admin_name
             FROM roll_events e
             JOIN roll_series_events se ON e.id = se.event_id
             LEFT JOIN roll_event_landing_pages lp ON e.id = lp.event_id
+            LEFT JOIN roll_users u ON e.user_id = u.id
             WHERE se.series_id = ?
             ORDER BY e.event_date_start DESC
         ");
@@ -195,6 +196,20 @@ class PublicSeriesController extends Controller {
                 }
             }
             ksort($bestSkaters);
+            
+            // Filter KU yang diizinkan untuk dipublish
+            if (isset($series['published_ku_standings']) && $series['published_ku_standings'] !== null && $series['published_ku_standings'] !== '') {
+                $pubKu = json_decode($series['published_ku_standings'], true);
+                if (is_array($pubKu)) {
+                    $filteredSkaters = [];
+                    foreach ($bestSkaters as $ku => $genders) {
+                        if (in_array($ku, $pubKu)) {
+                            $filteredSkaters[$ku] = $genders;
+                        }
+                    }
+                    $bestSkaters = $filteredSkaters;
+                }
+            }
         }
 
         // Tampilkan view
