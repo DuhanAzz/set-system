@@ -579,6 +579,9 @@ class RollMasterSettingsController extends Controller {
         $pointRulesArr = $_POST['point_rules'] ?? [];
         $pointRulesJson = json_encode($pointRulesArr);
         
+        $publishedKuArr = $_POST['published_ku_standings'] ?? [];
+        $publishedKuJson = json_encode($publishedKuArr);
+        
         try {
             $db->beginTransaction();
 
@@ -586,17 +589,17 @@ class RollMasterSettingsController extends Controller {
                 // Update
                 $stmt = $db->prepare("
                     UPDATE roll_series 
-                    SET series_name = ?, slug = ?, hero_title = ?, hero_subtitle = ?, about_text = ?, theme_color = ?, status = ?, show_standings = ?, point_rules = ?, logo_image = ?, hero_slider_images = ?, promo_image = ?, sponsor_images = ?
+                    SET series_name = ?, slug = ?, hero_title = ?, hero_subtitle = ?, about_text = ?, theme_color = ?, status = ?, show_standings = ?, point_rules = ?, logo_image = ?, hero_slider_images = ?, promo_image = ?, sponsor_images = ?, published_ku_standings = ?
                     WHERE id = ?
                 ");
-                $stmt->execute([$seriesName, $slug, $heroTitle, $heroSubtitle, $aboutText, $themeColor, $status, $showStandings, $pointRulesJson, $logo_image, $hero_slider_images, $promo_image, $sponsor_images, $seriesId]);
+                $stmt->execute([$seriesName, $slug, $heroTitle, $heroSubtitle, $aboutText, $themeColor, $status, $showStandings, $pointRulesJson, $logo_image, $hero_slider_images, $promo_image, $sponsor_images, $publishedKuJson, $seriesId]);
             } else {
                 // Insert
                 $stmt = $db->prepare("
-                    INSERT INTO roll_series (series_name, slug, hero_title, hero_subtitle, about_text, theme_color, status, show_standings, point_rules, logo_image, hero_slider_images, promo_image, sponsor_images)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    INSERT INTO roll_series (series_name, slug, hero_title, hero_subtitle, about_text, theme_color, status, show_standings, point_rules, logo_image, hero_slider_images, promo_image, sponsor_images, published_ku_standings)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ");
-                $stmt->execute([$seriesName, $slug, $heroTitle, $heroSubtitle, $aboutText, $themeColor, $status, $showStandings, $pointRulesJson, $logo_image, $hero_slider_images, $promo_image, $sponsor_images]);
+                $stmt->execute([$seriesName, $slug, $heroTitle, $heroSubtitle, $aboutText, $themeColor, $status, $showStandings, $pointRulesJson, $logo_image, $hero_slider_images, $promo_image, $sponsor_images, $publishedKuJson]);
                 $seriesId = $db->lastInsertId();
             }
 
@@ -623,7 +626,7 @@ class RollMasterSettingsController extends Controller {
             $_SESSION['flash_type'] = "error";
         }
 
-        header("Location: " . getenv('APP_URL') . "/roll/master/settings/series_landing_pages");
+        header("Location: " . getenv('APP_URL') . "/roll/master/settings/edit_series?id=" . $seriesId . "#preview-klasemen");
         exit;
     }
 

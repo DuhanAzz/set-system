@@ -75,8 +75,10 @@
             <div class="flex items-center gap-4">
                 <?php if (!empty($series['logo_image'])): ?>
                     <img src="<?= getenv('APP_URL') ?>/uploads/series/<?= htmlspecialchars($series['logo_image']) ?>" class="h-12 object-contain">
+                <?php else: ?>
+                    <!-- Logo placeholder jika tidak ada gambar -->
+                    <span class="font-display font-bold text-xl tracking-widest uppercase text-white">SERIES</span>
                 <?php endif; ?>
-                <span class="font-display font-bold text-xl tracking-widest uppercase text-white"><?= htmlspecialchars($series['series_name']) ?></span>
             </div>
             
             <div class="hidden md:flex gap-8 text-sm font-bold tracking-widest uppercase text-slate-300">
@@ -196,8 +198,21 @@
                                 </h3>
                             </div>
                             <div class="p-6 flex-1 flex flex-col">
-                                <div class="flex items-center gap-2 mb-4 text-sm font-bold text-theme uppercase tracking-widest">
-                                    <span>📅</span> <?= date('d M Y', strtotime($ev['event_date_start'])) ?>
+                                <div class="flex items-center gap-2 mb-2 text-sm font-bold text-theme uppercase tracking-widest">
+                                    <span>📅</span> 
+                                    <?= date('d M Y', strtotime($ev['event_date_start'])) ?>
+                                    <?php if(!empty($ev['event_date_end']) && $ev['event_date_end'] != $ev['event_date_start']): ?>
+                                        - <?= date('d M Y', strtotime($ev['event_date_end'])) ?>
+                                    <?php endif; ?>
+                                </div>
+                                <div class="flex items-start gap-2 mb-4 text-xs font-bold text-slate-400 uppercase tracking-widest">
+                                    <span class="mt-0.5">📍</span> 
+                                    <span>
+                                        <?= htmlspecialchars($ev['location'] ?? $ev['event_city'] ?? 'TBA') ?>
+                                        <?php if(!empty($ev['event_city']) && $ev['location'] != $ev['event_city']): ?>
+                                            <br><span class="text-[10px] text-slate-500"><?= htmlspecialchars($ev['event_city']) ?></span>
+                                        <?php endif; ?>
+                                    </span>
                                 </div>
                                 <div class="mt-auto pt-6 border-t border-white/10">
                                     <?php if (!empty($ev['landing_slug'])): ?>
@@ -324,14 +339,30 @@
     </section>
     <?php endif; ?>
 
+    <!-- SPONSORS SECTION -->
+    <?php if (!empty($series['sponsor_images'])): ?>
+        <?php $sponsors = json_decode($series['sponsor_images'], true) ?: []; ?>
+        <?php if(!empty($sponsors)): ?>
+        <section id="sponsors" class="py-16 bg-[#0c0c0e] border-t border-white/5">
+            <div class="max-w-7xl mx-auto px-6">
+                <div class="flex flex-wrap justify-center items-center gap-8 md:gap-16 opacity-70">
+                    <?php foreach($sponsors as $sponsor): ?>
+                        <img src="<?= getenv('APP_URL') ?>/uploads/series/<?= htmlspecialchars($sponsor) ?>" class="h-10 md:h-14 object-contain grayscale hover:grayscale-0 hover:scale-110 transition-all duration-300">
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        </section>
+        <?php endif; ?>
+    <?php endif; ?>
+
     <!-- FOOTER -->
     <footer class="bg-black py-12 border-t border-white/10">
         <div class="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6">
-            <div class="flex items-center gap-4">
+            <div class="flex items-center gap-6">
                 <?php if (!empty($series['logo_image'])): ?>
                     <img src="<?= getenv('APP_URL') ?>/uploads/series/<?= htmlspecialchars($series['logo_image']) ?>" class="h-8 grayscale opacity-50 hover:grayscale-0 hover:opacity-100 transition">
                 <?php endif; ?>
-                <span class="font-display font-bold text-slate-500 tracking-widest uppercase"><?= htmlspecialchars($series['series_name']) ?></span>
+                <img src="<?= getenv('APP_URL') ?>/img/logo.png" class="h-6 opacity-70 hover:opacity-100 transition">
             </div>
             
             <div class="text-xs text-slate-600 uppercase tracking-widest font-bold">

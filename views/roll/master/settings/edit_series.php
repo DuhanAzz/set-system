@@ -121,6 +121,27 @@ $point_rules = json_decode($series['point_rules'] ?? '{}', true) ?: [
                                 </div>
                             <?php endif; ?>
                         </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Logo Sponsor</label>
+                            <input type="file" name="sponsors[]" multiple accept="image/png, image/jpeg, image/webp" class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-800 text-sm">
+                            <div class="text-[10px] text-slate-400 mt-1">Bisa pilih banyak file sekaligus.</div>
+                            <?php if(!empty($series['sponsor_images'])): ?>
+                                <?php $sponsors = json_decode($series['sponsor_images'], true) ?: []; ?>
+                                <div class="mt-3 p-3 bg-white rounded-lg border border-slate-200">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <div class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Current Sponsors (<?= count($sponsors) ?>)</div>
+                                        <label class="flex items-center gap-1 text-xs text-red-500 font-bold cursor-pointer px-2 py-1 hover:bg-red-50 rounded transition">
+                                            <input type="checkbox" name="delete_sponsors" value="1" class="rounded border-red-300 text-red-500 w-3 h-3"> Hapus Semua
+                                        </label>
+                                    </div>
+                                    <div class="flex gap-2 overflow-x-auto pb-2">
+                                        <?php foreach($sponsors as $sponsor): ?>
+                                            <img src="<?= getenv('APP_URL') ?>/uploads/series/<?= htmlspecialchars($sponsor) ?>" class="h-12 object-contain bg-slate-100 rounded border border-slate-200 p-1 flex-shrink-0">
+                                        <?php endforeach; ?>
+                                    </div>
+                                </div>
+                            <?php endif; ?>
+                        </div>
                     </div>
                 </div>
                 
@@ -128,17 +149,12 @@ $point_rules = json_decode($series['point_rules'] ?? '{}', true) ?: [
                 <div class="space-y-6">
                     <div class="bg-blue-50 border border-blue-200 rounded-xl p-6">
                         <h3 class="text-sm font-black text-blue-800 uppercase tracking-widest mb-4 flex items-center gap-2">
-                            <span>🏆</span> Manajemen Klasemen
+                            <span>🏆</span> Aturan Poin & Klasemen
                         </h3>
-                        <label class="flex items-start gap-3 cursor-pointer">
-                            <div class="relative flex items-center">
-                                <input type="checkbox" name="show_standings" value="1" class="w-5 h-5 rounded border-blue-300 text-blue-600 focus:ring-blue-500" <?= (!empty($series['show_standings'])) ? 'checked' : '' ?>>
-                            </div>
-                            <div>
-                                <div class="text-sm font-bold text-blue-900">Publish Series Standings</div>
-                                <div class="text-[10px] text-blue-700 mt-1">Centang untuk mempublikasikan tabel klasemen poin gabungan di halaman series publik.</div>
-                            </div>
-                        </label>
+                        <div class="text-[10px] text-blue-700 mb-3 bg-white/50 p-2 rounded">
+                            Aturan perolehan poin MVP untuk tiap peringkat pada masing-masing event. <br>
+                            *(Pengaturan publish klasemen ada di bagian Preview Klasemen di bawah)*
+                        </div>
                         
                         <div class="mt-5 border-t border-blue-200 pt-5">
                             <h4 class="text-xs font-black text-blue-900 uppercase tracking-widest mb-3">Aturan Poin Klasemen (THB)</h4>
@@ -196,15 +212,46 @@ $point_rules = json_decode($series['point_rules'] ?? '{}', true) ?: [
                     Simpan Perubahan
                 </button>
             </div>
-        </form>
     </div>
     
     <?php if (!empty($series['id']) && !empty($leaderboard_data['overall'])): ?>
-    <div class="mt-8 bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200">
+    <div id="preview-klasemen" class="mt-8 bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200">
         <div class="p-8">
-            <h2 class="text-2xl font-black text-slate-800 uppercase italic tracking-tighter mb-6 flex items-center gap-3">
-                <span class="text-3xl">⭐</span> Hasil Penghitungan Klasemen (Preview)
-            </h2>
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                <h2 class="text-2xl font-black text-slate-800 uppercase italic tracking-tighter flex items-center gap-3">
+                    <span class="text-3xl">⭐</span> Hasil Penghitungan Klasemen (Preview)
+                </h2>
+                
+                <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 w-full xl:w-auto flex-shrink-0">
+                    <div class="flex items-center justify-between gap-6 mb-3 border-b border-blue-200 pb-3">
+                        <label class="flex items-center gap-3 cursor-pointer">
+                            <input type="checkbox" name="show_standings" value="1" class="w-5 h-5 rounded border-blue-300 text-blue-600 focus:ring-blue-500" <?= (!empty($series['show_standings'])) ? 'checked' : '' ?>>
+                            <div>
+                                <div class="text-xs font-black text-blue-900 uppercase tracking-widest">Master Toggle: Publish Klasemen</div>
+                                <div class="text-[9px] text-blue-700">Centang agar section klasemen tampil.</div>
+                            </div>
+                        </label>
+                        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg font-bold text-xs uppercase tracking-widest hover:bg-blue-700 transition">
+                            Simpan
+                        </button>
+                    </div>
+                    
+                    <div class="text-[10px] text-blue-800 font-bold uppercase tracking-widest mb-2">Pilih KU yang Ditampilkan:</div>
+                    <div class="flex flex-wrap gap-2">
+                        <?php 
+                        $pubKu = json_decode($series['published_ku_standings'] ?? '[]', true) ?: []; 
+                        foreach(array_keys($leaderboard_data['overall']) as $ku): 
+                            // Default to checked if no data saved yet, or if explicitly saved
+                            $isChecked = (empty($series['published_ku_standings']) || in_array($ku, $pubKu)) ? 'checked' : '';
+                        ?>
+                        <label class="flex items-center gap-1.5 cursor-pointer bg-white px-2 py-1 rounded border border-blue-200 text-[10px] text-blue-900 font-bold hover:bg-blue-100 transition">
+                            <input type="checkbox" name="published_ku_standings[]" value="<?= htmlspecialchars($ku) ?>" <?= $isChecked ?> class="w-3.5 h-3.5 rounded border-blue-300 text-blue-600">
+                            <?= htmlspecialchars($ku) ?>
+                        </label>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            </div>
             
             <div class="space-y-8">
                 <!-- OVERALL -->
@@ -368,7 +415,7 @@ $point_rules = json_decode($series['point_rules'] ?? '{}', true) ?: [
         </div>
     </div>
     <?php endif; ?>
-    
+    </form>
 </div>
 
 <script>
