@@ -38,6 +38,10 @@ try {
             promo_image VARCHAR(255) NULL,
             show_standings TINYINT(1) DEFAULT 0,
             point_rules JSON NULL,
+            sponsor_images TEXT NULL,
+            published_ku_standings TEXT NULL,
+            merchandise_images TEXT NULL,
+            merchandise_wa VARCHAR(50) NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -64,6 +68,25 @@ try {
             FOREIGN KEY (user_id) REFERENCES roll_users(id) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     ");
+    
+    // Inject new columns securely (if table already exists)
+    $columnsToAdd = [
+        'sponsor_images' => 'TEXT NULL',
+        'published_ku_standings' => 'TEXT NULL',
+        'merchandise_images' => 'TEXT NULL',
+        'merchandise_wa' => 'VARCHAR(50) NULL'
+    ];
+    
+    foreach ($columnsToAdd as $colName => $colType) {
+        try {
+            $db->exec("ALTER TABLE roll_series ADD COLUMN {$colName} {$colType}");
+        } catch (PDOException $e) {
+            // Abaikan error jika kolom sudah ada (SQLSTATE 42S21 Duplicate column name)
+            if ($e->getCode() !== '42S21') {
+                throw $e;
+            }
+        }
+    }
     
     echo "Migration successful!\n";
 } catch (PDOException $e) {
