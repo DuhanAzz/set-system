@@ -62,9 +62,13 @@
                         <input type="file" name="logo_image" accept="image/png, image/jpeg, image/webp" class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-800 text-sm">
                         <div class="text-[10px] text-slate-400 mt-1">Maks 2MB. Format: JPG/PNG.</div>
                         <?php if(!empty($landing['logo_image'])): ?>
-                            <div class="flex items-center gap-2 mt-2">
-                                <div class="text-xs text-green-600 font-bold truncate max-w-[150px]">Terupload: <?= $landing['logo_image'] ?></div>
-                                <label class="flex items-center gap-1 text-xs text-red-500 font-bold ml-auto cursor-pointer">
+                            <div class="flex items-center gap-3 mt-3 p-2 bg-white rounded-lg border border-slate-200">
+                                <img src="<?= getenv('APP_URL') ?>/uploads/landing/<?= htmlspecialchars($landing['logo_image']) ?>" class="h-12 w-auto object-contain bg-slate-100 rounded">
+                                <div class="flex-1 min-w-0">
+                                    <div class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Current Logo</div>
+                                    <div class="text-xs text-slate-700 font-bold truncate"><?= $landing['logo_image'] ?></div>
+                                </div>
+                                <label class="flex items-center gap-1 text-xs text-red-500 font-bold ml-auto cursor-pointer px-2 py-1 hover:bg-red-50 rounded transition">
                                     <input type="checkbox" name="delete_logo" value="1" class="rounded border-red-300 text-red-500 focus:ring-red-500 w-3 h-3"> Hapus
                                 </label>
                             </div>
@@ -76,11 +80,18 @@
                         <div class="text-[10px] text-slate-400 mt-1">Bisa pilih banyak file sekaligus. Maks 2MB/file agar server tidak hang.</div>
                         <?php if(!empty($landing['hero_slider_images'])): ?>
                             <?php $sliders = json_decode($landing['hero_slider_images'], true) ?: []; ?>
-                            <div class="flex items-center gap-2 mt-2">
-                                <div class="text-xs text-green-600 font-bold">Terupload: <?= count($sliders) ?> gambar</div>
-                                <label class="flex items-center gap-1 text-xs text-red-500 font-bold ml-auto cursor-pointer">
-                                    <input type="checkbox" name="delete_hero_slider" value="1" class="rounded border-red-300 text-red-500 focus:ring-red-500 w-3 h-3"> Hapus Semua
-                                </label>
+                            <div class="mt-3 p-3 bg-white rounded-lg border border-slate-200">
+                                <div class="flex items-center justify-between mb-2">
+                                    <div class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Current Sliders (<?= count($sliders) ?>)</div>
+                                    <label class="flex items-center gap-1 text-xs text-red-500 font-bold cursor-pointer px-2 py-1 hover:bg-red-50 rounded transition">
+                                        <input type="checkbox" name="delete_hero_slider" value="1" class="rounded border-red-300 text-red-500 focus:ring-red-500 w-3 h-3"> Hapus Semua
+                                    </label>
+                                </div>
+                                <div class="flex gap-2 overflow-x-auto pb-2">
+                                    <?php foreach($sliders as $slider): ?>
+                                        <img src="<?= getenv('APP_URL') ?>/uploads/landing/<?= htmlspecialchars($slider) ?>" class="h-16 w-24 object-cover rounded border border-slate-200 flex-shrink-0">
+                                    <?php endforeach; ?>
+                                </div>
                             </div>
                         <?php endif; ?>
                     </div>
@@ -102,9 +113,13 @@
                         <input type="file" name="promo_image" accept="image/png, image/jpeg, image/webp" class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-800 text-sm">
                         <div class="text-[10px] text-slate-400 mt-1">Maks 2MB. Format: JPG/PNG.</div>
                         <?php if(!empty($landing['promo_image'])): ?>
-                            <div class="flex items-center gap-2 mt-2">
-                                <div class="text-xs text-green-600 font-bold truncate max-w-[150px]">Terupload: <?= $landing['promo_image'] ?></div>
-                                <label class="flex items-center gap-1 text-xs text-red-500 font-bold ml-auto cursor-pointer">
+                            <div class="flex items-center gap-3 mt-3 p-2 bg-white rounded-lg border border-slate-200">
+                                <img src="<?= getenv('APP_URL') ?>/uploads/landing/<?= htmlspecialchars($landing['promo_image']) ?>" class="h-12 w-20 object-cover rounded">
+                                <div class="flex-1 min-w-0">
+                                    <div class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Current Banner</div>
+                                    <div class="text-xs text-slate-700 font-bold truncate"><?= $landing['promo_image'] ?></div>
+                                </div>
+                                <label class="flex items-center gap-1 text-xs text-red-500 font-bold ml-auto cursor-pointer px-2 py-1 hover:bg-red-50 rounded transition">
                                     <input type="checkbox" name="delete_promo" value="1" class="rounded border-red-300 text-red-500 focus:ring-red-500 w-3 h-3"> Hapus
                                 </label>
                             </div>

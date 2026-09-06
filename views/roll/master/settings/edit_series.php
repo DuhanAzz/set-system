@@ -73,9 +73,13 @@ $point_rules = json_decode($series['point_rules'] ?? '{}', true) ?: [
                             <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Logo Header & Footer</label>
                             <input type="file" name="logo_image" accept="image/png, image/jpeg, image/webp" class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-800 text-sm">
                             <?php if(!empty($series['logo_image'])): ?>
-                                <div class="flex items-center gap-2 mt-2">
-                                    <div class="text-xs text-green-600 font-bold truncate max-w-[150px]">Ada: <?= $series['logo_image'] ?></div>
-                                    <label class="flex items-center gap-1 text-xs text-red-500 font-bold ml-auto cursor-pointer">
+                                <div class="flex items-center gap-3 mt-3 p-2 bg-white rounded-lg border border-slate-200">
+                                    <img src="<?= getenv('APP_URL') ?>/uploads/series/<?= htmlspecialchars($series['logo_image']) ?>" class="h-12 w-auto object-contain bg-slate-100 rounded">
+                                    <div class="flex-1 min-w-0">
+                                        <div class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Current Logo</div>
+                                        <div class="text-xs text-slate-700 font-bold truncate"><?= $series['logo_image'] ?></div>
+                                    </div>
+                                    <label class="flex items-center gap-1 text-xs text-red-500 font-bold ml-auto cursor-pointer px-2 py-1 hover:bg-red-50 rounded transition">
                                         <input type="checkbox" name="delete_logo" value="1" class="rounded border-red-300 text-red-500 w-3 h-3"> Hapus
                                     </label>
                                 </div>
@@ -85,9 +89,13 @@ $point_rules = json_decode($series['point_rules'] ?? '{}', true) ?: [
                             <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Banner Promo</label>
                             <input type="file" name="promo_image" accept="image/png, image/jpeg, image/webp" class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-800 text-sm">
                             <?php if(!empty($series['promo_image'])): ?>
-                                <div class="flex items-center gap-2 mt-2">
-                                    <div class="text-xs text-green-600 font-bold truncate max-w-[150px]">Ada: <?= $series['promo_image'] ?></div>
-                                    <label class="flex items-center gap-1 text-xs text-red-500 font-bold ml-auto cursor-pointer">
+                                <div class="flex items-center gap-3 mt-3 p-2 bg-white rounded-lg border border-slate-200">
+                                    <img src="<?= getenv('APP_URL') ?>/uploads/series/<?= htmlspecialchars($series['promo_image']) ?>" class="h-12 w-20 object-cover rounded">
+                                    <div class="flex-1 min-w-0">
+                                        <div class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Current Banner</div>
+                                        <div class="text-xs text-slate-700 font-bold truncate"><?= $series['promo_image'] ?></div>
+                                    </div>
+                                    <label class="flex items-center gap-1 text-xs text-red-500 font-bold ml-auto cursor-pointer px-2 py-1 hover:bg-red-50 rounded transition">
                                         <input type="checkbox" name="delete_promo" value="1" class="rounded border-red-300 text-red-500 w-3 h-3"> Hapus
                                     </label>
                                 </div>
@@ -98,11 +106,18 @@ $point_rules = json_decode($series['point_rules'] ?? '{}', true) ?: [
                             <input type="file" name="hero_slider[]" multiple accept="image/png, image/jpeg, image/webp" class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-800 text-sm">
                             <?php if(!empty($series['hero_slider_images'])): ?>
                                 <?php $sliders = json_decode($series['hero_slider_images'], true) ?: []; ?>
-                                <div class="flex items-center gap-2 mt-2">
-                                    <div class="text-xs text-green-600 font-bold">Terupload: <?= count($sliders) ?> gambar</div>
-                                    <label class="flex items-center gap-1 text-xs text-red-500 font-bold ml-auto cursor-pointer">
-                                        <input type="checkbox" name="delete_hero_slider" value="1" class="rounded border-red-300 text-red-500 w-3 h-3"> Hapus Semua
-                                    </label>
+                                <div class="mt-3 p-3 bg-white rounded-lg border border-slate-200">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <div class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Current Sliders (<?= count($sliders) ?>)</div>
+                                        <label class="flex items-center gap-1 text-xs text-red-500 font-bold cursor-pointer px-2 py-1 hover:bg-red-50 rounded transition">
+                                            <input type="checkbox" name="delete_hero_slider" value="1" class="rounded border-red-300 text-red-500 w-3 h-3"> Hapus Semua
+                                        </label>
+                                    </div>
+                                    <div class="flex gap-2 overflow-x-auto pb-2">
+                                        <?php foreach($sliders as $slider): ?>
+                                            <img src="<?= getenv('APP_URL') ?>/uploads/series/<?= htmlspecialchars($slider) ?>" class="h-16 w-24 object-cover rounded border border-slate-200 flex-shrink-0">
+                                        <?php endforeach; ?>
+                                    </div>
                                 </div>
                             <?php endif; ?>
                         </div>
@@ -355,3 +370,39 @@ $point_rules = json_decode($series['point_rules'] ?? '{}', true) ?: [
     <?php endif; ?>
     
 </div>
+
+<script>
+function switchTab(groupPrefix, targetId) {
+    // 1. Hide all contents
+    document.querySelectorAll('.' + groupPrefix + '-tab-content').forEach(el => {
+        el.classList.add('hidden');
+        el.classList.remove('block');
+    });
+    
+    // 2. Reset all buttons styling
+    document.querySelectorAll('.' + groupPrefix + '-tab-btn').forEach(btn => {
+        if(groupPrefix === 'overall') {
+            btn.className = groupPrefix + '-tab-btn px-4 py-2 text-xs font-bold uppercase tracking-widest rounded-lg transition-all bg-slate-100 text-slate-500 hover:bg-slate-200';
+        } else {
+            btn.className = groupPrefix + '-tab-btn px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded transition-all bg-slate-100 text-slate-500 hover:bg-slate-200';
+        }
+    });
+    
+    // 3. Show target content
+    const targetEl = document.getElementById(targetId);
+    if(targetEl) {
+        targetEl.classList.remove('hidden');
+        targetEl.classList.add('block');
+    }
+    
+    // 4. Highlight active button
+    const activeBtn = document.querySelector('button[data-target="' + targetId + '"]');
+    if(activeBtn) {
+        if(groupPrefix === 'overall') {
+            activeBtn.className = groupPrefix + '-tab-btn px-4 py-2 text-xs font-bold uppercase tracking-widest rounded-lg transition-all bg-blue-600 text-white shadow-md shadow-blue-500/30';
+        } else {
+            activeBtn.className = groupPrefix + '-tab-btn px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded transition-all bg-slate-600 text-white shadow-sm';
+        }
+    }
+}
+</script>

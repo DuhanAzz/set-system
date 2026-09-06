@@ -330,8 +330,15 @@ class RollMasterSettingsController extends Controller {
             JOIN roll_ref_age_groups ag ON ed.age_group_id = ag.id
             JOIN roll_entries ent ON r.skater_id = ent.skater_id AND r.race_class_id = ent.race_class_id
             WHERE r.event_id IN ($inClause)
+              AND r.rank IN (1, 2, 3)
               AND r.status = 'OK'
-              AND r.round = 'Final' 
+              AND r.round = (
+                  SELECT round 
+                  FROM roll_event_results 
+                  WHERE event_id = r.event_id AND race_class_id = r.race_class_id 
+                  ORDER BY CASE round WHEN 'Kualifikasi' THEN 1 WHEN 'Perempat Final' THEN 2 WHEN 'Semi Final' THEN 3 WHEN 'Final' THEN 4 ELSE 5 END DESC 
+                  LIMIT 1
+              )
               AND (ent.status = 'Finished' OR ent.status = 'Qualified')
             GROUP BY r.event_id, ev.event_name, s.id, s.skater_name, c.club_name, s.birth_date, ag.group_name, sc.class_name, s.gender
             HAVING gold > 0 OR silver > 0 OR bronze > 0
@@ -502,6 +509,7 @@ class RollMasterSettingsController extends Controller {
         $logo_image = $existing['logo_image'] ?? null;
         $hero_slider_images = $existing['hero_slider_images'] ?? null;
         $promo_image = $existing['promo_image'] ?? null;
+        $sponsor_images = $existing['sponsor_images'] ?? null;
 
         $uploadDir = __DIR__ . '/../../../../public/uploads/series/';
         if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
@@ -518,6 +526,11 @@ class RollMasterSettingsController extends Controller {
             $oldSliders = json_decode($hero_slider_images, true) ?: [];
             foreach ($oldSliders as $img) if (file_exists($uploadDir . $img)) unlink($uploadDir . $img);
             $hero_slider_images = null;
+        }
+        if (!empty($_POST['delete_sponsors'])) {
+            $oldSponsors = json_decode($sponsor_images, true) ?: [];
+            foreach ($oldSponsors as $img) if (file_exists($uploadDir . $img)) unlink($uploadDir . $img);
+            $sponsor_images = null;
         }
 
         if (isset($_FILES['logo_image']) && $_FILES['logo_image']['error'] === UPLOAD_ERR_OK) {
@@ -545,6 +558,21 @@ class RollMasterSettingsController extends Controller {
             $oldSliders = json_decode($hero_slider_images, true) ?: [];
             $hero_slider_images = json_encode(array_merge($oldSliders, $newSliders));
         }
+
+        $newSponsors = [];
+        if (isset($_FILES['sponsors']) && !empty($_FILES['sponsors']['name'][0])) {
+            foreach ($_FILES['sponsors']['tmp_name'] as $idx => $tmpName) {
+                if ($_FILES['sponsors']['error'][$idx] === UPLOAD_ERR_OK) {
+                    $ext = pathinfo($_FILES['sponsors']['name'][$idx], PATHINFO_EXTENSION);
+                    $newName = 'sponsor_' . time() . '_' . rand(1000, 9999) . '.' . $ext;
+                    if (move_uploaded_file($tmpName, $uploadDir . $newName)) $newSponsors[] = $newName;
+                }
+            }
+        }
+        if (!empty($newSponsors)) {
+            $oldSponsors = json_decode($sponsor_images, true) ?: [];
+            $sponsor_images = json_encode(array_merge($oldSponsors, $newSponsors));
+        }
         $showStandings = isset($_POST['show_standings']) ? 1 : 0;
         
         // Handle point rules
@@ -558,17 +586,17 @@ class RollMasterSettingsController extends Controller {
                 // Update
                 $stmt = $db->prepare("
                     UPDATE roll_series 
-                    SET series_name = ?, slug = ?, hero_title = ?, hero_subtitle = ?, about_text = ?, theme_color = ?, status = ?, show_standings = ?, point_rules = ?, logo_image = ?, hero_slider_images = ?, promo_image = ?
+                    SET series_name = ?, slug = ?, hero_title = ?, hero_subtitle = ?, about_text = ?, theme_color = ?, status = ?, show_standings = ?, point_rules = ?, logo_image = ?, hero_slider_images = ?, promo_image = ?, sponsor_images = ?
                     WHERE id = ?
                 ");
-                $stmt->execute([$seriesName, $slug, $heroTitle, $heroSubtitle, $aboutText, $themeColor, $status, $showStandings, $pointRulesJson, $logo_image, $hero_slider_images, $promo_image, $seriesId]);
+                $stmt->execute([$seriesName, $slug, $heroTitle, $heroSubtitle, $aboutText, $themeColor, $status, $showStandings, $pointRulesJson, $logo_image, $hero_slider_images, $promo_image, $sponsor_images, $seriesId]);
             } else {
                 // Insert
                 $stmt = $db->prepare("
-                    INSERT INTO roll_series (series_name, slug, hero_title, hero_subtitle, about_text, theme_color, status, show_standings, point_rules, logo_image, hero_slider_images, promo_image)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    INSERT INTO roll_series (series_name, slug, hero_title, hero_subtitle, about_text, theme_color, status, show_standings, point_rules, logo_image, hero_slider_images, promo_image, sponsor_images)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ");
-                $stmt->execute([$seriesName, $slug, $heroTitle, $heroSubtitle, $aboutText, $themeColor, $status, $showStandings, $pointRulesJson, $logo_image, $hero_slider_images, $promo_image]);
+                $stmt->execute([$seriesName, $slug, $heroTitle, $heroSubtitle, $aboutText, $themeColor, $status, $showStandings, $pointRulesJson, $logo_image, $hero_slider_images, $promo_image, $sponsor_images]);
                 $seriesId = $db->lastInsertId();
             }
 
