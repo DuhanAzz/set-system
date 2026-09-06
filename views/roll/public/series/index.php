@@ -180,38 +180,89 @@
                         <h3 class="text-2xl font-black text-slate-800 uppercase tracking-widest mb-6 flex items-center gap-3">
                             <span class="text-3xl">⭐</span> Pemain Terbaik
                         </h3>
-                        <div class="bg-slate-50 rounded-2xl border border-slate-200 overflow-hidden shadow-inner">
-                            <table class="w-full text-left border-collapse">
-                                <thead>
-                                    <tr class="bg-slate-800 text-white">
-                                        <th class="p-4 text-xs font-black uppercase tracking-widest w-12 text-center">#</th>
-                                        <th class="p-4 text-xs font-black uppercase tracking-widest">Atlet</th>
-                                        <th class="p-4 text-xs font-black uppercase tracking-widest text-center">Kategori</th>
-                                        <th class="p-4 text-xs font-black uppercase tracking-widest w-16 text-center text-yellow-400">🥇</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-slate-200">
-                                    <?php $rank = 1; foreach (array_slice($bestSkaters, 0, 10) as $row): ?>
-                                    <tr class="bg-white hover:bg-slate-50 transition">
-                                        <td class="p-4 text-center font-black text-slate-400"><?= $rank++ ?></td>
-                                        <td class="p-4">
-                                            <div class="font-bold text-slate-700"><?= htmlspecialchars($row['skater_name']) ?></div>
-                                            <div class="text-[10px] text-slate-400 uppercase tracking-widest"><?= htmlspecialchars($row['club_name']) ?></div>
-                                        </td>
-                                        <td class="p-4 text-center">
-                                            <span class="px-2 py-1 bg-slate-100 text-slate-600 rounded text-[10px] font-bold uppercase tracking-widest whitespace-nowrap">
-                                                <?= htmlspecialchars($row['class_name']) ?>
-                                            </span>
-                                        </td>
-                                        <td class="p-4 text-center font-black text-slate-800 bg-yellow-50/50"><?= $row['gold'] ?></td>
-                                    </tr>
-                                    <?php endforeach; ?>
-                                </tbody>
-                            </table>
+                        
+                        <!-- Navigation Tabs -->
+                        <div class="flex flex-wrap gap-2 mb-6">
+                            <?php $first = true; foreach(array_keys($bestSkaters) as $ku): $tabId = 'public-' . preg_replace('/[^a-z0-9]/i', '', $ku); ?>
+                            <button type="button" onclick="switchPublicTab('<?= $tabId ?>')" class="public-tab-btn px-6 py-3 text-sm font-black uppercase tracking-widest rounded-xl transition-all <?= $first ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/40 transform scale-105' : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-50 hover:text-blue-600' ?>" data-target="<?= $tabId ?>">
+                                <?= htmlspecialchars($ku) ?>
+                            </button>
+                            <?php $first = false; endforeach; ?>
                         </div>
-                        <?php if (count($bestSkaters) > 10): ?>
-                            <p class="text-center text-xs text-slate-400 mt-4 italic">Menampilkan top 10 pemain...</p>
-                        <?php endif; ?>
+
+                        <!-- Tab Contents -->
+                        <div class="space-y-8">
+                            <?php $first = true; foreach($bestSkaters as $ku => $genders): $tabId = 'public-' . preg_replace('/[^a-z0-9]/i', '', $ku); ?>
+                            <div id="<?= $tabId ?>" class="public-tab-content bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm transition-opacity duration-300 <?= $first ? 'block' : 'hidden' ?>">
+                                <div class="grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-slate-200">
+                                    <!-- Putra -->
+                                    <div>
+                                        <h4 class="bg-blue-50 text-blue-800 text-sm font-black uppercase tracking-widest p-3 text-center border-b border-blue-100">Putra</h4>
+                                        <table class="w-full text-left border-collapse">
+                                            <thead class="bg-slate-50 border-b border-slate-100">
+                                                <tr>
+                                                    <th class="p-3 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center w-10">#</th>
+                                                    <th class="p-3 text-[10px] font-black text-slate-500 uppercase tracking-widest">Atlet</th>
+                                                    <th class="p-3 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center w-24 text-blue-600">Total Poin</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody class="divide-y divide-slate-100">
+                                                <?php if(empty($genders['Putra'])): ?>
+                                                    <tr><td colspan="3" class="p-6 text-center text-sm italic text-slate-400">Belum ada data</td></tr>
+                                                <?php else: ?>
+                                                    <?php $rank = 1; foreach (array_slice($genders['Putra'], 0, 10) as $row): ?>
+                                                    <tr class="hover:bg-slate-50 transition">
+                                                        <td class="p-3 text-center font-bold text-slate-400 text-xs"><?= $rank++ ?></td>
+                                                        <td class="p-3">
+                                                            <div class="font-bold text-slate-700 text-sm"><?= htmlspecialchars($row['skater_name']) ?></div>
+                                                            <div class="text-[10px] text-slate-400 uppercase tracking-widest"><?= htmlspecialchars($row['club_name']) ?></div>
+                                                        </td>
+                                                        <td class="p-3 text-center font-black text-blue-700 bg-blue-50/30"><?= $row['total_points'] ?></td>
+                                                    </tr>
+                                                    <?php endforeach; ?>
+                                                <?php endif; ?>
+                                            </tbody>
+                                        </table>
+                                        <?php if(count($genders['Putra'] ?? []) > 10): ?>
+                                            <div class="p-3 text-center text-xs text-slate-400 bg-slate-50 border-t border-slate-100">Menampilkan 10 teratas...</div>
+                                        <?php endif; ?>
+                                    </div>
+                                    <!-- Putri -->
+                                    <div>
+                                        <h4 class="bg-pink-50 text-pink-800 text-sm font-black uppercase tracking-widest p-3 text-center border-b border-pink-100">Putri</h4>
+                                        <table class="w-full text-left border-collapse">
+                                            <thead class="bg-slate-50 border-b border-slate-100">
+                                                <tr>
+                                                    <th class="p-3 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center w-10">#</th>
+                                                    <th class="p-3 text-[10px] font-black text-slate-500 uppercase tracking-widest">Atlet</th>
+                                                    <th class="p-3 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center w-24 text-pink-600">Total Poin</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody class="divide-y divide-slate-100">
+                                                <?php if(empty($genders['Putri'])): ?>
+                                                    <tr><td colspan="3" class="p-6 text-center text-sm italic text-slate-400">Belum ada data</td></tr>
+                                                <?php else: ?>
+                                                    <?php $rank = 1; foreach (array_slice($genders['Putri'], 0, 10) as $row): ?>
+                                                    <tr class="hover:bg-slate-50 transition">
+                                                        <td class="p-3 text-center font-bold text-slate-400 text-xs"><?= $rank++ ?></td>
+                                                        <td class="p-3">
+                                                            <div class="font-bold text-slate-700 text-sm"><?= htmlspecialchars($row['skater_name']) ?></div>
+                                                            <div class="text-[10px] text-slate-400 uppercase tracking-widest"><?= htmlspecialchars($row['club_name']) ?></div>
+                                                        </td>
+                                                        <td class="p-3 text-center font-black text-pink-700 bg-pink-50/30"><?= $row['total_points'] ?></td>
+                                                    </tr>
+                                                    <?php endforeach; ?>
+                                                <?php endif; ?>
+                                            </tbody>
+                                        </table>
+                                        <?php if(count($genders['Putri'] ?? []) > 10): ?>
+                                            <div class="p-3 text-center text-xs text-slate-400 bg-slate-50 border-t border-slate-100">Menampilkan 10 teratas...</div>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            </div>
+                            <?php $first = false; endforeach; ?>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -233,3 +284,28 @@
 
 </body>
 </html>
+
+<script>
+function switchPublicTab(targetId) {
+    // 1. Hide all contents
+    document.querySelectorAll('.public-tab-content').forEach(el => {
+        el.classList.add('hidden');
+        el.classList.remove('block');
+    });
+    
+    // 2. Reset all buttons styling
+    document.querySelectorAll('.public-tab-btn').forEach(btn => {
+        btn.className = 'public-tab-btn px-6 py-3 text-sm font-black uppercase tracking-widest rounded-xl transition-all bg-white text-slate-500 border border-slate-200 hover:bg-slate-50 hover:text-blue-600';
+    });
+    
+    // 3. Show target content
+    document.getElementById(targetId).classList.remove('hidden');
+    document.getElementById(targetId).classList.add('block');
+    
+    // 4. Highlight active button
+    const activeBtn = document.querySelector('button[data-target="' + targetId + '"]');
+    if(activeBtn) {
+        activeBtn.className = 'public-tab-btn px-6 py-3 text-sm font-black uppercase tracking-widest rounded-xl transition-all bg-blue-600 text-white shadow-lg shadow-blue-500/40 transform scale-105';
+    }
+}
+</script>

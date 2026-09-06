@@ -291,9 +291,163 @@ class RollMasterSettingsController extends Controller {
             'selected_events' => $selected_events,
             'selected_admins' => $selected_admins,
             'all_events' => $this->getAllEvents(),
-            'all_admins' => $this->getAllAdmins()
+            'all_admins' => $this->getAllAdmins(),
+            'leaderboard_data' => $this->calculatePreviewLeaderboard($series, $selected_events)
         ]);
     }
+
+    private function calculatePreviewLeaderboard($series, $eventIds) {
+        if (empty($eventIds)) return ['overall' => [], 'per_event' => []];
+        $db = Database::getInstance()->getConnection();
+        
+        $point_rules = json_decode($series['point_rules'] ?? '{}', true) ?: [
+            "1" => 12, "2" => 9, "3" => 7, "4" => 5, "5" => 4, "6" => 3, "7" => 2, "8" => 1
+        ];
+
+        $inClause = implode(',', array_fill(0, count($eventIds), '?'));
+        
+        // 1. Ambil rekap medali dari semua event (sesuai standar MVP THB)
+        $stmtRaw = $db->prepare("
+            SELECT 
+                r.event_id,
+                ev.event_name,
+                s.id as skater_id, 
+                s.skater_name, 
+                c.club_name, 
+                s.birth_date,
+                ag.group_name as age_group,
+                sc.class_name as category_name,
+                s.gender,
+                SUM(CASE WHEN r.rank = 1 THEN 1 ELSE 0 END) as gold,
+                SUM(CASE WHEN r.rank = 2 THEN 1 ELSE 0 END) as silver,
+                SUM(CASE WHEN r.rank = 3 THEN 1 ELSE 0 END) as bronze
+            FROM roll_event_results r
+            JOIN roll_events ev ON r.event_id = ev.id
+            JOIN roll_skaters s ON r.skater_id = s.id
+            LEFT JOIN roll_clubs c ON s.club_id = c.id
+            JOIN roll_event_details ed ON r.race_class_id = ed.id
+            LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
+            JOIN roll_ref_age_groups ag ON ed.age_group_id = ag.id
+            JOIN roll_entries ent ON r.skater_id = ent.skater_id AND r.race_class_id = ent.race_class_id
+            WHERE r.event_id IN ($inClause)
+              AND r.status = 'OK'
+              AND r.round = 'Final' 
+              AND (ent.status = 'Finished' OR ent.status = 'Qualified')
+            GROUP BY r.event_id, ev.event_name, s.id, s.skater_name, c.club_name, s.birth_date, ag.group_name, sc.class_name, s.gender
+            HAVING gold > 0 OR silver > 0 OR bronze > 0
+        ");
+        $stmtRaw->execute($eventIds);
+        $rawMedals = $stmtRaw->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        // 2. Group raw medals by Event -> Kategori & KU -> Gender
+        $eventsData = [];
+        foreach ($rawMedals as $row) {
+            $eId = $row['event_id'];
+            $cat = $row['category_name'] ?: 'Unknown';
+            $ag = $row['age_group'] ?: 'Unknown KU';
+            $ku = "$cat - $ag";
+            
+            $gender = ($row['gender'] === 'M' || $row['gender'] === 'L') ? 'Putra' : 'Putri';
+            
+            if (!isset($eventsData[$eId])) {
+                $eventsData[$eId] = [
+                    'event_name' => $row['event_name'],
+                    'groups' => []
+                ];
+            }
+            if (!isset($eventsData[$eId]['groups'][$ku])) {
+                $eventsData[$eId]['groups'][$ku] = ['Putra' => [], 'Putri' => []];
+            }
+            $eventsData[$eId]['groups'][$ku][$gender][] = $row;
+        }
+
+        // 3. Tentukan Rank MVP per event, inject poin, dan akumulasi ke Overall
+        $overallData = [];
+        $perEventStandings = [];
+
+        foreach ($eventsData as $eventId => $eData) {
+            $perEventStandings[$eventId] = [
+                'event_name' => $eData['event_name'],
+                'standings' => []
+            ];
+            
+            foreach ($eData['groups'] as $ku => $genders) {
+                if (!isset($perEventStandings[$eventId]['standings'][$ku])) {
+                    $perEventStandings[$eventId]['standings'][$ku] = ['Putra' => [], 'Putri' => []];
+                }
+                
+                foreach ($genders as $gender => $skaters) {
+                    // Sorting berdasarkan medali & Tie-breaker umur termuda
+                    usort($skaters, function($a, $b) {
+                        if ($a['gold'] != $b['gold']) return $b['gold'] <=> $a['gold'];
+                        if ($a['silver'] != $b['silver']) return $b['silver'] <=> $a['silver'];
+                        if ($a['bronze'] != $b['bronze']) return $b['bronze'] <=> $a['bronze'];
+                        
+                        $bdA = strtotime($a['birth_date'] ?: '1970-01-01');
+                        $bdB = strtotime($b['birth_date'] ?: '1970-01-01');
+                        if ($bdA != $bdB) return $bdB <=> $bdA;
+                        
+                        return $a['skater_name'] <=> $b['skater_name'];
+                    });
+                    
+                    $rank = 1;
+                    foreach ($skaters as $skater) {
+                        $points = isset($point_rules[(string)$rank]) ? (int)$point_rules[(string)$rank] : 0;
+                        if ($points > 0) {
+                            $skater['total_points'] = $points; // for display in per_event
+                            $perEventStandings[$eventId]['standings'][$ku][$gender][] = $skater;
+                            
+                            // Akumulasi ke overall
+                            $sId = $skater['skater_id'];
+                            // Buat kunci unik berdasarkan id skater DAN kombinasinya di kategori tersebut
+                            $overallKey = $sId . '_' . md5($ku); 
+                            
+                            if (!isset($overallData[$overallKey])) {
+                                $overallData[$overallKey] = [
+                                    'skater_name' => $skater['skater_name'],
+                                    'club_name' => $skater['club_name'],
+                                    'category_name' => $skater['category_name'],
+                                    'age_group' => $skater['age_group'],
+                                    'group_key' => $ku,
+                                    'gender' => $skater['gender'],
+                                    'total_points' => 0
+                                ];
+                            }
+                            $overallData[$overallKey]['total_points'] += $points;
+                        }
+                        $rank++;
+                    }
+                }
+            }
+            ksort($perEventStandings[$eventId]['standings']);
+        }
+
+        // 4. Format Overall menjadi Hierarki (Kategori & KU -> Gender)
+        $overallStandings = [];
+        foreach ($overallData as $key => $skater) {
+            $ku = $skater['group_key'];
+            $gender = ($skater['gender'] === 'M' || $skater['gender'] === 'L') ? 'Putra' : 'Putri';
+            
+            if (!isset($overallStandings[$ku])) {
+                $overallStandings[$ku] = ['Putra' => [], 'Putri' => []];
+            }
+            $overallStandings[$ku][$gender][] = $skater;
+        }
+
+        // Sort overall
+        foreach ($overallStandings as $ku => &$genders) {
+            foreach ($genders as $gender => &$skaters) {
+                usort($skaters, function($a, $b) {
+                    if ($a['total_points'] != $b['total_points']) return $b['total_points'] <=> $a['total_points'];
+                    return $a['skater_name'] <=> $b['skater_name'];
+                });
+            }
+        }
+        ksort($overallStandings);
+
+        return ['overall' => $overallStandings, 'per_event' => array_values($perEventStandings)];
+    }
+
 
     private function getAllEvents() {
         $db = Database::getInstance()->getConnection();
@@ -391,16 +545,30 @@ class RollMasterSettingsController extends Controller {
             $oldSliders = json_decode($hero_slider_images, true) ?: [];
             $hero_slider_images = json_encode(array_merge($oldSliders, $newSliders));
         }
-
+        $showStandings = isset($_POST['show_standings']) ? 1 : 0;
+        
+        // Handle point rules
+        $pointRulesArr = $_POST['point_rules'] ?? [];
+        $pointRulesJson = json_encode($pointRulesArr);
+        
         try {
             $db->beginTransaction();
 
-            if ($seriesId) {
-                $stmt = $db->prepare("UPDATE roll_series SET series_name = ?, slug = ?, hero_title = ?, hero_subtitle = ?, about_text = ?, theme_color = ?, status = ?, logo_image = ?, hero_slider_images = ?, promo_image = ?, show_standings = ? WHERE id = ?");
-                $stmt->execute([$seriesName, $slug, $heroTitle, $heroSubtitle, $aboutText, $themeColor, $status, $logo_image, $hero_slider_images, $promo_image, $showStandings, $seriesId]);
+            if ($seriesId > 0) {
+                // Update
+                $stmt = $db->prepare("
+                    UPDATE roll_series 
+                    SET series_name = ?, slug = ?, hero_title = ?, hero_subtitle = ?, about_text = ?, theme_color = ?, status = ?, show_standings = ?, point_rules = ?, logo_image = ?, hero_slider_images = ?, promo_image = ?
+                    WHERE id = ?
+                ");
+                $stmt->execute([$seriesName, $slug, $heroTitle, $heroSubtitle, $aboutText, $themeColor, $status, $showStandings, $pointRulesJson, $logo_image, $hero_slider_images, $promo_image, $seriesId]);
             } else {
-                $stmt = $db->prepare("INSERT INTO roll_series (series_name, slug, hero_title, hero_subtitle, about_text, theme_color, status, logo_image, hero_slider_images, promo_image, show_standings) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-                $stmt->execute([$seriesName, $slug, $heroTitle, $heroSubtitle, $aboutText, $themeColor, $status, $logo_image, $hero_slider_images, $promo_image, $showStandings]);
+                // Insert
+                $stmt = $db->prepare("
+                    INSERT INTO roll_series (series_name, slug, hero_title, hero_subtitle, about_text, theme_color, status, show_standings, point_rules, logo_image, hero_slider_images, promo_image)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ");
+                $stmt->execute([$seriesName, $slug, $heroTitle, $heroSubtitle, $aboutText, $themeColor, $status, $showStandings, $pointRulesJson, $logo_image, $hero_slider_images, $promo_image]);
                 $seriesId = $db->lastInsertId();
             }
 

@@ -72,35 +72,123 @@ class PublicSeriesController extends Controller {
             $stmtTally->execute($eventIds);
             $standings = $stmtTally->fetchAll(PDO::FETCH_ASSOC) ?: [];
             
-            // Pemain Terbaik Gabungan
-            $stmtBest = $db->prepare("
-                SELECT s.id, s.skater_name, c.club_name, sc.class_name, sc.gender,
+            $point_rules = json_decode($series['point_rules'] ?? '{}', true) ?: [
+                "1" => 12, "2" => 9, "3" => 7, "4" => 5, "5" => 4, "6" => 3, "7" => 2, "8" => 1
+            ];
+            
+            $bestSkaters = [];
+        if (!empty($eventIds)) {
+            $inClause = implode(',', array_fill(0, count($eventIds), '?'));
+            
+            $stmtRaw = $db->prepare("
+                SELECT 
+                    r.event_id,
+                    s.id as skater_id, 
+                    s.skater_name, 
+                    c.club_name, 
+                    s.birth_date,
+                    ag.group_name as age_group,
+                    sc.class_name as category_name,
+                    s.gender,
                     SUM(CASE WHEN r.rank = 1 THEN 1 ELSE 0 END) as gold,
                     SUM(CASE WHEN r.rank = 2 THEN 1 ELSE 0 END) as silver,
                     SUM(CASE WHEN r.rank = 3 THEN 1 ELSE 0 END) as bronze
                 FROM roll_event_results r
                 JOIN roll_skaters s ON r.skater_id = s.id
-                JOIN roll_clubs c ON s.club_id = c.id
+                LEFT JOIN roll_clubs c ON s.club_id = c.id
                 JOIN roll_event_details ed ON r.race_class_id = ed.id
-                JOIN roll_ref_skate_classes sc ON ed.category_id = sc.id
-                JOIN roll_entries e ON r.skater_id = e.skater_id AND r.race_class_id = e.race_class_id
+                LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
+                JOIN roll_ref_age_groups ag ON ed.age_group_id = ag.id
+                JOIN roll_entries ent ON r.skater_id = ent.skater_id AND r.race_class_id = ent.race_class_id
                 WHERE r.event_id IN ($inClause)
-                  AND r.rank IN (1, 2, 3) 
                   AND r.status = 'OK'
-                  AND r.round = (
-                      SELECT round 
-                      FROM roll_event_results 
-                      WHERE event_id = r.event_id AND race_class_id = r.race_class_id 
-                      ORDER BY CASE round WHEN 'Kualifikasi' THEN 1 WHEN 'Perempat Final' THEN 2 WHEN 'Semi Final' THEN 3 WHEN 'Final' THEN 4 ELSE 5 END DESC 
-                      LIMIT 1
-                  )
-                  AND (e.status = 'Finished' OR e.status = 'Qualified')
-                GROUP BY s.id, s.skater_name, c.club_name, sc.class_name, sc.gender
-                ORDER BY gold DESC, silver DESC, bronze DESC, s.skater_name ASC
-                LIMIT 50
+                  AND r.round = 'Final' 
+                  AND (ent.status = 'Finished' OR ent.status = 'Qualified')
+                GROUP BY r.event_id, s.id, s.skater_name, c.club_name, s.birth_date, ag.group_name, sc.class_name, s.gender
+                HAVING gold > 0 OR silver > 0 OR bronze > 0
             ");
-            $stmtBest->execute($eventIds);
-            $bestSkaters = $stmtBest->fetchAll(PDO::FETCH_ASSOC) ?: [];
+            $stmtRaw->execute($eventIds);
+            $rawMedals = $stmtRaw->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+            $eventsData = [];
+            foreach ($rawMedals as $row) {
+                $eId = $row['event_id'];
+                $cat = $row['category_name'] ?: 'Unknown';
+                $ag = $row['age_group'] ?: 'Unknown KU';
+                $ku = "$cat - $ag";
+                
+                $gender = ($row['gender'] === 'M' || $row['gender'] === 'L') ? 'Putra' : 'Putri';
+                
+                if (!isset($eventsData[$eId])) {
+                    $eventsData[$eId] = [];
+                }
+                if (!isset($eventsData[$eId][$ku])) {
+                    $eventsData[$eId][$ku] = ['Putra' => [], 'Putri' => []];
+                }
+                $eventsData[$eId][$ku][$gender][] = $row;
+            }
+
+            $overallData = [];
+            foreach ($eventsData as $eventId => $kuGroups) {
+                foreach ($kuGroups as $ku => $genders) {
+                    foreach ($genders as $gender => $skaters) {
+                        usort($skaters, function($a, $b) {
+                            if ($a['gold'] != $b['gold']) return $b['gold'] <=> $a['gold'];
+                            if ($a['silver'] != $b['silver']) return $b['silver'] <=> $a['silver'];
+                            if ($a['bronze'] != $b['bronze']) return $b['bronze'] <=> $a['bronze'];
+                            
+                            $bdA = strtotime($a['birth_date'] ?: '1970-01-01');
+                            $bdB = strtotime($b['birth_date'] ?: '1970-01-01');
+                            if ($bdA != $bdB) return $bdB <=> $bdA;
+                            
+                            return $a['skater_name'] <=> $b['skater_name'];
+                        });
+                        
+                        $rank = 1;
+                        foreach ($skaters as $skater) {
+                            $points = isset($point_rules[(string)$rank]) ? (int)$point_rules[(string)$rank] : 0;
+                            if ($points > 0) {
+                                $sId = $skater['skater_id'];
+                                $overallKey = $sId . '_' . md5($ku); 
+                                
+                                if (!isset($overallData[$overallKey])) {
+                                    $overallData[$overallKey] = [
+                                        'skater_name' => $skater['skater_name'],
+                                        'club_name' => $skater['club_name'],
+                                        'category_name' => $skater['category_name'],
+                                        'age_group' => $skater['age_group'],
+                                        'group_key' => $ku,
+                                        'gender' => $skater['gender'],
+                                        'total_points' => 0
+                                    ];
+                                }
+                                $overallData[$overallKey]['total_points'] += $points;
+                            }
+                            $rank++;
+                        }
+                    }
+                }
+            }
+
+            foreach ($overallData as $key => $skater) {
+                $ku = $skater['group_key'];
+                $gender = ($skater['gender'] === 'M' || $skater['gender'] === 'L') ? 'Putra' : 'Putri';
+                
+                if (!isset($bestSkaters[$ku])) {
+                    $bestSkaters[$ku] = ['Putra' => [], 'Putri' => []];
+                }
+                $bestSkaters[$ku][$gender][] = $skater;
+            }
+
+            foreach ($bestSkaters as $ku => &$genders) {
+                foreach ($genders as $gender => &$skaters) {
+                    usort($skaters, function($a, $b) {
+                        if ($a['total_points'] != $b['total_points']) return $b['total_points'] <=> $a['total_points'];
+                        return $a['skater_name'] <=> $b['skater_name'];
+                    });
+                }
+            }
+            ksort($bestSkaters);
         }
 
         // Tampilkan view

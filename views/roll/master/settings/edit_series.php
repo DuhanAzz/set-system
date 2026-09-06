@@ -1,3 +1,9 @@
+<?php 
+$point_rules = json_decode($series['point_rules'] ?? '{}', true) ?: [
+    "1" => 12, "2" => 9, "3" => 7, "4" => 5, 
+    "5" => 4, "6" => 3, "7" => 2, "8" => 1
+];
+?>
 <div class="font-sans relative">
     
     <div class="mb-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -115,9 +121,22 @@
                             </div>
                             <div>
                                 <div class="text-sm font-bold text-blue-900">Publish Series Standings</div>
-                                <div class="text-[10px] text-blue-700 mt-1">Centang untuk mempublikasikan akumulasi perolehan medali keseluruhan dari semua event yang tergabung di bawah ini ke halaman publik.</div>
+                                <div class="text-[10px] text-blue-700 mt-1">Centang untuk mempublikasikan tabel klasemen poin gabungan di halaman series publik.</div>
                             </div>
                         </label>
+                        
+                        <div class="mt-5 border-t border-blue-200 pt-5">
+                            <h4 class="text-xs font-black text-blue-900 uppercase tracking-widest mb-3">Aturan Poin Klasemen (THB)</h4>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                <?php for($i=1; $i<=8; $i++): ?>
+                                <div>
+                                    <label class="block text-[10px] font-bold text-blue-800 uppercase tracking-widest mb-1">Rank <?= $i ?></label>
+                                    <input type="number" name="point_rules[<?= $i ?>]" value="<?= htmlspecialchars($point_rules[(string)$i] ?? '0') ?>" class="w-full text-sm border-blue-200 rounded p-2 text-blue-900 bg-white font-bold" min="0">
+                                </div>
+                                <?php endfor; ?>
+                            </div>
+                            <p class="text-[9px] text-blue-600 mt-2 font-medium">Berdasarkan THB: Juara 1 mendapat 12 poin, Juara 2 mendapat 9 poin, dst.</p>
+                        </div>
                     </div>
 
                     <div>
@@ -164,4 +183,175 @@
             </div>
         </form>
     </div>
+    
+    <?php if (!empty($series['id']) && !empty($leaderboard_data['overall'])): ?>
+    <div class="mt-8 bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200">
+        <div class="p-8">
+            <h2 class="text-2xl font-black text-slate-800 uppercase italic tracking-tighter mb-6 flex items-center gap-3">
+                <span class="text-3xl">⭐</span> Hasil Penghitungan Klasemen (Preview)
+            </h2>
+            
+            <div class="space-y-8">
+                <!-- OVERALL -->
+                <div>
+                    <h3 class="text-lg font-black text-blue-800 uppercase tracking-widest mb-4 bg-blue-50 p-3 rounded-lg border border-blue-100 flex items-center justify-between">
+                        <span>🏆 Klasemen Gabungan (Overall)</span>
+                        <span class="text-xs font-bold text-blue-600 bg-blue-200 px-3 py-1 rounded-full">Poin MVP Seri</span>
+                    </h3>
+                    
+                    <div class="space-y-4">
+                        <!-- Navigation Tabs -->
+                        <div class="flex flex-wrap gap-2 mb-4">
+                            <?php $first = true; foreach(array_keys($leaderboard_data['overall']) as $ku): $tabId = 'overall-' . preg_replace('/[^a-z0-9]/i', '', $ku); ?>
+                            <button type="button" onclick="switchTab('overall', '<?= $tabId ?>')" class="overall-tab-btn px-4 py-2 text-xs font-bold uppercase tracking-widest rounded-lg transition-all <?= $first ? 'bg-blue-600 text-white shadow-md shadow-blue-500/30' : 'bg-slate-100 text-slate-500 hover:bg-slate-200' ?>" data-target="<?= $tabId ?>">
+                                <?= htmlspecialchars($ku) ?>
+                            </button>
+                            <?php $first = false; endforeach; ?>
+                        </div>
+
+                        <!-- Tab Contents -->
+                        <?php $first = true; foreach($leaderboard_data['overall'] as $ku => $genders): $tabId = 'overall-' . preg_replace('/[^a-z0-9]/i', '', $ku); ?>
+                        <div id="<?= $tabId ?>" class="overall-tab-content border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm transition-opacity duration-300 <?= $first ? 'block' : 'hidden' ?>">
+                            <div class="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-slate-200">
+                                <!-- Putra -->
+                                <div>
+                                    <h4 class="bg-blue-50 text-blue-800 text-xs font-black uppercase tracking-widest p-2 text-center border-b border-blue-100">Putra</h4>
+                                    <table class="w-full text-left">
+                                        <thead class="bg-slate-50 border-b border-slate-100">
+                                            <tr>
+                                                <th class="p-2 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center w-10">#</th>
+                                                <th class="p-2 text-[10px] font-black text-slate-500 uppercase tracking-widest">Atlet</th>
+                                                <th class="p-2 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center w-20">Total Poin</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-slate-100">
+                                            <?php if(empty($genders['Putra'])): ?>
+                                                <tr><td colspan="3" class="p-4 text-center text-xs italic text-slate-400">Tidak ada data</td></tr>
+                                            <?php else: ?>
+                                                <?php $rank = 1; foreach ($genders['Putra'] as $row): ?>
+                                                <tr class="hover:bg-slate-50">
+                                                    <td class="p-2 text-center font-bold text-slate-400 text-xs"><?= $rank++ ?></td>
+                                                    <td class="p-2">
+                                                        <div class="font-bold text-slate-700 text-xs"><?= htmlspecialchars($row['skater_name']) ?></div>
+                                                        <div class="text-[9px] text-slate-400 uppercase tracking-widest"><?= htmlspecialchars($row['club_name']) ?></div>
+                                                    </td>
+                                                    <td class="p-2 text-center font-black text-blue-600"><?= $row['total_points'] ?></td>
+                                                </tr>
+                                                <?php endforeach; ?>
+                                            <?php endif; ?>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <!-- Putri -->
+                                <div>
+                                    <h4 class="bg-pink-50 text-pink-800 text-xs font-black uppercase tracking-widest p-2 text-center border-b border-pink-100">Putri</h4>
+                                    <table class="w-full text-left">
+                                        <thead class="bg-slate-50 border-b border-slate-100">
+                                            <tr>
+                                                <th class="p-2 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center w-10">#</th>
+                                                <th class="p-2 text-[10px] font-black text-slate-500 uppercase tracking-widest">Atlet</th>
+                                                <th class="p-2 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center w-20">Total Poin</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-slate-100">
+                                            <?php if(empty($genders['Putri'])): ?>
+                                                <tr><td colspan="3" class="p-4 text-center text-xs italic text-slate-400">Tidak ada data</td></tr>
+                                            <?php else: ?>
+                                                <?php $rank = 1; foreach ($genders['Putri'] as $row): ?>
+                                                <tr class="hover:bg-slate-50">
+                                                    <td class="p-2 text-center font-bold text-slate-400 text-xs"><?= $rank++ ?></td>
+                                                    <td class="p-2">
+                                                        <div class="font-bold text-slate-700 text-xs"><?= htmlspecialchars($row['skater_name']) ?></div>
+                                                        <div class="text-[9px] text-slate-400 uppercase tracking-widest"><?= htmlspecialchars($row['club_name']) ?></div>
+                                                    </td>
+                                                    <td class="p-2 text-center font-black text-pink-600"><?= $row['total_points'] ?></td>
+                                                </tr>
+                                                <?php endforeach; ?>
+                                            <?php endif; ?>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        <?php $first = false; endforeach; ?>
+                    </div>
+                </div>
+
+                <!-- PER EVENT -->
+                <?php if(!empty($leaderboard_data['per_event'])): foreach($leaderboard_data['per_event'] as $evData): ?>
+                <div>
+                    <h3 class="text-sm font-black text-slate-600 uppercase tracking-widest mb-3 flex items-center gap-2 mt-6">
+                        <span>📍</span> <?= htmlspecialchars($evData['event_name']) ?>
+                    </h3>
+                    
+                    <div class="space-y-4 border-l-2 border-slate-200 pl-4 ml-2 pb-4">
+                        <!-- Navigation Tabs -->
+                        <div class="flex flex-wrap gap-1 mb-2">
+                            <?php $evIndex = preg_replace('/[^a-z0-9]/i', '', $evData['event_name']); $first = true; foreach(array_keys($evData['standings']) as $ku): $tabId = 'ev-'.$evIndex.'-' . preg_replace('/[^a-z0-9]/i', '', $ku); ?>
+                            <button type="button" onclick="switchTab('ev-<?= $evIndex ?>', '<?= $tabId ?>')" class="ev-<?= $evIndex ?>-tab-btn px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded transition-all <?= $first ? 'bg-slate-600 text-white shadow-sm' : 'bg-slate-100 text-slate-500 hover:bg-slate-200' ?>" data-target="<?= $tabId ?>">
+                                <?= htmlspecialchars($ku) ?>
+                            </button>
+                            <?php $first = false; endforeach; ?>
+                        </div>
+
+                        <!-- Tab Contents -->
+                        <?php $first = true; foreach($evData['standings'] as $ku => $genders): $tabId = 'ev-'.$evIndex.'-' . preg_replace('/[^a-z0-9]/i', '', $ku); ?>
+                        <div id="<?= $tabId ?>" class="ev-<?= $evIndex ?>-tab-content border border-slate-200 rounded-lg overflow-hidden bg-white <?= $first ? 'block' : 'hidden' ?>">
+                            <div class="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-slate-100">
+                                <!-- Putra -->
+                                <div>
+                                    <h4 class="bg-blue-50/50 text-blue-700 text-[10px] font-black uppercase tracking-widest p-1 text-center border-b border-blue-50">Putra</h4>
+                                    <table class="w-full text-left">
+                                        <tbody class="divide-y divide-slate-50">
+                                            <?php if(empty($genders['Putra'])): ?>
+                                                <tr><td class="p-2 text-center text-[10px] italic text-slate-400">Kosong</td></tr>
+                                            <?php else: ?>
+                                                <?php $rank = 1; foreach (array_slice($genders['Putra'], 0, 10) as $row): ?>
+                                                <tr class="hover:bg-slate-50">
+                                                    <td class="p-1 text-center font-bold text-slate-400 text-[10px] w-6"><?= $rank++ ?></td>
+                                                    <td class="p-1">
+                                                        <div class="font-bold text-slate-700 text-[10px]"><?= htmlspecialchars($row['skater_name']) ?></div>
+                                                        <div class="text-[8px] text-slate-400 uppercase"><?= htmlspecialchars($row['club_name']) ?></div>
+                                                    </td>
+                                                    <td class="p-1 text-center font-black text-blue-600 text-[10px] w-12"><?= $row['total_points'] ?></td>
+                                                </tr>
+                                                <?php endforeach; ?>
+                                            <?php endif; ?>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <!-- Putri -->
+                                <div>
+                                    <h4 class="bg-pink-50/50 text-pink-700 text-[10px] font-black uppercase tracking-widest p-1 text-center border-b border-pink-50">Putri</h4>
+                                    <table class="w-full text-left">
+                                        <tbody class="divide-y divide-slate-50">
+                                            <?php if(empty($genders['Putri'])): ?>
+                                                <tr><td class="p-2 text-center text-[10px] italic text-slate-400">Kosong</td></tr>
+                                            <?php else: ?>
+                                                <?php $rank = 1; foreach (array_slice($genders['Putri'], 0, 10) as $row): ?>
+                                                <tr class="hover:bg-slate-50">
+                                                    <td class="p-1 text-center font-bold text-slate-400 text-[10px] w-6"><?= $rank++ ?></td>
+                                                    <td class="p-1">
+                                                        <div class="font-bold text-slate-700 text-[10px]"><?= htmlspecialchars($row['skater_name']) ?></div>
+                                                        <div class="text-[8px] text-slate-400 uppercase"><?= htmlspecialchars($row['club_name']) ?></div>
+                                                    </td>
+                                                    <td class="p-1 text-center font-black text-pink-600 text-[10px] w-12"><?= $row['total_points'] ?></td>
+                                                </tr>
+                                                <?php endforeach; ?>
+                                            <?php endif; ?>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        <?php $first = false; endforeach; ?>
+                    </div>
+                </div>
+                <?php endforeach; endif; ?>
+                
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
+    
 </div>
