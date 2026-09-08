@@ -141,7 +141,13 @@ $appName = $settings['app_name'] ?? 'Universal SET System';
 
                         <!-- 200m -->
                         <div>
-                            <label class="block text-sm font-bold text-slate-700 mb-3">Waktu Tes 200 Meter</label>
+                            <div class="flex justify-between items-center mb-3">
+                                <label class="block text-sm font-bold text-slate-700">Waktu Tes 200 Meter</label>
+                                <div class="flex gap-2">
+                                    <button type="button" id="btn-offset-3-200" onclick="toggleOffset(3, 200)" class="px-3 py-1 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-xs font-bold transition">+3</button>
+                                    <button type="button" id="btn-offset-5-200" onclick="toggleOffset(5, 200)" class="px-3 py-1 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-xs font-bold transition">+5</button>
+                                </div>
+                            </div>
                             <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
                                 <div class="md:col-span-4">
                                     <input type="text" id="time200" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition" placeholder="00.00.00">
@@ -163,7 +169,13 @@ $appName = $settings['app_name'] ?? 'Universal SET System';
 
                         <!-- 150m -->
                         <div>
-                            <label class="block text-sm font-bold text-slate-700 mb-3">Waktu Tes 150 Meter</label>
+                            <div class="flex justify-between items-center mb-3">
+                                <label class="block text-sm font-bold text-slate-700">Waktu Tes 150 Meter</label>
+                                <div class="flex gap-2">
+                                    <button type="button" id="btn-offset-3-150" onclick="toggleOffset(3, 150)" class="px-3 py-1 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-xs font-bold transition">+3</button>
+                                    <button type="button" id="btn-offset-5-150" onclick="toggleOffset(5, 150)" class="px-3 py-1 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-xs font-bold transition">+5</button>
+                                </div>
+                            </div>
                             <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
                                 <div class="md:col-span-4">
                                     <input type="text" id="time150" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition" placeholder="00.00.00">
@@ -252,6 +264,27 @@ $appName = $settings['app_name'] ?? 'Universal SET System';
     
     <!-- Pace Calculator Logic -->
     <script>
+        window.offset200 = 0;
+        window.offset150 = 0;
+
+        function toggleOffset(val, dist) {
+            if (dist === 200) {
+                window.offset200 = window.offset200 === val ? 0 : val;
+                document.getElementById('btn-offset-3-200').className = window.offset200 === 3 ? "px-3 py-1 bg-blue-600 text-white rounded-lg text-xs font-bold transition" : "px-3 py-1 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-xs font-bold transition";
+                document.getElementById('btn-offset-5-200').className = window.offset200 === 5 ? "px-3 py-1 bg-blue-600 text-white rounded-lg text-xs font-bold transition" : "px-3 py-1 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-xs font-bold transition";
+                
+                const input = document.getElementById('time200');
+                if (input) input.dispatchEvent(new Event('input'));
+            } else {
+                window.offset150 = window.offset150 === val ? 0 : val;
+                document.getElementById('btn-offset-3-150').className = window.offset150 === 3 ? "px-3 py-1 bg-blue-600 text-white rounded-lg text-xs font-bold transition" : "px-3 py-1 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-xs font-bold transition";
+                document.getElementById('btn-offset-5-150').className = window.offset150 === 5 ? "px-3 py-1 bg-blue-600 text-white rounded-lg text-xs font-bold transition" : "px-3 py-1 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-xs font-bold transition";
+                
+                const input = document.getElementById('time150');
+                if (input) input.dispatchEvent(new Event('input'));
+            }
+        }
+        
         const intensities = [
             { name: "Recovery", percent: 75, type: "aerobic" },
             { name: "EN1", percent: 76, type: "aerobic" },
@@ -360,10 +393,12 @@ $appName = $settings['app_name'] ?? 'Universal SET System';
                 if (val.length > 2) s = parseInt(val.substring(2, 4) || 0, 10);
                 if (val.length > 4) ms = parseInt(val.substring(4, 6) || 0, 10);
 
-                const totalSeconds = (m * 60) + s + (ms / 100);
+                let totalSeconds = (m * 60) + s + (ms / 100);
                 const velSpan = document.getElementById(distance === 200 ? 'vel200' : 'vel150');
 
                 if (totalSeconds > 0) {
+                    const activeOffset = distance === 200 ? window.offset200 : window.offset150;
+                    totalSeconds += (activeOffset || 0);
                     const vBase = distance / totalSeconds;
                     velSpan.innerText = vBase.toFixed(3) + ' m/s';
                 } else {
@@ -422,20 +457,27 @@ $appName = $settings['app_name'] ?? 'Universal SET System';
             let testInfo = "";
             let selectedStyle = "";
 
+            let finalTimeSecs = 0;
+            let activeOffset = 0;
+            let totalDistance = 0;
+
             if (totalSeconds200 > 0) {
-                vBase = 200 / totalSeconds200; 
-                testInfo = `200m: ${formatTime(totalSeconds200)}`;
+                activeOffset = window.offset200 || 0;
+                finalTimeSecs = totalSeconds200 + activeOffset;
+                vBase = 200 / finalTimeSecs; 
                 selectedStyle = style200;
+                totalDistance = 200;
             } else {
-                vBase = 150 / totalSeconds150; 
-                testInfo = `150m: ${formatTime(totalSeconds150)}`;
+                activeOffset = window.offset150 || 0;
+                finalTimeSecs = totalSeconds150 + activeOffset;
+                vBase = 150 / finalTimeSecs; 
                 selectedStyle = style150;
+                totalDistance = 150;
             }
 
             const todayStr = new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
-            const totalDistance = totalSeconds200 > 0 ? 200 : 150;
-            const totalTimeSecs = totalSeconds200 > 0 ? totalSeconds200 : totalSeconds150;
-            const formattedTime = formatTime(totalTimeSecs);
+            const formattedTime = formatTime(finalTimeSecs);
+            const offsetLabel = activeOffset > 0 ? ` +${activeOffset}` : '';
 
             // Tailwind Info Panel
             const infoHtml = `
@@ -449,7 +491,7 @@ $appName = $settings['app_name'] ?? 'Universal SET System';
                     <div class="space-y-2">
                         <div class="flex"><div class="w-36 text-slate-500 uppercase tracking-wider text-[10px] font-bold">Gaya Renang</div><div class="w-4">:</div><div class="flex-1">${selectedStyle !== '-' ? selectedStyle : '-'}</div></div>
                         <div class="flex"><div class="w-36 text-slate-500 uppercase tracking-wider text-[10px] font-bold">Total Jarak (meter)</div><div class="w-4">:</div><div class="flex-1">${totalDistance}</div></div>
-                        <div class="flex"><div class="w-36 text-slate-500 uppercase tracking-wider text-[10px] font-bold">Total Waktu (detik)</div><div class="w-4">:</div><div class="flex-1 text-red-600 font-bold">${totalTimeSecs.toFixed(2).replace('.', ',')} &nbsp;&nbsp; ${formattedTime.replace('.', ':')}</div></div>
+                        <div class="flex"><div class="w-36 text-slate-500 uppercase tracking-wider text-[10px] font-bold">Total Waktu (detik)${offsetLabel}</div><div class="w-4">:</div><div class="flex-1 text-red-600 font-bold">${finalTimeSecs.toFixed(2).replace('.', ',')} &nbsp;&nbsp; ${formattedTime.replace('.', ':')}</div></div>
                         <div class="flex"><div class="w-36 text-slate-500 uppercase tracking-wider text-[10px] font-bold">Kecepatan (m/s)</div><div class="w-4">:</div><div class="flex-1">${vBase.toFixed(9).replace('.', ',')}</div></div>
                     </div>
                 </div>
@@ -496,7 +538,7 @@ $appName = $settings['app_name'] ?? 'Universal SET System';
                     </tr>
                     <tr>
                         <td colspan="4" style="font-weight:bold; text-align:left;">Umur : ${age > 0 ? ageObj.y + ' Thn ' + ageObj.m + ' Bln ' + ageObj.d + ' Hr' : '0 Thn 0 Bln 0 Hr'}</td>
-                        <td colspan="3" style="font-weight:bold; text-align:left;">Total Waktu (detik) : <span class="text-red">${totalTimeSecs.toFixed(2).replace('.', ',')} &nbsp;&nbsp; ${formattedTime.replace('.', ':')}</span></td>
+                        <td colspan="3" style="font-weight:bold; text-align:left;">Total Waktu (detik)${offsetLabel} : <span class="text-red">${finalTimeSecs.toFixed(2).replace('.', ',')} &nbsp;&nbsp; ${formattedTime.replace('.', ':')}</span></td>
                     </tr>
                     <tr>
                         <td colspan="4" style="font-weight:bold; text-align:left;">Tanggal Dibuat : ${todayStr}</td>
