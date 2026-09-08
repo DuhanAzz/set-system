@@ -527,16 +527,48 @@ class RollMasterSettingsController extends Controller {
             $oldSliders = json_decode($hero_slider_images, true) ?: [];
             foreach ($oldSliders as $img) if (file_exists($uploadDir . $img)) unlink($uploadDir . $img);
             $hero_slider_images = null;
+        } else if (!empty($_POST['delete_hero_slider_items'])) {
+            $oldSliders = json_decode($hero_slider_images, true) ?: [];
+            $itemsToDelete = $_POST['delete_hero_slider_items'];
+            foreach ($itemsToDelete as $img) {
+                if (in_array($img, $oldSliders)) {
+                    if (file_exists($uploadDir . $img)) unlink($uploadDir . $img);
+                    $oldSliders = array_diff($oldSliders, [$img]);
+                }
+            }
+            $hero_slider_images = empty($oldSliders) ? null : json_encode(array_values($oldSliders));
         }
+
         if (!empty($_POST['delete_sponsors'])) {
             $oldSponsors = json_decode($sponsor_images, true) ?: [];
             foreach ($oldSponsors as $img) if (file_exists($uploadDir . $img)) unlink($uploadDir . $img);
             $sponsor_images = null;
+        } else if (!empty($_POST['delete_sponsor_items'])) {
+            $oldSponsors = json_decode($sponsor_images, true) ?: [];
+            $itemsToDelete = $_POST['delete_sponsor_items'];
+            foreach ($itemsToDelete as $img) {
+                if (in_array($img, $oldSponsors)) {
+                    if (file_exists($uploadDir . $img)) unlink($uploadDir . $img);
+                    $oldSponsors = array_diff($oldSponsors, [$img]);
+                }
+            }
+            $sponsor_images = empty($oldSponsors) ? null : json_encode(array_values($oldSponsors));
         }
+
         if (!empty($_POST['delete_merchandise'])) {
             $oldMerchandise = json_decode($merchandise_images, true) ?: [];
             foreach ($oldMerchandise as $img) if (file_exists($uploadDir . $img)) unlink($uploadDir . $img);
             $merchandise_images = null;
+        } else if (!empty($_POST['delete_merch_items'])) {
+            $oldMerchandise = json_decode($merchandise_images, true) ?: [];
+            $itemsToDelete = $_POST['delete_merch_items'];
+            foreach ($itemsToDelete as $img) {
+                if (in_array($img, $oldMerchandise)) {
+                    if (file_exists($uploadDir . $img)) unlink($uploadDir . $img);
+                    $oldMerchandise = array_diff($oldMerchandise, [$img]);
+                }
+            }
+            $merchandise_images = empty($oldMerchandise) ? null : json_encode(array_values($oldMerchandise));
         }
 
         if (isset($_FILES['logo_image']) && $_FILES['logo_image']['error'] === UPLOAD_ERR_OK) {

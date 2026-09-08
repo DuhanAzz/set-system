@@ -113,9 +113,15 @@ $point_rules = json_decode($series['point_rules'] ?? '{}', true) ?: [
                                             <input type="checkbox" name="delete_hero_slider" value="1" class="rounded border-red-300 text-red-500 w-3 h-3"> Hapus Semua
                                         </label>
                                     </div>
-                                    <div class="flex gap-2 overflow-x-auto pb-2">
+                                    <div class="flex gap-2 overflow-x-auto pb-2 mt-2">
                                         <?php foreach($sliders as $slider): ?>
-                                            <img src="<?= getenv('APP_URL') ?>/uploads/series/<?= htmlspecialchars($slider) ?>" class="h-16 w-24 object-cover rounded border border-slate-200 flex-shrink-0">
+                                            <div class="inline-flex flex-col items-center gap-1 flex-shrink-0">
+                                                <img src="<?= getenv('APP_URL') ?>/uploads/series/<?= htmlspecialchars($slider) ?>" class="h-16 w-24 object-cover rounded border border-slate-200">
+                                                <label class="flex items-center gap-1 text-[9px] text-red-500 font-bold cursor-pointer hover:bg-red-50 px-1 rounded transition">
+                                                    <input type="checkbox" name="delete_hero_slider_items[]" value="<?= htmlspecialchars($slider) ?>" class="rounded border-red-300 text-red-500 w-2.5 h-2.5">
+                                                    Hapus
+                                                </label>
+                                            </div>
                                         <?php endforeach; ?>
                                     </div>
                                 </div>
@@ -134,9 +140,15 @@ $point_rules = json_decode($series['point_rules'] ?? '{}', true) ?: [
                                             <input type="checkbox" name="delete_sponsors" value="1" class="rounded border-red-300 text-red-500 w-3 h-3"> Hapus Semua
                                         </label>
                                     </div>
-                                    <div class="flex gap-2 overflow-x-auto pb-2">
+                                    <div class="flex gap-2 overflow-x-auto pb-2 mt-2">
                                         <?php foreach($sponsors as $sponsor): ?>
-                                            <img src="<?= getenv('APP_URL') ?>/uploads/series/<?= htmlspecialchars($sponsor) ?>" class="h-12 object-contain bg-slate-100 rounded border border-slate-200 p-1 flex-shrink-0">
+                                            <div class="inline-flex flex-col items-center gap-1 flex-shrink-0">
+                                                <img src="<?= getenv('APP_URL') ?>/uploads/series/<?= htmlspecialchars($sponsor) ?>" class="h-12 w-20 object-contain bg-slate-100 rounded border border-slate-200 p-1">
+                                                <label class="flex items-center gap-1 text-[9px] text-red-500 font-bold cursor-pointer hover:bg-red-50 px-1 rounded transition">
+                                                    <input type="checkbox" name="delete_sponsor_items[]" value="<?= htmlspecialchars($sponsor) ?>" class="rounded border-red-300 text-red-500 w-2.5 h-2.5">
+                                                    Hapus
+                                                </label>
+                                            </div>
                                         <?php endforeach; ?>
                                     </div>
                                 </div>
@@ -158,9 +170,15 @@ $point_rules = json_decode($series['point_rules'] ?? '{}', true) ?: [
                                                     <input type="checkbox" name="delete_merchandise" value="1" class="rounded border-red-300 text-red-500 w-3 h-3"> Hapus Semua
                                                 </label>
                                             </div>
-                                            <div class="flex gap-2 overflow-x-auto pb-2">
+                                            <div class="flex gap-2 overflow-x-auto pb-2 mt-2">
                                                 <?php foreach($merch as $m): ?>
-                                                    <img src="<?= getenv('APP_URL') ?>/uploads/series/<?= htmlspecialchars($m) ?>" class="h-16 w-12 object-cover bg-slate-100 rounded border border-slate-200 flex-shrink-0">
+                                                    <div class="inline-flex flex-col items-center gap-1 flex-shrink-0">
+                                                        <img src="<?= getenv('APP_URL') ?>/uploads/series/<?= htmlspecialchars($m) ?>" class="h-16 w-12 object-cover bg-slate-100 rounded border border-slate-200">
+                                                        <label class="flex items-center gap-1 text-[9px] text-red-500 font-bold cursor-pointer hover:bg-red-50 px-1 rounded transition">
+                                                            <input type="checkbox" name="delete_merch_items[]" value="<?= htmlspecialchars($m) ?>" class="rounded border-red-300 text-red-500 w-2.5 h-2.5">
+                                                            Hapus
+                                                        </label>
+                                                    </div>
                                                 <?php endforeach; ?>
                                             </div>
                                         </div>
