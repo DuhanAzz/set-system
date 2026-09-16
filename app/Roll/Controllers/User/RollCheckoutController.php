@@ -27,7 +27,7 @@ class RollCheckoutController extends Controller {
             FROM roll_events ev
             JOIN roll_entries e ON e.event_id = ev.id
             JOIN roll_skaters s ON e.skater_id = s.id
-            WHERE s.club_id = ?
+            WHERE e.club_id = ? AND e.manual_invoice_code IS NULL
             ORDER BY ev.event_date_start DESC
         ");
         $stmt->execute([$club_id]);
@@ -66,7 +66,7 @@ class RollCheckoutController extends Controller {
                 JOIN roll_skaters s ON e.skater_id = s.id
                 JOIN roll_event_details ed ON e.race_class_id = ed.id
                 LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
-                WHERE s.club_id = ? AND e.event_id = ?
+                WHERE e.club_id = ? AND e.event_id = ? AND e.manual_invoice_code IS NULL
             ");
             $stmtEntries->execute([$club_id, $eid]);
             $rows = $stmtEntries->fetchAll(PDO::FETCH_ASSOC);
@@ -137,7 +137,7 @@ class RollCheckoutController extends Controller {
                 LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
                 LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id
                 LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
-                WHERE s.club_id = ? AND e.event_id = ?
+                WHERE e.club_id = ? AND e.event_id = ? AND e.manual_invoice_code IS NULL
             ");
             $stmtUnpaid->execute([$club_id, $event_id]);
             $unpaidEntries = $stmtUnpaid->fetchAll(PDO::FETCH_ASSOC);
@@ -168,8 +168,8 @@ class RollCheckoutController extends Controller {
                 LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
                 LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id
                 LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
-                WHERE s.club_id = ? AND e.event_id = ?
-                ORDER BY e.id DESC
+                WHERE e.club_id = ? AND e.event_id = ? AND e.manual_invoice_code IS NULL
+                ORDER BY s.skater_name ASC
             ");
             $stmtHistory->execute([$club_id, $event_id]);
             $historyEntries = $stmtHistory->fetchAll(PDO::FETCH_ASSOC);
@@ -295,7 +295,7 @@ class RollCheckoutController extends Controller {
                 JOIN roll_ref_distances d ON c.distance_id = d.id
                 JOIN roll_ref_age_groups a ON c.age_group_id = a.id
                 JOIN roll_skaters s ON e.skater_id = s.id
-                WHERE s.club_id = ? AND e.event_id = ? AND d.distance_name LIKE '%Relay%'
+                WHERE e.club_id = ? AND e.event_id = ? AND e.manual_invoice_code IS NULL AND (d.distance_name LIKE '%Relay%' OR d.distance_name LIKE '%Pair%')
             ");
             $stmtRelayCheck->execute([$club_id, $event_id]);
             $relayEntries = $stmtRelayCheck->fetchAll(PDO::FETCH_ASSOC);
@@ -311,11 +311,22 @@ class RollCheckoutController extends Controller {
             $evDate = $stmtEv->fetchColumn();
 
             foreach ($relayGroups as $cid => $team) {
-                if (count($team) < 3 || count($team) > 4) {
-                    $_SESSION['flash_message'] = "Validasi Gagal: Kelas {$team[0]['category_name']} harus terdiri dari 3 atau 4 atlet (3 Inti + 1 Cadangan). Anda mendaftar " . count($team) . " atlet.";
-                    $_SESSION['flash_type'] = "error";
-                    header("Location: " . getenv('APP_URL') . "/roll/user/checkout/detail/" . $event_id);
-                    exit;
+                $isPair = stripos($team[0]['distance_name'], 'Pair') !== false;
+                $tCount = count($team);
+                if ($isPair) {
+                    if ($tCount !== 2) {
+                        $_SESSION['flash_message'] = "Validasi Gagal: Kelas {$team[0]['distance_name']} {$team[0]['category_name']} harus terdiri dari tepat 2 atlet. Anda mendaftar $tCount atlet.";
+                        $_SESSION['flash_type'] = "error";
+                        header("Location: " . getenv('APP_URL') . "/roll/user/checkout/detail/" . $event_id);
+                        exit;
+                    }
+                } else {
+                    if ($tCount < 3 || $tCount > 4) {
+                        $_SESSION['flash_message'] = "Validasi Gagal: Kelas {$team[0]['distance_name']} {$team[0]['category_name']} harus terdiri dari 3 atau 4 atlet (3 Inti + 1 Cadangan). Anda mendaftar $tCount atlet.";
+                        $_SESSION['flash_type'] = "error";
+                        header("Location: " . getenv('APP_URL') . "/roll/user/checkout/detail/" . $event_id);
+                        exit;
+                    }
                 }
                 
                 // Cek komposisi umur

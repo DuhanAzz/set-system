@@ -34,11 +34,36 @@
 <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8 pb-20 main-content">
     
     <div class="space-y-6 h-fit sticky top-24">
+        <?php
+            $approvedAmount = isset($payData['total_amount']) ? (float)$payData['total_amount'] : 0;
+            $selisih = $totalTagihan - $approvedAmount;
+            $hasApprovedPayment = (isset($payData['status']) && in_array($payData['status'], ['Paid', 'Pending'])) && $approvedAmount > 0;
+        ?>
         <div class="bg-slate-900 rounded-3xl p-6 border border-slate-800 shadow-xl text-white relative overflow-hidden">
-            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Total Tagihan Seharusnya</p>
+            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Total Tagihan (Update Terbaru)</p>
             <h2 class="text-3xl font-black text-white tracking-tighter">Rp <?= number_format($totalTagihan,0,',','.') ?></h2>
+            
+            <?php if($hasApprovedPayment): ?>
+                <div class="mt-4 pt-4 border-t border-slate-700 space-y-2">
+                    <div class="flex justify-between items-center">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Uang Masuk (Approved)</span>
+                        <span class="text-xs font-black text-emerald-400">Rp <?= number_format($approvedAmount,0,',','.') ?></span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Selisih (Invoice Ke-2)</span>
+                        <?php if($selisih > 0): ?>
+                            <span class="text-xs font-black text-red-400 bg-red-400/10 px-2 py-0.5 rounded border border-red-400/20">+ Rp <?= number_format($selisih,0,',','.') ?></span>
+                        <?php elseif($selisih < 0): ?>
+                            <span class="text-xs font-black text-blue-400 bg-blue-400/10 px-2 py-0.5 rounded border border-blue-400/20">- Rp <?= number_format(abs($selisih),0,',','.') ?></span>
+                        <?php else: ?>
+                            <span class="text-xs font-black text-slate-300">LUNAS</span>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            <?php endif; ?>
+
             <div class="mt-4 pt-4 border-t border-slate-700 flex justify-between items-center">
-                <span class="text-xs font-bold text-slate-400">Total Atlet</span>
+                <span class="text-xs font-bold text-slate-400">Total Atlet Aktif</span>
                 <span class="text-xs font-black bg-blue-600 px-2 py-1 rounded text-white"><?= count($groupedSkaters) ?></span>
             </div>
         </div>
@@ -146,11 +171,14 @@
                         <?php foreach($events as $ev): ?>
                             <div class="px-4 py-3 flex justify-between items-center hover:bg-slate-50 transition-colors card-row">
                                 <div class="flex flex-col">
-                                    <span class="text-xs font-bold text-slate-700 uppercase flex items-center gap-2">
+                                    <span class="text-xs font-bold text-slate-700 uppercase flex items-center gap-2 flex-wrap">
                                         <?php if(!empty($ev['class_name'])): ?>
                                             <span class="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded text-[9px] border border-indigo-200"><?= strtoupper($ev['class_name']) ?></span>
                                         <?php endif; ?>
                                         <?= $ev['distance'] ?> - <?= strtoupper($ev['stroke']) ?>
+                                        <?php if(!empty($ev['is_manual'])): ?>
+                                            <span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded text-[9px] font-black tracking-widest border border-amber-200" title="Ditambahkan/Diubah oleh Admin">+ Tambahan Admin</span>
+                                        <?php endif; ?>
                                     </span>
                                     <span class="text-[10px] text-slate-400 font-medium mt-0.5 uppercase">
                                         KU <?= $ev['age_group'] ?>

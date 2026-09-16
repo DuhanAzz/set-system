@@ -204,10 +204,33 @@
                                                     <?php endif; ?>
                                                 </td>
                                             </tr>
+                                            <?php
+                                            $approvedAmount = isset($payData['total_amount']) ? (float)$payData['total_amount'] : 0;
+                                            $selisih = $totalTagihan - $approvedAmount;
+                                            $hasApprovedPayment = (isset($payData['status']) && in_array($payData['status'], ['Paid', 'Pending'])) && $approvedAmount > 0;
+                                            ?>
                                             <tr>
-                                                <td style="font-weight: bold;">Total Tagihan</td>
-                                                <td>: Rp <?= number_format($totalTagihan, 0, ',', '.') ?></td>
+                                                <td style="font-weight: bold;">Total Tagihan (Terbaru)</td>
+                                                <td style="font-weight: bold;">: Rp <?= number_format($totalTagihan, 0, ',', '.') ?></td>
                                             </tr>
+                                            <?php if($hasApprovedPayment): ?>
+                                            <tr>
+                                                <td style="font-weight: bold; color: #555;">Telah Dibayar (Approved)</td>
+                                                <td style="color: green;">: Rp <?= number_format($approvedAmount, 0, ',', '.') ?></td>
+                                            </tr>
+                                            <tr>
+                                                <td style="font-weight: bold;">Selisih (Invoice Ke-2)</td>
+                                                <td>: 
+                                                    <?php if($selisih > 0): ?>
+                                                        <span style="color: red; font-weight: bold;">+ Rp <?= number_format($selisih, 0, ',', '.') ?> (KURANG BAYAR)</span>
+                                                    <?php elseif($selisih < 0): ?>
+                                                        <span style="color: blue; font-weight: bold;">- Rp <?= number_format(abs($selisih), 0, ',', '.') ?> (LEBIH BAYAR)</span>
+                                                    <?php else: ?>
+                                                        <span style="color: #888; font-weight: bold;">Rp 0 (PAS)</span>
+                                                    <?php endif; ?>
+                                                </td>
+                                            </tr>
+                                            <?php endif; ?>
                                             <tr>
                                                 <td style="font-weight: bold;">Jumlah Atlet</td>
                                                 <td>: <?= count($groupedSkaters) ?> Atlet</td>
@@ -258,6 +281,9 @@
                                                                 <span style="display:inline-block; padding: 1px 4px; background: #eee; border: 1px solid #ccc; border-radius: 3px; font-size: 7pt; font-weight: bold; margin-right: 4px;"><?= strtoupper($item['class_name']) ?></span>
                                                             <?php endif; ?>
                                                             <?= htmlspecialchars($item['stroke'] . ' (' . $item['age_group'] . ')') ?>
+                                                            <?php if(!empty($item['is_manual'])): ?>
+                                                                <span style="display:inline-block; padding: 1px 4px; background: #fff3cd; border: 1px solid #ffeeba; color: #856404; border-radius: 3px; font-size: 6pt; font-weight: bold; margin-left: 4px;">+ ADMIN</span>
+                                                            <?php endif; ?>
                                                         </li>
                                                     <?php endforeach; ?>
                                                 </ul>
@@ -271,9 +297,27 @@
                             </tbody>
                             <tfoot>
                                 <tr>
-                                    <td colspan="4" class="text-right font-bold" style="text-transform: uppercase;">Total Tagihan</td>
+                                    <td colspan="4" class="text-right font-bold" style="text-transform: uppercase;">Total Tagihan (Update Terbaru)</td>
                                     <td class="text-right font-bold" style="font-size: 11pt;">Rp <?= number_format($totalTagihan, 0, ',', '.') ?></td>
                                 </tr>
+                                <?php if($hasApprovedPayment): ?>
+                                <tr>
+                                    <td colspan="4" class="text-right" style="color: #555; text-transform: uppercase;">Sudah Dibayar (Approved)</td>
+                                    <td class="text-right" style="color: green;">Rp <?= number_format($approvedAmount, 0, ',', '.') ?></td>
+                                </tr>
+                                <tr>
+                                    <td colspan="4" class="text-right font-bold" style="text-transform: uppercase;">Selisih (Sisa Pembayaran)</td>
+                                    <td class="text-right font-bold" style="font-size: 11pt;">
+                                        <?php if($selisih > 0): ?>
+                                            <span style="color: red;">+ Rp <?= number_format($selisih, 0, ',', '.') ?></span>
+                                        <?php elseif($selisih < 0): ?>
+                                            <span style="color: blue;">- Rp <?= number_format(abs($selisih), 0, ',', '.') ?></span>
+                                        <?php else: ?>
+                                            LUNAS
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
+                                <?php endif; ?>
                             </tfoot>
                         </table>
                         

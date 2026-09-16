@@ -4,7 +4,13 @@
         <p class="text-xs text-slate-500 font-bold uppercase tracking-widest mt-2">Pantau Klub & Pembayaran Masuk</p>
     </div>
     
-    <div class="flex gap-3">
+    <div class="flex gap-3 items-center">
+        <a href="<?= getenv('APP_URL') ?>/roll/admin/entries/manual_invoices" class="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl shadow-sm border border-amber-600 text-[11px] font-black uppercase tracking-widest transition flex items-center gap-2 h-full">
+            <span class="text-lg leading-none">🧾</span> Tagihan Manual
+        </a>
+        <a href="<?= getenv('APP_URL') ?>/roll/admin/entries/manual_add" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-sm border border-blue-700 text-[11px] font-black uppercase tracking-widest transition flex items-center gap-2 h-full">
+            <span class="text-lg leading-none">+</span> Tambah Pendaftar Manual
+        </a>
         <div class="px-5 py-2 bg-white rounded-xl shadow-sm border border-slate-200 text-right">
             <span class="block text-[9px] font-bold text-slate-400 uppercase tracking-widest">Total Pendaftar</span>
             <span class="block text-xl font-black text-slate-800"><?= count($listData) ?></span>
