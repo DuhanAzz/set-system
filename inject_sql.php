@@ -93,8 +93,10 @@ try {
     // INJECT: FITUR TAGIHAN MANUAL ADMIN
     // --------------------------------------------------------
     
-    // 1. Tambahkan kolom is_manual dan manual_invoice_code ke roll_entries
+    // 1. Tambahkan kolom yang dibutuhkan ke roll_entries
     $entriesCols = [
+        'club_id' => 'INT(11) NULL DEFAULT NULL',
+        'team_name' => 'VARCHAR(100) NULL DEFAULT NULL',
         'is_manual' => 'TINYINT(1) NOT NULL DEFAULT 0',
         'manual_invoice_code' => 'VARCHAR(50) NULL DEFAULT NULL'
     ];
