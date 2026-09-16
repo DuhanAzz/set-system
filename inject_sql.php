@@ -89,6 +89,42 @@ try {
             }
         }
     }
+    // --------------------------------------------------------
+    // INJECT: FITUR TAGIHAN MANUAL ADMIN
+    // --------------------------------------------------------
+    
+    // 1. Tambahkan kolom is_manual dan manual_invoice_code ke roll_entries
+    $entriesCols = [
+        'is_manual' => 'TINYINT(1) NOT NULL DEFAULT 0 AFTER club_id',
+        'manual_invoice_code' => 'VARCHAR(50) NULL DEFAULT NULL AFTER is_manual'
+    ];
+    
+    foreach ($entriesCols as $colName => $colType) {
+        try {
+            $db->exec("ALTER TABLE roll_entries ADD COLUMN {$colName} {$colType}");
+        } catch (PDOException $e) {
+            // Abaikan error jika kolom sudah ada (SQLSTATE 42S21 Duplicate column name)
+            if ($e->getCode() !== '42S21') {
+                throw $e;
+            }
+        }
+    }
+    
+    // 2. Buat tabel roll_manual_payments
+    $db->exec("
+        CREATE TABLE IF NOT EXISTS roll_manual_payments (
+            id INT(11) NOT NULL AUTO_INCREMENT,
+            event_id INT(11) NOT NULL,
+            invoice_code VARCHAR(50) NOT NULL,
+            total_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+            status ENUM('Unpaid','Pending','Paid','Rejected') NOT NULL DEFAULT 'Unpaid',
+            payment_proof VARCHAR(255) DEFAULT NULL,
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            UNIQUE KEY idx_invoice (invoice_code)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    ");
     
     echo "Migration successful!\n";
 } catch (PDOException $e) {
