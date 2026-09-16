@@ -637,8 +637,7 @@ class RollEntryController extends Controller {
         // Ambil daftar invoice manual
         $stmt = $db->prepare("
             SELECT p.*, 
-                   COUNT(DISTINCT e.id) as total_entries,
-                   MAX(e.created_at) as last_added
+                   COUNT(DISTINCT e.id) as total_entries
             FROM roll_manual_payments p
             LEFT JOIN roll_entries e ON p.invoice_code = e.manual_invoice_code
             WHERE p.event_id = ?
