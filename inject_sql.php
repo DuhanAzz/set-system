@@ -112,6 +112,14 @@ try {
         }
     }
     
+    // 1.5 Backfill club_id untuk data registrasi lama yang masih NULL
+    $db->exec("
+        UPDATE roll_entries e 
+        JOIN roll_skaters s ON e.skater_id = s.id 
+        SET e.club_id = s.club_id 
+        WHERE e.club_id IS NULL
+    ");
+    
     // 2. Buat tabel roll_manual_payments
     $db->exec("
         CREATE TABLE IF NOT EXISTS roll_manual_payments (
