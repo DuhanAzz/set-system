@@ -95,8 +95,8 @@ try {
     
     // 1. Tambahkan kolom is_manual dan manual_invoice_code ke roll_entries
     $entriesCols = [
-        'is_manual' => 'TINYINT(1) NOT NULL DEFAULT 0 AFTER club_id',
-        'manual_invoice_code' => 'VARCHAR(50) NULL DEFAULT NULL AFTER is_manual'
+        'is_manual' => 'TINYINT(1) NOT NULL DEFAULT 0',
+        'manual_invoice_code' => 'VARCHAR(50) NULL DEFAULT NULL'
     ];
     
     foreach ($entriesCols as $colName => $colType) {
