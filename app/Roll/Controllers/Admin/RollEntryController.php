@@ -626,50 +626,54 @@ class RollEntryController extends Controller {
         exit;
     }
     public function manual_invoices() {
-        if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
-            header("Location: " . getenv('APP_URL') . "/roll/login");
-            exit;
-        }
+        try {
+            if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+                header("Location: " . getenv('APP_URL') . "/roll/login");
+                exit;
+            }
 
-        $db = \App\Core\Database::getInstance()->getConnection();
-        $targetEventId = $_SESSION['roll_admin_active_event_id'] ?? 0;
+            $db = \App\Core\Database::getInstance()->getConnection();
+            $targetEventId = $_SESSION['roll_admin_active_event_id'] ?? 0;
 
-        // Ambil daftar invoice manual
-        $stmt = $db->prepare("
-            SELECT p.*, 
-                   COUNT(DISTINCT e.id) as total_entries
-            FROM roll_manual_payments p
-            LEFT JOIN roll_entries e ON p.invoice_code = e.manual_invoice_code
-            WHERE p.event_id = ?
-            GROUP BY p.id
-            ORDER BY p.created_at DESC
-        ");
-        $stmt->execute([$targetEventId]);
-        $invoices = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        // Ambil detail entri untuk setiap invoice
-        $invoiceDetails = [];
-        foreach ($invoices as $inv) {
-            $code = $inv['invoice_code'];
-            $stmtEnt = $db->prepare("
-                SELECT e.*, s.skater_name, c.club_name, d.distance_name, a.group_name
-                FROM roll_entries e
-                JOIN roll_skaters s ON e.skater_id = s.id
-                LEFT JOIN roll_clubs c ON e.club_id = c.id
-                LEFT JOIN roll_event_details ed ON e.race_class_id = ed.id
-                LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
-                LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id
-                WHERE e.manual_invoice_code = ?
+            // Ambil daftar invoice manual
+            $stmt = $db->prepare("
+                SELECT p.*, 
+                       COUNT(DISTINCT e.id) as total_entries
+                FROM roll_manual_payments p
+                LEFT JOIN roll_entries e ON p.invoice_code = e.manual_invoice_code
+                WHERE p.event_id = ?
+                GROUP BY p.id
+                ORDER BY p.created_at DESC
             ");
-            $stmtEnt->execute([$code]);
-            $invoiceDetails[$code] = $stmtEnt->fetchAll(PDO::FETCH_ASSOC);
-        }
+            $stmt->execute([$targetEventId]);
+            $invoices = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        return $this->view('roll/admin/entries/manual_invoices', [
-            'invoices' => $invoices,
-            'invoiceDetails' => $invoiceDetails,
-            'targetEventId' => $targetEventId
-        ]);
+            // Ambil detail entri untuk setiap invoice
+            $invoiceDetails = [];
+            foreach ($invoices as $inv) {
+                $code = $inv['invoice_code'];
+                $stmtEnt = $db->prepare("
+                    SELECT e.*, s.skater_name, c.club_name, d.distance_name, a.group_name
+                    FROM roll_entries e
+                    JOIN roll_skaters s ON e.skater_id = s.id
+                    LEFT JOIN roll_clubs c ON e.club_id = c.id
+                    LEFT JOIN roll_event_details ed ON e.race_class_id = ed.id
+                    LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
+                    LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id
+                    WHERE e.manual_invoice_code = ?
+                ");
+                $stmtEnt->execute([$code]);
+                $invoiceDetails[$code] = $stmtEnt->fetchAll(PDO::FETCH_ASSOC);
+            }
+
+            return $this->view('roll/admin/entries/manual_invoices', [
+                'invoices' => $invoices,
+                'invoiceDetails' => $invoiceDetails,
+                'targetEventId' => $targetEventId
+            ]);
+        } catch (\Throwable $e) {
+            die("FATAL ERROR IN MANUAL INVOICES: " . $e->getMessage() . " | LINE: " . $e->getLine());
+        }
     }
 
     public function manual_invoice_action() {
