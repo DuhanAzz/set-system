@@ -640,7 +640,7 @@ class RollEntryController extends Controller {
                 SELECT p.*, 
                        COUNT(DISTINCT e.id) as total_entries
                 FROM roll_manual_payments p
-                LEFT JOIN roll_entries e ON p.invoice_code = e.manual_invoice_code
+                LEFT JOIN roll_entries e ON p.invoice_code COLLATE utf8mb4_unicode_ci = e.manual_invoice_code COLLATE utf8mb4_unicode_ci
                 WHERE p.event_id = ?
                 GROUP BY p.id
                 ORDER BY p.created_at DESC
