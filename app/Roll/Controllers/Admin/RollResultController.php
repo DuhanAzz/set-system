@@ -530,24 +530,41 @@ class RollResultController extends Controller {
         // Coba periksa apakah kolom is_result_published ada, jika tidak tambah otomatis saat halaman dimuat
         // Coba periksa apakah kolom is_result_published ada, jika tidak tambah otomatis saat halaman dimuat
         try {
-            $stmtEv = $db->prepare("SELECT id, event_name, is_result_published, medal_tally_pdf, best_skater_pdf FROM roll_events WHERE id = ?");
+            $stmtEv = $db->prepare("SELECT id, event_name, is_result_published, medal_tally_pdf, best_skater_pdf, cover_pdf FROM roll_events WHERE id = ?");
             $stmtEv->execute([$eventId]);
         } catch (\Exception $e) {
-            $db->exec("ALTER TABLE roll_events ADD COLUMN is_result_published TINYINT(1) DEFAULT 0");
-            $stmtEv = $db->prepare("SELECT id, event_name, is_result_published, medal_tally_pdf, best_skater_pdf FROM roll_events WHERE id = ?");
+            try { $db->exec("ALTER TABLE roll_events ADD COLUMN is_result_published TINYINT(1) DEFAULT 0"); } catch (\Exception $ex) {}
+            try { $db->exec("ALTER TABLE roll_events ADD COLUMN medal_tally_pdf VARCHAR(255) NULL DEFAULT NULL"); } catch (\Exception $ex) {}
+            try { $db->exec("ALTER TABLE roll_events ADD COLUMN best_skater_pdf VARCHAR(255) NULL DEFAULT NULL"); } catch (\Exception $ex) {}
+            try { $db->exec("ALTER TABLE roll_events ADD COLUMN cover_pdf VARCHAR(255) NULL DEFAULT NULL"); } catch (\Exception $ex) {}
+            
+            $stmtEv = $db->prepare("SELECT id, event_name, is_result_published, medal_tally_pdf, best_skater_pdf, cover_pdf FROM roll_events WHERE id = ?");
             $stmtEv->execute([$eventId]);
         }
         $eventInfo = $stmtEv->fetch(PDO::FETCH_ASSOC);
 
-        // Fetch Classes
-        $stmtClasses = $db->prepare("SELECT ed.id, ed.race_number, d.distance_name, a.group_name, ed.category_name, ed.gender, sc.class_name, ed.result_status, ed.result_pdf 
-                                     FROM roll_event_details ed 
-                                     LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id 
-                                     LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id 
-                                     LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
-                                     WHERE ed.event_id = ? 
-                                     ORDER BY ed.id ASC");
-        $stmtClasses->execute([$eventId]);
+        try {
+            $stmtClasses = $db->prepare("SELECT ed.id, ed.race_number, d.distance_name, a.group_name, ed.category_name, ed.gender, sc.class_name, ed.result_status, ed.result_pdf 
+                                         FROM roll_event_details ed 
+                                         LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id 
+                                         LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id 
+                                         LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
+                                         WHERE ed.event_id = ? 
+                                         ORDER BY ed.id ASC");
+            $stmtClasses->execute([$eventId]);
+        } catch (\Exception $e) {
+            try { $db->exec("ALTER TABLE roll_event_details ADD COLUMN result_status ENUM('Draft', 'Published') NOT NULL DEFAULT 'Draft'"); } catch (\Exception $ex) {}
+            try { $db->exec("ALTER TABLE roll_event_details ADD COLUMN result_pdf TEXT NULL DEFAULT NULL"); } catch (\Exception $ex) {}
+            
+            $stmtClasses = $db->prepare("SELECT ed.id, ed.race_number, d.distance_name, a.group_name, ed.category_name, ed.gender, sc.class_name, ed.result_status, ed.result_pdf 
+                                         FROM roll_event_details ed 
+                                         LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id 
+                                         LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id 
+                                         LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
+                                         WHERE ed.event_id = ? 
+                                         ORDER BY ed.id ASC");
+            $stmtClasses->execute([$eventId]);
+        }
         $classes = $stmtClasses->fetchAll(PDO::FETCH_ASSOC);
         
         $stmtRounds = $db->prepare("SELECT DISTINCT round FROM roll_pelotons WHERE event_id = ? AND race_class_id = ? ORDER BY CASE round WHEN 'Kualifikasi' THEN 1 WHEN 'Perempat Final' THEN 2 WHEN 'Semi Final' THEN 3 WHEN 'Final' THEN 4 ELSE 5 END");

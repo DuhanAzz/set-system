@@ -112,6 +112,22 @@ try {
         }
     }
     
+    // 1.2. Tambahkan kolom result_status dan result_pdf ke roll_event_details (untuk fitur Live Result)
+    $resultCols = [
+        'result_status' => "ENUM('Draft', 'Published') NOT NULL DEFAULT 'Draft'",
+        'result_pdf' => "TEXT NULL DEFAULT NULL"
+    ];
+    
+    foreach ($resultCols as $colName => $colType) {
+        try {
+            $db->exec("ALTER TABLE roll_event_details ADD COLUMN {$colName} {$colType}");
+        } catch (PDOException $e) {
+            if ($e->getCode() !== '42S21') {
+                throw $e;
+            }
+        }
+    }
+    
     // 1.5 Backfill club_id untuk data registrasi lama yang masih NULL
     $db->exec("
         UPDATE roll_entries e 
