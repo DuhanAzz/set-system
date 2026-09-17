@@ -27,7 +27,7 @@ class RollCheckoutController extends Controller {
             FROM roll_events ev
             JOIN roll_entries e ON e.event_id = ev.id
             JOIN roll_skaters s ON e.skater_id = s.id
-            WHERE e.club_id = ? AND e.manual_invoice_code IS NULL
+            WHERE s.club_id = ? AND e.manual_invoice_code IS NULL
             ORDER BY ev.event_date_start DESC
         ");
         $stmt->execute([$club_id]);
@@ -66,7 +66,7 @@ class RollCheckoutController extends Controller {
                 JOIN roll_skaters s ON e.skater_id = s.id
                 JOIN roll_event_details ed ON e.race_class_id = ed.id
                 LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
-                WHERE e.club_id = ? AND e.event_id = ? AND e.manual_invoice_code IS NULL
+                WHERE s.club_id = ? AND e.event_id = ? AND e.manual_invoice_code IS NULL
             ");
             $stmtEntries->execute([$club_id, $eid]);
             $rows = $stmtEntries->fetchAll(PDO::FETCH_ASSOC);
@@ -137,7 +137,7 @@ class RollCheckoutController extends Controller {
                 LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
                 LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id
                 LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
-                WHERE e.club_id = ? AND e.event_id = ? AND e.manual_invoice_code IS NULL
+                WHERE s.club_id = ? AND e.event_id = ? AND e.manual_invoice_code IS NULL
             ");
             $stmtUnpaid->execute([$club_id, $event_id]);
             $unpaidEntries = $stmtUnpaid->fetchAll(PDO::FETCH_ASSOC);
@@ -150,8 +150,9 @@ class RollCheckoutController extends Controller {
             foreach ($unpaidEntries as &$ue) {
                 $sId = $ue['skater_id'];
                 if (!isset($chargedSkaters[$sId])) {
-                    $ue['payment_amount'] = $skaterFees[$sId];
-                    $totalFee += $skaterFees[$sId];
+                    $amt = $skaterFees[$sId] ?? 0;
+                    $ue['payment_amount'] = $amt;
+                    $totalFee += $amt;
                     $chargedSkaters[$sId] = true;
                 } else {
                     $ue['payment_amount'] = 0; // Already charged for this skater
@@ -168,7 +169,7 @@ class RollCheckoutController extends Controller {
                 LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
                 LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id
                 LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
-                WHERE e.club_id = ? AND e.event_id = ? AND e.manual_invoice_code IS NULL
+                WHERE s.club_id = ? AND e.event_id = ? AND e.manual_invoice_code IS NULL
                 ORDER BY s.skater_name ASC
             ");
             $stmtHistory->execute([$club_id, $event_id]);
@@ -182,8 +183,9 @@ class RollCheckoutController extends Controller {
             foreach ($historyEntries as &$he) {
                 $sId = $he['skater_id'];
                 if (!isset($chargedSkaters[$sId])) {
-                    $he['payment_amount'] = $skaterFees[$sId];
-                    $totalFee += $skaterFees[$sId];
+                    $amt = $skaterFees[$sId] ?? 0;
+                    $he['payment_amount'] = $amt;
+                    $totalFee += $amt;
                     $chargedSkaters[$sId] = true;
                 } else {
                     $he['payment_amount'] = 0; // Already charged for this skater
@@ -295,7 +297,8 @@ class RollCheckoutController extends Controller {
                 JOIN roll_ref_distances d ON c.distance_id = d.id
                 JOIN roll_ref_age_groups a ON c.age_group_id = a.id
                 JOIN roll_skaters s ON e.skater_id = s.id
-                WHERE e.club_id = ? AND e.event_id = ? AND e.manual_invoice_code IS NULL AND (d.distance_name LIKE '%Relay%' OR d.distance_name LIKE '%Pair%')
+                WHERE s.club_id = ? AND e.event_id = ? AND e.manual_invoice_code IS NULL AND (d.distance_name LIKE '%Relay%' OR d.distance_name LIKE '%Pair%')
+                ORDER BY e.team_name, d.distance_name
             ");
             $stmtRelayCheck->execute([$club_id, $event_id]);
             $relayEntries = $stmtRelayCheck->fetchAll(PDO::FETCH_ASSOC);
