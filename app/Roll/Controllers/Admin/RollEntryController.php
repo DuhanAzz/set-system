@@ -194,7 +194,7 @@ class RollEntryController extends Controller {
                        LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
                        LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id
                        LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
-                       WHERE e.event_id = ? AND e.club_id = ? AND e.manual_invoice_code IS NULL
+                       WHERE e.event_id = ? AND s.club_id = ? AND e.manual_invoice_code IS NULL
                        ORDER BY s.skater_name ASC";
         $stmtE = $db->prepare($sqlEntries);
         $stmtE->execute([$eventId, $targetClubId]);
@@ -279,7 +279,7 @@ class RollEntryController extends Controller {
                        LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
                        LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id
                        LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
-                       WHERE e.event_id = ? AND e.club_id = ? AND e.manual_invoice_code IS NULL
+                       WHERE e.event_id = ? AND s.club_id = ? AND e.manual_invoice_code IS NULL
                        ORDER BY s.skater_name ASC";
         $stmtE = $db->prepare($sqlEntries);
         $stmtE->execute([$eventId, $targetClubId]);
