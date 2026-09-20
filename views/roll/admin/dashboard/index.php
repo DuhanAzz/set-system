@@ -90,13 +90,96 @@
 <!-- BOTTOM: CHART + QUICK MENU -->
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-    <div class="lg:col-span-2 bg-white rounded-[2rem] shadow-sm border border-slate-200 p-8">
-        <div class="flex justify-between items-center mb-6">
-            <h3 class="font-black text-slate-800 uppercase italic text-sm tracking-widest">📈 Grafik Pengunjung (7 Hari Terakhir)</h3>
+    <div class="lg:col-span-2 space-y-6">
+        <div class="flex items-center justify-between px-2">
+            <h3 class="font-black text-slate-800 uppercase italic text-sm tracking-widest">📊 Rekapitulasi Peserta</h3>
+            <span class="text-xs text-slate-500 font-bold">Total: <?= number_format($stats['atlet'] ?? 0) ?> Atlet</span>
         </div>
-        <div class="relative h-64 w-full">
-            <canvas id="visitorChart"></canvas>
-        </div>
+        
+        <?php if(empty($breakdownData)): ?>
+            <div class="bg-white rounded-[2rem] p-8 text-center border border-slate-200 shadow-sm">
+                <p class="text-slate-400 font-bold text-sm">Belum ada pendaftar pada event ini.</p>
+            </div>
+        <?php else: ?>
+            <div class="grid grid-cols-1 gap-4">
+            <?php foreach($breakdownData as $cat => $statuses): 
+                $totVer = $statuses['Terverifikasi']['total'] ?? 0;
+                $totUnver = $statuses['Belum Terverifikasi']['total'] ?? 0;
+                $catTotal = $totVer + $totUnver;
+            ?>
+                <!-- Accordion Item -->
+                <div class="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden">
+                    
+                    <!-- Header (Clickable) -->
+                    <button class="w-full text-left p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center hover:bg-slate-50 transition cursor-pointer" onclick="this.nextElementSibling.classList.toggle('hidden')">
+                        <div class="mb-4 sm:mb-0">
+                            <h4 class="font-black text-slate-800 text-lg uppercase tracking-wider"><?= htmlspecialchars($cat) ?></h4>
+                            <p class="text-xs text-slate-500 font-bold mt-1">Total: <?= $catTotal ?> Peserta Unik</p>
+                        </div>
+                        <div class="flex flex-wrap gap-2 pointer-events-none">
+                            <div class="px-4 py-2 bg-emerald-50 border border-emerald-200 rounded-xl flex flex-col items-center min-w-[90px]">
+                                <span class="text-[9px] text-emerald-600 font-black uppercase">Verifikasi</span>
+                                <span class="text-lg font-black text-emerald-700"><?= $totVer ?></span>
+                            </div>
+                            <div class="px-4 py-2 bg-orange-50 border border-orange-200 rounded-xl flex flex-col items-center min-w-[90px]">
+                                <span class="text-[9px] text-orange-600 font-black uppercase">Belum</span>
+                                <span class="text-lg font-black text-orange-700"><?= $totUnver ?></span>
+                            </div>
+                        </div>
+                    </button>
+                    
+                    <!-- Body (Hidden by default) -->
+                    <div class="hidden bg-slate-50 border-t border-slate-100 p-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            
+                            <!-- Column Verifikasi -->
+                            <div>
+                                <h5 class="text-[10px] font-black text-emerald-600 uppercase tracking-widest border-b border-emerald-200 pb-2 mb-4">Terverifikasi (<?= $totVer ?>)</h5>
+                                <?php if($totVer == 0): ?>
+                                    <p class="text-xs text-slate-400 italic">Belum ada.</p>
+                                <?php else: ?>
+                                    <div class="space-y-2">
+                                        <?php foreach($statuses['Terverifikasi']['details'] as $ku => $genders): ?>
+                                            <div class="flex items-center justify-between bg-white px-4 py-3 rounded-xl border border-slate-100 shadow-sm">
+                                                <span class="text-xs font-bold text-slate-700"><?= htmlspecialchars($ku) ?></span>
+                                                <div class="flex gap-3 text-xs">
+                                                    <span class="font-black text-blue-600" title="Putra">PA: <?= $genders['Putra'] ?? 0 ?></span>
+                                                    <span class="text-slate-200">|</span>
+                                                    <span class="font-black text-pink-500" title="Putri">PI: <?= $genders['Putri'] ?? 0 ?></span>
+                                                </div>
+                                            </div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                            
+                            <!-- Column Belum -->
+                            <div>
+                                <h5 class="text-[10px] font-black text-orange-600 uppercase tracking-widest border-b border-orange-200 pb-2 mb-4">Belum Terverifikasi (<?= $totUnver ?>)</h5>
+                                <?php if($totUnver == 0): ?>
+                                    <p class="text-xs text-slate-400 italic">Belum ada.</p>
+                                <?php else: ?>
+                                    <div class="space-y-2">
+                                        <?php foreach($statuses['Belum Terverifikasi']['details'] as $ku => $genders): ?>
+                                            <div class="flex items-center justify-between bg-white px-4 py-3 rounded-xl border border-slate-100 shadow-sm">
+                                                <span class="text-xs font-bold text-slate-700"><?= htmlspecialchars($ku) ?></span>
+                                                <div class="flex gap-3 text-xs">
+                                                    <span class="font-black text-blue-600" title="Putra">PA: <?= $genders['Putra'] ?? 0 ?></span>
+                                                    <span class="text-slate-200">|</span>
+                                                    <span class="font-black text-pink-500" title="Putri">PI: <?= $genders['Putri'] ?? 0 ?></span>
+                                                </div>
+                                            </div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                            
+                        </div>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
     </div>
 
     <div class="space-y-6">
@@ -140,68 +223,3 @@
     </div>
 
 </div>
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const ctx = document.getElementById('visitorChart').getContext('2d');
-    
-    // Parse PHP data to JS
-    const visitorData = <?= json_encode($visitorStats ?? []) ?>;
-    
-    const labels = visitorData.map(item => item.visit_date);
-    const data = visitorData.map(item => item.total_views);
-    
-    // Gradient fill
-    let gradient = ctx.createLinearGradient(0, 0, 0, 400);
-    gradient.addColorStop(0, 'rgba(59, 130, 246, 0.5)'); // blue-500
-    gradient.addColorStop(1, 'rgba(59, 130, 246, 0.0)');
-    
-    new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: labels.length ? labels : ['Belum ada data'],
-            datasets: [{
-                label: 'Total Views',
-                data: data.length ? data : [0],
-                borderColor: '#3b82f6',
-                backgroundColor: gradient,
-                borderWidth: 3,
-                pointBackgroundColor: '#ffffff',
-                pointBorderColor: '#3b82f6',
-                pointBorderWidth: 2,
-                pointRadius: 4,
-                pointHoverRadius: 6,
-                fill: true,
-                tension: 0.4
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false },
-                tooltip: {
-                    backgroundColor: '#1e293b',
-                    padding: 12,
-                    titleFont: { size: 13, family: 'Inter' },
-                    bodyFont: { size: 14, family: 'Inter', weight: 'bold' },
-                    displayColors: false,
-                    cornerRadius: 8,
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    grid: { color: '#f1f5f9', drawBorder: false },
-                    ticks: { font: { family: 'Inter', size: 11 }, color: '#94a3b8', precision: 0 }
-                },
-                x: {
-                    grid: { display: false, drawBorder: false },
-                    ticks: { font: { family: 'Inter', size: 11 }, color: '#94a3b8' }
-                }
-            }
-        }
-    });
-});
-</script>

@@ -135,22 +135,66 @@ class RollAdminDashboardController extends Controller {
                 $chartValues[] = (int)$row['total'];
             }
 
-            // Visitor Stats (7 days) for this event
-            $visitorStats = [];
-            try {
-                $moduleName = "roll_event_" . $eventId;
-                $sqlVisitors = "SELECT visit_date, SUM(views_count) as total_views 
-                                FROM site_visitors 
-                                WHERE module = ? AND visit_date >= DATE_SUB(CURDATE(), INTERVAL 7 DAY) 
-                                GROUP BY visit_date ORDER BY visit_date ASC";
-                $stmtVisitor = $db->prepare($sqlVisitors);
-                $stmtVisitor->execute([$moduleName]);
-                $visitorStats = $stmtVisitor->fetchAll(PDO::FETCH_ASSOC);
-            } catch (\Exception $e) {}
-        }
+            // --- PARTICIPANT BREAKDOWN LOGIC ---
+            $breakdownData = [];
+            
+            $sqlBreakdown = "
+                SELECT 
+                    sc.class_name,
+                    COALESCE(p.status, 'Unpaid') as pay_status,
+                    a.group_name,
+                    s.gender,
+                    COUNT(DISTINCT s.id) as total_skaters
+                FROM roll_entries e
+                JOIN roll_skaters s ON e.skater_id = s.id
+                LEFT JOIN roll_event_details ed ON e.race_class_id = ed.id
+                LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
+                LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id
+                LEFT JOIN roll_payments p ON p.club_id = s.club_id AND p.event_id = e.event_id
+                WHERE e.event_id = ?
+                GROUP BY sc.class_name, pay_status, a.group_name, s.gender
+            ";
+            $stmtBreakdown = $db->prepare($sqlBreakdown);
+            $stmtBreakdown->execute([$eventId]);
+            $breakdownRows = $stmtBreakdown->fetchAll(PDO::FETCH_ASSOC);
+            
+            foreach($breakdownRows as $r) {
+                $rawClass = strtolower($r['class_name'] ?? '');
+                $cat = 'Lainnya';
+                if (strpos($rawClass, 'speed') !== false) $cat = 'Speed';
+                elseif (strpos($rawClass, 'standar') !== false) $cat = 'Standart';
+                elseif (strpos($rawClass, 'pemula') !== false) $cat = 'Pemula';
+                
+                // Terverifikasi jika Paid, selain itu Belum Terverifikasi
+                $status = ($r['pay_status'] === 'Paid') ? 'Terverifikasi' : 'Belum Terverifikasi';
+                $ku = $r['group_name'] ?: 'Tanpa KU';
+                $gender = ($r['gender'] == 'M') ? 'Putra' : 'Putri';
+                $count = (int)$r['total_skaters'];
 
-        $jsLabels = json_encode($chartLabels);
-        $jsValues = json_encode($chartValues);
+                if (!isset($breakdownData[$cat])) {
+                    $breakdownData[$cat] = [
+                        'Terverifikasi' => ['total' => 0, 'details' => []],
+                        'Belum Terverifikasi' => ['total' => 0, 'details' => []]
+                    ];
+                }
+                
+                $breakdownData[$cat][$status]['total'] += $count;
+                
+                if (!isset($breakdownData[$cat][$status]['details'][$ku])) {
+                    $breakdownData[$cat][$status]['details'][$ku] = ['Putra' => 0, 'Putri' => 0];
+                }
+                $breakdownData[$cat][$status]['details'][$ku][$gender] += $count;
+            }
+            
+            // Sort keys
+            ksort($breakdownData);
+            foreach ($breakdownData as $cat => &$stat) {
+                foreach (['Terverifikasi', 'Belum Terverifikasi'] as $st) {
+                    ksort($stat[$st]['details']);
+                }
+            }
+            unset($stat);
+        }
 
         return $this->view('roll/admin/dashboard/index', [
             'allEvents'    => $allEvents,
@@ -160,10 +204,7 @@ class RollAdminDashboardController extends Controller {
             'eventDate'    => $eventDate,
             'eventStatus'  => $eventStatus,
             'stats'        => $stats,
-            'chartLabels'  => $chartLabels,
-            'jsLabels'     => $jsLabels,
-            'jsValues'     => $jsValues,
-            'visitorStats' => $visitorStats ?? [],
+            'breakdownData'=> $breakdownData ?? []
         ]);
     }
 }
