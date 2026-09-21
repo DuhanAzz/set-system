@@ -45,10 +45,10 @@ class RollEntryController extends Controller {
             $paymentIdRollback = (int)($_POST["rollback_payment_id"] ?? 0);
             if ($paymentIdRollback > 0) {
                 try {
-                    $stmt = $db->prepare("UPDATE roll_payments SET status = 'Pending', created_at = NOW() WHERE id = ? AND event_id = ?");
+                    $stmt = $db->prepare("UPDATE roll_payments SET status = 'Unpaid', created_at = NOW() WHERE id = ? AND event_id = ?");
                     $stmt->execute([$paymentIdRollback, $targetEventId]);
                     $_SESSION["flash_type"] = "info";
-                    $_SESSION["flash_message"] = "Verifikasi Dibatalkan. Status kembali Pending.";
+                    $_SESSION["flash_message"] = "Verifikasi Dibatalkan. Status kembali Belum Lunas (Unpaid).";
                 } catch (\Exception $e) {}
                 header("Location: " . getenv("APP_URL") . "/roll/admin/entries"); exit;
             }
@@ -142,7 +142,7 @@ class RollEntryController extends Controller {
                     $newStatus = 'Pending';
                     if ($action === 'approve') $newStatus = 'Paid';
                     elseif ($action === 'reject') $newStatus = 'Rejected';
-                    elseif ($action === 'rollback') $newStatus = 'Pending';
+                    elseif ($action === 'rollback') $newStatus = 'Unpaid';
                     
                     $stmt = $db->prepare("UPDATE roll_payments SET status = ?, created_at = NOW() WHERE id = ?");
                     $stmt->execute([$newStatus, $payId]);
