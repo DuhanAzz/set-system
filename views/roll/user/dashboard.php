@@ -5,6 +5,16 @@
         <p class="text-sm text-slate-500 font-bold uppercase tracking-widest mt-1">Selamat Datang, <?= htmlspecialchars($_SESSION['nama_lengkap'] ?? 'Admin') ?> - <?= htmlspecialchars($clubName) ?></p>
     </div>
 
+    <?php if(empty($clubCity)): ?>
+    <div class="bg-orange-50 border-l-4 border-orange-500 text-orange-800 p-6 rounded-2xl mb-8 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+            <h3 class="font-black uppercase tracking-widest text-sm mb-1">⚠️ Profil Klub Belum Lengkap</h3>
+            <p class="text-xs font-medium opacity-90">Klub Anda belum mengisi <strong>Kota Asal Klub</strong>. Data ini diperlukan untuk pencetakan piagam/sertifikat dan klasemen medali.</p>
+        </div>
+        <a href="<?= getenv('APP_URL') ?>/roll/user/profile" class="whitespace-nowrap bg-orange-500 hover:bg-orange-600 text-white px-5 py-2.5 rounded-xl font-black uppercase text-[10px] tracking-widest transition shadow-sm">Isi Sekarang</a>
+    </div>
+    <?php endif; ?>
+
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
         
         <div class="bg-gradient-to-br from-white to-slate-50 p-6 rounded-2xl shadow-sm border-b-4 border-blue-500 hover:shadow-lg transition-all duration-300 group">
