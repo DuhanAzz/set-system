@@ -229,9 +229,9 @@
                 
                 <div>
                     <label class="text-[10px] font-bold text-slate-500 uppercase">
-                        <?= $targetRole == 'admin' ? 'Nama Event (Kejuaraan)' : 'Nama Klub Renang' ?>
+                        <?= $targetRole == 'admin' ? 'Nama Event (Kejuaraan)' : 'Nama Klub Sepatu Roda' ?>
                     </label>
-                    <input type="text" name="nama_detail" id="form-nama-detail" class="w-full px-4 py-3 border border-slate-200 bg-slate-50 rounded-xl text-sm font-bold focus:bg-white focus:border-blue-500 outline-none" required placeholder="<?= $targetRole == 'admin' ? 'Contoh: O2SN 2026' : 'Contoh: Pari Sakti SC' ?>">
+                    <input type="text" name="nama_detail" id="form-nama-detail" class="w-full px-4 py-3 border border-slate-200 bg-slate-50 rounded-xl text-sm font-bold focus:bg-white focus:border-blue-500 outline-none" required placeholder="<?= $targetRole == 'admin' ? 'Contoh: O2SN 2026' : 'Contoh: Inline Skate Club' ?>">
                 </div>
 
                 <?php if($targetRole == 'admin'): ?>
@@ -302,7 +302,7 @@ function editAdmin(buttonElement) {
         document.getElementById('form-pass').required = false; 
         document.getElementById('form-pass').value = ""; 
 
-        const detailName = data.nama_klub || data.event_name || data.nama_lengkap;
+        const detailName = data.club_name || data.event_name || data.nama_lengkap;
         document.getElementById('form-nama-detail').value = detailName;
 
         if(document.getElementById('form-mode')) {
