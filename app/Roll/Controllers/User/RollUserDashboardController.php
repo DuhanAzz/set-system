@@ -31,7 +31,7 @@ class RollUserDashboardController extends Controller {
         $stats = $stmt->fetch(PDO::FETCH_ASSOC);
 
         // Get club name and kota
-        $stmt2 = $db->prepare("SELECT club_name, kota FROM roll_clubs WHERE id = ?");
+        $stmt2 = $db->prepare("SELECT club_name, city_province as kota FROM roll_clubs WHERE id = ?");
         $stmt2->execute([$club_id]);
         $club = $stmt2->fetch(PDO::FETCH_ASSOC);
         $clubName = $club ? $club['club_name'] : 'Klub Anda';
