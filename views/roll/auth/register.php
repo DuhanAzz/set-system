@@ -105,6 +105,10 @@ unset($_SESSION['wa_number']);
                     <input type="text" name="nama_klub" class="w-full pl-4 pr-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-orange-500 outline-none transition font-semibold text-slate-800" required placeholder="Contoh: Roller Speed Club">
                 </div>
                 <div>
+                    <label class="block text-slate-700 font-bold mb-1.5 text-xs uppercase tracking-wide">Kota Asal Klub</label>
+                    <input type="text" name="kota_klub" class="w-full pl-4 pr-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-orange-500 outline-none transition font-semibold text-slate-800" placeholder="Contoh: Jakarta (Opsional)">
+                </div>
+                <div>
                     <label class="block text-slate-700 font-bold mb-1.5 text-xs uppercase tracking-wide">No. WhatsApp</label>
                     <input type="text" name="phone" class="w-full pl-4 pr-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-orange-500 outline-none transition font-semibold text-slate-800" required placeholder="08...">
                 </div>

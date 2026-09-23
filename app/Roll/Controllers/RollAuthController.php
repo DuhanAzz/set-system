@@ -131,6 +131,7 @@ class RollAuthController extends Controller {
 
         $nama = $_POST['nama'] ?? '';
         $nama_klub = $_POST['nama_klub'] ?? '';
+        $kota_klub = $_POST['kota_klub'] ?? '';
         $phone = $_POST['phone'] ?? '';
         $email = $_POST['email'] ?? '';
         $pass = $_POST['password'] ?? '';
@@ -162,8 +163,8 @@ class RollAuthController extends Controller {
             $pdo->beginTransaction();
             
             // Insert ke roll_clubs dulu (karena skema roll menggunakan club_id di tabel users, bukan user_id di tabel clubs)
-            $insClub = $pdo->prepare("INSERT INTO roll_clubs (club_name) VALUES (?)");
-            $insClub->execute([$nama_klub]);
+            $insClub = $pdo->prepare("INSERT INTO roll_clubs (club_name, kota) VALUES (?, ?)");
+            $insClub->execute([$nama_klub, $kota_klub]);
             $newClubId = $pdo->lastInsertId();
 
             $ins = $pdo->prepare("INSERT INTO roll_users (username, nama_lengkap, email, phone, password, role, account_status, club_id) VALUES (?, ?, ?, ?, ?, ?, 'pending', ?)");
