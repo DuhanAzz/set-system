@@ -5,7 +5,7 @@
         <p class="text-sm text-slate-500 font-bold uppercase tracking-widest mt-1">Selamat Datang, <?= htmlspecialchars($_SESSION['nama_lengkap'] ?? 'Admin') ?> - <?= htmlspecialchars($clubName) ?></p>
     </div>
 
-    <?php if(empty($clubCity)): ?>
+    <?php if(empty($clubCity ?? null)): ?>
     <div class="bg-orange-50 border-l-4 border-orange-500 text-orange-800 p-6 rounded-2xl mb-8 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
             <h3 class="font-black uppercase tracking-widest text-sm mb-1">⚠️ Profil Klub Belum Lengkap</h3>

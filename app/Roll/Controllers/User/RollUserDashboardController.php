@@ -31,11 +31,20 @@ class RollUserDashboardController extends Controller {
         $stats = $stmt->fetch(PDO::FETCH_ASSOC);
 
         // Get club name and kota
-        $stmt2 = $db->prepare("SELECT club_name, city_province as kota FROM roll_clubs WHERE id = ?");
-        $stmt2->execute([$club_id]);
-        $club = $stmt2->fetch(PDO::FETCH_ASSOC);
-        $clubName = $club ? $club['club_name'] : 'Klub Anda';
-        $clubCity = $club ? $club['kota'] : null;
+        $clubName = 'Klub Anda';
+        $clubCity = null;
+        try {
+            $stmt2 = $db->prepare("SELECT club_name, city_province as kota FROM roll_clubs WHERE id = ?");
+            $stmt2->execute([$club_id]);
+            $club = $stmt2->fetch(PDO::FETCH_ASSOC);
+            if ($club) {
+                $clubName = $club['club_name'];
+                $clubCity = $club['kota'];
+            }
+        } catch (\Exception $e) {
+            // Silently fail if column missing, default to Klub Anda and null city
+            error_log("Dashboard query error: " . $e->getMessage());
+        }
 
         return $this->view('roll/user/dashboard', [
             'stats' => $stats,

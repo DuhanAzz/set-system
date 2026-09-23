@@ -192,7 +192,7 @@ class RollAuthController extends Controller {
             }
         } catch (\Exception $e) {
             $pdo->rollBack();
-            $_SESSION['error'] = "Terjadi kesalahan sistem.";
+            $_SESSION['error'] = "Terjadi kesalahan sistem: " . $e->getMessage();
             header("Location: " . getenv('APP_URL') . "/roll/register");
             exit;
         }
