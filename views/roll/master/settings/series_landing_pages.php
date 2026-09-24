@@ -34,7 +34,7 @@
                 <p class="text-slate-500 mt-2">Anda belum membuat halaman Series Event.</p>
             </div>
         <?php else: ?>
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="grid grid-cols-1 gap-6">
                 <?php foreach ($series_list as $s): ?>
                     <div class="bg-white rounded-2xl shadow-xl border border-slate-200 p-6 flex flex-col justify-between hover:shadow-2xl transition">
                         <div class="flex flex-col md:flex-row gap-6 mb-4">
@@ -85,7 +85,7 @@
                                     <div class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">📈 Pengunjung (7 Hari)</div>
                                     <div class="text-3xl font-black text-slate-800"><?= $s['total_visitors_7d'] ?? 0 ?> <span class="text-[10px] font-bold text-slate-500 uppercase">Total</span></div>
                                 </div>
-                                <div class="h-20 w-full mt-2 relative">
+                                <div class="h-24 w-full mt-4 relative">
                                     <canvas id="chart-<?= $s['id'] ?>"></canvas>
                                 </div>
                             </div>
