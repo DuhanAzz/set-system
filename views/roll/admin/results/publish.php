@@ -14,6 +14,9 @@
         
         <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full lg:w-auto">
             <?php if ($eventId > 0): ?>
+            <a href="<?= getenv('APP_URL') ?>/roll/liveresult/<?= $eventId ?>" target="_blank" class="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl px-4 py-2 shadow-sm flex items-center justify-center gap-2 w-full sm:w-auto h-[42px] mt-auto transition-colors font-bold text-sm">
+                <span>👁️</span> Lihat Live Result
+            </a>
             <div class="bg-white border border-slate-200 rounded-xl px-4 py-2 shadow-sm flex items-center justify-between gap-4 w-full sm:w-auto h-[42px] mt-auto">
                 <span class="text-[10px] font-black text-slate-500 uppercase tracking-wider">Publikasikan Hasil?</span>
                 <label class="inline-flex items-center cursor-pointer">
