@@ -118,9 +118,11 @@ class RollPelotonController extends Controller {
         foreach ($allClasses as $cls) {
             $cat = $cls['roller_name'] ?: 'Lainnya';
             $rn = $cls['race_number'];
+            $isEksebisi = (($cls['category_name'] ?? '') === 'EKSEBISI');
+            $groupKey = $rn . ($isEksebisi ? '_EKS' : '');
             
-            if (!isset($groupedClasses[$cat][$rn])) {
-                $groupedClasses[$cat][$rn] = [
+            if (!isset($groupedClasses[$cat][$groupKey])) {
+                $groupedClasses[$cat][$groupKey] = [
                     'race_number' => $rn,
                     'group_name' => $cls['group_name'],
                     'distance_name' => $cls['distance_name'],
@@ -135,16 +137,16 @@ class RollPelotonController extends Controller {
             }
             
             $entries = (int)$cls['total_entries'];
-            $groupedClasses[$cat][$rn]['classes'][] = $cls['class_id'];
-            $groupedClasses[$cat][$rn]['total_entries'] += $entries;
+            $groupedClasses[$cat][$groupKey]['classes'][] = $cls['class_id'];
+            $groupedClasses[$cat][$groupKey]['total_entries'] += $entries;
             
-            $groupedClasses[$cat][$rn]['total_pa'] += (int)$cls['total_pa_entries'];
-            $groupedClasses[$cat][$rn]['total_pi'] += (int)$cls['total_pi_entries'];
+            $groupedClasses[$cat][$groupKey]['total_pa'] += (int)$cls['total_pa_entries'];
+            $groupedClasses[$cat][$groupKey]['total_pi'] += (int)$cls['total_pi_entries'];
             
             // Format gender label
             $gLabel = in_array($cls['gender'], ['M', 'Male', 'L']) ? 'Pa' : (in_array($cls['gender'], ['F', 'Female', 'P']) ? 'Pi' : 'Pa & Pi');
-            if (!in_array($gLabel, $groupedClasses[$cat][$rn]['genders'])) {
-                $groupedClasses[$cat][$rn]['genders'][] = $gLabel;
+            if (!in_array($gLabel, $groupedClasses[$cat][$groupKey]['genders'])) {
+                $groupedClasses[$cat][$groupKey]['genders'][] = $gLabel;
             }
         }
 

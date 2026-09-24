@@ -190,10 +190,13 @@
                     ?>
                         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-slate-50 rounded-xl border border-slate-200 hover:bg-slate-100 transition-colors">
                             <div class="flex items-center gap-3">
-                                <div class="bg-indigo-600 text-white font-black text-sm px-3 py-1.5 rounded-lg shadow-sm">R<?= $raceNum ?></div>
+                                <div class="<?= !empty($clsGroup['is_eksebisi']) ? 'bg-red-600' : 'bg-indigo-600' ?> text-white font-black text-sm px-3 py-1.5 rounded-lg shadow-sm">R<?= htmlspecialchars(str_pad($clsGroup['race_number'], 3, '0', STR_PAD_LEFT)) ?></div>
                                 <div>
                                     <div class="text-sm font-black text-slate-800 uppercase tracking-widest">
                                         <?= htmlspecialchars($clsGroup['distance_name']) ?> - <?= htmlspecialchars($clsGroup['group_name']) ?> <?= $genderLabel ?>
+                                        <?php if (!empty($clsGroup['is_eksebisi'])): ?>
+                                            <span class="ml-2 bg-red-100 text-red-600 px-2 py-0.5 rounded font-black text-[9px] uppercase tracking-widest border border-red-200">Eksebisi</span>
+                                        <?php endif; ?>
                                     </div>
                                     <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5 flex items-center gap-2">
                                         <span class="bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded">
