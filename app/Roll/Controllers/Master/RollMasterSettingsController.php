@@ -243,6 +243,27 @@ class RollMasterSettingsController extends Controller {
             $stmtAdm = $db->prepare("SELECT u.nama_lengkap FROM roll_series_admins sa JOIN roll_users u ON sa.user_id = u.id WHERE sa.series_id = ?");
             $stmtAdm->execute([$s['id']]);
             $s['admins'] = $stmtAdm->fetchAll(PDO::FETCH_COLUMN);
+
+            // Grafik Pengunjung 7 Hari Terakhir
+            $stmtVis = $db->prepare("
+                SELECT visit_date, SUM(views_count) as total
+                FROM site_visitors 
+                WHERE module = ? AND visit_date >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
+                GROUP BY visit_date
+            ");
+            $stmtVis->execute(['roll_series_' . $s['id']]);
+            $raw_visitors = $stmtVis->fetchAll(PDO::FETCH_KEY_PAIR);
+            
+            $chart_data = [];
+            $chart_labels = [];
+            for ($i = 6; $i >= 0; $i--) {
+                $d = date('Y-m-d', strtotime("-$i days"));
+                $chart_labels[] = date('d/m', strtotime($d));
+                $chart_data[] = isset($raw_visitors[$d]) ? (int)$raw_visitors[$d] : 0;
+            }
+            $s['visitor_labels'] = $chart_labels;
+            $s['visitor_data'] = $chart_data;
+            $s['total_visitors_7d'] = array_sum($chart_data);
         }
 
         return $this->view('roll/master/settings/series_landing_pages', [

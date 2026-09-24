@@ -37,44 +37,58 @@
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <?php foreach ($series_list as $s): ?>
                     <div class="bg-white rounded-2xl shadow-xl border border-slate-200 p-6 flex flex-col justify-between hover:shadow-2xl transition">
-                        <div>
-                            <div class="flex justify-between items-start mb-4">
-                                <div>
-                                    <h3 class="text-xl font-black text-slate-800 uppercase italic tracking-tighter"><?= htmlspecialchars($s['series_name']) ?></h3>
-                                    <div class="inline-flex items-center gap-1 text-xs font-mono text-slate-500 bg-slate-100 px-2 py-1 rounded mt-1">
-                                        setsystem.id/<?= htmlspecialchars($s['slug']) ?>
+                        <div class="flex flex-col md:flex-row gap-6 mb-4">
+                            <!-- Left Info -->
+                            <div class="flex-1">
+                                <div class="flex justify-between items-start mb-4">
+                                    <div>
+                                        <h3 class="text-xl font-black text-slate-800 uppercase italic tracking-tighter"><?= htmlspecialchars($s['series_name']) ?></h3>
+                                        <div class="inline-flex items-center gap-1 text-xs font-mono text-slate-500 bg-slate-100 px-2 py-1 rounded mt-1">
+                                            setsystem.id/<?= htmlspecialchars($s['slug']) ?>
+                                        </div>
+                                    </div>
+                                    <?php if (($s['status'] ?? 'Draft') == 'Published'): ?>
+                                        <span class="px-2 py-1 bg-green-100 text-green-700 rounded text-[10px] font-bold uppercase tracking-widest">Published</span>
+                                    <?php else: ?>
+                                        <span class="px-2 py-1 bg-slate-100 text-slate-500 rounded text-[10px] font-bold uppercase tracking-widest">Draft</span>
+                                    <?php endif; ?>
+                                </div>
+                                
+                                <div class="grid grid-cols-2 gap-4 mb-4">
+                                    <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                        <div class="text-[10px] font-black uppercase text-slate-400 tracking-widest">Event Tergabung</div>
+                                        <div class="text-2xl font-black text-slate-800"><?= $s['event_count'] ?> <span class="text-xs text-slate-500">Event</span></div>
+                                    </div>
+                                    <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                        <div class="text-[10px] font-black uppercase text-slate-400 tracking-widest">Status Klasemen</div>
+                                        <div class="text-sm font-bold mt-1 <?= $s['show_standings'] ? 'text-blue-600' : 'text-slate-500' ?>">
+                                            <?= $s['show_standings'] ? 'Tampil Publik' : 'Tersembunyi' ?>
+                                        </div>
                                     </div>
                                 </div>
-                                <?php if (($s['status'] ?? 'Draft') == 'Published'): ?>
-                                    <span class="px-2 py-1 bg-green-100 text-green-700 rounded text-[10px] font-bold uppercase tracking-widest">Published</span>
-                                <?php else: ?>
-                                    <span class="px-2 py-1 bg-slate-100 text-slate-500 rounded text-[10px] font-bold uppercase tracking-widest">Draft</span>
+                                
+                                <?php if (!empty($s['admins'])): ?>
+                                    <div>
+                                        <div class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Admin Pengelola:</div>
+                                        <div class="flex flex-wrap gap-1">
+                                            <?php foreach ($s['admins'] as $adm): ?>
+                                                <span class="px-2 py-1 bg-blue-50 text-blue-700 text-[10px] font-bold rounded-md"><?= htmlspecialchars($adm) ?></span>
+                                            <?php endforeach; ?>
+                                        </div>
+                                    </div>
                                 <?php endif; ?>
                             </div>
-                            
-                            <div class="grid grid-cols-2 gap-4 mb-6">
-                                <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                                    <div class="text-[10px] font-black uppercase text-slate-400 tracking-widest">Event Tergabung</div>
-                                    <div class="text-2xl font-black text-slate-800"><?= $s['event_count'] ?> <span class="text-xs text-slate-500">Event</span></div>
+
+                            <!-- Right Chart -->
+                            <div class="w-full md:w-1/3 bg-slate-50 rounded-xl p-4 border border-slate-100 flex flex-col justify-between">
+                                <div>
+                                    <div class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">📈 Pengunjung (7 Hari)</div>
+                                    <div class="text-3xl font-black text-slate-800"><?= $s['total_visitors_7d'] ?? 0 ?> <span class="text-[10px] font-bold text-slate-500 uppercase">Total</span></div>
                                 </div>
-                                <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                                    <div class="text-[10px] font-black uppercase text-slate-400 tracking-widest">Status Klasemen</div>
-                                    <div class="text-sm font-bold mt-1 <?= $s['show_standings'] ? 'text-blue-600' : 'text-slate-500' ?>">
-                                        <?= $s['show_standings'] ? 'Tampil Publik' : 'Tersembunyi' ?>
-                                    </div>
+                                <div class="h-20 w-full mt-2 relative">
+                                    <canvas id="chart-<?= $s['id'] ?>"></canvas>
                                 </div>
                             </div>
-                            
-                            <?php if (!empty($s['admins'])): ?>
-                                <div class="mb-4">
-                                    <div class="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Admin Pengelola:</div>
-                                    <div class="flex flex-wrap gap-1">
-                                        <?php foreach ($s['admins'] as $adm): ?>
-                                            <span class="px-2 py-1 bg-blue-50 text-blue-700 text-[10px] font-bold rounded-md"><?= htmlspecialchars($adm) ?></span>
-                                        <?php endforeach; ?>
-                                    </div>
-                                </div>
-                            <?php endif; ?>
                         </div>
                         
                         <div class="pt-4 border-t border-slate-100 flex gap-2 justify-end">
@@ -97,3 +111,44 @@
         <?php endif; ?>
     </div>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    <?php foreach ($series_list as $s): ?>
+    <?php if (isset($s['visitor_data'])): ?>
+    const ctx_<?= $s['id'] ?> = document.getElementById('chart-<?= $s['id'] ?>').getContext('2d');
+    new Chart(ctx_<?= $s['id'] ?>, {
+        type: 'line',
+        data: {
+            labels: <?= json_encode($s['visitor_labels']) ?>,
+            datasets: [{
+                label: 'Pengunjung',
+                data: <?= json_encode($s['visitor_data']) ?>,
+                borderColor: '#3b82f6',
+                backgroundColor: 'rgba(59, 130, 246, 0.15)',
+                borderWidth: 2,
+                pointRadius: 0,
+                pointHoverRadius: 4,
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false }, tooltip: { enabled: true, intersect: false, mode: 'index' } },
+            scales: {
+                x: { display: false },
+                y: { display: false, min: 0 }
+            },
+            interaction: {
+                intersect: false,
+                mode: 'index',
+            }
+        }
+    });
+    <?php endif; ?>
+    <?php endforeach; ?>
+});
+</script>

@@ -23,6 +23,9 @@ class PublicSeriesController extends Controller {
         }
 
         $seriesId = $series['id'];
+        
+        // Catat kunjungan
+        $this->trackVisitor("roll_series_" . $seriesId);
 
         // 2. Dapatkan daftar event yang tergabung
         $stmtEvents = $db->prepare("
