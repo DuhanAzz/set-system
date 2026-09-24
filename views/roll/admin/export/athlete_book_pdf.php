@@ -1,94 +1,177 @@
+<?php
+// FILE: views/roll/admin/export/athlete_book_pdf.php
+
+$eventName = strtoupper($event['event_name']);
+$eventCity = strtoupper($event['event_city']);
+$eventDate = date('d F Y', strtotime($event['event_date_start']));
+if (!empty($event['event_date_end']) && $event['event_date_end'] != '0000-00-00' && $event['event_date_end'] != $event['event_date_start']) {
+    $dateRange = date('d', strtotime($event['event_date_start'])) . ' - ' . date('d F Y', strtotime($event['event_date_end']));
+} else {
+    $dateRange = $eventDate;
+}
+$dateRange = strtoupper($dateRange);
+
+$loc = $event['event_location'] ?? '-';
+if (!empty($event['event_city'])) $loc .= ' - ' . $event['event_city'];
+$venueName = strtoupper($loc);
+
+$rawHeader = !empty($event['header_logos']) ? json_decode($event['header_logos'], true) : [];
+$headerLogos = ['left' => [], 'center' => [], 'right' => []];
+if (isset($rawHeader[0]) && !is_array($rawHeader[0])) {
+    $headerLogos['left'] = $rawHeader;
+} else {
+    $headerLogos = array_merge($headerLogos, $rawHeader);
+}
+
+$logoLeft = null;
+if (!empty($headerLogos['left'][0])) {
+    $logoLeft = getenv('APP_URL') . '/' . ltrim(str_replace('public/', '', $headerLogos['left'][0]), '/');
+}
+$logoRight = null;
+if (!empty($headerLogos['right'][0])) {
+    $logoRight = getenv('APP_URL') . '/' . ltrim(str_replace('public/', '', $headerLogos['right'][0]), '/');
+}
+
+$sponsors = !empty($event['sponsor_logos']) ? json_decode($event['sponsor_logos'], true) : [];
+?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Buku Atlet - <?= htmlspecialchars($event['event_name']) ?></title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Buku Atlet - <?= htmlspecialchars($eventName) ?></title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        @page {
-            size: A4;
-            margin: 15mm;
+        /* --- RESET & COLOR SETTINGS --- */
+        * { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+        body { margin: 0; padding: 0; font-family: 'Arial Narrow', Arial, sans-serif; background: #ccc; }
+        
+        .full-page { 
+            position: relative; width: 210mm; height: 297mm; margin: 0 auto;
+            z-index: 99999; background: white; display: flex; justify-content: center; align-items: center; overflow: hidden;
+            page-break-after: always;
         }
+        
+        /* --- MASTER TABLE UNTUK HEADER/FOOTER BERULANG NATIVE --- */
+        table.master-layout { width: 100%; max-width: 210mm; margin: 0 auto; background: white; border: none; border-collapse: collapse; min-height: 297mm; }
+        table.master-layout > thead > tr > td { padding: 0; border: none; }
+        table.master-layout > tbody > tr > td { padding: 0 10mm; border: none; vertical-align: top; }
+        table.master-layout > tfoot > tr > td { padding: 0; border: none; }
+        
+        /* HEADER (KOP SURAT) */
+        .kop-surat-wrapper { padding: 5mm 10mm 0 10mm; }
+        .kop-surat { width: 100%; border: none; margin-bottom: 20px; border-bottom: 3px double #000; padding-bottom: 10px; margin-top: 0; }
+        .kop-surat td { padding: 0; border: none; }
+        
+        .header-line-1 { font-size: 14pt; font-weight: 900; text-transform: uppercase; margin-bottom: 2px; }
+        .header-line-2 { font-size: 9pt; font-weight: bold; text-transform: uppercase; }
+        .header-line-3 { font-size: 9pt; font-weight: bold; text-transform: uppercase; }
+        .header-line-4 { height: 3px; } 
+        .header-line-5 { font-size: 18pt; font-weight: 900; text-transform: uppercase; letter-spacing: 2px; color: #000; margin-top: 2px; margin-bottom: 0px; line-height: 1; }
+        
+        /* FOOTER (SPONSOR) */
+        .footer-wrapper { padding: 0 10mm 5mm 10mm; }
+        .sponsor-footer { text-align: center; border-top: 2px double #000; padding-top: 10px; width: 100%; margin-top: 20px; }
+        .sponsor-footer img { height: 45px; width: auto; object-fit: contain; margin: 0 10px; }
+        
+        /* TABEL STYLE */
+        .club-title { font-size: 14pt; font-weight: 900; margin-bottom: 15px; text-transform: uppercase; font-family: 'Arial Narrow', sans-serif; text-decoration: underline; margin-top: 15px; }
+        .data-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; page-break-inside: avoid; }
+        .data-table th { border: 1px solid #000; background-color: #eee; padding: 4px; text-align: left; font-size: 10pt; font-weight: bold; text-transform: uppercase; }
+        .data-table td { border: 1px solid #000; padding: 4px; font-size: 10pt; vertical-align: middle; }
+        .data-table th.col-no, .data-table td.col-no { width: 40px; text-align: center; font-weight: bold; }
+        .data-table th.col-bib, .data-table td.col-bib { width: 80px; text-align: center; font-weight: bold; }
+        .data-table th.col-nama { width: 50%; }
+        .data-table th.col-ku, .data-table td.col-ku { width: 25%; text-align: center; }
+
+        .btn-print { position: fixed; top: 20px; right: 20px; z-index: 999999; background: #0f172a; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-weight: bold; cursor: pointer; text-transform: uppercase; }
+        .btn-close { position: fixed; top: 20px; right: 180px; z-index: 999999; background: #475569; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-weight: bold; cursor: pointer; text-transform: uppercase; }
+        
         @media print {
-            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; background: white; }
-            .no-print { display: none !important; }
-            .page-break { page-break-before: always; }
-            .avoid-break { page-break-inside: avoid; }
+            body { background: white; margin: 0; }
+            table.master-layout { margin: 0; max-width: 100%; min-height: auto; width: 100%; }
+            .btn-print, .btn-close { display: none !important; }
+            @page { margin: 0; size: A4 portrait; }
         }
-        body { font-family: 'Inter', sans-serif; background: #f1f5f9; }
-        .print-container { max-width: 210mm; margin: 0 auto; background: white; padding: 15mm; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-        @media print { .print-container { box-shadow: none; padding: 0; } }
     </style>
 </head>
-<body class="text-slate-800 text-sm">
+<body>
+    
+    <button onclick="window.print()" class="btn-print"><i class="fas fa-print"></i> Print PDF</button>
+    <button onclick="window.close()" class="btn-close"><i class="fas fa-times"></i> Tutup</button>
 
-    <!-- Floating Print Button -->
-    <div class="no-print fixed bottom-6 right-6 flex gap-3 z-50">
-        <button onclick="window.close()" class="px-6 py-3 bg-slate-800 text-white rounded-full font-bold shadow-lg hover:bg-slate-700 transition flex items-center gap-2">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-            Tutup
-        </button>
-        <button onclick="window.print()" class="px-6 py-3 bg-blue-600 text-white rounded-full font-bold shadow-lg hover:bg-blue-700 transition flex items-center gap-2">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
-            Cetak PDF
-        </button>
-    </div>
-
-    <div class="print-container">
-        <!-- Cover Page (Optional, but good for Book) -->
-        <div class="text-center mb-12">
-            <h1 class="text-3xl font-black uppercase tracking-widest text-slate-800 mb-2">BUKU ATLET</h1>
-            <h2 class="text-xl font-bold text-slate-600 mb-1"><?= htmlspecialchars($event['event_name']) ?></h2>
-            <p class="text-sm text-slate-500 uppercase"><?= htmlspecialchars($event['event_city']) ?>, <?= date('d M Y', strtotime($event['event_date_start'])) ?></p>
-        </div>
-
-        <div class="w-full h-[2px] bg-slate-800 mb-8"></div>
-
-        <?php if (empty($clubsData)): ?>
-            <div class="text-center p-12 text-slate-500 italic border-2 border-dashed border-slate-300 rounded-xl">
-                Belum ada data atlet yang terdaftar di kelas individu.
-            </div>
-        <?php else: ?>
-            <?php foreach ($clubsData as $clubName => $athletes): ?>
-                <div class="mb-10 avoid-break">
-                    <!-- Header Klub -->
-                    <div class="flex items-center gap-3 mb-4">
-                        <div class="w-2 h-6 bg-blue-600 rounded"></div>
-                        <h3 class="text-lg font-black uppercase text-slate-800 tracking-wide"><?= htmlspecialchars($clubName) ?></h3>
-                        <div class="ml-auto text-xs font-bold bg-slate-100 text-slate-500 px-3 py-1 rounded-full border border-slate-200">
-                            <?= count($athletes) ?> Atlet
-                        </div>
-                    </div>
-
-                    <!-- Tabel Atlet -->
-                    <table class="w-full text-left border-collapse border border-slate-300">
-                        <thead>
-                            <tr class="bg-slate-100 border-b border-slate-300 text-xs uppercase tracking-wider text-slate-600">
-                                <th class="p-2 border-r border-slate-300 w-12 text-center">No</th>
-                                <th class="p-2 border-r border-slate-300 w-24 text-center">No BiB</th>
-                                <th class="p-2 border-r border-slate-300">Nama Atlet</th>
-                                <th class="p-2 w-32 text-center">KU</th>
+    <!-- MASTER LAYOUT (Untuk Otomatis Mengulang Header dan Footer di Halaman Berikutnya) -->
+    <table class="master-layout">
+        <thead>
+            <tr>
+                <td>
+                    <div class="kop-surat-wrapper">
+                        <table class="kop-surat">
+                            <tr>
+                                <td style="width: 25%; text-align: left; vertical-align: middle;">
+                                    <?php if($logoLeft): ?><img src="<?= $logoLeft ?>" style="height: 70px; max-width: 100%; object-fit: contain;"><?php endif; ?>
+                                </td>
+                                <td style="width: 50%; text-align: center; vertical-align: middle; line-height: 1.2;">
+                                    <div class="header-line-1"><?= htmlspecialchars($eventName) ?></div>
+                                    <div class="header-line-2"><?= htmlspecialchars($venueName) ?></div>
+                                    <div class="header-line-3"><?= htmlspecialchars($dateRange) ?></div>
+                                    <div class="header-line-4"></div>
+                                    <div class="header-line-5">BUKU ATLET</div>
+                                </td>
+                                <td style="width: 25%; text-align: right; vertical-align: middle;">
+                                    <?php if($logoRight): ?><img src="<?= $logoRight ?>" style="height: 70px; max-width: 100%; object-fit: contain;"><?php endif; ?>
+                                </td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            <?php $no = 1; foreach ($athletes as $ath): ?>
-                                <tr class="border-b border-slate-200 hover:bg-slate-50">
-                                    <td class="p-2 border-r border-slate-300 text-center font-medium"><?= $no++ ?></td>
-                                    <td class="p-2 border-r border-slate-300 text-center font-black text-blue-700 text-base"><?= htmlspecialchars($ath['bib_number'] ?? '-') ?></td>
-                                    <td class="p-2 border-r border-slate-300 font-bold text-slate-800 uppercase"><?= htmlspecialchars($ath['skater_name']) ?></td>
-                                    <td class="p-2 text-center font-bold text-slate-600 uppercase text-xs"><?= htmlspecialchars($ath['ku']) ?></td>
-                                </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                </div>
-            <?php endforeach; ?>
-        <?php endif; ?>
+                        </table>
+                    </div>
+                </td>
+            </tr>
+        </thead>
+        
+        <tbody>
+            <tr>
+                <td>
+                    <?php if (empty($clubsData)): ?>
+                        <div style="text-align: center; margin-top: 50px; font-size: 14pt; color: #555;">
+                            Belum ada data atlet yang terdaftar di kelas individu.
+                        </div>
+                    <?php else: ?>
+                        <?php foreach ($clubsData as $clubName => $athletes): ?>
+                            <div class="club-title"><?= htmlspecialchars($clubName) ?></div>
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th class="col-no">NO</th>
+                                        <th class="col-bib">NO BIB</th>
+                                        <th class="col-nama">NAMA ATLET</th>
+                                        <th class="col-ku">KU</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php $no = 1; foreach ($athletes as $ath): ?>
+                                        <tr>
+                                            <td class="col-no"><?= $no++ ?></td>
+                                            <td class="col-bib" style="font-size: 12pt;"><?= htmlspecialchars($ath['bib_number'] ?? '-') ?></td>
+                                            <td class="col-nama"><strong><?= htmlspecialchars($ath['skater_name']) ?></strong></td>
+                                            <td class="col-ku"><?= htmlspecialchars($ath['ku']) ?></td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </td>
+            </tr>
+        </tbody>
+        
+        <tfoot>
+            <tr>
+                <td>
+                    <!-- KOSONG ATAU UNTUK NOMOR HALAMAN JIKA BISA -->
+                    <div style="height: 30px;"></div>
+                </td>
+            </tr>
+        </tfoot>
+    </table>
 
-        <div class="mt-12 text-center text-xs text-slate-400 italic">
-            Dicetak oleh sistem pada <?= date('d M Y H:i:s') ?>
-        </div>
-    </div>
 </body>
 </html>
