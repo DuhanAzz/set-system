@@ -83,7 +83,13 @@
                 // Existing matrix: $matrixData[skate_class_id][age_group_id][distance_id] = race_number
                 $matrixData = [];
                 foreach ($classes as $c) {
-                    $matrixData[$c['skate_class_id']][$c['age_group_id']][$c['distance_id']] = $c['race_number'];
+                    if (($c['category_name'] ?? '') === 'EKSEBISI') {
+                        $matrixData[$c['skate_class_id']][$c['age_group_id']][$c['distance_id']] = '#' . $c['race_number'];
+                    } else {
+                        if (!isset($matrixData[$c['skate_class_id']][$c['age_group_id']][$c['distance_id']]) || strpos($matrixData[$c['skate_class_id']][$c['age_group_id']][$c['distance_id']], '#') === false) {
+                            $matrixData[$c['skate_class_id']][$c['age_group_id']][$c['distance_id']] = $c['race_number'];
+                        }
+                    }
                 }
 
                 // Get skate_class_id

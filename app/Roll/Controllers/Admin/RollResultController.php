@@ -33,7 +33,7 @@ class RollResultController extends Controller {
 
         // Fetch Classes (roll_event_details) for dropdown
         try {
-            $stmtClasses = $db->prepare("SELECT ed.id, ed.race_number, d.distance_name, a.group_name, sc.class_name as skate_class_name, ed.gender, ed.advancement_count, ed.next_round, ed.auto_qualify_per_heat, ed.fastest_loser_count, ed.advancement_rule
+            $stmtClasses = $db->prepare("SELECT ed.id, ed.race_number, d.distance_name, a.group_name, sc.class_name as skate_class_name, ed.gender, ed.advancement_count, ed.next_round, ed.auto_qualify_per_heat, ed.fastest_loser_count, ed.advancement_rule, ed.category_name
                                          FROM roll_event_details ed 
                                          LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id 
                                          LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id 
@@ -47,7 +47,7 @@ class RollResultController extends Controller {
             try { $db->exec("ALTER TABLE roll_event_details ADD COLUMN fastest_loser_count INT DEFAULT NULL"); } catch (\Exception $ex) {}
             try { $db->exec("ALTER TABLE roll_event_details ADD COLUMN advancement_rule VARCHAR(50) DEFAULT 'overall'"); } catch (\Exception $ex) {}
             
-            $stmtClasses = $db->prepare("SELECT ed.id, ed.race_number, d.distance_name, a.group_name, sc.class_name as skate_class_name, ed.gender, ed.advancement_count, ed.next_round, ed.auto_qualify_per_heat, ed.fastest_loser_count, ed.advancement_rule
+            $stmtClasses = $db->prepare("SELECT ed.id, ed.race_number, d.distance_name, a.group_name, sc.class_name as skate_class_name, ed.gender, ed.advancement_count, ed.next_round, ed.auto_qualify_per_heat, ed.fastest_loser_count, ed.advancement_rule, ed.category_name
                                          FROM roll_event_details ed 
                                          LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id 
                                          LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id 

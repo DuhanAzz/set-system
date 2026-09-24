@@ -77,6 +77,11 @@
                                         <span class="bg-blue-50 text-blue-600 border border-blue-200 px-2 py-0.5 rounded">
                                             Kategori: <?= htmlspecialchars($ev['skate_class_name'] ?? 'Umum') ?>
                                         </span>
+                                        <?php if (($ev['category_name'] ?? '') === 'EKSEBISI'): ?>
+                                            <span class="bg-red-50 text-red-600 border border-red-200 px-2 py-0.5 rounded font-black">
+                                                🚨 EKSEBISI
+                                            </span>
+                                        <?php endif; ?>
                                     </div>
                                 </div>
                             </div>

@@ -618,7 +618,7 @@ class RollEventController extends Controller {
             }
 
             // Get existing classes
-            $existing = $db->prepare("SELECT id, skate_class_id, age_group_id, distance_id, gender FROM roll_event_details WHERE event_id = ?");
+            $existing = $db->prepare("SELECT id, skate_class_id, age_group_id, distance_id, gender, category_name FROM roll_event_details WHERE event_id = ?");
             $existing->execute([$eventId]);
             $currentClasses = $existing->fetchAll(PDO::FETCH_ASSOC);
 
@@ -627,6 +627,9 @@ class RollEventController extends Controller {
             // Prepare statements
             $stmtUpdate = $db->prepare("UPDATE roll_event_details SET race_number = ?, distance = ? WHERE id = ?");
             $stmtInsert = $db->prepare("INSERT INTO roll_event_details (event_id, skate_class_id, age_group_id, distance_id, gender, race_number, race_time, distance, max_lanes, result_status) VALUES (?, ?, ?, ?, ?, ?, '00:00', ?, 6, 'Draft')");
+            
+            $stmtUpdateEx = $db->prepare("UPDATE roll_event_details SET race_number = ?, distance = ? WHERE id = ?");
+            $stmtInsertEx = $db->prepare("INSERT INTO roll_event_details (event_id, skate_class_id, age_group_id, distance_id, gender, race_number, race_time, distance, max_lanes, result_status, category_name) VALUES (?, ?, ?, ?, ?, ?, '00:00', ?, 6, 'Draft', 'EKSEBISI')");
 
             foreach ($matrix as $sc_id => $ag_data) {
                 foreach ($ag_data as $ag_id => $dist_data) {
@@ -634,23 +637,45 @@ class RollEventController extends Controller {
                         $race_number = trim($race_number);
                         if ($race_number === '') continue;
 
+                        $is_exhibition = false;
+                        if (strpos($race_number, '#') !== false) {
+                            $is_exhibition = true;
+                            $race_number = str_replace('#', '', $race_number);
+                        }
+
                         $distName = $dists[$dist_id] ?? '';
 
                         // Create for both Putra and Putri
                         foreach (['Putra', 'Putri'] as $gender) {
-                            $foundId = null;
+                            $foundNormalId = null;
+                            $foundExhibitionId = null;
                             foreach ($currentClasses as $c) {
                                 if ($c['skate_class_id'] == $sc_id && $c['age_group_id'] == $ag_id && $c['distance_id'] == $dist_id && $c['gender'] == $gender) {
-                                    $foundId = $c['id'];
-                                    break;
+                                    if (($c['category_name'] ?? '') === 'EKSEBISI') {
+                                        $foundExhibitionId = $c['id'];
+                                    } else {
+                                        $foundNormalId = $c['id'];
+                                    }
                                 }
                             }
 
-                            if ($foundId) {
-                                $stmtUpdate->execute([$race_number, $distName, $foundId]);
-                                $keptIds[] = $foundId;
+                            // 1. Process Normal Class
+                            if ($foundNormalId) {
+                                $stmtUpdate->execute([$race_number, $distName, $foundNormalId]);
+                                $keptIds[] = $foundNormalId;
                             } else {
                                 $stmtInsert->execute([$eventId, $sc_id, $ag_id, $dist_id, $gender, $race_number, $distName]);
+                            }
+
+                            // 2. Process Exhibition Class
+                            if ($is_exhibition) {
+                                $exhibitionDistName = $distName . ' (EKSEBISI)';
+                                if ($foundExhibitionId) {
+                                    $stmtUpdateEx->execute([$race_number, $exhibitionDistName, $foundExhibitionId]);
+                                    $keptIds[] = $foundExhibitionId;
+                                } else {
+                                    $stmtInsertEx->execute([$eventId, $sc_id, $ag_id, $dist_id, $gender, $race_number, $exhibitionDistName]);
+                                }
                             }
                         }
                     }
