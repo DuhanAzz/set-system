@@ -626,7 +626,7 @@ class RollResultController extends Controller {
         $round = $_GET['round'] ?? 'Kualifikasi';
 
         if ($eventId > 0 && $classId > 0) {
-            $stmtC = $db->prepare("SELECT ed.race_number, d.distance_name, a.group_name, ed.gender, sc.class_name 
+            $stmtC = $db->prepare("SELECT ed.race_number, d.distance_name, a.group_name, ed.gender, sc.class_name, ed.category_name 
                                   FROM roll_event_details ed
                                   LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
                                   LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id
@@ -635,6 +635,9 @@ class RollResultController extends Controller {
             $stmtC->execute([$classId]);
             $raceInfo = $stmtC->fetch(PDO::FETCH_ASSOC);
             $raceLabel = "R" . str_pad($raceInfo['race_number'], 3, '0', STR_PAD_LEFT) . " - " . ($raceInfo['distance_name'] ?? '') . " - " . ($raceInfo['group_name'] ?? '') . " - " . ($raceInfo['gender'] ?? '') . " | Kategori: " . ($raceInfo['class_name'] ?? 'Umum');
+            if (($raceInfo['category_name'] ?? '') === 'EKSEBISI') {
+                $raceLabel .= " [EKSEBISI]";
+            }
             
             $filenameLabel = $raceLabel . " - " . $round;
             $safeFilename = preg_replace('/[^A-Za-z0-9_]/', '_', str_replace(' ', '_', $filenameLabel));

@@ -135,6 +135,9 @@
                         <span class="text-blue-400 bg-blue-400/10 px-2 py-0.5 rounded">R<?= $hdrRaceNum ?></span>
                         <span class="text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded"><?= htmlspecialchars($raceFormat) ?></span>
                         <span class="truncate"><?= htmlspecialchars($raceInfo['distance_name'] ?? '') ?></span>
+                        <?php if (($raceInfo['category_name'] ?? '') === 'EKSEBISI'): ?>
+                            <span class="text-red-400 bg-red-400/10 px-2 py-0.5 rounded border border-red-400/30 ml-2">🚨 EKSEBISI</span>
+                        <?php endif; ?>
                     </div>
                     <div class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1 truncate">
                         <?= htmlspecialchars($raceInfo['group_name'] ?? '') ?> - <?= $hdrGenderLabel ?> &bull; <span class="text-slate-300"><?= htmlspecialchars($raceInfo['skate_class_name'] ?? 'Umum') ?></span>
