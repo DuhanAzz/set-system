@@ -381,7 +381,9 @@ class RollEntryController extends Controller {
             
             // Generate manual invoice code
             $invoice_code = 'MAN-' . time() . '-' . rand(100, 999);
+            $invoice_code_eks = 'MAN-' . time() . '-EKS-' . rand(10, 99);
             $manualEntriesInserted = [];
+            $eksebisiEntriesInserted = [];
 
             if ($entry_type === 'team') {
                 $team_name = trim($_POST['team_name'] ?? '');
@@ -473,20 +475,49 @@ class RollEntryController extends Controller {
                         continue;
                     }
 
+                    $stmtCat = $db->prepare("SELECT category_name FROM roll_event_details WHERE id = ?");
+                    $stmtCat->execute([$race_class_id]);
+                    $isEksebisi = $stmtCat->fetchColumn() === 'EKSEBISI';
+
+                    $invCode = $isEksebisi ? $invoice_code_eks : ($entry_type === 'team' ? $invoice_code : null);
+
                     if ($entry_type === 'team') {
                         $stmtInsert = $db->prepare("INSERT INTO roll_entries (event_id, skater_id, race_class_id, distance_id, team_name, club_id, is_manual, manual_invoice_code) VALUES (?, ?, ?, ?, ?, ?, 1, ?)");
-                        if ($stmtInsert->execute([$targetEventId, $skater_id, $race_class_id, $distance_id, $team_name, $firstSkaterClubId, $invoice_code])) {
-                            $manualEntriesInserted[] = $db->lastInsertId();
-                            $successCount++;
-                        }
+                        $res = $stmtInsert->execute([$targetEventId, $skater_id, $race_class_id, $distance_id, $team_name, $firstSkaterClubId, $invCode]);
                     } else {
-                        // Individu: is_manual = 1, tapi manual_invoice_code = NULL
-                        $stmtInsert = $db->prepare("INSERT INTO roll_entries (event_id, skater_id, race_class_id, distance_id, club_id, is_manual, manual_invoice_code) VALUES (?, ?, ?, ?, ?, 1, NULL)");
-                        if ($stmtInsert->execute([$targetEventId, $skater_id, $race_class_id, $distance_id, $club_id])) {
-                            $successCount++;
+                        // Individu: is_manual = 1
+                        $stmtInsert = $db->prepare("INSERT INTO roll_entries (event_id, skater_id, race_class_id, distance_id, club_id, is_manual, manual_invoice_code) VALUES (?, ?, ?, ?, ?, 1, ?)");
+                        $res = $stmtInsert->execute([$targetEventId, $skater_id, $race_class_id, $distance_id, $club_id, $invCode]);
+                    }
+
+                    if ($res) {
+                        if ($isEksebisi) {
+                            $eksebisiEntriesInserted[] = $db->lastInsertId();
+                        } else if ($entry_type === 'team') {
+                            $manualEntriesInserted[] = $db->lastInsertId();
                         }
+                        $successCount++;
                     }
                 }
+            }
+
+            if (!empty($eksebisiEntriesInserted)) {
+                $inQueryEks = implode(',', array_fill(0, count($eksebisiEntriesInserted), '?'));
+                $sqlE = "SELECT DISTINCT skater_id FROM roll_entries WHERE id IN ($inQueryEks)";
+                $stmtE = $db->prepare($sqlE);
+                $stmtE->execute($eksebisiEntriesInserted);
+                $uniqueSkatersEks = $stmtE->rowCount();
+
+                $stmtFeeEks = $db->prepare("SELECT fee_eksebisi FROM roll_events WHERE id = ?");
+                $stmtFeeEks->execute([$targetEventId]);
+                $feeEks = (float)$stmtFeeEks->fetchColumn() ?: 150000;
+                
+                $totalEks = $uniqueSkatersEks * $feeEks;
+                
+                $stmtPM = $db->prepare("INSERT INTO roll_manual_payments (event_id, invoice_code, total_amount, status) VALUES (?, ?, ?, 'Unpaid')");
+                $stmtPM->execute([$targetEventId, $invoice_code_eks, $totalEks]);
+                
+                $failMessages[] = "Invoice Eksebisi ($invoice_code_eks) diterbitkan terpisah sejumlah " . number_format($totalEks) . ".";
             }
 
             if ($entry_type === 'team' && $successCount > 0 && !empty($manualEntriesInserted)) {

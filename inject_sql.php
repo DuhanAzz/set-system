@@ -176,3 +176,4 @@ try {
 } catch (PDOException $e) {
     echo "Migration failed: " . $e->getMessage() . "\n";
 }
+try { $pdo->exec("ALTER TABLE roll_events ADD COLUMN fee_eksebisi DECIMAL(10,2) NULL DEFAULT 150000"); echo "Added fee_eksebisi<br>"; } catch (Exception $e) {}

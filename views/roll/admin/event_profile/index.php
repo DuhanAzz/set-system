@@ -96,7 +96,7 @@
                     </div>
 
                     <!-- Kategori Biaya Lomba -->
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6 pt-4 border-t border-slate-200">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6 pt-4 border-t border-slate-200">
                         <div>
                             <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Biaya Speed (Rp)</label>
                             <input type="number" name="fee_speed" value="<?= htmlspecialchars($row['fee_speed'] ?? '450000') ?>" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 text-slate-800 focus:ring-2 focus:ring-fuchsia-500 font-bold text-fuchsia-700" required>
@@ -108,6 +108,10 @@
                         <div>
                             <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Biaya Pemula (Rp)</label>
                             <input type="number" name="fee_pemula" value="<?= htmlspecialchars($row['fee_pemula'] ?? '350000') ?>" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 text-slate-800 focus:ring-2 focus:ring-emerald-500 font-bold text-emerald-600" required>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Biaya Eksebisi (Rp)</label>
+                            <input type="number" name="fee_eksebisi" value="<?= htmlspecialchars($row['fee_eksebisi'] ?? '150000') ?>" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 text-slate-800 focus:ring-2 focus:ring-red-500 font-bold text-red-600" required>
                         </div>
                     </div>
 

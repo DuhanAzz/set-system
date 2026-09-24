@@ -395,8 +395,10 @@ function filterIndvClasses() {
             let matchesGender = ((catGender === 'putra' && gender === 'M') || (catGender === 'putri' && gender === 'F') || catGender === 'campuran');
             
             if ((matchesAge && matchesGender) || isChecked) {
-                const labelText = (c.race_number ? c.race_number + ' - ' : '') + c.distance_name + ' (' + c.group_name + ')' + (!matchesAge || !matchesGender ? ' ⚠️ [Diluar Umur/Gender]' : '');
-                const bgClass = isChecked ? 'bg-blue-50 border-blue-200' : 'hover:bg-slate-100 border-transparent';
+                const isEks = (c.category_name === 'EKSEBISI');
+                const eksLabel = isEks ? ' <span class="ml-2 bg-red-100 text-red-600 px-1.5 py-0.5 rounded font-black text-[9px] uppercase tracking-widest border border-red-200">EKSEBISI</span>' : '';
+                const labelText = (c.race_number ? c.race_number + ' - ' : '') + c.distance_name + ' (' + c.group_name + ')' + (!matchesAge || !matchesGender ? ' ⚠️ [Diluar Umur/Gender]' : '') + eksLabel;
+                const bgClass = isChecked ? 'bg-blue-50 border-blue-200' : (isEks ? 'hover:bg-red-50 border-transparent border-l-4 border-l-red-500' : 'hover:bg-slate-100 border-transparent');
                 
                 const label = document.createElement('label');
                 label.className = `flex items-center justify-between p-3 rounded-lg cursor-pointer transition border ${bgClass}`;
