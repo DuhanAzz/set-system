@@ -17,14 +17,22 @@
         <?php unset($_SESSION['flash_message'], $_SESSION['flash_type']); ?>
     <?php endif; ?>
 
-    <!-- TABS -->
-    <div class="flex gap-2 mb-6">
-        <button onclick="switchTab('individu')" id="tab_btn_individu" class="px-6 py-3 bg-blue-600 text-white rounded-xl font-black text-xs shadow-lg shadow-blue-200 hover:bg-blue-700 transition uppercase tracking-widest">
-            + DAFTAR INDIVIDU
-        </button>
-        <button onclick="switchTab('team')" id="tab_btn_team" class="px-6 py-3 bg-white text-slate-500 border border-slate-200 rounded-xl font-black text-xs hover:bg-slate-50 transition uppercase tracking-widest">
-            + DAFTAR TIM / RELAY
-        </button>
+    <!-- TABS & ACTIONS -->
+    <div class="flex justify-between items-center mb-6">
+        <div class="flex gap-2">
+            <button onclick="switchTab('individu')" id="tab_btn_individu" class="px-6 py-3 bg-blue-600 text-white rounded-xl font-black text-xs shadow-lg shadow-blue-200 hover:bg-blue-700 transition uppercase tracking-widest">
+                + DAFTAR INDIVIDU
+            </button>
+            <button onclick="switchTab('team')" id="tab_btn_team" class="px-6 py-3 bg-white text-slate-500 border border-slate-200 rounded-xl font-black text-xs hover:bg-slate-50 transition uppercase tracking-widest">
+                + DAFTAR TIM / RELAY
+            </button>
+        </div>
+        <div>
+            <a href="<?= getenv('APP_URL') ?>/roll/admin/export/print_athlete_book" target="_blank" class="px-6 py-3 bg-slate-800 text-white rounded-xl font-black text-xs shadow-lg shadow-slate-200 hover:bg-slate-900 transition uppercase tracking-widest flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                BUKU ATLET
+            </a>
+        </div>
     </div>
 
     <!-- FORM INDIVIDU -->

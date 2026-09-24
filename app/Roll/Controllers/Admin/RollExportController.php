@@ -461,4 +461,54 @@ class RollExportController extends Controller {
         echo '</Workbook>';
         exit;
     }
+
+    public function print_athlete_book() {
+        $db = \App\Core\Database::getInstance()->getConnection();
+        $eventId = $_SESSION['roll_admin_active_event_id'] ?? 0;
+
+        if ($eventId == 0) {
+            die("Event not selected.");
+        }
+
+        // Get Event Info
+        $stmtEvent = $db->prepare("SELECT * FROM roll_events WHERE id = ?");
+        $stmtEvent->execute([$eventId]);
+        $event = $stmtEvent->fetch(\PDO::FETCH_ASSOC);
+
+        // Get Athletes Grouped by Club, ignoring relay classes
+        $stmtAthletes = $db->prepare("
+            SELECT DISTINCT
+                s.id as skater_id,
+                s.skater_name,
+                s.gender,
+                s.birth_date,
+                e.bib_number,
+                c.club_name,
+                c.id as club_id,
+                a.group_name as ku
+            FROM roll_entries e
+            JOIN roll_skaters s ON e.skater_id = s.id
+            JOIN roll_clubs c ON e.club_id = c.id
+            JOIN roll_event_details ed ON e.race_class_id = ed.id
+            JOIN roll_ref_distances d ON ed.distance_id = d.id
+            JOIN roll_ref_age_groups a ON ed.age_group_id = a.id
+            WHERE e.event_id = ?
+              AND LOWER(d.distance_name) NOT LIKE '%relay%'
+              AND LOWER(d.distance_name) NOT LIKE '%team%'
+              AND LOWER(d.distance_name) NOT LIKE '%pair%'
+            ORDER BY c.club_name ASC, a.group_name ASC, s.skater_name ASC
+        ");
+        $stmtAthletes->execute([$eventId]);
+        $athletes = $stmtAthletes->fetchAll(\PDO::FETCH_ASSOC);
+
+        $clubsData = [];
+        foreach ($athletes as $ath) {
+            $clubsData[$ath['club_name']][] = $ath;
+        }
+
+        return $this->view('roll/admin/export/athlete_book_pdf', [
+            'event' => $event,
+            'clubsData' => $clubsData
+        ]);
+    }
 }
