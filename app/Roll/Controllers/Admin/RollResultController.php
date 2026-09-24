@@ -33,7 +33,7 @@ class RollResultController extends Controller {
 
         // Fetch Classes (roll_event_details) for dropdown
         try {
-            $stmtClasses = $db->prepare("SELECT ed.id, ed.race_number, d.distance_name, a.group_name, sc.class_name as skate_class_name, ed.gender, ed.advancement_count, ed.next_round, ed.auto_qualify_per_heat, ed.fastest_loser_count
+            $stmtClasses = $db->prepare("SELECT ed.id, ed.race_number, d.distance_name, a.group_name, sc.class_name as skate_class_name, ed.gender, ed.advancement_count, ed.next_round, ed.auto_qualify_per_heat, ed.fastest_loser_count, ed.advancement_rule
                                          FROM roll_event_details ed 
                                          LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id 
                                          LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id 
@@ -45,8 +45,9 @@ class RollResultController extends Controller {
             try { $db->exec("ALTER TABLE roll_event_details ADD COLUMN next_round VARCHAR(50) DEFAULT NULL"); } catch (\Exception $ex) {}
             try { $db->exec("ALTER TABLE roll_event_details ADD COLUMN auto_qualify_per_heat INT DEFAULT NULL"); } catch (\Exception $ex) {}
             try { $db->exec("ALTER TABLE roll_event_details ADD COLUMN fastest_loser_count INT DEFAULT NULL"); } catch (\Exception $ex) {}
+            try { $db->exec("ALTER TABLE roll_event_details ADD COLUMN advancement_rule VARCHAR(50) DEFAULT 'overall'"); } catch (\Exception $ex) {}
             
-            $stmtClasses = $db->prepare("SELECT ed.id, ed.race_number, d.distance_name, a.group_name, sc.class_name as skate_class_name, ed.gender, ed.advancement_count, ed.next_round, ed.auto_qualify_per_heat, ed.fastest_loser_count
+            $stmtClasses = $db->prepare("SELECT ed.id, ed.race_number, d.distance_name, a.group_name, sc.class_name as skate_class_name, ed.gender, ed.advancement_count, ed.next_round, ed.auto_qualify_per_heat, ed.fastest_loser_count, ed.advancement_rule
                                          FROM roll_event_details ed 
                                          LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id 
                                          LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id 
@@ -223,20 +224,22 @@ class RollResultController extends Controller {
             if ($auto_qualify_per_heat === '') $auto_qualify_per_heat = null;
             $fastest_loser_count = $_POST['fastest_loser_count'] ?? null;
             if ($fastest_loser_count === '') $fastest_loser_count = null;
+            $advancement_rule = $_POST['advancement_rule'] ?? 'overall';
                     
 
                     // Save qualification settings
                     try {
-                        $stmtAdv = $db->prepare("UPDATE roll_event_details SET advancement_count = ?, next_round = ?, auto_qualify_per_heat = ?, fastest_loser_count = ? WHERE id = ?");
-                        $stmtAdv->execute([$advancement_count, $next_round, $auto_qualify_per_heat, $fastest_loser_count, $filter_class_id]);
+                        $stmtAdv = $db->prepare("UPDATE roll_event_details SET advancement_count = ?, next_round = ?, auto_qualify_per_heat = ?, fastest_loser_count = ?, advancement_rule = ? WHERE id = ?");
+                        $stmtAdv->execute([$advancement_count, $next_round, $auto_qualify_per_heat, $fastest_loser_count, $advancement_rule, $filter_class_id]);
                     } catch (\Exception $e) {
                         try { $db->exec("ALTER TABLE roll_event_details ADD COLUMN advancement_count INT DEFAULT NULL"); } catch (\Exception $ex) {}
                         try { $db->exec("ALTER TABLE roll_event_details ADD COLUMN next_round VARCHAR(50) DEFAULT NULL"); } catch (\Exception $ex) {}
                         try { $db->exec("ALTER TABLE roll_event_details ADD COLUMN auto_qualify_per_heat INT DEFAULT NULL"); } catch (\Exception $ex) {}
                         try { $db->exec("ALTER TABLE roll_event_details ADD COLUMN fastest_loser_count INT DEFAULT NULL"); } catch (\Exception $ex) {}
+                        try { $db->exec("ALTER TABLE roll_event_details ADD COLUMN advancement_rule VARCHAR(50) DEFAULT 'overall'"); } catch (\Exception $ex) {}
                         
-                        $stmtAdv = $db->prepare("UPDATE roll_event_details SET advancement_count = ?, next_round = ?, auto_qualify_per_heat = ?, fastest_loser_count = ? WHERE id = ?");
-                        $stmtAdv->execute([$advancement_count, $next_round, $auto_qualify_per_heat, $fastest_loser_count, $filter_class_id]);
+                        $stmtAdv = $db->prepare("UPDATE roll_event_details SET advancement_count = ?, next_round = ?, auto_qualify_per_heat = ?, fastest_loser_count = ?, advancement_rule = ? WHERE id = ?");
+                        $stmtAdv->execute([$advancement_count, $next_round, $auto_qualify_per_heat, $fastest_loser_count, $advancement_rule, $filter_class_id]);
                     }
 
                     $stmtUpdate = $db->prepare("UPDATE roll_event_results SET time = ?, rank = ?, point = ?, status = ?, print_round_name = ?, is_official = 0 WHERE id = ? AND event_id = ?");
@@ -961,8 +964,17 @@ class RollResultController extends Controller {
                     $advancement_rule = $_POST['advancement_rule'] ?? 'overall';
                     
                     // 1. Simpan konfigurasi
-                    $stmtAdv = $db->prepare("UPDATE roll_event_details SET advancement_count = ?, next_round = ?, advancement_rule = ? WHERE id = ?");
-                    $stmtAdv->execute([$advancement_count, $next_round, $advancement_rule, $classId]);
+                    try {
+                        $stmtAdv = $db->prepare("UPDATE roll_event_details SET advancement_count = ?, next_round = ?, advancement_rule = ? WHERE id = ?");
+                        $stmtAdv->execute([$advancement_count, $next_round, $advancement_rule, $classId]);
+                    } catch (\Exception $e) {
+                        try { $db->exec("ALTER TABLE roll_event_details ADD COLUMN advancement_count INT DEFAULT NULL"); } catch (\Exception $ex) {}
+                        try { $db->exec("ALTER TABLE roll_event_details ADD COLUMN next_round VARCHAR(50) DEFAULT NULL"); } catch (\Exception $ex) {}
+                        try { $db->exec("ALTER TABLE roll_event_details ADD COLUMN advancement_rule VARCHAR(50) DEFAULT 'overall'"); } catch (\Exception $ex) {}
+                        
+                        $stmtAdv = $db->prepare("UPDATE roll_event_details SET advancement_count = ?, next_round = ?, advancement_rule = ? WHERE id = ?");
+                        $stmtAdv->execute([$advancement_count, $next_round, $advancement_rule, $classId]);
+                    }
 
                     // Check if Relay
                     $stmtC = $db->prepare("SELECT d.distance_name FROM roll_event_details ed LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id WHERE ed.id = ?");
@@ -1287,8 +1299,17 @@ class RollResultController extends Controller {
                 $stmt = $db->prepare("DELETE FROM roll_pelotons WHERE event_id = ? AND race_class_id = ? AND round != 'Kualifikasi'");
                 $stmt->execute([$eventId, $classId]);
                 
-                $stmt = $db->prepare("UPDATE roll_event_details SET advancement_count = NULL, next_round = NULL, advancement_rule = 'overall' WHERE id = ?");
-                $stmt->execute([$classId]);
+                try {
+                    $stmt = $db->prepare("UPDATE roll_event_details SET advancement_count = NULL, next_round = NULL, advancement_rule = 'overall' WHERE id = ?");
+                    $stmt->execute([$classId]);
+                } catch (\Exception $e) {
+                    try { $db->exec("ALTER TABLE roll_event_details ADD COLUMN advancement_count INT DEFAULT NULL"); } catch (\Exception $ex) {}
+                    try { $db->exec("ALTER TABLE roll_event_details ADD COLUMN next_round VARCHAR(50) DEFAULT NULL"); } catch (\Exception $ex) {}
+                    try { $db->exec("ALTER TABLE roll_event_details ADD COLUMN advancement_rule VARCHAR(50) DEFAULT 'overall'"); } catch (\Exception $ex) {}
+                    
+                    $stmt = $db->prepare("UPDATE roll_event_details SET advancement_count = NULL, next_round = NULL, advancement_rule = 'overall' WHERE id = ?");
+                    $stmt->execute([$classId]);
+                }
                 
                 $stmt = $db->prepare("UPDATE roll_entries SET status = NULL WHERE event_id = ? AND race_class_id = ?");
                 $stmt->execute([$eventId, $classId]);
