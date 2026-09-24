@@ -39,6 +39,7 @@ class RollMedalTallyController extends Controller {
             JOIN roll_event_details ed ON r.race_class_id = ed.id
             JOIN roll_entries e ON r.skater_id = e.skater_id AND r.race_class_id = e.race_class_id
             WHERE r.event_id = ? 
+              AND (ed.category_name != 'EKSEBISI' OR ed.category_name IS NULL)
               AND r.rank IN (1, 2, 3) 
               AND r.status = 'OK'
               AND r.round = (
@@ -85,6 +86,7 @@ class RollMedalTallyController extends Controller {
 
         $params = [$eventId];
         $whereClause = "r.event_id = ? AND r.rank IN (1, 2, 3) AND r.status = 'OK' 
+                        AND (ed.category_name != 'EKSEBISI' OR ed.category_name IS NULL)
                         AND r.round = (
                             SELECT round 
                             FROM roll_event_results 
