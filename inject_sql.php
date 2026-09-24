@@ -128,6 +128,25 @@ try {
         }
     }
     
+    // 1.3 Add new columns for advancement configuration in roll_event_details
+    $advancementCols = [
+        'advancement_count' => "INT DEFAULT NULL",
+        'next_round' => "VARCHAR(50) DEFAULT NULL",
+        'auto_qualify_per_heat' => "INT DEFAULT NULL",
+        'fastest_loser_count' => "INT DEFAULT NULL",
+        'advancement_rule' => "VARCHAR(50) DEFAULT 'overall'"
+    ];
+    
+    foreach ($advancementCols as $colName => $colType) {
+        try {
+            $db->exec("ALTER TABLE roll_event_details ADD COLUMN {$colName} {$colType}");
+        } catch (PDOException $e) {
+            if ($e->getCode() !== '42S21') {
+                throw $e;
+            }
+        }
+    }
+    
     // 1.5 Backfill club_id untuk data registrasi lama yang masih NULL
     $db->exec("
         UPDATE roll_entries e 
