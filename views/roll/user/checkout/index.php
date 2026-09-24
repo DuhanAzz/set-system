@@ -53,13 +53,15 @@
                             <span class="bg-emerald-100 text-emerald-700 border border-emerald-200 px-4 py-1.5 rounded-xl text-[10px] font-black tracking-widest uppercase shadow-sm">Lunas</span>
                         <?php elseif($b['status'] == 'Pending'): ?>
                             <span class="bg-amber-100 text-amber-700 border border-amber-200 px-4 py-1.5 rounded-xl text-[10px] font-black tracking-widest uppercase shadow-sm">Verifikasi</span>
+                        <?php elseif($b['status'] == 'Rejected'): ?>
+                            <span class="bg-red-100 text-red-700 border border-red-200 px-4 py-1.5 rounded-xl text-[10px] font-black tracking-widest uppercase shadow-sm">Ditolak</span>
                         <?php else: ?>
                             <span class="bg-slate-100 text-slate-600 border border-slate-200 px-4 py-1.5 rounded-xl text-[10px] font-black tracking-widest uppercase shadow-sm">Unpaid</span>
                         <?php endif; ?>
                     </td>
 
                     <td class="px-6 py-5 align-middle text-right flex justify-end gap-2 whitespace-nowrap">
-                        <?php if($b['status'] === 'Unpaid'): ?>
+                        <?php if(in_array($b['status'], ['Unpaid', 'Rejected'])): ?>
                             <button onclick="bukaModal('<?= $b['event_id'] ?>', '<?= htmlspecialchars(addslashes($b['event_name'])) ?>', '<?= $b['amount'] ?>')" 
                                 class="bg-slate-900 text-white px-6 py-3 rounded-xl font-black text-[10px] tracking-widest uppercase shadow-lg hover:bg-blue-600 transition hover:-translate-y-0.5">
                                 Upload Bukti
