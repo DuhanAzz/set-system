@@ -41,7 +41,7 @@ class RollExportController extends Controller {
         }
 
         $stmtClasses = $db->prepare("
-            SELECT ed.id, ed.race_number, d.distance_name, a.group_name, ed.gender, sc.class_name 
+            SELECT ed.id, ed.race_number, d.distance_name, a.group_name, ed.gender, sc.class_name, ed.category_name 
             FROM roll_event_details ed
             LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
             LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id
@@ -108,6 +108,9 @@ class RollExportController extends Controller {
                 if (empty($rows)) continue;
 
                 $raceLabel = "R" . str_pad($raceInfo['race_number'], 3, '0', STR_PAD_LEFT) . "_" . ($raceInfo['class_name'] ?? 'Umum') . "_" . ($raceInfo['distance_name'] ?? '') . "_" . ($raceInfo['group_name'] ?? '') . "_" . ($raceInfo['gender'] ?? '');
+                if (($raceInfo['category_name'] ?? '') === 'EKSEBISI') {
+                    $raceLabel .= "_Eksebisi";
+                }
                 $filenameLabel = $raceLabel . "_" . $round;
                 $safeFilename = preg_replace('/[^A-Za-z0-9_]/', '_', str_replace(' ', '_', $filenameLabel)) . '.csv';
 
@@ -167,6 +170,7 @@ class RollExportController extends Controller {
             JOIN roll_event_details ed ON r.race_class_id = ed.id
             JOIN roll_entries e ON r.skater_id = e.skater_id AND r.race_class_id = e.race_class_id
             WHERE r.event_id = ? 
+              AND (ed.category_name != 'EKSEBISI' OR ed.category_name IS NULL)
               AND r.rank IN (1, 2, 3) 
               AND r.status = 'OK'
               AND e.status = 'Finished'
@@ -190,6 +194,7 @@ class RollExportController extends Controller {
             JOIN roll_ref_age_groups ag ON ed.age_group_id = ag.id
             JOIN roll_entries e ON r.skater_id = e.skater_id AND r.race_class_id = e.race_class_id
             WHERE r.event_id = ? 
+              AND (ed.category_name != 'EKSEBISI' OR ed.category_name IS NULL)
               AND r.rank IN (1, 2, 3) 
               AND r.status = 'OK'
               AND (e.status = 'Finished' OR e.status = 'Qualified')
