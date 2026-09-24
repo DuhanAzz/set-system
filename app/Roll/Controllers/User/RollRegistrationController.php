@@ -46,7 +46,7 @@ class RollRegistrationController extends Controller {
                 JOIN roll_ref_age_groups a ON c.age_group_id = a.id
                 JOIN roll_ref_distances d ON c.distance_id = d.id
                 JOIN roll_ref_skate_classes skc ON c.skate_class_id = skc.id
-                WHERE c.event_id = ?
+                WHERE c.event_id = ? AND (c.category_name != 'EKSEBISI' OR c.category_name IS NULL)
                 ORDER BY a.min_year ASC, c.category_name ASC, d.id ASC
             ");
             $stmtClasses->execute([$event['id']]);

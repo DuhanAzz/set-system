@@ -112,10 +112,11 @@ try {
         }
     }
     
-    // 1.2. Tambahkan kolom result_status dan result_pdf ke roll_event_details (untuk fitur Live Result)
+    // 1.2. Tambahkan kolom result_status, result_pdf, dan category_name ke roll_event_details
     $resultCols = [
         'result_status' => "ENUM('Draft', 'Published') NOT NULL DEFAULT 'Draft'",
-        'result_pdf' => "TEXT NULL DEFAULT NULL"
+        'result_pdf' => "TEXT NULL DEFAULT NULL",
+        'category_name' => "VARCHAR(100) NULL DEFAULT NULL"
     ];
     
     foreach ($resultCols as $colName => $colType) {

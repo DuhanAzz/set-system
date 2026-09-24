@@ -50,7 +50,7 @@ class RollExploreController extends Controller {
             JOIN roll_ref_age_groups a ON c.age_group_id = a.id
             JOIN roll_ref_distances d ON c.distance_id = d.id
             JOIN roll_ref_skate_classes sc ON c.skate_class_id = sc.id
-            WHERE c.event_id = ?
+            WHERE c.event_id = ? AND (c.category_name != 'EKSEBISI' OR c.category_name IS NULL)
             ORDER BY CAST(c.race_number AS UNSIGNED) ASC, c.race_number ASC
         ");
         $stmtClasses->execute([$event_id]);
