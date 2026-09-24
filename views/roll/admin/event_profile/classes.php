@@ -462,7 +462,13 @@ async function generateScheduleTime(e) {
                             foreach ($group as $g) {
                                 $heats += (int)($g['total_heats'] ?? 0);
                                 $athletes += (int)($g['total_athletes'] ?? 0);
-                                $races[] = $g['race_number'];
+                                
+                                $raceLabel = $g['race_number'];
+                                if (($g['category_name'] ?? '') === 'EKSEBISI') {
+                                    $raceLabel .= ' <span class="text-red-500 font-black">(Eks)</span>';
+                                }
+                                $races[] = $raceLabel;
+                                
                                 $dist = $g['distance_name'] ?? $g['distance'];
                                 if ($dist) $dists[] = $dist;
                                 if ($g['group_name']) $kus[] = $g['group_name'];
@@ -509,8 +515,15 @@ async function generateScheduleTime(e) {
                                     <td class="p-3 text-center font-bold text-slate-700">
                                         <span class="bg-emerald-50 text-emerald-700 px-2 py-1 rounded text-xs"><?= (int)($c['total_heats'] ?? 0) ?></span>
                                     </td>
-                                    <td class="p-3 font-bold text-slate-800"><?= htmlspecialchars($c['race_number']) ?></td>
-                                    <td class="p-3 text-blue-600 font-bold uppercase"><?= htmlspecialchars($c['distance_name'] ?? $c['distance']) ?></td>
+                                    <td class="p-3 font-bold text-slate-800">
+                                        <?= htmlspecialchars($c['race_number']) ?>
+                                        <?php if (($c['category_name'] ?? '') === 'EKSEBISI'): ?>
+                                            <span class="ml-2 bg-red-100 text-red-600 px-2 py-0.5 rounded font-black text-[9px] uppercase tracking-widest border border-red-200">Eksebisi</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="p-3 text-blue-600 font-bold uppercase">
+                                        <?= htmlspecialchars($c['distance_name'] ?? $c['distance']) ?>
+                                    </td>
                                     <td class="p-3 font-bold text-slate-700 uppercase"><?= htmlspecialchars($c['group_name'] ?? '-') ?></td>
                                     <td class="p-3 text-xs uppercase font-bold tracking-widest text-slate-500"><?= htmlspecialchars($c['roller_name'] ?? '-') ?></td>
                                     <td class="p-3 text-xs font-bold">
