@@ -584,6 +584,17 @@ class RollEntryController extends Controller {
         $stmtClubs->execute();
         $clubs = $stmtClubs->fetchAll(PDO::FETCH_ASSOC);
 
+        // Get Participating Clubs
+        $stmtPartClubs = $db->prepare("
+            SELECT DISTINCT c.id, c.club_name 
+            FROM roll_clubs c
+            JOIN roll_entries e ON c.id = e.club_id
+            WHERE e.event_id = ?
+            ORDER BY c.club_name ASC
+        ");
+        $stmtPartClubs->execute([$targetEventId]);
+        $participatingClubs = $stmtPartClubs->fetchAll(PDO::FETCH_ASSOC);
+
         // Get Active Classes for this event
         $classes = [];
         if ($event) {
@@ -620,6 +631,7 @@ class RollEntryController extends Controller {
         return $this->view('roll/admin/entries/create', [
             'event'   => $event,
             'clubs'   => $clubs,
+            'participatingClubs' => $participatingClubs,
             'classes' => $classes,
             'targetEventId' => $targetEventId,
             'tokens'  => $tokens,
