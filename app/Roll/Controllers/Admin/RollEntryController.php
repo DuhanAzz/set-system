@@ -751,12 +751,17 @@ class RollEntryController extends Controller {
                 $token = 'T-' . strtoupper(substr(md5(time() . rand()), 0, 6));
                 $manual_invoice_code = 'MAN-TOK-' . $token;
 
-                $stmt = $db->prepare("INSERT INTO roll_event_tokens (event_id, club_id, token_code, manual_invoice_code) VALUES (?, ?, ?, ?)");
-                $stmt->execute([$event_id, $club_id, $token, $manual_invoice_code]);
+                try {
+                    $stmt = $db->prepare("INSERT INTO roll_event_tokens (event_id, club_id, token_code, manual_invoice_code) VALUES (?, ?, ?, ?)");
+                    $stmt->execute([$event_id, $club_id, $token, $manual_invoice_code]);
 
-                $_SESSION['generated_token'] = $token;
-                $_SESSION['flash_message'] = "Token berhasil dibuat!";
-                $_SESSION['flash_type'] = "success";
+                    $_SESSION['generated_token'] = $token;
+                    $_SESSION['flash_message'] = "Token berhasil dibuat!";
+                    $_SESSION['flash_type'] = "success";
+                } catch (\PDOException $e) {
+                    $_SESSION['flash_message'] = "Gagal membuat token: " . $e->getMessage() . ". (Pastikan Anda sudah menjalankan inject_sql.php)";
+                    $_SESSION['flash_type'] = "error";
+                }
             }
         }
         header("Location: " . getenv('APP_URL') . "/roll/admin/entries/manual_add");
