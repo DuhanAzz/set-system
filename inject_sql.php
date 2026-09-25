@@ -196,6 +196,24 @@ try {
     $db->exec("ALTER TABLE roll_event_tokens MODIFY COLUMN manual_invoice_code VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL");
     $db->exec("ALTER TABLE roll_manual_payments MODIFY COLUMN invoice_code VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL");
 
+    // 4. Update roll_event_tokens for advanced status tracking and permissions
+    $tokenCols = [
+        'redeemed_at' => 'TIMESTAMP NULL DEFAULT NULL',
+        'used_at' => 'TIMESTAMP NULL DEFAULT NULL',
+        'allow_individu' => 'TINYINT(1) DEFAULT 1',
+        'allow_team' => 'TINYINT(1) DEFAULT 1'
+    ];
+    
+    foreach ($tokenCols as $colName => $colType) {
+        try {
+            $db->exec("ALTER TABLE roll_event_tokens ADD COLUMN {$colName} {$colType}");
+        } catch (PDOException $e) {
+            if ($e->getCode() !== '42S21') {
+                throw $e;
+            }
+        }
+    }
+
     echo "Migration successful!\n";
 } catch (PDOException $e) {
     echo "Migration failed: " . $e->getMessage() . "\n";

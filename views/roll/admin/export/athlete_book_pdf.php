@@ -70,8 +70,8 @@ $sponsors = !empty($event['sponsor_logos']) ? json_decode($event['sponsor_logos'
         
         /* FOOTER (SPONSOR) */
         .footer-wrapper { padding: 0 10mm 5mm 10mm; }
-        .sponsor-footer { text-align: center; border-top: 2px double #000; padding-top: 10px; width: 100%; margin-top: 20px; }
-        .sponsor-footer img { height: 45px; width: auto; object-fit: contain; margin: 0 10px; }
+        .sponsor-footer { text-align: center; border-top: 1px dashed #ccc; padding-top: 10px; width: 100%; margin-top: 20px; }
+        .sponsor-footer img { height: 35px; width: auto; object-fit: contain; margin: 0 10px; }
         
         /* TABEL STYLE */
         .club-title { font-size: 11pt; font-weight: 900; margin-bottom: 4px; text-transform: uppercase; font-family: 'Arial Narrow', sans-serif; text-decoration: underline; margin-top: 8px; }
@@ -170,9 +170,14 @@ $sponsors = !empty($event['sponsor_logos']) ? json_decode($event['sponsor_logos'
                 <td>
                     <div class="footer-wrapper">
                         <div class="sponsor-footer">
-                            <?php if(!empty($sponsors)): foreach($sponsors as $img): ?>
-                                <img src="<?= getenv('APP_URL') . '/' . ltrim(str_replace('public/', '', $img), '/') ?>">
-                            <?php endforeach; endif; ?>
+                            <?php if(!empty($sponsors)): ?>
+                                <p style="font-size: 8pt; color: #888; margin: 0 0 5px 0; text-transform: uppercase; font-weight: bold; letter-spacing: 2px;">Supported By</p>
+                                <div style="display: flex; flex-wrap: wrap; justify-content: center; align-items: center;">
+                                    <?php foreach($sponsors as $img): ?>
+                                        <img src="<?= getenv('APP_URL') . '/' . ltrim(str_replace('public/', '', $img), '/') ?>" alt="Sponsor">
+                                    <?php endforeach; ?>
+                                </div>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </td>
