@@ -200,7 +200,14 @@
             <input type="hidden" name="event_id" value="<?= $targetEventId ?>">
             
             <div class="max-w-xl mb-6">
-                <h3 class="text-xl font-black uppercase tracking-widest text-emerald-800 italic mb-2">Bypass Pendaftaran</h3>
+                <div class="flex items-center justify-between mb-2">
+                    <h3 class="text-xl font-black uppercase tracking-widest text-emerald-800 italic">Bypass Pendaftaran</h3>
+                    <label class="inline-flex items-center cursor-pointer" title="Buka/Tutup Pendaftaran Jalur Token Global">
+                        <span class="text-[10px] font-black text-emerald-600 uppercase tracking-widest mr-3">Fitur Token:</span>
+                        <input type="checkbox" id="token_global_toggle" value="1" <?= ($event['is_token_open'] ?? 0) ? 'checked' : '' ?> onchange="toggleTokenGlobal(this)" class="sr-only peer">
+                        <div class="relative w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+                    </label>
+                </div>
                 <p class="text-xs text-slate-500 font-bold">Buat token sekali pakai untuk memberikan izin pendaftaran pada klub saat event sudah berstatus "Close Registration". Token ini khusus untuk satu klub saja.</p>
             </div>
 
@@ -791,4 +798,28 @@ window.addEventListener('DOMContentLoaded', function() {
     switchTab('<?= htmlspecialchars($_GET['form']) ?>');
 });
 <?php endif; ?>
+</script>
+
+<script>
+function toggleTokenGlobal(cb) {
+    const isOpen = cb.checked ? 1 : 0;
+    fetch(`<?= getenv('APP_URL') ?>/roll/admin/entries/toggle_token_registration`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `event_id=<?= $targetEventId ?>&is_open=${isOpen}`
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (!data.success) {
+            alert('Gagal mengubah status: ' + (data.message || 'Unknown error'));
+            cb.checked = !cb.checked; // revert
+        }
+    })
+    .catch(err => {
+        alert('Terjadi kesalahan koneksi.');
+        cb.checked = !cb.checked; // revert
+    });
+}
 </script>

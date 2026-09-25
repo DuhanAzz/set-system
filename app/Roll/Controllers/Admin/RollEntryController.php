@@ -19,6 +19,7 @@ class RollEntryController extends Controller {
     public function index() {
         $db = Database::getInstance()->getConnection();
         $targetEventId = $_SESSION['roll_admin_active_event_id'] ?? 0;
+        try { $db->exec("ALTER TABLE roll_events ADD COLUMN is_token_open TINYINT(1) DEFAULT 0"); } catch (\Exception $e) {}
 
         if ($targetEventId == 0) {
             $_SESSION['flash_message'] = "Pilih Event terlebih dahulu!";
@@ -351,6 +352,7 @@ class RollEntryController extends Controller {
 
         $db = Database::getInstance()->getConnection();
         $targetEventId = $_SESSION['roll_admin_active_event_id'] ?? 0;
+        try { $db->exec("ALTER TABLE roll_events ADD COLUMN is_token_open TINYINT(1) DEFAULT 0"); } catch (\Exception $e) {}
 
         if ($targetEventId == 0) {
             $_SESSION['flash_message'] = "Pilih Event terlebih dahulu!";
@@ -684,6 +686,7 @@ class RollEntryController extends Controller {
 
             $db = \App\Core\Database::getInstance()->getConnection();
             $targetEventId = $_SESSION['roll_admin_active_event_id'] ?? 0;
+        try { $db->exec("ALTER TABLE roll_events ADD COLUMN is_token_open TINYINT(1) DEFAULT 0"); } catch (\Exception $e) {}
 
             // Ambil daftar invoice manual
             $stmt = $db->prepare("
@@ -813,6 +816,37 @@ class RollEntryController extends Controller {
             }
         }
         header("Location: " . getenv('APP_URL') . "/roll/admin/entries/manual_add?form=token");
+        exit;
+    }
+
+
+    public function toggle_token_registration() {
+        if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+            echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            exit;
+        }
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['success' => false, 'message' => 'Invalid method']);
+            exit;
+        }
+
+        $eventId = (int)($_POST['event_id'] ?? 0);
+        $isOpen = (int)($_POST['is_open'] ?? 0);
+
+        if (!$eventId) {
+            echo json_encode(['success' => false, 'message' => 'Event ID required']);
+            exit;
+        }
+
+        $db = \App\Core\Database::getInstance()->getConnection();
+        $stmt = $db->prepare("UPDATE roll_events SET is_token_open = ? WHERE id = ?");
+        
+        if ($stmt->execute([$isOpen, $eventId])) {
+            echo json_encode(['success' => true]);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Database error']);
+        }
         exit;
     }
 }

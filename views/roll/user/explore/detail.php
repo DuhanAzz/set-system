@@ -25,22 +25,21 @@
                     </div>
                 </div>
 
-                <div class="mt-8 pt-6 border-t border-slate-100 flex flex-col gap-3">
+                                <div class="mt-8 pt-6 border-t border-slate-100 flex flex-col md:flex-row gap-3">
                     <?php if(($event['status'] ?? '') === 'Open Registration'): ?>
-                        <a href="<?= getenv('APP_URL') ?>/roll/user/registration/index/<?= $event['id'] ?>" class="bg-blue-600 hover:bg-blue-700 text-white font-black uppercase text-sm px-10 py-4 rounded-xl shadow-xl shadow-blue-200 hover:shadow-blue-300 hover:-translate-y-1 transition duration-300 inline-block text-center w-max">
+                        <a href="<?= getenv('APP_URL') ?>/roll/user/registration/index/<?= $event['id'] ?>" class="bg-blue-600 hover:bg-blue-700 text-white font-black uppercase text-sm px-10 py-4 rounded-xl shadow-xl shadow-blue-200 hover:shadow-blue-300 hover:-translate-y-1 transition duration-300 flex-1 text-center">
                             Mulai Pendaftaran Tim 🚀
                         </a>
                     <?php else: ?>
-                        <a href="<?= getenv('APP_URL') ?>/roll/user/registration/index/<?= $event['id'] ?>" class="bg-slate-600 hover:bg-slate-700 text-white font-black uppercase text-sm px-10 py-4 rounded-xl shadow-xl hover:-translate-y-1 transition duration-300 inline-block text-center w-max">
+                        <a href="<?= getenv('APP_URL') ?>/roll/user/registration/index/<?= $event['id'] ?>" class="bg-slate-600 hover:bg-slate-700 text-white font-black uppercase text-sm px-10 py-4 rounded-xl shadow-xl hover:-translate-y-1 transition duration-300 flex-1 text-center">
                             <?= ($event['status'] ?? '') === 'Published' ? 'Pendaftaran Segera Dibuka ⏳' : 'Pendaftaran Ditutup - Lihat Tim 🔒' ?>
                         </a>
-                        <?php if(($event['status'] ?? '') !== 'Published'): ?>
-                        <div class="mt-2">
-                            <a href="<?= getenv('APP_URL') ?>/roll/user/token/exchange/<?= $event['id'] ?>" class="text-xs font-black text-slate-400 hover:text-emerald-600 transition uppercase tracking-widest flex items-center gap-1">
-                                🔑 Jalur Token di sini
-                            </a>
-                        </div>
-                        <?php endif; ?>
+                    <?php endif; ?>
+
+                    <?php if(($event['is_token_open'] ?? 0) == 1): ?>
+                        <a href="<?= getenv('APP_URL') ?>/roll/user/token/exchange/<?= $event['id'] ?>" class="bg-emerald-600 hover:bg-emerald-700 text-white font-black uppercase text-sm px-10 py-4 rounded-xl shadow-xl shadow-emerald-200 hover:shadow-emerald-300 hover:-translate-y-1 transition duration-300 flex-1 text-center">
+                            Daftar Lewat Token 🔑
+                        </a>
                     <?php endif; ?>
                 </div>
             </div>
