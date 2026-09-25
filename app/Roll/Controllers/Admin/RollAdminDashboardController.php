@@ -226,7 +226,7 @@ class RollAdminDashboardController extends Controller {
                     c.id, 
                     c.club_name, 
                     MAX(u.phone) as phone,
-                    MAX(u.fullname) as pic_name,
+                    MAX(u.nama_lengkap) as pic_name,
                     COUNT(DISTINCT s.id) as total_athletes,
                     COUNT(e.id) as total_entries,
                     SUM(CASE WHEN pay_club.status = 'Paid' OR pay_man.status = 'Paid' THEN 1 ELSE 0 END) as verified_entries
@@ -282,7 +282,7 @@ class RollAdminDashboardController extends Controller {
                     c.id, 
                     c.club_name, 
                     MAX(u.phone) as phone,
-                    MAX(u.fullname) as pic_name,
+                    MAX(u.nama_lengkap) as pic_name,
                     COUNT(DISTINCT s.id) as total_athletes,
                     COUNT(e.id) as total_entries,
                     SUM(CASE WHEN pay_club.status = 'Paid' OR pay_man.status = 'Paid' THEN 1 ELSE 0 END) as verified_entries
