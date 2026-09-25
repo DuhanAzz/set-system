@@ -191,6 +191,11 @@ try {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     ");
     
+    // 3. Fix Collation for invoice code columns to prevent "Illegal mix of collations"
+    $db->exec("ALTER TABLE roll_entries MODIFY COLUMN manual_invoice_code VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL");
+    $db->exec("ALTER TABLE roll_event_tokens MODIFY COLUMN manual_invoice_code VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL");
+    $db->exec("ALTER TABLE roll_manual_payments MODIFY COLUMN invoice_code VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL");
+
     echo "Migration successful!\n";
 } catch (PDOException $e) {
     echo "Migration failed: " . $e->getMessage() . "\n";
