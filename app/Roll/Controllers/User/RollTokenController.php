@@ -58,6 +58,10 @@ class RollTokenController extends Controller {
 
         if ($tokenData) {
             // Token is valid and unused for this club!
+            // Update redeemed_at to mark it as 'Sedang Digunakan'
+            $stmtUpdate = $db->prepare("UPDATE roll_event_tokens SET redeemed_at = NOW() WHERE id = ? AND redeemed_at IS NULL");
+            $stmtUpdate->execute([$tokenData['id']]);
+
             $_SESSION['active_token_' . $event_id] = $tokenData['token_code'];
             $_SESSION['active_manual_invoice_' . $event_id] = $tokenData['manual_invoice_code'];
             

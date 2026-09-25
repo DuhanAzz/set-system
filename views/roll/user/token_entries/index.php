@@ -31,8 +31,16 @@
                 <a href="<?= getenv('APP_URL') ?>/roll/user/token_checkout/detail/<?= $event['id'] ?>" class="bg-slate-900 text-white px-6 py-3 rounded-xl font-black text-xs shadow-lg hover:bg-blue-600 transition">LIHAT STATUS BAYAR</a>
             <?php else: ?>
                 <div class="flex flex-col md:flex-row gap-2">
-                    <button onclick="document.getElementById('modal-entry').classList.remove('hidden')" class="bg-blue-600 text-white px-4 py-3 rounded-xl font-black text-xs shadow-lg hover:bg-blue-700 transition">+ DAFTAR INDIVIDU</button>
-                    <button onclick="document.getElementById('modal-relay').classList.remove('hidden')" class="bg-indigo-600 text-white px-4 py-3 rounded-xl font-black text-xs shadow-lg hover:bg-indigo-700 transition">+ DAFTAR RELAY</button>
+                    <?php if ($allow_individu): ?>
+                        <button onclick="switchTab('individu')" id="tab_btn_individu" class="px-6 py-3 bg-white text-slate-500 border border-slate-200 rounded-xl font-black text-xs hover:bg-slate-50 transition uppercase tracking-widest">
+                            + DAFTAR INDIVIDU
+                        </button>
+                    <?php endif; ?>
+                    <?php if ($allow_team): ?>
+                        <button onclick="switchTab('team')" id="tab_btn_team" class="px-6 py-3 bg-white text-slate-500 border border-slate-200 rounded-xl font-black text-xs hover:bg-slate-50 transition uppercase tracking-widest">
+                            + DAFTAR TIM / RELAY
+                        </button>
+                    <?php endif; ?>
                 </div>
                 <?php if (!empty($existingEntries)): ?>
                     <a href="<?= getenv('APP_URL') ?>/roll/user/token_checkout/detail/<?= $event['id'] ?>" class="bg-emerald-600 text-white px-6 py-3 rounded-xl font-black text-xs shadow-lg hover:bg-emerald-700 transition">SELESAI / BAYAR ➜</a>
@@ -307,360 +315,156 @@
 
     <?php endif; ?>
 </div>
+<!-- FORM INDIVIDU -->
+    <div id="form_individu" class="bg-white rounded-[2.5rem] shadow-sm border border-slate-200 p-8">
+        <form action="<?= getenv('APP_URL') ?>/roll/user/token_registration/addEntry" method="POST">
+            <input type="hidden" name="entry_type" value="individu">
+            <input type="hidden" name="event_id" value="<?= $event["id"] ?>">
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <!-- Kiri: Pilih Klub & Atlet -->
+                <div class="space-y-4">
+                    <h3 class="text-sm font-black uppercase tracking-widest text-slate-800 border-b border-slate-100 pb-2">Data Atlet</h3>
+                    
+                    <div>
+                        <input type="hidden" name="club_id" value="<?= $club_id ?>">
+                    </div>
 
-<!-- Modal Pendaftaran Atlet -->
-<div id="modal-entry" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
-    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col max-h-[90vh]">
-        <div class="bg-slate-900 p-6 text-white flex justify-between items-center">
-            <div>
-                <h2 class="text-xl font-black italic uppercase tracking-tighter" id="modal_skater_name">PILIH ATLET</h2>
-                <p class="text-[10px] font-bold text-blue-400 uppercase mt-1">PILIH KELAS LOMBA</p>
-            </div>
-            <button onclick="closeModal()" class="text-3xl hover:text-red-400 transition-colors">&times;</button>
-        </div>
-        
-        <form action="<?= getenv('APP_URL') ?>/roll/user/token_registration/addEntry" method="POST" class="flex flex-col flex-1 overflow-hidden">
-            <input type="hidden" name="event_id" value="<?= htmlspecialchars($event['id'] ?? '') ?>">
-            <input type="hidden" name="skater_id" id="modal_skater_id">
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Pilih Atlet <span class="text-red-500">*</span></label>
+                        <select name="skater_id" id="indv_skater_select" onchange="onSkaterSelect(this)" required disabled class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
+                            <option value="">-- Pilih Atlet --</option>
+                        </select>
+                        <div id="indv_athlete_info" class="mt-2 text-[10px] text-blue-600 font-bold hidden bg-blue-50 px-3 py-2 rounded-lg border border-blue-100">
+                            Lahir: <span id="indv_skater_dob"></span> | Umur: <span id="indv_skater_age"></span> Thn | Gender: <span id="indv_skater_gender"></span>
+                        </div>
+                    </div>
+                </div>
 
-            <!-- Pilih Atlet -->
-            <div class="p-4 border-b border-slate-100 bg-slate-50">
-                <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Pilih Atlet</label>
-                <select name="skater_id" id="skater_select" onchange="onSkaterChange(this)" required class="w-full text-xs font-bold bg-white border border-slate-300 rounded-xl px-4 py-3 text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none">
-                    <option value="">- Pilih Atlet -</option>
-                    <?php foreach($athletes as $a): ?>
-                        <option value="<?= $a['id'] ?>" data-dob="<?= $a['birth_date'] ?>" data-gender="<?= $a['gender'] ?>"><?= htmlspecialchars($a['skater_name']) ?> (<?= $a['gender'] === 'M' ? 'Putra' : 'Putri' ?>)</option>
-                    <?php endforeach; ?>
-                </select>
-                <div id="athlete_info" class="mt-2 text-[10px] text-slate-400 font-bold hidden">Lahir: <span id="modal_skater_dob"></span></div>
-            </div>
-
-            <div class="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50">
-                <div class="mb-4">
-                    <label class="block text-[10px] font-bold text-slate-700 mb-1.5 uppercase tracking-widest">Pilih Kategori Atlet <span class="text-red-500">*</span></label>
-                    <select id="skate_category_select" required class="w-full text-xs font-bold bg-white border border-slate-300 rounded-xl px-4 py-3 text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none transition-shadow" onchange="filterClasses()">
-                        <option value="">- Pilih Kategori Atlet -</option>
-                        <?php 
-                        $skateCats = [];
-                        foreach($classes as $c) {
-                            if(!isset($skateCats[$c['class_cat_id']])) {
-                                $skateCats[$c['class_cat_id']] = $c['class_name'];
+                <!-- Kanan: Pilih Nomor Lomba -->
+                <div class="space-y-4">
+                    <h3 class="text-sm font-black uppercase tracking-widest text-slate-800 border-b border-slate-100 pb-2">Nomor Lomba</h3>
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Pilih Kategori <span class="text-red-500">*</span></label>
+                        <select id="indv_cat_select" onchange="filterIndvClasses()" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
+                            <option value="">-- Pilih Kategori --</option>
+                            <?php 
+                            $skateCats = [];
+                            foreach($classes as $c) {
+                                if(!isset($skateCats[$c['class_cat_id']])) {
+                                    $skateCats[$c['class_cat_id']] = $c['class_name'];
+                                }
                             }
-                        }
-                        foreach($skateCats as $catId => $catName): ?>
-                            <option value="<?= $catId ?>" data-original-name="<?= htmlspecialchars($catName) ?>"><?= htmlspecialchars($catName) ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-
-                <div class="mb-4">
-                    <label class="block text-[10px] font-bold text-slate-700 mb-1.5 uppercase tracking-widest">Pilih Nomor Lomba <span id="max_indv_label" class="text-blue-600"></span> <span class="text-red-500">*</span></label>
-                    <div id="race_class_checkboxes" class="space-y-2 bg-white border border-slate-300 rounded-xl p-3 text-slate-800 max-h-48 overflow-y-auto">
-                        <div class="text-xs text-slate-400 italic text-center p-2">- Pilih Kategori Terlebih Dahulu -</div>
+                            foreach($skateCats as $catId => $catName): ?>
+                                <option value="<?= $catId ?>"><?= htmlspecialchars($catName) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Pilih Nomor Lomba <span class="text-red-500">*</span></label>
+                        <div id="indv_class_container" class="space-y-2 bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 max-h-48 overflow-y-auto">
+                            <div class="text-xs text-slate-400 italic text-center p-2">- Pilih Kategori Terlebih Dahulu -</div>
+                        </div>
                     </div>
                 </div>
-
-                <div id="validation_alert" class="hidden p-4 rounded-xl text-xs border font-bold mt-4 shadow-sm text-center"></div>
             </div>
 
-            <div class="p-4 bg-white border-t shadow-inner">
-                <button type="submit" id="btn_submit_entry" disabled class="w-full bg-slate-300 text-white py-3 rounded-xl font-black text-xs shadow-md transition-all uppercase tracking-widest cursor-not-allowed">
-                    + DAFTARKAN
+            <div class="pt-6 border-t border-slate-100 flex justify-end">
+                <button type="submit" id="btn_submit_indv" disabled class="px-8 py-3 bg-slate-300 text-white rounded-xl font-black uppercase tracking-widest text-xs transition cursor-not-allowed">
+                    Simpan Individu
                 </button>
             </div>
         </form>
     </div>
-</div>
 
-<div id="modal-relay" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm hidden">
-    <div class="bg-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden border border-slate-200">
-        <div class="bg-indigo-600 p-5 flex justify-between items-center relative overflow-hidden">
-            <h3 class="text-white font-black uppercase italic tracking-widest relative z-10">Daftar Team</h3>
-            <button onclick="document.getElementById('modal-relay').classList.add('hidden')" class="text-white hover:text-indigo-200 relative z-10">&times;</button>
-        </div>
-        <form action="<?= getenv('APP_URL') ?>/roll/user/token_registration/addEntry" method="POST" class="flex flex-col max-h-[80vh]">
-            <input type="hidden" name="event_id" value="<?= $event['id'] ?>">
-            <div class="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50">
-                <div class="mb-4">
-                    <label class="block text-[10px] font-bold text-slate-700 mb-1.5 uppercase tracking-widest">Masukan Nama Tim <span class="text-red-500">*</span></label>
-                    <input type="text" name="team_name" required placeholder="- Teks Nama -" class="w-full text-xs font-bold bg-white border border-slate-300 rounded-xl px-4 py-3 text-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none transition-shadow">
-                </div>
-                <div class="mb-4">
-                    <label class="block text-[10px] font-bold text-slate-700 mb-1.5 uppercase tracking-widest">Pilih Kategori Atlet <span class="text-red-500">*</span></label>
-                    <select id="relay_cat_select" required class="w-full text-xs font-bold bg-white border border-slate-300 rounded-xl px-4 py-3 text-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none transition-shadow" onchange="filterRelayKU()">
-                        <option value="">- Pilih Kategori Atlet -</option>
-                        <?php foreach($skateCats as $catId => $catName): ?>
-                            <option value="<?= $catId ?>"><?= htmlspecialchars($catName) ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                <div class="mb-4">
-                    <label class="block text-[10px] font-bold text-slate-700 mb-1.5 uppercase tracking-widest">Pilih Kelompok Umur <span class="text-red-500">*</span></label>
-                    <select id="relay_ku_select" required class="w-full text-xs font-bold bg-white border border-slate-300 rounded-xl px-4 py-3 text-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none transition-shadow" onchange="filterRelayClasses()">
-                        <option value="">- Pilih Kelompok Umur -</option>
-                    </select>
-                </div>
-                <div class="mb-4">
-                    <label class="block text-[10px] font-bold text-slate-700 mb-1.5 uppercase tracking-widest">Nomor Lomba Team <span class="text-red-500">*</span></label>
-                    <select name="race_class_id[]" id="relay_class_select" required class="w-full text-xs font-bold bg-white border border-slate-300 rounded-xl px-4 py-3 text-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none transition-shadow" onchange="filterRelayAthletes()">
-                        <option value="">- Pilih Nomor Lomba -</option>
-                    </select>
-                </div>
-                <div class="mb-4">
-                    <label id="lbl_pilih_atlet" class="block text-[10px] font-bold text-slate-700 mb-1.5 uppercase tracking-widest">Pilih Atlet <span class="text-red-500">*</span></label>
+    <!-- FORM TIM / RELAY -->
+    <div id="form_team" class="bg-white rounded-[2.5rem] shadow-sm border border-slate-200 p-8 hidden">
+        <form action="<?= getenv('APP_URL') ?>/roll/user/token_registration/addEntry" method="POST">
+            <input type="hidden" name="entry_type" value="team">
+            <input type="hidden" name="event_id" value="<?= $event["id"] ?>">
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-6">
+                <!-- Kiri: Info Tim & Kelas Lomba -->
+                <div class="space-y-4">
+                    <h3 class="text-sm font-black uppercase tracking-widest text-slate-800 border-b border-slate-100 pb-2">Identitas Tim</h3>
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Nama Tim <span class="text-red-500">*</span></label>
+                        <input type="text" name="team_name" required placeholder="- Masukkan Nama Tim -" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                    </div>
                     
-                    <select id="relay_athlete_dropdown" disabled class="w-full text-xs font-bold bg-white border border-slate-300 rounded-xl px-4 py-3 text-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none transition-shadow mb-2" onchange="addRelayAthlete()">
-                        <option value="">- Pilih Atlet -</option>
-                        <?php foreach($athletes as $a): 
-                            $aAge = \App\Helpers\DateHelper::calculateAge($a['birth_date'], $event['event_date_start']);
-                        ?>
-                            <option value="<?= $a['id'] ?>" class="relay-athlete-option hidden" data-age="<?= $aAge ?>" data-gender="<?= $a['gender'] ?>" data-name="<?= htmlspecialchars($a['skater_name']) ?>"><?= htmlspecialchars($a['skater_name']) ?> (<?= $aAge ?> Thn - <?= $a['gender'] === 'M' ? 'Putra' : 'Putri' ?>)</option>
-                        <?php endforeach; ?>
-                    </select>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Kategori <span class="text-red-500">*</span></label>
+                            <select id="team_cat_select" onchange="filterTeamKU()" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                                <option value="">- Kategori -</option>
+                                <?php foreach($skateCats as $catId => $catName): ?>
+                                    <option value="<?= $catId ?>"><?= htmlspecialchars($catName) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Kelompok Umur <span class="text-red-500">*</span></label>
+                            <select id="team_ku_select" onchange="filterTeamClasses()" required disabled class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                                <option value="">- Pilih KU -</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Nomor Lomba Relay <span class="text-red-500">*</span></label>
+                        <select name="race_class_id[]" id="team_class_select" onchange="updateTeamGenderRule()" required disabled class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                            <option value="">- Pilih Nomor Lomba -</option>
+                        </select>
+                        <div id="team_class_info" class="mt-2 text-[10px] text-indigo-600 font-bold hidden bg-indigo-50 px-3 py-2 rounded-lg border border-indigo-100">
+                            Gender yang diizinkan: <span id="team_rule_gender"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Kanan: Anggota Tim (Mix-Club Support) -->
+                <div class="space-y-4">
+                    <h3 class="text-sm font-black uppercase tracking-widest text-slate-800 border-b border-slate-100 pb-2">Anggota Tim (Mendukung Mix-Club)</h3>
+                    <p class="text-[9px] font-bold text-slate-400 uppercase">Pilih anggota tim dari klub Anda.</p>
                     
-                    <p id="relay_no_athlete" class="text-xs font-bold text-red-500 italic hidden p-2">Tidak ada atlet yang memenuhi syarat</p>
-                    
-                    <div id="relay_selected_list" class="space-y-2 mt-3">
-                        <!-- List Atlet Terpilih -->
+                    <div id="team_members_container" class="space-y-4">
+                        <?php for($i=1; $i<=4; $i++): ?>
+                        <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 relative team-slot">
+                            <span class="absolute -left-2 -top-2 w-5 h-5 bg-indigo-600 text-white rounded-full flex items-center justify-center text-[10px] font-black"><?= $i ?></span>
+                            
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <input type="hidden" id="team_club_select_<?= $i ?>" name="team_club_id_<?= $i ?>" value="<?= $club_id ?>">
+                                </div>
+                                <div>
+                                    <select name="skater_id[]" id="team_skater_select_<?= $i ?>" onchange="validateTeamMembers()" disabled <?= $i <= 2 ? 'required' : '' ?> class="team-skater-select w-full px-2 py-2 bg-white border border-slate-200 rounded-lg text-[10px] font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition disabled:opacity-50">
+                                        <option value="">- Pilih Atlet -</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <?php if($i > 2): ?>
+                                <div id="team_req_label_<?= $i ?>" class="text-[9px] text-slate-400 mt-1 italic text-right">Opsional</div>
+                            <?php else: ?>
+                                <div id="team_req_label_<?= $i ?>" class="text-[9px] text-red-400 mt-1 italic text-right">Wajib Diisi</div>
+                            <?php endif; ?>
+                        </div>
+                        <?php endfor; ?>
                     </div>
                 </div>
             </div>
-            <div class="p-4 bg-white border-t shadow-inner">
-                <button type="submit" id="btn_submit_relay" disabled class="w-full bg-slate-300 text-white py-3 rounded-xl font-black text-xs shadow-md transition-all uppercase tracking-widest cursor-not-allowed">
-                    + DAFTARKAN TEAM
+
+            <div class="pt-6 border-t border-slate-100 flex justify-end">
+                <button type="submit" id="btn_submit_team" disabled class="px-8 py-3 bg-slate-300 text-white rounded-xl font-black uppercase tracking-widest text-xs transition cursor-not-allowed">
+                    Simpan Tim / Relay
                 </button>
             </div>
         </form>
     </div>
-</div>
+    </div>
 
-<script>
+    <!-- FORM BUAT TOKEN JALUR KHUSUS -->
+    <script>
 const eventYear = parseInt('<?= date('Y', strtotime($event['event_date_start'])) ?>');
 const allClasses = <?= json_encode($classes) ?>;
-const existingEntriesData = <?= json_encode($existingEntries) ?>;
-const maxTeamRaces = <?= (int)($event['max_team_races'] ?? 99) ?>;
-const allowPemulaStandarMix = <?= !empty($event['allow_pemula_standart_mix']) ? 'true' : 'false' ?>;
-let currentTeamSize = 3;
-
-function closeModal() { document.getElementById('modal-entry').classList.add('hidden'); }
-
-function onSkaterChange(sel) {
-    const opt = sel.options[sel.selectedIndex];
-    if (opt.value) {
-        document.getElementById('modal_skater_dob').innerText = opt.dataset.dob;
-        // Hitung umur
-        const dobYear = parseInt(opt.dataset.dob.split('-')[0]);
-        const age = eventYear - dobYear;
-        // Simpan age di element biar bisa diakses filterClasses
-        sel.dataset.age = age;
-        sel.dataset.gender = opt.dataset.gender; // Perlu untuk filter Putra/Putri
-        document.getElementById('athlete_info').classList.remove('hidden');
-    } else {
-        document.getElementById('athlete_info').classList.add('hidden');
-        sel.dataset.age = '';
-        sel.dataset.gender = '';
-    }
-    // update hidden skater_id
-    document.getElementById('modal_skater_id').value = opt.value;
-    
-    const catSelect = document.getElementById('skate_category_select');
-    
-    if (opt.value) {
-        const age = parseInt(sel.dataset.age);
-        const gender = sel.dataset.gender;
-        
-        // Filter category dropdown
-        for (let i = 1; i < catSelect.options.length; i++) {
-            const catOption = catSelect.options[i];
-            const catId = catOption.value;
-            
-            let hasValidClass = false;
-            let matchingKU = "";
-            
-            for (const c of allClasses) {
-                const distanceName = (c.distance_name || '').toLowerCase();
-                if (distanceName.includes('relay') || distanceName.includes('team') || distanceName.includes('pair')) continue;
-                
-                if (c.class_cat_id == catId) {
-                    if (age >= parseInt(c.min_year) && age <= parseInt(c.max_year)) {
-                        const catGender = (c.gender || '').toLowerCase();
-                        if ((catGender === 'putra' && gender === 'M') || (catGender === 'putri' && gender === 'F') || catGender === 'campuran') {
-                            hasValidClass = true;
-                            matchingKU = c.group_name;
-                            break;
-                        }
-                    }
-                }
-            }
-            
-            if (hasValidClass) {
-                catOption.style.display = '';
-                catOption.innerText = catOption.dataset.originalName + ' (' + matchingKU + ')';
-            } else {
-                catOption.style.display = 'none';
-                catOption.innerText = catOption.dataset.originalName;
-            }
-        }
-    } else {
-        // Reset category dropdown
-        for (let i = 1; i < catSelect.options.length; i++) {
-            catSelect.options[i].style.display = '';
-            catSelect.options[i].innerText = catSelect.options[i].dataset.originalName;
-        }
-    }
-    
-    // Reset dependant dropdowns
-    catSelect.value = '';
-    
-    filterClasses();
-}
-
-const limits = {
-    speed: <?= (int)($event['limit_speed_ind'] ?? 2) ?>,
-    standar: <?= (int)($event['limit_std_ind'] ?? 2) ?>,
-    pemula: <?= (int)($event['limit_pemula_ind'] ?? 2) ?>
-};
-let maxIndv = 99;
-
-function filterClasses() {
-    const skaterSelect = document.getElementById('skater_select');
-    const skaterId = skaterSelect.value;
-    const catSelect = document.getElementById('skate_category_select');
-    const catId = catSelect.value;
-    const classContainer = document.getElementById('race_class_checkboxes');
-    
-    // Reset options
-    classContainer.innerHTML = '<div class="text-xs text-slate-400 italic text-center p-2">- Pilih Kategori Terlebih Dahulu -</div>';
-    
-    document.getElementById('validation_alert').classList.add('hidden');
-    const btn = document.getElementById('btn_submit_entry');
-    btn.disabled = true;
-    btn.className = 'w-full bg-slate-300 text-white py-3 rounded-xl font-black text-xs shadow-md transition-all uppercase tracking-widest cursor-not-allowed';
-
-    if (!skaterId || !catId) return;
-
-    const age = parseInt(skaterSelect.dataset.age);
-    const gender = skaterSelect.dataset.gender;
-    
-    // Check if skater is already locked to a category group
-    let eGroup = '';
-    const existing = existingEntriesData.find(e => e.skater_id == skaterId && e.skate_class);
-    if (existing) {
-        const eCatStr = (existing.skate_class || '').toLowerCase();
-        if (eCatStr.includes('speed')) eGroup = 'speed';
-        else if (eCatStr.includes('standar')) eGroup = 'standar';
-        else if (eCatStr.includes('pemula')) eGroup = 'pemula';
-    }
-    
-    // Determine category text to set limit
-    let targetGroupForLimit = '';
-    const catNameText = catSelect.options[catSelect.selectedIndex].text.toLowerCase();
-    if (catNameText.includes('speed')) { targetGroupForLimit = 'speed'; maxIndv = limits.speed; }
-    else if (catNameText.includes('standar')) { targetGroupForLimit = 'standar'; maxIndv = limits.standar; }
-    else if (catNameText.includes('pemula')) { targetGroupForLimit = 'pemula'; maxIndv = limits.pemula; }
-    else { maxIndv = 99; }
-    
-    document.getElementById('max_indv_label').innerText = maxIndv !== 99 ? '(Max ' + maxIndv + ')' : '';
-
-    // Filter classes
-    let validCount = 0;
-    classContainer.innerHTML = '';
-    
-    allClasses.forEach(c => {
-        // Exclude team races from individual registration
-        const distanceName = (c.distance_name || '').toLowerCase();
-        if (distanceName.includes('relay') || distanceName.includes('team') || distanceName.includes('pair')) return;
-
-        // Enforce category locking
-        let targetGroup = '';
-        const tCatStr = (c.class_name || '').toLowerCase();
-        if (tCatStr.includes('speed')) targetGroup = 'speed';
-        else if (tCatStr.includes('standar')) targetGroup = 'standar';
-        else if (tCatStr.includes('pemula')) targetGroup = 'pemula';
-
-        if (eGroup && targetGroup && eGroup !== targetGroup) {
-            if (allowPemulaStandarMix) {
-                const isMixable = (eGroup === 'pemula' || eGroup === 'standar') && (targetGroup === 'pemula' || targetGroup === 'standar');
-                if (!isMixable) return;
-            } else {
-                return;
-            }
-        }
-
-        if (c.class_cat_id == catId) {
-            // Check age group
-            if (age >= parseInt(c.min_year) && age <= parseInt(c.max_year)) {
-                // Check gender
-                const catGender = (c.gender || '').toLowerCase();
-                if ((catGender === 'putra' && gender === 'M') || (catGender === 'putri' && gender === 'F') || catGender === 'campuran') {
-                    // Deteksi kelas Wajib (Mandatory)
-                    const isMandatory = c.race_number && c.race_number.includes('*');
-                    const displayRaceNumber = c.race_number ? c.race_number.replace('*', '') + ' - ' : '';
-                    let labelText = displayRaceNumber + c.distance_name;
-                    
-                    if (isMandatory) {
-                        labelText += ' <span class="text-red-500 font-bold ml-1 text-[9px] bg-red-50 px-1 py-0.5 rounded uppercase tracking-wider" title="Wajib Diikuti">Wajib</span>';
-                    }
-                    
-                    const label = document.createElement('label');
-                    label.className = `flex items-center gap-3 p-2 rounded cursor-pointer transition-colors border border-transparent ${isMandatory ? 'bg-red-50/30' : 'hover:bg-slate-50 hover:border-slate-200'}`;
-                    label.innerHTML = `
-                        <input type="checkbox" name="race_class_id[]" value="${c.id}" class="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 individual-race-cb" onchange="checkIndividualLimits(this)" ${isMandatory ? 'checked onclick="return false;"' : ''}>
-                        <span class="text-xs font-bold text-slate-700 uppercase ${isMandatory ? 'opacity-80' : ''}">${labelText}</span>
-                    `;
-                    classContainer.appendChild(label);
-                    validCount++;
-                }
-            }
-        }
-    });
-    
-    if (validCount === 0) {
-        classContainer.innerHTML = '<div class="text-xs text-slate-400 italic text-center p-2">- Tidak ada nomor lomba yang sesuai umur atlet -</div>';
-    } else {
-        // Jalankan pengecekan limit awal untuk memvalidasi mandatory checks
-        checkIndividualLimits(null);
-    }
-}
-
-function checkIndividualLimits(checkbox) {
-    const checkboxes = document.querySelectorAll('.individual-race-cb');
-    const checked = document.querySelectorAll('.individual-race-cb:checked');
-    const btn = document.getElementById('btn_submit_entry');
-    const alertBox = document.getElementById('validation_alert');
-    
-    if (checked.length > maxIndv) {
-        if (checkbox) checkbox.checked = false;
-        return;
-    }
-    
-    if (checked.length >= maxIndv) {
-        checkboxes.forEach(cb => {
-            if (!cb.checked) cb.disabled = true;
-        });
-    } else {
-        checkboxes.forEach(cb => {
-            // Re-enable checkboxes, unless they are checked mandatory ones (which have an onclick return false, but we can just leave them enabled so they submit)
-            cb.disabled = false;
-        });
-    }
-    
-    if (checked.length > 0) {
-        btn.disabled = false;
-        btn.className = 'w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-black text-xs shadow-lg shadow-blue-200 transition-all uppercase tracking-widest cursor-pointer';
-        
-        let selectedNames = Array.from(checked).map(cb => '✅ ' + cb.nextElementSibling.innerHTML).join('<br>');
-        alertBox.innerHTML = `<div class="text-emerald-600 bg-emerald-50 text-left p-3 rounded-lg"><div class="text-[10px] uppercase tracking-widest mb-1 opacity-50">Nomor Terpilih:</div>${selectedNames}</div>`;
-        alertBox.classList.remove('hidden', 'text-red-600', 'bg-red-50', 'border-red-200');
-        alertBox.classList.add('text-emerald-600', 'bg-emerald-50', 'border-emerald-200');
-    } else {
-        btn.disabled = true;
-        btn.className = 'w-full bg-slate-300 text-white py-3 rounded-xl font-black text-xs shadow-md transition-all uppercase tracking-widest cursor-not-allowed';
-        alertBox.classList.add('hidden');
-    }
-}
-
-// =================== RELAY LOGIC ===================
 const ageGroups = <?php
     $agList = [];
     foreach($classes as $c) {
@@ -668,33 +472,328 @@ const ageGroups = <?php
             $agList[$c['age_group_id']] = [
                 'id' => $c['age_group_id'], 
                 'name' => $c['group_name'],
-                'min' => $c['min_year'],
-                'max' => $c['max_year']
+                'min' => $c['min_year'] ?? 0,
+                'max' => $c['max_year'] ?? 99
             ];
         }
     }
     echo json_encode(array_values($agList));
 ?>;
 
-function filterRelayKU() {
-    const catId = document.getElementById('relay_cat_select').value;
-    const kuSelect = document.getElementById('relay_ku_select');
-    kuSelect.innerHTML = '<option value="">- Pilih Kelompok Umur -</option>';
-    document.getElementById('relay_class_select').innerHTML = '<option value="">- Pilih Nomor Lomba -</option>';
-    
-    const athleteDropdown = document.getElementById('relay_athlete_dropdown');
-    athleteDropdown.value = '';
-    athleteDropdown.disabled = true;
 
-    document.getElementById('relay_selected_list').innerHTML = '';
+const myAthletes = <?= json_encode($athletes) ?>;
+const myClubId = <?= $club_id ?>;
+
+function populateAthleteSelect(selectId) {
+    const select = document.getElementById(selectId);
+    if (!select) return;
+    select.innerHTML = "<option value=\"\">- Pilih Atlet -</option>";
+    myAthletes.forEach(a => {
+        select.innerHTML += `<option value="${a.id}" data-dob="${a.birth_date}" data-gender="${a.gender}">${a.skater_name} (${a.gender === "M" ? "Putra" : "Putri"})</option>`;
+    });
+    select.disabled = false;
+}
+
+window.addEventListener("DOMContentLoaded", function() {
+    populateAthleteSelect("indv_skater_select");
+    for(let i=1; i<=4; i++) {
+        populateAthleteSelect("team_skater_select_" + i);
+    }
+});
+
+let athletesCache = {}; // { club_id: [ athletes array ] }
+
+function switchTab(tab) {
+    document.getElementById('form_individu').classList.add('hidden');
+    document.getElementById('form_team').classList.add('hidden');
+    document.getElementById('form_token').classList.add('hidden');
     
-    // Reset options visibility
-    document.querySelectorAll('.relay-athlete-option').forEach(opt => {
-        opt.disabled = false;
-        opt.classList.add('hidden');
+    document.getElementById('tab_btn_individu').className = 'px-6 py-3 bg-white text-slate-500 border border-slate-200 rounded-xl font-black text-xs hover:bg-slate-50 transition uppercase tracking-widest';
+    document.getElementById('tab_btn_team').className = 'px-6 py-3 bg-white text-slate-500 border border-slate-200 rounded-xl font-black text-xs hover:bg-slate-50 transition uppercase tracking-widest';
+    document.getElementById('tab_btn_token').className = 'px-6 py-3 bg-white text-emerald-600 border border-emerald-200 rounded-xl font-black text-xs hover:bg-emerald-50 transition uppercase tracking-widest ml-4 shadow-sm shadow-emerald-100';
+    
+    if (tab === 'individu') {
+        document.getElementById('form_individu').classList.remove('hidden');
+        document.getElementById('tab_btn_individu').className = 'px-6 py-3 bg-blue-600 text-white rounded-xl font-black text-xs shadow-lg shadow-blue-200 hover:bg-blue-700 transition uppercase tracking-widest';
+    } else if (tab === 'team') {
+        document.getElementById('form_team').classList.remove('hidden');
+        document.getElementById('tab_btn_team').className = 'px-6 py-3 bg-indigo-600 text-white rounded-xl font-black text-xs shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition uppercase tracking-widest';
+    } else if (tab === 'token') {
+        document.getElementById('form_token').classList.remove('hidden');
+        document.getElementById('tab_btn_token').className = 'px-6 py-3 bg-emerald-600 text-white rounded-xl font-black text-xs shadow-lg shadow-emerald-200 transition uppercase tracking-widest ml-4';
+    }
+}
+
+// JS loadAthletes replacement untuk filter sisi klien
+function loadAthletes(clubId, targetSelectId) {
+    const select = document.getElementById(targetSelectId);
+    if (!select) return;
+    select.innerHTML = '<option value="">- Pilih Atlet -</option>';
+    select.disabled = true;
+
+    if (!clubId) {
+        if (targetSelectId === 'indv_skater_select') onSkaterSelect(select);
+        if (targetSelectId.startsWith('team_skater')) validateTeamMembers();
+        return;
+    }
+
+    // Filter using existing myAthletes and target restrictions
+    let minAge = 0; let maxAge = 99;
+    let catGender = 'campuran';
+    let targetGroup = '';
+
+    if (targetSelectId === 'indv_skater_select') {
+        const classId = document.getElementById('indv_class_container').querySelector('input[type="radio"]:checked')?.value;
+        if (classId) {
+            const c = allClasses.find(x => x.id == classId);
+            if (c) {
+                minAge = parseInt(c.min_year) || 0;
+                maxAge = parseInt(c.max_year) || 99;
+                catGender = (c.gender || 'campuran').toLowerCase();
+                const tCatStr = (c.class_name || '').toLowerCase();
+                if (tCatStr.includes('speed')) targetGroup = 'speed';
+                else if (tCatStr.includes('standar')) targetGroup = 'standar';
+                else if (tCatStr.includes('pemula')) targetGroup = 'pemula';
+            }
+        }
+    } else if (targetSelectId.startsWith('team_skater')) {
+        const classId = document.getElementById('team_class_select').value;
+        if (classId) {
+            const c = allClasses.find(x => x.id == classId);
+            if (c) {
+                minAge = parseInt(c.min_year) || 0;
+                maxAge = parseInt(c.max_year) || 99;
+                catGender = (c.gender || 'campuran').toLowerCase();
+                const tCatStr = (c.class_name || '').toLowerCase();
+                if (tCatStr.includes('speed')) targetGroup = 'speed';
+                else if (tCatStr.includes('standar')) targetGroup = 'standar';
+                else if (tCatStr.includes('pemula')) targetGroup = 'pemula';
+            }
+        }
+    }
+
+    myAthletes.forEach(a => {
+        const age = parseInt(a.birth_date ? (new Date().getFullYear() - parseInt(a.birth_date.split('-')[0])) : 0); // Simplified age or use server age
+        // Wait, age in our system is calculated properly by year.
+        // The server sends birth_date, so age = eventYear - birthYear. Let's just render all and let the next validation step hide them.
+        select.innerHTML += `<option value="${a.id}" data-dob="${a.birth_date}" data-gender="${a.gender}">${a.skater_name} (${a.gender === 'M' ? 'Putra' : 'Putri'})</option>`;
+    });
+
+    select.disabled = false;
+    
+    if (targetSelectId === 'indv_skater_select') onSkaterSelect(select);
+    if (targetSelectId.startsWith('team_skater')) validateTeamMembers();
+}
+        const teamClassSelect = document.getElementById('team_class_select');
+        if (teamClassSelect.value) {
+            const cls = allClasses.find(c => c.id == teamClassSelect.value);
+            if (cls && cls.gender) targetGender = cls.gender.toLowerCase();
+        }
+    }
+
+    data.forEach(a => {
+        const dobYear = parseInt(a.birth_date.split('-')[0]);
+        const age = eventYear - dobYear;
+        const genderText = a.gender === 'M' ? 'Putra' : 'Putri';
+        
+        const opt = document.createElement('option');
+        opt.value = a.id;
+        opt.dataset.dob = a.birth_date;
+        opt.dataset.age = age;
+        opt.dataset.gender = a.gender;
+        opt.textContent = `${a.skater_name} (${age} Thn, ${genderText})`;
+        
+        // Logika disable untuk Tim berdasarkan umur/gender
+        if (isTeam) {
+            // Kita gunakan validasi usia jika KU sudah dipilih (maxAge < 99)
+            if (maxAge !== 99 && (age < minAge || age > maxAge)) {
+                opt.disabled = true;
+                opt.textContent += ' [Umur tidak sesuai]';
+            } else if (targetGender === 'putra' && a.gender === 'F') {
+                opt.disabled = true;
+                opt.textContent += ' [Khusus Putra]';
+            } else if (targetGender === 'putri' && a.gender === 'M') {
+                opt.disabled = true;
+                opt.textContent += ' [Khusus Putri]';
+            }
+        }
+
+        select.appendChild(opt);
     });
     
-    validateRelaySelection();
+    select.disabled = false;
+    if (!isTeam) onSkaterSelect(select);
+    else validateTeamMembers();
+}
+
+// --- LOGIKA INDIVIDU ---
+let currentSkaterEntries = [];
+let currentLockedCat = null;
+
+function onSkaterSelect(sel) {
+    const info = document.getElementById('indv_athlete_info');
+    const container = document.getElementById('indv_class_container');
+    const catSel = document.getElementById('indv_cat_select');
+    
+    currentSkaterEntries = [];
+    currentLockedCat = null;
+    catSel.disabled = false;
+    catSel.value = "";
+    container.innerHTML = '<div class="text-xs text-slate-400 italic text-center p-2">- Lengkapi Kategori Terlebih Dahulu -</div>';
+    checkIndvForm();
+
+    if (sel.value) {
+        const opt = sel.options[sel.selectedIndex];
+        document.getElementById('indv_skater_dob').innerText = opt.dataset.dob;
+        document.getElementById('indv_skater_age').innerText = opt.dataset.age;
+        document.getElementById('indv_skater_gender').innerText = opt.dataset.gender === 'M' ? 'Putra' : 'Putri';
+        info.classList.remove('hidden');
+
+        // Panggil history atlet
+        fetch(`<?= getenv('APP_URL') ?>/roll/admin/entries/get_athlete_entries?skater_id=${sel.value}&event_id=${<?= $event["id"] ?>}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.race_class_ids && data.race_class_ids.length > 0) {
+                    currentSkaterEntries = data.race_class_ids;
+                    currentLockedCat = data.locked_cat_id;
+                    
+                    if (currentLockedCat) {
+                        catSel.value = currentLockedCat;
+                        catSel.disabled = true; // Kunci kategori agar tidak bisa diubah jika sudah punya lomba
+                        filterIndvClasses();
+                    }
+                }
+            })
+            .catch(err => console.error("Error fetching athlete history:", err));
+
+    } else {
+        info.classList.add('hidden');
+    }
+}
+
+function filterIndvClasses() {
+    const skaterSel = document.getElementById('indv_skater_select');
+    const catSel = document.getElementById('indv_cat_select');
+    const container = document.getElementById('indv_class_container');
+    const btn = document.getElementById('btn_submit_indv');
+    
+    container.innerHTML = '';
+    btn.disabled = true;
+    btn.className = 'px-8 py-3 bg-slate-300 text-white rounded-xl font-black uppercase tracking-widest text-xs transition cursor-not-allowed';
+
+    if (!skaterSel.value || !catSel.value) {
+        container.innerHTML = '<div class="text-xs text-slate-400 italic text-center p-2">- Lengkapi Atlet & Kategori -</div>';
+        return;
+    }
+
+    // Jika ada form submit, pastikan hidden input cat_id dikirim kalau selectnya disabled
+    if (catSel.disabled) {
+        let hiddenInput = document.getElementById('hidden_indv_cat_id');
+        if (!hiddenInput) {
+            hiddenInput = document.createElement('input');
+            hiddenInput.type = 'hidden';
+            hiddenInput.id = 'hidden_indv_cat_id';
+            hiddenInput.name = 'indv_cat_id'; // Nama name bebas karena tak ditangkap backend
+            document.getElementById('form_individu').querySelector('form').appendChild(hiddenInput);
+        }
+        hiddenInput.value = catSel.value;
+    }
+
+    const opt = skaterSel.options[skaterSel.selectedIndex];
+    const age = parseInt(opt.dataset.age);
+    const gender = opt.dataset.gender;
+    const catId = catSel.value;
+    let validCount = 0;
+
+    allClasses.forEach(c => {
+        const dName = (c.distance_name || '').toLowerCase();
+        if (dName.includes('relay') || dName.includes('team') || dName.includes('pair')) return; // Abaikan relay
+
+        if (c.class_cat_id == catId) {
+            const isChecked = currentSkaterEntries.some(id => String(id) === String(c.id));
+            
+            const minYear = c.min_year ? parseInt(c.min_year) : 0;
+            const maxYear = c.max_year ? parseInt(c.max_year) : 99;
+            let matchesAge = (age >= minYear && age <= maxYear);
+            const catGender = (c.gender || '').toLowerCase();
+            let matchesGender = ((catGender === 'putra' && gender === 'M') || (catGender === 'putri' && gender === 'F') || catGender === 'campuran');
+            
+            if ((matchesAge && matchesGender) || isChecked) {
+                const isEks = (c.category_name === 'EKSEBISI');
+                const eksLabel = isEks ? ' <span class="ml-2 bg-red-100 text-red-600 px-1.5 py-0.5 rounded font-black text-[9px] uppercase tracking-widest border border-red-200">EKSEBISI</span>' : '';
+                const labelText = (c.race_number ? c.race_number + ' - ' : '') + c.distance_name + ' (' + c.group_name + ')' + (!matchesAge || !matchesGender ? ' ⚠️ [Diluar Umur/Gender]' : '') + eksLabel;
+                const bgClass = isChecked ? 'bg-blue-50 border-blue-200' : (isEks ? 'hover:bg-red-50 border-transparent border-l-4 border-l-red-500' : 'hover:bg-slate-100 border-transparent');
+                
+                const label = document.createElement('label');
+                label.className = `flex items-center justify-between p-3 rounded-lg cursor-pointer transition border ${bgClass}`;
+                    label.innerHTML = `
+                        <div class="flex items-center gap-3">
+                            <input type="checkbox" name="race_class_id[]" value="${c.id}" ${isChecked ? 'checked' : ''} class="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 indv-cb" onchange="checkIndvForm(this)">
+                            <span class="text-xs font-bold text-slate-700 uppercase">${labelText}</span>
+                        </div>
+                        ${isChecked ? '<span class="text-[9px] font-black uppercase text-blue-600 tracking-widest bg-blue-100 px-2 py-1 rounded">TERDAFTAR</span>' : ''}
+                    `;
+                    container.appendChild(label);
+                    validCount++;
+            }
+        }
+    });
+
+    if (validCount === 0) {
+        container.innerHTML = '<div class="text-xs text-red-400 italic text-center p-2 font-bold">- Tidak ada kelas lomba untuk umur/gender atlet ini pada kategori terpilih -</div>';
+    } else {
+        // Cek awal tombol simpan
+        checkIndvForm(null);
+    }
+}
+
+function checkIndvForm(changedCheckbox = null) {
+    if (changedCheckbox) {
+        const lbl = changedCheckbox.closest('label');
+        if (changedCheckbox.checked) {
+            lbl.classList.add('bg-blue-50', 'border-blue-200');
+            lbl.classList.remove('hover:bg-slate-100', 'border-transparent');
+        } else {
+            lbl.classList.remove('bg-blue-50', 'border-blue-200');
+            lbl.classList.add('hover:bg-slate-100', 'border-transparent');
+        }
+    }
+
+    const checked = document.querySelectorAll('.indv-cb:checked').length;
+    const btn = document.getElementById('btn_submit_indv');
+    
+    // Walaupun checked = 0, kita izinkan save jika sebelumnya ada entry (artinya Hapus Semua)
+    if (checked > 0 || currentSkaterEntries.length > 0) {
+        btn.disabled = false;
+        btn.className = 'px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-black uppercase tracking-widest text-xs shadow-lg shadow-blue-200 transition cursor-pointer';
+        if (checked === 0) {
+            btn.innerText = "Simpan (Hapus Semua Lomba)";
+            btn.className = 'px-8 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-black uppercase tracking-widest text-xs shadow-lg shadow-red-200 transition cursor-pointer';
+        } else {
+            btn.innerText = "Simpan Individu";
+        }
+    } else {
+        btn.disabled = true;
+        btn.className = 'px-8 py-3 bg-slate-300 text-white rounded-xl font-black uppercase tracking-widest text-xs transition cursor-not-allowed';
+    }
+}
+
+// --- LOGIKA TIM / RELAY ---
+function filterTeamKU() {
+    const catId = document.getElementById('team_cat_select').value;
+    const kuSelect = document.getElementById('team_ku_select');
+    const classSelect = document.getElementById('team_class_select');
+    
+    kuSelect.innerHTML = '<option value="">- Pilih KU -</option>';
+    classSelect.innerHTML = '<option value="">- Pilih Nomor Lomba -</option>';
+    kuSelect.disabled = true;
+    classSelect.disabled = true;
+    document.getElementById('team_class_info').classList.add('hidden');
+    
+    // Refresh club lists to apply constraints if needed (or reset them)
+    document.querySelectorAll('.team-skater-select').forEach(sel => {
+        sel.innerHTML = '<option value="">- Pilih Atlet -</option>';
+    });
 
     if (!catId) return;
 
@@ -706,277 +805,164 @@ function filterRelayKU() {
         }
     });
 
-    if (validKUs.size === 0) {
-        kuSelect.innerHTML = '<option value="">- Tidak ada kelas Team -</option>';
-        return;
+    if (validKUs.size > 0) {
+        kuSelect.disabled = false;
+        ageGroups.forEach(ag => {
+            if (validKUs.has(ag.id)) {
+                const opt = document.createElement('option');
+                opt.value = ag.id;
+                opt.textContent = ag.name + ` (${ag.min} - ${ag.max} Thn)`;
+                kuSelect.appendChild(opt);
+            }
+        });
+    } else {
+        kuSelect.innerHTML = '<option value="">- Tidak ada Relay di Kategori ini -</option>';
     }
-
-    ageGroups.forEach(ag => {
-        if (validKUs.has(ag.id)) {
-            const opt = document.createElement('option');
-            opt.value = ag.id;
-            opt.text = ag.name;
-            opt.dataset.min = ag.min;
-            opt.dataset.max = ag.max;
-            kuSelect.appendChild(opt);
-        }
-    });
 }
 
-function filterRelayClasses() {
-    const catId = document.getElementById('relay_cat_select').value;
-    const kuId = document.getElementById('relay_ku_select').value;
-    const classSelect = document.getElementById('relay_class_select');
+function filterTeamClasses() {
+    const catId = document.getElementById('team_cat_select').value;
+    const kuId = document.getElementById('team_ku_select').value;
+    const classSelect = document.getElementById('team_class_select');
     
     classSelect.innerHTML = '<option value="">- Pilih Nomor Lomba -</option>';
+    classSelect.disabled = true;
+    document.getElementById('team_class_info').classList.add('hidden');
     
-    const athleteDropdown = document.getElementById('relay_athlete_dropdown');
-    athleteDropdown.value = '';
-    athleteDropdown.disabled = true;
-
-    document.getElementById('relay_selected_list').innerHTML = '';
-    
-    document.querySelectorAll('.relay-athlete-option').forEach(opt => {
-        opt.disabled = false;
-        opt.classList.add('hidden');
-    });
-    
-    validateRelaySelection();
+    // Re-populate skaters to apply age limits
+    for(let i=1; i<=4; i++) {
+        const clubId = document.getElementById('team_club_select_'+i).value;
+        if(clubId) loadAthletes(clubId, 'team_skater_select_'+i);
+    }
 
     if (!catId || !kuId) return;
 
-    let validCount = 0;
+    let hasClasses = false;
     allClasses.forEach(c => {
         const dName = (c.distance_name || '').toLowerCase();
         if (c.class_cat_id == catId && c.age_group_id == kuId && (dName.includes('relay') || dName.includes('team') || dName.includes('pair'))) {
+            hasClasses = true;
             const opt = document.createElement('option');
             opt.value = c.id;
-            opt.text = c.distance_name + ' (' + (c.gender || '-') + ')';
-            opt.dataset.gender = (c.gender || '').toLowerCase();
+            opt.textContent = (c.race_number ? c.race_number + ' - ' : '') + c.distance_name + ' (' + c.gender + ')';
             classSelect.appendChild(opt);
-            validCount++;
         }
     });
 
-    if (validCount === 0) {
-        classSelect.innerHTML = '<option value="">- Tidak ada nomor lomba Team -</option>';
-    }
+    if (hasClasses) classSelect.disabled = false;
 }
 
-function filterRelayAthletes() {
-    const classSelect = document.getElementById('relay_class_select');
-    const classId = classSelect.value;
-    const dropdown = document.getElementById('relay_athlete_dropdown');
-    const options = document.querySelectorAll('.relay-athlete-option');
-    const noAthlete = document.getElementById('relay_no_athlete');
-    const selectedList = document.getElementById('relay_selected_list');
+function updateTeamGenderRule() {
+    const classId = document.getElementById('team_class_select').value;
+    const info = document.getElementById('team_class_info');
+    const span = document.getElementById('team_rule_gender');
     
-    // Reset selections
-    selectedList.innerHTML = '';
-    dropdown.value = '';
-    options.forEach(opt => opt.disabled = false);
-    validateRelaySelection();
-
-    if (!classId) {
-        dropdown.disabled = true;
-        noAthlete.classList.add('hidden');
-        return;
-    }
-    
-    dropdown.disabled = false;
-
-    const optClass = classSelect.options[classSelect.selectedIndex];
-    const catGender = optClass.dataset.gender;
-    
-    const kuSelect = document.getElementById('relay_ku_select');
-    const kuOpt = kuSelect.options[kuSelect.selectedIndex];
-    const minAge = parseInt(kuOpt.dataset.min);
-    const maxAge = parseInt(kuOpt.dataset.max);
-
-    // Hitung existing team races per atlet
-    const athleteTeamCount = {};
-    existingEntriesData.forEach(e => {
-        if (e.team_name && e.team_name.trim() !== '') {
-            athleteTeamCount[e.skater_id] = (athleteTeamCount[e.skater_id] || 0) + 1;
-        }
-    });
-
-    // Enforce category locking
-    let targetGroup = '';
-    const catClass = allClasses.find(c => c.id == classId);
-    if (catClass) {
-        currentTeamSize = parseInt(catClass.team_size) || 3;
-        document.getElementById('lbl_pilih_atlet').innerHTML = 'Pilih Atlet (Max ' + currentTeamSize + ') <span class="text-red-500">*</span>';
-        const tCatStr = (catClass.class_name || '').toLowerCase();
-        if (tCatStr.includes('speed')) targetGroup = 'speed';
-        else if (tCatStr.includes('standar')) targetGroup = 'standar';
-        else if (tCatStr.includes('pemula')) targetGroup = 'pemula';
-    }
-
-    let visibleCount = 0;
-    options.forEach(opt => {
-        const age = parseInt(opt.dataset.age);
-        const gender = opt.dataset.gender;
-        const sId = opt.value;
-        
-        let genderMatch = (catGender === 'campuran') || 
-                          (catGender === 'putra' && gender === 'M') || 
-                          (catGender === 'putri' && gender === 'F');
-
-        let ageMatch = age >= minAge && age <= maxAge;
-        
-        // Cek existing group (kategori atlet)
-        let eGroup = '';
-        const existing = existingEntriesData.find(e => e.skater_id == sId && e.skate_class);
-        if (existing) {
-            const eCatStr = (existing.skate_class || '').toLowerCase();
-            if (eCatStr.includes('speed')) eGroup = 'speed';
-            else if (eCatStr.includes('standar')) eGroup = 'standar';
-            else if (eCatStr.includes('pemula')) eGroup = 'pemula';
-        }
-        let categoryMatch = true;
-        if (eGroup && targetGroup && eGroup !== targetGroup) {
-            if (allowPemulaStandarMix) {
-                const isMixable = (eGroup === 'pemula' || eGroup === 'standar') && (targetGroup === 'pemula' || targetGroup === 'standar');
-                if (!isMixable) categoryMatch = false;
-            } else {
-                categoryMatch = false;
+    if (classId) {
+        const c = allClasses.find(x => x.id == classId);
+        if (c) {
+            span.innerText = c.gender.toUpperCase();
+            info.classList.remove('hidden');
+            
+            // Atur label wajib/opsional
+            const isPair = (c.distance_name || '').toLowerCase().includes('pair');
+            for(let i=1; i<=4; i++) {
+                const labelEl = document.getElementById('team_req_label_' + i);
+                const selectEl = document.getElementById('team_skater_select_' + i);
+                const clubEl = document.getElementById('team_club_select_' + i);
+                
+                if (isPair) {
+                    if (i <= 2) {
+                        labelEl.className = 'text-[9px] text-red-400 mt-1 italic text-right';
+                        labelEl.innerText = 'Wajib Diisi';
+                        clubEl.disabled = false;
+                    } else {
+                        labelEl.className = 'text-[9px] text-slate-400 mt-1 italic text-right';
+                        labelEl.innerText = 'Tidak Tersedia';
+                        clubEl.value = '';
+                        selectEl.value = '';
+                        clubEl.disabled = true;
+                        selectEl.disabled = true;
+                    }
+                } else {
+                    // Relay
+                    clubEl.disabled = false;
+                    if (i <= 3) {
+                        labelEl.className = 'text-[9px] text-red-400 mt-1 italic text-right';
+                        labelEl.innerText = 'Wajib Diisi';
+                    } else {
+                        labelEl.className = 'text-[9px] text-slate-400 mt-1 italic text-right';
+                        labelEl.innerText = 'Opsional';
+                    }
+                }
             }
         }
-        
-        // Cek limit & duplikasi spesifik class
-        const isAlreadyInThisClass = existingEntriesData.some(e => e.skater_id == sId && e.race_class_id == classId);
-        const teamRaceCount = athleteTeamCount[sId] || 0;
-
-        if (genderMatch && ageMatch && categoryMatch && !isAlreadyInThisClass && teamRaceCount < maxTeamRaces) {
-            opt.classList.remove('hidden');
-            visibleCount++;
-        } else {
-            opt.classList.add('hidden');
+    } else {
+        info.classList.add('hidden');
+        // Reset
+        for(let i=1; i<=4; i++) {
+            const labelEl = document.getElementById('team_req_label_' + i);
+            const clubEl = document.getElementById('team_club_select_' + i);
+            clubEl.disabled = false;
+            if (i <= 2) {
+                labelEl.className = 'text-[9px] text-red-400 mt-1 italic text-right';
+                labelEl.innerText = 'Wajib Diisi';
+            } else {
+                labelEl.className = 'text-[9px] text-slate-400 mt-1 italic text-right';
+                labelEl.innerText = 'Opsional';
+            }
         }
+    }
+    
+    // Re-populate skaters to apply gender limits
+    for(let i=1; i<=4; i++) {
+        const clubId = document.getElementById('team_club_select_'+i).value;
+        if(clubId) loadAthletes(clubId, 'team_skater_select_'+i);
+    }
+    validateTeamMembers();
+}
+
+function validateTeamMembers() {
+    const btn = document.getElementById('btn_submit_team');
+    const classId = document.getElementById('team_class_select').value;
+    let selectedCount = 0;
+    
+    document.querySelectorAll('.team-skater-select').forEach(sel => {
+        if (sel.value) selectedCount++;
     });
 
-    if (visibleCount === 0) {
-        noAthlete.classList.remove('hidden');
-        dropdown.disabled = true;
-    } else {
-        noAthlete.classList.add('hidden');
+    let isValid = false;
+    let requiredCount = 2; // Default
+    let isPair = false;
+
+    if (classId) {
+        const c = allClasses.find(x => x.id == classId);
+        if (c) {
+            const dName = (c.distance_name || '').toLowerCase();
+            if (dName.includes('pair')) {
+                isPair = true;
+                requiredCount = 2;
+                isValid = (selectedCount === 2);
+            } else {
+                // Relay / Team minimal 3 orang
+                requiredCount = 3;
+                isValid = (selectedCount >= 3);
+            }
+        }
     }
-}
 
-function addRelayAthlete() {
-    const dropdown = document.getElementById('relay_athlete_dropdown');
-    const athleteId = dropdown.value;
-    if (!athleteId) return;
-    
-    const selectedList = document.getElementById('relay_selected_list');
-    
-    // Check if already reached max size
-    if (selectedList.children.length >= currentTeamSize) {
-        dropdown.value = '';
-        alert('Maksimal ' + currentTeamSize + ' atlet untuk tim ini.');
-        return;
-    }
-    
-    const opt = document.querySelector(`.relay-athlete-option[value="${athleteId}"]`);
-    const athleteName = opt.dataset.name;
-    const age = opt.dataset.age;
-    const gender = opt.dataset.gender === 'M' ? 'Putra' : 'Putri';
-    
-    // Build item
-    const div = document.createElement('div');
-    div.className = 'flex justify-between items-center bg-slate-50 border border-slate-200 p-3 rounded-xl relay-selected-item';
-    div.dataset.id = athleteId;
-    div.innerHTML = `
-        <div>
-            <p class="text-xs font-bold text-slate-800 uppercase">${athleteName}</p>
-            <p class="text-[10px] font-bold text-slate-400">Umur: ${age} Thn | ${gender}</p>
-            <input type="hidden" name="skater_id[]" value="${athleteId}">
-        </div>
-        <button type="button" onclick="removeRelayAthlete(this, '${athleteId}')" class="w-8 h-8 rounded-full bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition flex items-center justify-center">
-            &times;
-        </button>
-    `;
-    
-    selectedList.appendChild(div);
-    
-    // Disable option
-    opt.disabled = true;
-    dropdown.value = '';
-    
-    validateRelaySelection();
-}
-
-function removeRelayAthlete(btn, athleteId) {
-    // Remove element
-    const item = btn.closest('.relay-selected-item');
-    if (item) item.remove();
-    
-    // Enable option
-    const opt = document.querySelector(`.relay-athlete-option[value="${athleteId}"]`);
-    if (opt) opt.disabled = false;
-    
-    validateRelaySelection();
-}
-
-function validateRelaySelection() {
-    const count = document.getElementById('relay_selected_list').children.length;
-    const btn = document.getElementById('btn_submit_relay');
-    const dropdown = document.getElementById('relay_athlete_dropdown');
-    
-    if (count >= currentTeamSize) {
+    if (classId && isValid) {
         btn.disabled = false;
-        btn.className = 'w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl font-black text-xs shadow-md transition-all uppercase tracking-widest cursor-pointer';
-        dropdown.disabled = true;
+        btn.className = 'px-8 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-black uppercase tracking-widest text-xs shadow-lg shadow-indigo-200 transition cursor-pointer';
     } else {
         btn.disabled = true;
-        btn.className = 'w-full bg-slate-300 text-white py-3 rounded-xl font-black text-xs shadow-md transition-all uppercase tracking-widest cursor-not-allowed';
-        dropdown.disabled = false;
+        btn.className = 'px-8 py-3 bg-slate-300 text-white rounded-xl font-black uppercase tracking-widest text-xs transition cursor-not-allowed';
     }
 }
 
-function checkEligibility() {
-    const skater_id = document.getElementById('modal_skater_id').value;
-    const event_id = '<?= $event['id'] ?? '' ?>';
-    const race_class_id = document.getElementById('race_class_select').value;
-    const alertBox = document.getElementById('validation_alert');
-    const btn = document.getElementById('btn_submit_entry');
-
-    if (!skater_id || !race_class_id) {
-        alertBox.classList.add('hidden');
-        btn.disabled = true;
-        btn.className = 'w-full bg-slate-300 text-white py-3 rounded-xl font-black text-xs shadow-md transition-all uppercase tracking-widest cursor-not-allowed';
-        return;
-    }
-
-    alertBox.className = 'p-4 rounded-xl text-xs border font-bold mt-4 shadow-sm text-center bg-blue-50 text-blue-700 border-blue-200';
-    alertBox.innerHTML = '<i>Memvalidasi...</i>';
-    alertBox.classList.remove('hidden');
-    btn.disabled = true;
-
-    const fd = new FormData();
-    fd.append('skater_id', skater_id);
-    fd.append('event_id', event_id);
-    fd.append('race_class_id', race_class_id);
-
-    fetch('<?= getenv('APP_URL') ?>/roll/user/token_registration/checkEligibility', { method: 'POST', body: fd })
-    .then(r => r.json())
-    .then(data => {
-        if (data.success) {
-            alertBox.className = 'p-4 rounded-xl text-xs border font-bold mt-4 shadow-sm text-center bg-emerald-50 text-emerald-700 border-emerald-200';
-            alertBox.innerHTML = '✅ <strong>Lolos:</strong> ' + data.message;
-            btn.disabled = false;
-            btn.className = 'w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-black text-xs shadow-md transition-all uppercase tracking-widest cursor-pointer';
-        } else {
-            alertBox.className = 'p-4 rounded-xl text-xs border font-bold mt-4 shadow-sm text-center bg-red-50 text-red-700 border-red-200';
-            alertBox.innerHTML = '❌ <strong>Ditolak:</strong> ' + data.message;
-            btn.disabled = true;
-            btn.className = 'w-full bg-slate-300 text-white py-3 rounded-xl font-black text-xs shadow-md transition-all uppercase tracking-widest cursor-not-allowed';
-        }
-    })
-    .catch(() => {
-        alertBox.className = 'p-4 rounded-xl text-xs border font-bold mt-4 shadow-sm text-center bg-red-50 text-red-700 border-red-200';
-        alertBox.innerHTML = '❌ <strong>Error:</strong> Gagal terhubung server.';
-    });
-}
+<?php if(isset($_GET['form'])): ?>
+// Buka tab terakhir secara otomatis
+window.addEventListener('DOMContentLoaded', function() {
+    switchTab('<?= htmlspecialchars($_GET['form']) ?>');
+});
+<?php endif; ?>
 </script>

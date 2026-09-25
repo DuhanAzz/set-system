@@ -85,7 +85,12 @@ class RollTokenRegistrationController extends Controller {
         $isEditable = !empty(array_filter($existingEntries, fn($e) => in_array($e['payment_status'], ['Unpaid', 'Rejected'])));
         $isLocked = false; // Token mode is always editable until checkout // Terkunci jika semua Pending/Paid
         
-        // Bypass check status event for Token
+        // Fetch token permissions
+        $stmtToken = $db->prepare("SELECT allow_individu, allow_team FROM roll_event_tokens WHERE event_id = ? AND club_id = ? AND token_code = ?");
+        $stmtToken->execute([$event_id, $club_id, $active_token]);
+        $tokenData = $stmtToken->fetch(PDO::FETCH_ASSOC);
+        $allow_individu = $tokenData['allow_individu'] ?? 1;
+        $allow_team = $tokenData['allow_team'] ?? 1;
 
         return $this->view('roll/user/token_entries/index', [
             'athletes'        => $athletes,
@@ -93,6 +98,9 @@ class RollTokenRegistrationController extends Controller {
             'classes'         => $classes,
             'existingEntries' => $existingEntries,
             'isLocked'        => $isLocked,
+            'club_id'         => $club_id,
+            'allow_individu'  => $allow_individu,
+            'allow_team'      => $allow_team,
         ]);
     }
 
@@ -236,10 +244,12 @@ class RollTokenRegistrationController extends Controller {
         $team_name    = isset($_POST['team_name']) ? trim($_POST['team_name']) : null;
         $is_team_reg  = !empty($team_name);
 
+        $entry_type = $_POST['entry_type'] ?? 'individu';
+        
         if (empty($skater_ids) || empty($race_class_ids) || !$event_id) {
             $_SESSION['flash_message'] = "Data tidak lengkap.";
             $_SESSION['flash_type'] = "error";
-            header("Location: " . getenv('APP_URL') . "/roll/user/token_registration/index/" . $event_id);
+            header("Location: " . getenv('APP_URL') . "/roll/user/token_registration/index/" . $event_id . "?form=" . $entry_type);
             exit;
         }
 
@@ -254,7 +264,7 @@ class RollTokenRegistrationController extends Controller {
         if ($paymentStatus && in_array($paymentStatus, ['Pending', 'Paid'])) {
             $_SESSION['flash_message'] = "Pendaftaran terkunci karena status pembayaran ($paymentStatus).";
             $_SESSION['flash_type'] = "error";
-            header("Location: " . getenv('APP_URL') . "/roll/user/token_registration/index/" . $event_id);
+            header("Location: " . getenv('APP_URL') . "/roll/user/token_registration/index/" . $event_id . "?form=" . $entry_type);
             exit;
         }
         
@@ -411,8 +421,8 @@ class RollTokenRegistrationController extends Controller {
                 $distance_id = $stmtDist->fetchColumn() ?: null;
 
                 // Save
-                $stmtInsert = $db->prepare("INSERT INTO roll_entries (event_id, skater_id, race_class_id, distance_id, team_name) VALUES (?, ?, ?, ?, ?, 1, '$active_invoice')");
-                if ($stmtInsert->execute([$event_id, $skater_id, $race_class_id, $distance_id, $team_name])) {
+                $stmtInsert = $db->prepare("INSERT INTO roll_entries (club_id, event_id, skater_id, race_class_id, distance_id, team_name, is_manual, manual_invoice_code, created_at) VALUES (?, ?, ?, ?, ?, ?, 1, ?, NOW())");
+                if ($stmtInsert->execute([$club_id, $event_id, $skater_id, $race_class_id, $distance_id, $team_name, $active_invoice])) {
                     $successCount++;
                     if ($is_team_reg) { $currTeam++; } else { $currIndv++; }
                 }
@@ -431,7 +441,7 @@ class RollTokenRegistrationController extends Controller {
             $_SESSION['flash_type'] = "error";
         }
 
-        header("Location: " . getenv('APP_URL') . "/roll/user/token_registration/index/" . $event_id);
+        header("Location: " . getenv('APP_URL') . "/roll/user/token_registration/index/" . $event_id . "?form=" . $entry_type);
         exit;
     }
 
