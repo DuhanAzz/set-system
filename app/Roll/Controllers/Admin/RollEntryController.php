@@ -603,7 +603,7 @@ class RollEntryController extends Controller {
             $stmtTokens = $db->prepare("
                 SELECT t.*, c.club_name, 
                        (SELECT u.phone FROM roll_users u WHERE u.club_id = c.id LIMIT 1) as club_phone,
-                       (SELECT COUNT(*) FROM roll_entries e WHERE e.manual_invoice_code = t.manual_invoice_code) as entry_count
+                       (SELECT COUNT(*) FROM roll_entries e WHERE e.manual_invoice_code COLLATE utf8mb4_unicode_ci = t.manual_invoice_code COLLATE utf8mb4_unicode_ci) as entry_count
                 FROM roll_event_tokens t
                 JOIN roll_clubs c ON t.club_id = c.id
                 WHERE t.event_id = ?
