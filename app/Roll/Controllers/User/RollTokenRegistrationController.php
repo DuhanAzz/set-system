@@ -95,8 +95,8 @@ class RollTokenRegistrationController extends Controller {
             LEFT JOIN roll_ref_age_groups a ON c.age_group_id = a.id
             LEFT JOIN roll_ref_distances d ON c.distance_id = d.id
             LEFT JOIN roll_ref_skate_classes skc ON c.skate_class_id = skc.id
-            LEFT JOIN roll_payments p ON p.club_id = s.club_id AND p.event_id = e.event_id
-            WHERE s.club_id = ? AND e.event_id = ? AND e.manual_invoice_code = '$active_invoice'
+            LEFT JOIN roll_payments p ON p.club_id = e.club_id AND p.event_id = e.event_id
+            WHERE e.club_id = ? AND e.event_id = ? AND e.manual_invoice_code = '$active_invoice'
             ORDER BY s.skater_name ASC
         ");
         $stmtEntries->execute([$club_id, $event_id]);
@@ -301,9 +301,9 @@ class RollTokenRegistrationController extends Controller {
         foreach ($skater_ids as $skater_id) {
             $skater_id = (int)$skater_id;
             
-            // Pastikan atlet milik klub ini
-            $stmtOwn = $db->prepare("SELECT skater_name, birth_date, gender FROM roll_skaters WHERE id = ? AND club_id = ?");
-            $stmtOwn->execute([$skater_id, $club_id]);
+            // Dapatkan info atlet (hilangkan constraint club_id untuk mendukung Mix-Club)
+            $stmtOwn = $db->prepare("SELECT skater_name, birth_date, gender FROM roll_skaters WHERE id = ?");
+            $stmtOwn->execute([$skater_id]);
             $skater = $stmtOwn->fetch(PDO::FETCH_ASSOC);
             if (!$skater) continue;
             
@@ -476,8 +476,8 @@ class RollTokenRegistrationController extends Controller {
             SELECT e.id, e.event_id 
             FROM roll_entries e
             JOIN roll_skaters s ON e.skater_id = s.id
-            LEFT JOIN roll_payments p ON p.club_id = s.club_id AND p.event_id = e.event_id
-            WHERE e.id = ? AND s.club_id = ? AND COALESCE(p.status, 'Unpaid') IN ('Unpaid', 'Rejected')
+            LEFT JOIN roll_payments p ON p.club_id = e.club_id AND p.event_id = e.event_id
+            WHERE e.id = ? AND e.club_id = ? AND COALESCE(p.status, 'Unpaid') IN ('Unpaid', 'Rejected')
         ");
         $stmt->execute([$entry_id, $club_id]);
         $entry = $stmt->fetch(PDO::FETCH_ASSOC);
