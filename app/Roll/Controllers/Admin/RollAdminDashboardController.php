@@ -216,32 +216,35 @@ class RollAdminDashboardController extends Controller {
             exit;
         }
 
-        $stmt = $db->prepare("SELECT event_name, sponsor_logos, header_logos FROM roll_events WHERE id = ?");
+        $stmt = $db->prepare("SELECT * FROM roll_events WHERE id = ?");
         $stmt->execute([$eventId]);
         $event = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        // Fetch clubs
-        $stmtClubs = $db->prepare("
-            SELECT 
-                c.id, 
-                c.club_name, 
-                MAX(u.phone) as phone,
-                MAX(u.fullname) as pic_name,
-                COUNT(DISTINCT s.id) as total_athletes,
-                COUNT(e.id) as total_entries,
-                SUM(CASE WHEN pay_club.status = 'Paid' OR pay_man.status = 'Paid' THEN 1 ELSE 0 END) as verified_entries
-            FROM roll_entries e
-            JOIN roll_clubs c ON e.club_id = c.id
-            JOIN roll_skaters s ON e.skater_id = s.id
-            LEFT JOIN roll_users u ON u.club_id = c.id
-            LEFT JOIN roll_payments pay_club ON pay_club.club_id = e.club_id AND pay_club.event_id = e.event_id
-            LEFT JOIN roll_manual_payments pay_man ON pay_man.invoice_code COLLATE utf8mb4_unicode_ci = e.manual_invoice_code COLLATE utf8mb4_unicode_ci
-            WHERE e.event_id = ?
-            GROUP BY c.id, c.club_name
-            ORDER BY c.club_name ASC
-        ");
-        $stmtClubs->execute([$eventId]);
-        $clubs = $stmtClubs->fetchAll(PDO::FETCH_ASSOC);
+        try {
+            $stmtClubs = $db->prepare("
+                SELECT 
+                    c.id, 
+                    c.club_name, 
+                    MAX(u.phone) as phone,
+                    MAX(u.fullname) as pic_name,
+                    COUNT(DISTINCT s.id) as total_athletes,
+                    COUNT(e.id) as total_entries,
+                    SUM(CASE WHEN pay_club.status = 'Paid' OR pay_man.status = 'Paid' THEN 1 ELSE 0 END) as verified_entries
+                FROM roll_entries e
+                JOIN roll_clubs c ON e.club_id = c.id
+                JOIN roll_skaters s ON e.skater_id = s.id
+                LEFT JOIN roll_users u ON u.club_id = c.id
+                LEFT JOIN roll_payments pay_club ON pay_club.club_id = e.club_id AND pay_club.event_id = e.event_id
+                LEFT JOIN roll_manual_payments pay_man ON pay_man.invoice_code COLLATE utf8mb4_unicode_ci = e.manual_invoice_code COLLATE utf8mb4_unicode_ci
+                WHERE e.event_id = ?
+                GROUP BY c.id, c.club_name
+                ORDER BY c.club_name ASC
+            ");
+            $stmtClubs->execute([$eventId]);
+            $clubs = $stmtClubs->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\PDOException $e) {
+            die("SQL ERROR clubs: " . $e->getMessage());
+        }
 
         $verifiedClubs = [];
         $unverifiedClubs = [];
@@ -269,31 +272,35 @@ class RollAdminDashboardController extends Controller {
             exit;
         }
 
-        $stmt = $db->prepare("SELECT event_name, event_date_start, event_date_end, event_location, sponsor_logos, header_logos FROM roll_events WHERE id = ?");
+        $stmt = $db->prepare("SELECT * FROM roll_events WHERE id = ?");
         $stmt->execute([$eventId]);
         $event = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        $stmtClubs = $db->prepare("
-            SELECT 
-                c.id, 
-                c.club_name, 
-                MAX(u.phone) as phone,
-                MAX(u.fullname) as pic_name,
-                COUNT(DISTINCT s.id) as total_athletes,
-                COUNT(e.id) as total_entries,
-                SUM(CASE WHEN pay_club.status = 'Paid' OR pay_man.status = 'Paid' THEN 1 ELSE 0 END) as verified_entries
-            FROM roll_entries e
-            JOIN roll_clubs c ON e.club_id = c.id
-            JOIN roll_skaters s ON e.skater_id = s.id
-            LEFT JOIN roll_users u ON u.club_id = c.id
-            LEFT JOIN roll_payments pay_club ON pay_club.club_id = e.club_id AND pay_club.event_id = e.event_id
-            LEFT JOIN roll_manual_payments pay_man ON pay_man.invoice_code COLLATE utf8mb4_unicode_ci = e.manual_invoice_code COLLATE utf8mb4_unicode_ci
-            WHERE e.event_id = ?
-            GROUP BY c.id, c.club_name
-            ORDER BY c.club_name ASC
-        ");
-        $stmtClubs->execute([$eventId]);
-        $clubs = $stmtClubs->fetchAll(PDO::FETCH_ASSOC);
+        try {
+            $stmtClubs = $db->prepare("
+                SELECT 
+                    c.id, 
+                    c.club_name, 
+                    MAX(u.phone) as phone,
+                    MAX(u.fullname) as pic_name,
+                    COUNT(DISTINCT s.id) as total_athletes,
+                    COUNT(e.id) as total_entries,
+                    SUM(CASE WHEN pay_club.status = 'Paid' OR pay_man.status = 'Paid' THEN 1 ELSE 0 END) as verified_entries
+                FROM roll_entries e
+                JOIN roll_clubs c ON e.club_id = c.id
+                JOIN roll_skaters s ON e.skater_id = s.id
+                LEFT JOIN roll_users u ON u.club_id = c.id
+                LEFT JOIN roll_payments pay_club ON pay_club.club_id = e.club_id AND pay_club.event_id = e.event_id
+                LEFT JOIN roll_manual_payments pay_man ON pay_man.invoice_code COLLATE utf8mb4_unicode_ci = e.manual_invoice_code COLLATE utf8mb4_unicode_ci
+                WHERE e.event_id = ?
+                GROUP BY c.id, c.club_name
+                ORDER BY c.club_name ASC
+            ");
+            $stmtClubs->execute([$eventId]);
+            $clubs = $stmtClubs->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\PDOException $e) {
+            die("SQL ERROR printClubs: " . $e->getMessage());
+        }
 
         $verifiedClubs = [];
         $unverifiedClubs = [];
