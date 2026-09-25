@@ -285,11 +285,22 @@
                             <td class="px-4 py-3 text-xs"><?= date('d/m/Y H:i', strtotime($t['created_at'])) ?></td>
                             <td class="px-4 py-3"><?= $statusLabel ?></td>
                             <td class="px-4 py-3 text-right">
-                                <?php if($canDelete): ?>
-                                <form action="<?= getenv('APP_URL') ?>/roll/admin/entries/delete_token/<?= $t['id'] ?>" method="POST" onsubmit="return confirm('Hapus token ini?');">
-                                    <button type="submit" class="text-red-500 hover:text-red-700 text-xs font-bold uppercase tracking-widest">Hapus</button>
-                                </form>
-                                <?php endif; ?>
+                                <div class="flex items-center justify-end gap-2">
+                                    <?php 
+                                        $phoneObj2 = $t['club_phone'];
+                                        $phoneFormatted2 = preg_replace('/[^0-9]/', '', $phoneObj2);
+                                        if(strpos($phoneFormatted2, '0') === 0) $phoneFormatted2 = '62' . substr($phoneFormatted2, 1);
+                                        $waMsg2 = urlencode("Halo Pelatih,\n\nIni adalah Token Jalur Khusus untuk mendaftarkan atlet pada event " . $event['event_name'] . ".\n\n*TOKEN ANDA: " . $t['token_code'] . "*\n\nSilakan masukkan token tersebut di halaman event berikut:\n" . getenv('APP_URL') . "/roll/user/explore/detail/" . $event['id']);
+                                        $waUrl2 = $phoneFormatted2 ? "https://wa.me/{$phoneFormatted2}?text={$waMsg2}" : "https://wa.me/?text={$waMsg2}";
+                                    ?>
+                                    <a href="<?= $waUrl2 ?>" target="_blank" class="text-green-500 hover:text-green-700 text-xs font-bold uppercase tracking-widest bg-green-50 px-2 py-1 rounded">WA</a>
+                                    
+                                    <?php if($canDelete): ?>
+                                    <form action="<?= getenv('APP_URL') ?>/roll/admin/entries/delete_token/<?= $t['id'] ?>" method="POST" onsubmit="return confirm('Hapus token ini?');">
+                                        <button type="submit" class="text-red-500 hover:text-red-700 text-xs font-bold uppercase tracking-widest bg-red-50 px-2 py-1 rounded">Hapus</button>
+                                    </form>
+                                    <?php endif; ?>
+                                </div>
                             </td>
                         </tr>
                         <?php endforeach; ?>

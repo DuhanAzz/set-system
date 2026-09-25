@@ -20,36 +20,13 @@ class RollTokenRegistrationController extends Controller {
     }
 
     public function index($event_id = null) {
-        $db = Database::getInstance()->getConnection();
-
-        $active_token = $_SESSION['active_token_' . $entry['event_id']] ?? null;
-        $active_invoice = $_SESSION['active_manual_invoice_' . $entry['event_id']] ?? null;
-        if (!$active_token || !$active_invoice) {
-            $_SESSION['flash_message'] = "Sesi Token Anda tidak valid atau telah berakhir.";
-            $_SESSION['flash_type'] = "error";
-            header("Location: " . getenv('APP_URL') . "/roll/user/explore");
-            exit;
-        }
-
-
-        $active_token = $_SESSION['active_token_' . $_POST['event_id']] ?? null;
-        $active_invoice = $_SESSION['active_manual_invoice_' . $_POST['event_id']] ?? null;
-        if (!$active_token || !$active_invoice) {
-            $_SESSION['flash_message'] = "Sesi Token Anda tidak valid atau telah berakhir.";
-            $_SESSION['flash_type'] = "error";
-            header("Location: " . getenv('APP_URL') . "/roll/user/explore");
-            exit;
-        }
-
-        $club_id = $_SESSION['roll_club_id'];
-
         if (!$event_id) {
             header("Location: " . getenv('APP_URL') . "/roll/user/explore");
             exit;
         }
 
-        // Get Athletes
-        
+        $db = Database::getInstance()->getConnection();
+
         $active_token = $_SESSION['active_token_' . $event_id] ?? null;
         $active_invoice = $_SESSION['active_manual_invoice_' . $event_id] ?? null;
         if (!$active_token || !$active_invoice) {
@@ -58,6 +35,8 @@ class RollTokenRegistrationController extends Controller {
             header("Location: " . getenv('APP_URL') . "/roll/user/explore");
             exit;
         }
+
+        $club_id = $_SESSION['roll_club_id'];
 
         $stmtAthletes = $db->prepare("SELECT * FROM roll_skaters WHERE club_id = ? ORDER BY skater_name ASC");
         $stmtAthletes->execute([$club_id]);
