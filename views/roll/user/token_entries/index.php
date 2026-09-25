@@ -431,7 +431,7 @@
                 <!-- Kanan: Anggota Tim (Mix-Club Support) -->
                 <div class="space-y-4">
                     <h3 class="text-sm font-black uppercase tracking-widest text-slate-800 border-b border-slate-100 pb-2">Anggota Tim (Mendukung Mix-Club)</h3>
-                    <p class="text-[9px] font-bold text-slate-400 uppercase">Pilih anggota tim dari klub Anda.</p>
+                    <p class="text-[9px] font-bold text-slate-400 uppercase">Pilih anggota tim dari klub Anda. dan di mohon telah mengkonfirmasi atlet dari tim lain sebelum menambahkannya ke dalam tim.</p>
                     
                     <div id="team_members_container" class="space-y-4">
                         <?php for($i=1; $i<=4; $i++): ?>
