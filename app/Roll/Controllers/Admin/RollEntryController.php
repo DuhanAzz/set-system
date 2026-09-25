@@ -734,4 +734,33 @@ class RollEntryController extends Controller {
         header("Location: " . getenv('APP_URL') . "/roll/admin/entries/manual_invoices");
         exit;
     }
+
+    public function generate_token() {
+        if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+            header("Location: " . getenv('APP_URL') . "/roll/login");
+            exit;
+        }
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $db = Database::getInstance()->getConnection();
+            $event_id = $_POST['event_id'] ?? 0;
+            $club_id = $_POST['club_id'] ?? 0;
+
+            if ($event_id && $club_id) {
+                // Generate a random 6-character token, e.g., T-8A9F2C
+                $token = 'T-' . strtoupper(substr(md5(time() . rand()), 0, 6));
+                $manual_invoice_code = 'MAN-TOK-' . $token;
+
+                $stmt = $db->prepare("INSERT INTO roll_event_tokens (event_id, club_id, token_code, manual_invoice_code) VALUES (?, ?, ?, ?)");
+                $stmt->execute([$event_id, $club_id, $token, $manual_invoice_code]);
+
+                $_SESSION['generated_token'] = $token;
+                $_SESSION['flash_message'] = "Token berhasil dibuat!";
+                $_SESSION['flash_type'] = "success";
+            }
+        }
+        header("Location: " . getenv('APP_URL') . "/roll/admin/entries/manual_add");
+        exit;
+    }
 }
+

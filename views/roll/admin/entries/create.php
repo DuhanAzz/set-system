@@ -26,6 +26,9 @@
             <button onclick="switchTab('team')" id="tab_btn_team" class="px-6 py-3 bg-white text-slate-500 border border-slate-200 rounded-xl font-black text-xs hover:bg-slate-50 transition uppercase tracking-widest">
                 + DAFTAR TIM / RELAY
             </button>
+            <button onclick="switchTab('token')" id="tab_btn_token" class="px-6 py-3 bg-white text-emerald-600 border border-emerald-200 rounded-xl font-black text-xs hover:bg-emerald-50 transition uppercase tracking-widest ml-4 shadow-sm shadow-emerald-100">
+                🔑 BUAT TOKEN JALUR KHUSUS
+            </button>
         </div>
         <div>
             <a href="<?= getenv('APP_URL') ?>/roll/admin/export/print_athlete_book" target="_blank" class="px-6 py-3 bg-slate-800 text-white rounded-xl font-black text-xs shadow-lg shadow-slate-200 hover:bg-slate-900 transition uppercase tracking-widest flex items-center gap-2">
@@ -188,6 +191,56 @@
             </div>
         </form>
     </div>
+    </div>
+
+    <!-- FORM BUAT TOKEN JALUR KHUSUS -->
+    <div id="form_token" class="bg-white rounded-[2.5rem] shadow-sm border border-emerald-200 p-8 hidden relative overflow-hidden">
+        <div class="absolute -right-10 -top-10 w-40 h-40 bg-emerald-50 rounded-full opacity-50 pointer-events-none"></div>
+        <form action="<?= getenv('APP_URL') ?>/roll/admin/entries/generate_token" method="POST">
+            <input type="hidden" name="event_id" value="<?= $targetEventId ?>">
+            
+            <div class="max-w-xl mb-6">
+                <h3 class="text-xl font-black uppercase tracking-widest text-emerald-800 italic mb-2">Bypass Pendaftaran</h3>
+                <p class="text-xs text-slate-500 font-bold">Buat token sekali pakai untuk memberikan izin pendaftaran pada klub saat event sudah berstatus "Close Registration". Token ini khusus untuk satu klub saja.</p>
+            </div>
+
+            <div class="max-w-md space-y-4">
+                <div>
+                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Pilih Klub Penerima <span class="text-red-500">*</span></label>
+                    <select name="club_id" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
+                        <option value="">-- Pilih Klub --</option>
+                        <?php foreach($clubs as $club): ?>
+                            <option value="<?= $club['id'] ?>"><?= htmlspecialchars($club['club_name']) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+            </div>
+
+            <div class="pt-6 mt-6 border-t border-slate-100 flex items-center gap-4">
+                <button type="submit" class="px-8 py-3 bg-emerald-600 text-white rounded-xl font-black uppercase tracking-widest text-xs hover:bg-emerald-700 shadow-lg shadow-emerald-200 transition">
+                    Generate Token 🔑
+                </button>
+            </div>
+        </form>
+
+        <?php if(isset($_SESSION['generated_token'])): ?>
+            <div class="mt-8 p-6 bg-emerald-50 border-2 border-dashed border-emerald-300 rounded-2xl">
+                <p class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Token Berhasil Dibuat:</p>
+                <div class="text-3xl font-black text-emerald-700 tracking-widest bg-white px-4 py-2 rounded-xl inline-block border border-emerald-100 shadow-sm mb-4">
+                    <?= $_SESSION['generated_token'] ?>
+                </div>
+                <div>
+                    <?php 
+                        $waMsg = urlencode("Halo Pelatih,\n\nIni adalah Token Jalur Khusus untuk mendaftarkan atlet pada event " . $event['event_name'] . ".\n\n*TOKEN ANDA: " . $_SESSION['generated_token'] . "*\n\nSilakan masukkan token tersebut di halaman event berikut:\n" . getenv('APP_URL') . "/roll/user/explore/detail/" . $event['id']);
+                    ?>
+                    <a href="https://wa.me/?text=<?= $waMsg ?>" target="_blank" class="px-6 py-2 bg-green-500 hover:bg-green-600 text-white font-black text-xs uppercase tracking-widest rounded-lg transition inline-flex items-center gap-2">
+                        Kirim via WhatsApp
+                    </a>
+                </div>
+            </div>
+            <?php unset($_SESSION['generated_token']); ?>
+        <?php endif; ?>
+    </div>
 </div>
 
 <script>
@@ -211,18 +264,23 @@ const ageGroups = <?php
 let athletesCache = {}; // { club_id: [ athletes array ] }
 
 function switchTab(tab) {
+    document.getElementById('form_individu').classList.add('hidden');
+    document.getElementById('form_team').classList.add('hidden');
+    document.getElementById('form_token').classList.add('hidden');
+    
+    document.getElementById('tab_btn_individu').className = 'px-6 py-3 bg-white text-slate-500 border border-slate-200 rounded-xl font-black text-xs hover:bg-slate-50 transition uppercase tracking-widest';
+    document.getElementById('tab_btn_team').className = 'px-6 py-3 bg-white text-slate-500 border border-slate-200 rounded-xl font-black text-xs hover:bg-slate-50 transition uppercase tracking-widest';
+    document.getElementById('tab_btn_token').className = 'px-6 py-3 bg-white text-emerald-600 border border-emerald-200 rounded-xl font-black text-xs hover:bg-emerald-50 transition uppercase tracking-widest ml-4 shadow-sm shadow-emerald-100';
+    
     if (tab === 'individu') {
         document.getElementById('form_individu').classList.remove('hidden');
-        document.getElementById('form_team').classList.add('hidden');
-        
         document.getElementById('tab_btn_individu').className = 'px-6 py-3 bg-blue-600 text-white rounded-xl font-black text-xs shadow-lg shadow-blue-200 hover:bg-blue-700 transition uppercase tracking-widest';
-        document.getElementById('tab_btn_team').className = 'px-6 py-3 bg-white text-slate-500 border border-slate-200 rounded-xl font-black text-xs hover:bg-slate-50 transition uppercase tracking-widest';
-    } else {
-        document.getElementById('form_individu').classList.add('hidden');
+    } else if (tab === 'team') {
         document.getElementById('form_team').classList.remove('hidden');
-        
         document.getElementById('tab_btn_team').className = 'px-6 py-3 bg-indigo-600 text-white rounded-xl font-black text-xs shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition uppercase tracking-widest';
-        document.getElementById('tab_btn_individu').className = 'px-6 py-3 bg-white text-slate-500 border border-slate-200 rounded-xl font-black text-xs hover:bg-slate-50 transition uppercase tracking-widest';
+    } else if (tab === 'token') {
+        document.getElementById('form_token').classList.remove('hidden');
+        document.getElementById('tab_btn_token').className = 'px-6 py-3 bg-emerald-600 text-white rounded-xl font-black text-xs shadow-lg shadow-emerald-200 transition uppercase tracking-widest ml-4';
     }
 }
 

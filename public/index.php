@@ -310,7 +310,10 @@ switch ($module) {
                     'athletes'     => '\\App\\Roll\\Controllers\\User\\RollUserAthleteController',
                     'explore'      => '\\App\\Roll\\Controllers\\User\\RollExploreController',
                     'registration' => '\\App\\Roll\\Controllers\\User\\RollRegistrationController',
-                    'checkout'     => '\\App\\Roll\\Controllers\\User\\RollCheckoutController'
+                    'checkout'     => '\\App\\Roll\\Controllers\\User\\RollCheckoutController',
+                    'token'        => '\\App\\Roll\\Controllers\\User\\RollTokenController',
+                    'token_registration' => '\\App\\Roll\\Controllers\\User\\RollTokenRegistrationController',
+                    'token_checkout'     => '\\App\\Roll\\Controllers\\User\\RollTokenCheckoutController'
                 ],
                 'Master' => [
                     'dashboard'   => '\\App\\Roll\\Controllers\\Master\\RollMasterDashboardController',

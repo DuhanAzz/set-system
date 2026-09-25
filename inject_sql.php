@@ -152,6 +152,20 @@ try {
     try {
         $db->exec("ALTER TABLE roll_events MODIFY COLUMN status ENUM('Draft','Published','Open Registration','Close Registration','Running','Finished') DEFAULT 'Draft'");
     } catch (PDOException $e) {}
+
+    // 1.5 Create roll_event_tokens table for late registration bypass
+    $db->exec("
+        CREATE TABLE IF NOT EXISTS `roll_event_tokens` (
+            `id` INT AUTO_INCREMENT PRIMARY KEY,
+            `event_id` INT NOT NULL,
+            `club_id` INT NOT NULL,
+            `token_code` VARCHAR(20) NOT NULL,
+            `manual_invoice_code` VARCHAR(50) NOT NULL,
+            `is_used` TINYINT(1) DEFAULT 0,
+            `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+            `used_at` DATETIME NULL
+        );
+    ");
     
     // 1.5 Backfill club_id untuk data registrasi lama yang masih NULL
     $db->exec("
