@@ -492,7 +492,10 @@ class RollExportController extends Controller {
             JOIN roll_event_details ed ON e.race_class_id = ed.id
             JOIN roll_ref_distances d ON ed.distance_id = d.id
             JOIN roll_ref_age_groups a ON ed.age_group_id = a.id
+            LEFT JOIN roll_payments pay_club ON pay_club.club_id = e.club_id AND pay_club.event_id = e.event_id
+            LEFT JOIN roll_manual_payments pay_man ON pay_man.invoice_code = e.manual_invoice_code
             WHERE e.event_id = ?
+              AND (pay_club.status = 'Paid' OR pay_man.status = 'Paid')
               AND LOWER(d.distance_name) NOT LIKE '%relay%'
               AND LOWER(d.distance_name) NOT LIKE '%team%'
               AND LOWER(d.distance_name) NOT LIKE '%pair%'

@@ -136,27 +136,29 @@ $sponsors = !empty($event['sponsor_logos']) ? json_decode($event['sponsor_logos'
                         </div>
                     <?php else: ?>
                         <?php foreach ($clubsData as $clubName => $athletes): ?>
-                            <div class="club-title"><?= htmlspecialchars($clubName) ?></div>
-                            <table class="data-table">
-                                <thead>
-                                    <tr>
-                                        <th class="col-no">NO</th>
-                                        <th class="col-bib">NO BIB</th>
-                                        <th class="col-nama">NAMA ATLET</th>
-                                        <th class="col-ku">KU</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php $no = 1; foreach ($athletes as $ath): ?>
+                            <div style="page-break-inside: avoid; margin-bottom: 5px;">
+                                <div class="club-title"><?= htmlspecialchars($clubName) ?></div>
+                                <table class="data-table">
+                                    <thead>
                                         <tr>
-                                            <td class="col-no"><?= $no++ ?></td>
-                                            <td class="col-bib" style="font-size: 10pt; font-weight: bold;"><?= htmlspecialchars($ath['bib_number'] ?? '-') ?></td>
-                                            <td class="col-nama"><strong><?= htmlspecialchars($ath['skater_name']) ?></strong></td>
-                                            <td class="col-ku"><?= htmlspecialchars($ath['ku']) ?></td>
+                                            <th class="col-no">NO</th>
+                                            <th class="col-bib">NO BIB</th>
+                                            <th class="col-nama">NAMA ATLET</th>
+                                            <th class="col-ku">KU</th>
                                         </tr>
-                                    <?php endforeach; ?>
-                                </tbody>
-                            </table>
+                                    </thead>
+                                    <tbody>
+                                        <?php $no = 1; foreach ($athletes as $ath): ?>
+                                            <tr>
+                                                <td class="col-no"><?= $no++ ?></td>
+                                                <td class="col-bib" style="font-size: 10pt; font-weight: bold;"><?= htmlspecialchars($ath['bib_number'] ?? '-') ?></td>
+                                                <td class="col-nama"><strong><?= htmlspecialchars($ath['skater_name']) ?></strong></td>
+                                                <td class="col-ku"><?= htmlspecialchars($ath['ku']) ?></td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
                         <?php endforeach; ?>
                     <?php endif; ?>
                 </td>
