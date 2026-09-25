@@ -774,4 +774,11 @@ function validateTeamMembers() {
         btn.className = 'px-8 py-3 bg-slate-300 text-white rounded-xl font-black uppercase tracking-widest text-xs transition cursor-not-allowed';
     }
 }
+
+<?php if(isset($_GET['form'])): ?>
+// Buka tab terakhir secara otomatis
+window.addEventListener('DOMContentLoaded', function() {
+    switchTab('<?= htmlspecialchars($_GET['form']) ?>');
+});
+<?php endif; ?>
 </script>

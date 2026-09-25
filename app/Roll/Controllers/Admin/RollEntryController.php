@@ -372,7 +372,7 @@ class RollEntryController extends Controller {
             if (!$targetEventId || empty($race_class_ids)) {
                 $_SESSION['flash_message'] = "Event atau Kelas Lomba belum dipilih.";
                 $_SESSION['flash_type'] = "error";
-                header("Location: " . getenv('APP_URL') . "/roll/admin/entries/manual_add");
+                header("Location: " . getenv('APP_URL') . "/roll/admin/entries/manual_add?form=" . urlencode($entry_type));
                 exit;
             }
 
@@ -400,7 +400,7 @@ class RollEntryController extends Controller {
                 if (count($skater_ids) < 2) {
                     $_SESSION['flash_message'] = "Tim minimal 2 orang.";
                     $_SESSION['flash_type'] = "error";
-                    header("Location: " . getenv('APP_URL') . "/roll/admin/entries/manual_add");
+                    header("Location: " . getenv('APP_URL') . "/roll/admin/entries/manual_add?form=team");
                     exit;
                 }
                 if (!$team_name) {
@@ -557,7 +557,7 @@ class RollEntryController extends Controller {
                 }
                 $_SESSION['flash_message'] = $msg;
                 $_SESSION['flash_type'] = "success";
-                header("Location: " . getenv('APP_URL') . "/roll/admin/entries");
+                header("Location: " . getenv('APP_URL') . "/roll/admin/entries/manual_add?form=" . urlencode($entry_type));
                 exit;
             } else if ($successCount > 0) {
                  $_SESSION['flash_message'] = "Berhasil memodifikasi entri.";
@@ -567,8 +567,8 @@ class RollEntryController extends Controller {
                 $_SESSION['flash_type'] = "error";
             }
 
-            // Redirect ke halaman manual invoices
-            header("Location: " . getenv('APP_URL') . "/roll/admin/entries/manual_invoices");
+            // Redirect ke halaman manual add
+            header("Location: " . getenv('APP_URL') . "/roll/admin/entries/manual_add?form=" . urlencode($entry_type));
             exit;
         }
 
@@ -789,7 +789,7 @@ class RollEntryController extends Controller {
                 }
             }
         }
-        header("Location: " . getenv('APP_URL') . "/roll/admin/entries/manual_add");
+        header("Location: " . getenv('APP_URL') . "/roll/admin/entries/manual_add?form=token");
         exit;
     }
 
@@ -810,7 +810,7 @@ class RollEntryController extends Controller {
                 $_SESSION['flash_type'] = "error";
             }
         }
-        header("Location: " . getenv('APP_URL') . "/roll/admin/entries/manual_add");
+        header("Location: " . getenv('APP_URL') . "/roll/admin/entries/manual_add?form=token");
         exit;
     }
 }
