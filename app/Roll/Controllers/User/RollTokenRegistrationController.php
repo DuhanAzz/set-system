@@ -96,10 +96,10 @@ class RollTokenRegistrationController extends Controller {
             LEFT JOIN roll_ref_distances d ON c.distance_id = d.id
             LEFT JOIN roll_ref_skate_classes skc ON c.skate_class_id = skc.id
             LEFT JOIN roll_payments p ON p.club_id = e.club_id AND p.event_id = e.event_id
-            WHERE e.club_id = ? AND e.event_id = ? AND e.manual_invoice_code = '$active_invoice'
+            WHERE e.event_id = ? AND e.manual_invoice_code = ?
             ORDER BY s.skater_name ASC
         ");
-        $stmtEntries->execute([$club_id, $event_id]);
+        $stmtEntries->execute([$event_id, $active_invoice]);
         $existingEntries = $stmtEntries->fetchAll(PDO::FETCH_ASSOC);
 
         $isEditable = !empty(array_filter($existingEntries, fn($e) => in_array($e['payment_status'], ['Unpaid', 'Rejected'])));
