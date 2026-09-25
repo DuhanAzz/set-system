@@ -802,9 +802,10 @@ function filterTeamClasses() {
         const dName = (c.distance_name || '').toLowerCase();
         if (c.class_cat_id == catId && c.age_group_id == kuId && (dName.includes('relay') || dName.includes('team') || dName.includes('pair'))) {
             hasClasses = true;
+            const isEks = (c.category_name === 'EKSEBISI');
             const opt = document.createElement('option');
             opt.value = c.id;
-            opt.textContent = (c.race_number ? c.race_number + ' - ' : '') + c.distance_name + ' (' + c.gender + ')';
+            opt.textContent = (c.race_number ? c.race_number + ' - ' : '') + c.distance_name + ' (' + c.gender + ')' + (isEks ? ' [EKSEBISI]' : '');
             classSelect.appendChild(opt);
         }
     });
