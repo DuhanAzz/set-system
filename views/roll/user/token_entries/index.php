@@ -575,7 +575,7 @@ function loadAthletes(clubId, targetSelectId) {
         return;
     }
 
-    fetch(`<?= getenv('APP_URL') ?>/roll/user/token_registration/get_athletes_by_club?club_id=${clubId}`)
+    fetch(`<?= getenv('APP_URL') ?>/roll/user/token_registration/get_athletes_by_club?club_id=${clubId}&event_id=<?= $event['id'] ?>`)
         .then(res => res.json())
         .then(data => {
             athletesCache[clubId] = data;
@@ -626,17 +626,24 @@ function populateAthleteSelect(targetSelectId, athletesList) {
     athletesList.forEach(s => {
         let age = eventYear - parseInt(s.birth_date ? s.birth_date.substring(0, 4) : '0');
         const gender = s.gender; // 'M' or 'F'
+        const lockedGroup = s.locked_group || '';
         
         let matchesAge = (age >= minAge && age <= maxAge);
         let matchesGender = ((catGender === 'putra' && gender === 'M') || (catGender === 'putri' && gender === 'F') || catGender === 'campuran');
+        
+        let validGroup = true;
+        if (mustFilter && lockedGroup && targetGroup && lockedGroup !== targetGroup) {
+            validGroup = false;
+        }
 
-        if (!mustFilter || (matchesAge && matchesGender)) {
+        if (!mustFilter || (matchesAge && matchesGender && validGroup)) {
             const opt = document.createElement('option');
             opt.value = s.id;
             opt.dataset.age = age;
             opt.dataset.gender = s.gender;
             opt.dataset.dob = s.birth_date;
-            opt.text = s.skater_name + ' (' + age + ' th) - ' + (gender === 'M' ? 'Putra' : 'Putri');
+            const extraLabel = (lockedGroup && !mustFilter) ? ` [${lockedGroup.toUpperCase()}]` : '';
+            opt.text = s.skater_name + ' (' + age + ' th) - ' + (gender === 'M' ? 'Putra' : 'Putri') + extraLabel;
             select.appendChild(opt);
         }
     });

@@ -267,6 +267,7 @@ class RollTokenRegistrationController extends Controller {
         $is_team_reg  = !empty($team_name);
 
         $entry_type = $_POST['entry_type'] ?? 'individu';
+        $active_invoice = $_SESSION['active_manual_invoice_' . $event_id] ?? null;
         
         if (empty($skater_ids) || empty($race_class_ids) || !$event_id) {
             $_SESSION['flash_message'] = "Data tidak lengkap.";
@@ -563,6 +564,8 @@ class RollTokenRegistrationController extends Controller {
             exit;
         }
         $clubId = (int)($_GET['club_id'] ?? 0);
+        $eventId = (int)($_GET['event_id'] ?? 0);
+
         if (!$clubId) {
             echo json_encode([]);
             exit;
@@ -571,7 +574,33 @@ class RollTokenRegistrationController extends Controller {
         $db = \App\Core\Database::getInstance()->getConnection();
         $stmt = $db->prepare("SELECT id, skater_name, gender, birth_date FROM roll_skaters WHERE club_id = ? ORDER BY skater_name ASC");
         $stmt->execute([$clubId]);
-        echo json_encode($stmt->fetchAll(\PDO::FETCH_ASSOC));
+        $athletes = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        if ($eventId) {
+            // Cari grup kelas (speed/standar/pemula) jika atlet sudah pernah didaftarkan
+            $stmtGroup = $db->prepare("
+                SELECT skc.class_name 
+                FROM roll_entries e
+                JOIN roll_event_details ed ON e.race_class_id = ed.id
+                JOIN roll_ref_skate_classes skc ON ed.skate_class_id = skc.id
+                WHERE e.event_id = ? AND e.skater_id = ?
+                LIMIT 1
+            ");
+            
+            foreach ($athletes as &$athlete) {
+                $stmtGroup->execute([$eventId, $athlete['id']]);
+                $catName = $stmtGroup->fetchColumn();
+                $athlete['locked_group'] = '';
+                if ($catName) {
+                    $catStr = strtolower($catName);
+                    if (strpos($catStr, 'speed') !== false) $athlete['locked_group'] = 'speed';
+                    elseif (strpos($catStr, 'standar') !== false) $athlete['locked_group'] = 'standar';
+                    elseif (strpos($catStr, 'pemula') !== false) $athlete['locked_group'] = 'pemula';
+                }
+            }
+        }
+
+        echo json_encode($athletes);
         exit;
     }
 }
