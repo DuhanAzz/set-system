@@ -74,10 +74,10 @@ $sponsors = !empty($event['sponsor_logos']) ? json_decode($event['sponsor_logos'
         .sponsor-footer img { height: 45px; width: auto; object-fit: contain; margin: 0 10px; }
         
         /* TABEL STYLE */
-        .club-title { font-size: 14pt; font-weight: 900; margin-bottom: 15px; text-transform: uppercase; font-family: 'Arial Narrow', sans-serif; text-decoration: underline; margin-top: 15px; }
-        .data-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; page-break-inside: avoid; }
-        .data-table th { border: 1px solid #000; background-color: #eee; padding: 4px; text-align: left; font-size: 10pt; font-weight: bold; text-transform: uppercase; }
-        .data-table td { border: 1px solid #000; padding: 4px; font-size: 10pt; vertical-align: middle; }
+        .club-title { font-size: 11pt; font-weight: 900; margin-bottom: 4px; text-transform: uppercase; font-family: 'Arial Narrow', sans-serif; text-decoration: underline; margin-top: 8px; }
+        .data-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; page-break-inside: avoid; }
+        .data-table th { border: 1px solid #000; background-color: #eee; padding: 2px 4px; text-align: left; font-size: 9pt; font-weight: bold; text-transform: uppercase; }
+        .data-table td { border: 1px solid #000; padding: 2px 4px; font-size: 9pt; vertical-align: middle; }
         .data-table th.col-no, .data-table td.col-no { width: 40px; text-align: center; font-weight: bold; }
         .data-table th.col-bib, .data-table td.col-bib { width: 80px; text-align: center; font-weight: bold; }
         .data-table th.col-nama { width: 50%; }
@@ -150,7 +150,7 @@ $sponsors = !empty($event['sponsor_logos']) ? json_decode($event['sponsor_logos'
                                     <?php $no = 1; foreach ($athletes as $ath): ?>
                                         <tr>
                                             <td class="col-no"><?= $no++ ?></td>
-                                            <td class="col-bib" style="font-size: 12pt;"><?= htmlspecialchars($ath['bib_number'] ?? '-') ?></td>
+                                            <td class="col-bib" style="font-size: 10pt; font-weight: bold;"><?= htmlspecialchars($ath['bib_number'] ?? '-') ?></td>
                                             <td class="col-nama"><strong><?= htmlspecialchars($ath['skater_name']) ?></strong></td>
                                             <td class="col-ku"><?= htmlspecialchars($ath['ku']) ?></td>
                                         </tr>

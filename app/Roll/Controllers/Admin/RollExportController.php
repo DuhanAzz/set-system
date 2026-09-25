@@ -506,9 +506,7 @@ class RollExportController extends Controller {
             $clubsData[$ath['club_name']][] = $ath;
         }
 
-        return $this->view('roll/admin/export/athlete_book_pdf', [
-            'event' => $event,
-            'clubsData' => $clubsData
-        ]);
+        require_once __DIR__ . '/../../../../views/roll/admin/export/athlete_book_pdf.php';
+        exit;
     }
 }
