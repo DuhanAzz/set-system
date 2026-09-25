@@ -42,6 +42,16 @@ class RollTokenRegistrationController extends Controller {
         $stmtAthletes->execute([$club_id]);
         $athletes = $stmtAthletes->fetchAll(PDO::FETCH_ASSOC);
 
+        // Fetch All Clubs
+        $stmtAllClubs = $db->prepare("SELECT id, club_name FROM roll_clubs ORDER BY club_name ASC");
+        $stmtAllClubs->execute();
+        $all_clubs = $stmtAllClubs->fetchAll(PDO::FETCH_ASSOC);
+
+        // Fetch Current Club Name
+        $stmtMyClub = $db->prepare("SELECT club_name FROM roll_clubs WHERE id = ?");
+        $stmtMyClub->execute([$club_id]);
+        $club_name = $stmtMyClub->fetchColumn();
+
         // Get Active Events for Registration
         $stmtEvent = $db->prepare("SELECT * FROM roll_events WHERE id = ?");
         $stmtEvent->execute([$event_id]);
@@ -99,6 +109,8 @@ class RollTokenRegistrationController extends Controller {
             'existingEntries' => $existingEntries,
             'isLocked'        => $isLocked,
             'club_id'         => $club_id,
+            'club_name'       => $club_name,
+            'all_clubs'       => $all_clubs,
             'allow_individu'  => $allow_individu,
             'allow_team'      => $allow_team,
         ]);
@@ -531,6 +543,25 @@ class RollTokenRegistrationController extends Controller {
             'race_class_ids' => $race_class_ids,
             'locked_cat_id' => $locked_cat_id
         ]);
+        exit;
+    }
+
+
+    public function get_athletes_by_club() {
+        if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'user') {
+            echo json_encode([]);
+            exit;
+        }
+        $clubId = (int)($_GET['club_id'] ?? 0);
+        if (!$clubId) {
+            echo json_encode([]);
+            exit;
+        }
+
+        $db = \App\Core\Database::getInstance()->getConnection();
+        $stmt = $db->prepare("SELECT id, skater_name, gender, birth_date FROM roll_skaters WHERE club_id = ? ORDER BY skater_name ASC");
+        $stmt->execute([$clubId]);
+        echo json_encode($stmt->fetchAll(\PDO::FETCH_ASSOC));
         exit;
     }
 }

@@ -387,6 +387,13 @@
                 <!-- Kiri: Info Tim & Kelas Lomba -->
                 <div class="space-y-4">
                     <h3 class="text-sm font-black uppercase tracking-widest text-slate-800 border-b border-slate-100 pb-2">Identitas Tim</h3>
+                    
+                    <div class="mt-2 mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        <p class="text-[10px] font-bold text-slate-600 uppercase tracking-widest">Penanggung Jawab Tim:</p>
+                        <p class="text-sm font-black text-blue-700 uppercase"><?= htmlspecialchars($club_name ?? 'Klub Anda') ?></p>
+                        <p class="text-[9px] text-slate-500 mt-1 italic">Klub ini bertanggung jawab untuk komunikasi dan administrasi tim.</p>
+                    </div>
+
                     <div>
                         <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Nama Tim <span class="text-red-500">*</span></label>
                         <input type="text" name="team_name" required placeholder="- Masukkan Nama Tim -" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
@@ -432,14 +439,33 @@
                             <span class="absolute -left-2 -top-2 w-5 h-5 bg-indigo-600 text-white rounded-full flex items-center justify-center text-[10px] font-black"><?= $i ?></span>
                             
                             <div class="grid grid-cols-2 gap-3">
+                                <?php if($i == 1): ?>
                                 <div>
+                                    <div class="w-full px-2 py-2 bg-slate-100 border border-slate-200 rounded-lg text-[10px] font-bold text-slate-500 overflow-hidden text-ellipsis whitespace-nowrap" title="<?= htmlspecialchars($club_name ?? 'Klub Anda') ?>">
+                                        <?= htmlspecialchars($club_name ?? 'Klub Anda') ?>
+                                    </div>
                                     <input type="hidden" id="team_club_select_<?= $i ?>" name="team_club_id_<?= $i ?>" value="<?= $club_id ?>">
+                                </div>
+                                <div>
+                                    <select name="skater_id[]" id="team_skater_select_<?= $i ?>" onchange="validateTeamMembers()" disabled required class="team-skater-select w-full px-2 py-2 bg-white border border-slate-200 rounded-lg text-[10px] font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition disabled:opacity-50">
+                                        <option value="">- Pilih Atlet -</option>
+                                    </select>
+                                </div>
+                                <?php else: ?>
+                                <div>
+                                    <select id="team_club_select_<?= $i ?>" name="team_club_id_<?= $i ?>" onchange="loadAthletes(this.value, 'team_skater_select_<?= $i ?>')" class="w-full px-2 py-2 bg-white border border-slate-200 rounded-lg text-[10px] font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                                        <option value="">- Pilih Klub -</option>
+                                        <?php foreach($all_clubs as $c): ?>
+                                            <option value="<?= $c['id'] ?>"><?= htmlspecialchars($c['club_name']) ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
                                 </div>
                                 <div>
                                     <select name="skater_id[]" id="team_skater_select_<?= $i ?>" onchange="validateTeamMembers()" disabled <?= $i <= 2 ? 'required' : '' ?> class="team-skater-select w-full px-2 py-2 bg-white border border-slate-200 rounded-lg text-[10px] font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition disabled:opacity-50">
                                         <option value="">- Pilih Atlet -</option>
                                     </select>
                                 </div>
+                                <?php endif; ?>
                             </div>
                             <?php if($i > 2): ?>
                                 <div id="team_req_label_<?= $i ?>" class="text-[9px] text-slate-400 mt-1 italic text-right">Opsional</div>
@@ -497,14 +523,17 @@ function populateAthleteSelect(selectId) {
     select.disabled = false;
 }
 
+let athletesCache = {}; // { club_id: [ athletes array ] }
+
 window.addEventListener("DOMContentLoaded", function() {
-    populateAthleteSelect("indv_skater_select");
+    // Initialize cache with current user's athletes
+    athletesCache[myClubId] = allSkaters;
+    
+    loadAthletes(myClubId, "indv_skater_select");
     for(let i=1; i<=4; i++) {
-        populateAthleteSelect("team_skater_select_" + i);
+        loadAthletes(myClubId, "team_skater_select_" + i);
     }
 });
-
-let athletesCache = {}; // { club_id: [ athletes array ] }
 
 function switchTab(tab) {
     const formIndv = document.getElementById('form_individu');
