@@ -610,7 +610,7 @@ function onSkaterSelect(sel) {
         info.classList.remove('hidden');
 
         // Panggil history atlet
-        fetch(`<?= getenv('APP_URL') ?>/roll/admin/entries/get_athlete_entries?skater_id=${sel.value}&event_id=${<?= $event["id"] ?>}`)
+        fetch(`<?= getenv('APP_URL') ?>/roll/user/token_registration/get_athlete_entries?skater_id=${sel.value}&event_id=<?= $event["id"] ?>`)
             .then(res => res.json())
             .then(data => {
                 if (data.race_class_ids && data.race_class_ids.length > 0) {

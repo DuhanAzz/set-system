@@ -475,4 +475,62 @@ class RollTokenRegistrationController extends Controller {
         exit;
     }
 
+    public function get_athlete_entries() {
+        if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'user') {
+            echo json_encode([]);
+            exit;
+        }
+
+        $db = Database::getInstance()->getConnection();
+        $skater_id = (int)($_GET['skater_id'] ?? 0);
+        $event_id = (int)($_GET['event_id'] ?? 0);
+        $club_id = (int)($_SESSION['roll_club_id'] ?? 0);
+
+        if ($skater_id == 0 || $event_id == 0) {
+            echo json_encode(['race_class_ids' => [], 'locked_cat_id' => null]);
+            exit;
+        }
+        
+        // Verify skater belongs to club
+        $stmtCheck = $db->prepare("SELECT id FROM roll_skaters WHERE id = ? AND club_id = ?");
+        $stmtCheck->execute([$skater_id, $club_id]);
+        if (!$stmtCheck->fetchColumn()) {
+            echo json_encode(['race_class_ids' => [], 'locked_cat_id' => null]);
+            exit;
+        }
+
+        // Ambil semua entri atlet di event ini
+        $stmt = $db->prepare("
+            SELECT e.race_class_id, ed.skate_class_id, d.distance_name, skc.id as class_cat_id
+            FROM roll_entries e
+            JOIN roll_event_details ed ON e.race_class_id = ed.id
+            JOIN roll_ref_distances d ON ed.distance_id = d.id
+            JOIN roll_ref_skate_classes skc ON ed.skate_class_id = skc.id
+            WHERE e.skater_id = ? AND e.event_id = ?
+        ");
+        $stmt->execute([$skater_id, $event_id]);
+        $entries = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $race_class_ids = [];
+        $locked_cat_id = null;
+
+        foreach ($entries as $ent) {
+            $dName = strtolower($ent['distance_name']);
+            // Abaikan team/relay dari locked category logic
+            if (strpos($dName, 'relay') !== false || strpos($dName, 'team') !== false || strpos($dName, 'pair') !== false) {
+                continue;
+            }
+            $race_class_ids[] = $ent['race_class_id'];
+            if (!$locked_cat_id) {
+                $locked_cat_id = $ent['class_cat_id']; // Kunci kategori dari entri pertama
+            }
+        }
+
+        header('Content-Type: application/json');
+        echo json_encode([
+            'race_class_ids' => $race_class_ids,
+            'locked_cat_id' => $locked_cat_id
+        ]);
+        exit;
+    }
 }
