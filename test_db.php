@@ -1,10 +1,5 @@
 <?php
-require_once __DIR__ . '/app/Core/Database.php';
-use App\Core\Database;
-try {
-    $db = Database::getInstance()->getConnection();
-    $stmt = $db->query("DESCRIBE roll_clubs");
-    print_r($stmt->fetchAll(PDO::FETCH_ASSOC));
-} catch (Exception $e) {
-    echo $e->getMessage();
-}
+require_once 'app/Core/Database.php';
+$db = \App\Core\Database::getInstance()->getConnection();
+$stmt = $db->query("SELECT id, class_name FROM roll_ref_skate_classes");
+print_r($stmt->fetchAll(PDO::FETCH_ASSOC));

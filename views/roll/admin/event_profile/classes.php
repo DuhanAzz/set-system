@@ -209,8 +209,15 @@
                             <!-- BATCH LIMITS PER KATEGORI -->
                             <div class="flex flex-wrap justify-center gap-4">
                                 <!-- SPEED -->
-                                <div class="bg-fuchsia-50/50 border border-fuchsia-200 p-3 rounded-xl flex flex-col shadow-sm">
-                                    <span class="text-[10px] font-black text-fuchsia-600 uppercase tracking-widest text-center mb-2">Limit Speed</span>
+                                <div class="bg-fuchsia-50/50 border border-fuchsia-200 p-3 rounded-xl flex flex-col shadow-sm relative pt-6">
+                                    <div class="absolute top-2 right-2 left-2 flex justify-between items-center">
+                                        <span class="text-[10px] font-black text-fuchsia-600 uppercase tracking-widest text-center">Limit Speed</span>
+                                        <label class="inline-flex items-center cursor-pointer" title="Buka/Tutup Pendaftaran Speed">
+                                            <input type="hidden" name="is_speed_open" value="0">
+                                            <input type="checkbox" name="is_speed_open" value="1" <?= (!isset($row['is_speed_open']) || $row['is_speed_open']) ? 'checked' : '' ?> class="sr-only peer">
+                                            <div class="relative w-7 h-4 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-fuchsia-500"></div>
+                                        </label>
+                                    </div>
                                     <div class="flex gap-3">
                                         <div class="flex flex-col text-center">
                                             <span class="text-[9px] text-fuchsia-500 font-bold mb-1">Max Individu</span>
@@ -224,8 +231,15 @@
                                 </div>
                                 
                                 <!-- STANDAR -->
-                                <div class="bg-amber-50/50 border border-amber-200 p-3 rounded-xl flex flex-col shadow-sm">
-                                    <span class="text-[10px] font-black text-amber-600 uppercase tracking-widest text-center mb-2">Limit Standar</span>
+                                <div class="bg-amber-50/50 border border-amber-200 p-3 rounded-xl flex flex-col shadow-sm relative pt-6">
+                                    <div class="absolute top-2 right-2 left-2 flex justify-between items-center">
+                                        <span class="text-[10px] font-black text-amber-600 uppercase tracking-widest text-center">Limit Standar</span>
+                                        <label class="inline-flex items-center cursor-pointer" title="Buka/Tutup Pendaftaran Standar">
+                                            <input type="hidden" name="is_std_open" value="0">
+                                            <input type="checkbox" name="is_std_open" value="1" <?= (!isset($row['is_std_open']) || $row['is_std_open']) ? 'checked' : '' ?> class="sr-only peer">
+                                            <div class="relative w-7 h-4 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-amber-500"></div>
+                                        </label>
+                                    </div>
                                     <div class="flex gap-3">
                                         <div class="flex flex-col text-center">
                                             <span class="text-[9px] text-amber-500 font-bold mb-1">Max Individu</span>
@@ -239,8 +253,15 @@
                                 </div>
                                 
                                 <!-- PEMULA -->
-                                <div class="bg-emerald-50/50 border border-emerald-200 p-3 rounded-xl flex flex-col shadow-sm">
-                                    <span class="text-[10px] font-black text-emerald-600 uppercase tracking-widest text-center mb-2">Limit Pemula</span>
+                                <div class="bg-emerald-50/50 border border-emerald-200 p-3 rounded-xl flex flex-col shadow-sm relative pt-6">
+                                    <div class="absolute top-2 right-2 left-2 flex justify-between items-center">
+                                        <span class="text-[10px] font-black text-emerald-600 uppercase tracking-widest text-center">Limit Pemula</span>
+                                        <label class="inline-flex items-center cursor-pointer" title="Buka/Tutup Pendaftaran Pemula">
+                                            <input type="hidden" name="is_pemula_open" value="0">
+                                            <input type="checkbox" name="is_pemula_open" value="1" <?= (!isset($row['is_pemula_open']) || $row['is_pemula_open']) ? 'checked' : '' ?> class="sr-only peer">
+                                            <div class="relative w-7 h-4 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-emerald-500"></div>
+                                        </label>
+                                    </div>
                                     <div class="flex gap-3">
                                         <div class="flex flex-col text-center">
                                             <span class="text-[9px] text-emerald-500 font-bold mb-1">Max Individu</span>

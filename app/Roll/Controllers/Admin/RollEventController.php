@@ -80,6 +80,11 @@ class RollEventController extends Controller {
 
     public function classes() {
         $db = Database::getInstance()->getConnection();
+        // Silent Migration
+        try {
+            $db->exec("ALTER TABLE roll_events ADD COLUMN is_speed_open TINYINT(1) DEFAULT 1, ADD COLUMN is_std_open TINYINT(1) DEFAULT 1, ADD COLUMN is_pemula_open TINYINT(1) DEFAULT 1");
+        } catch (\Exception $e) {}
+
         $uid = $_SESSION['roll_user_id'];
         
         $eventId = (int)($_GET['id'] ?? 0);
@@ -627,9 +632,13 @@ class RollEventController extends Controller {
             $lst_team = (int)($_POST['limit_std_team'] ?? 1);
             $lp_ind = (int)($_POST['limit_pemula_ind'] ?? 2);
             $lp_team = (int)($_POST['limit_pemula_team'] ?? 1);
+            
+            $iso = (int)($_POST['is_speed_open'] ?? 0);
+            $isto = (int)($_POST['is_std_open'] ?? 0);
+            $ipo = (int)($_POST['is_pemula_open'] ?? 0);
 
-            $stmtUpdateLimits = $db->prepare("UPDATE roll_events SET limit_speed_ind=?, limit_speed_team=?, limit_std_ind=?, limit_std_team=?, limit_pemula_ind=?, limit_pemula_team=? WHERE id=?");
-            $stmtUpdateLimits->execute([$ls_ind, $ls_team, $lst_ind, $lst_team, $lp_ind, $lp_team, $eventId]);
+            $stmtUpdateLimits = $db->prepare("UPDATE roll_events SET limit_speed_ind=?, limit_speed_team=?, limit_std_ind=?, limit_std_team=?, limit_pemula_ind=?, limit_pemula_team=?, is_speed_open=?, is_std_open=?, is_pemula_open=? WHERE id=?");
+            $stmtUpdateLimits->execute([$ls_ind, $ls_team, $lst_ind, $lst_team, $lp_ind, $lp_team, $iso, $isto, $ipo, $eventId]);
 
             // Fetch distances
             $dists = [];

@@ -50,7 +50,17 @@ class RollRegistrationController extends Controller {
                 ORDER BY a.min_year ASC, c.category_name ASC, d.id ASC
             ");
             $stmtClasses->execute([$event['id']]);
-            $classes = $stmtClasses->fetchAll(PDO::FETCH_ASSOC);
+            $rawClasses = $stmtClasses->fetchAll(PDO::FETCH_ASSOC);
+
+            $filteredClasses = [];
+            foreach ($rawClasses as $c) {
+                $cname = strtolower($c['class_name']);
+                if (strpos($cname, 'speed') !== false && !($event['is_speed_open'] ?? 1)) continue;
+                if (strpos($cname, 'standar') !== false && !($event['is_std_open'] ?? 1)) continue;
+                if (strpos($cname, 'pemula') !== false && !($event['is_pemula_open'] ?? 1)) continue;
+                $filteredClasses[] = $c;
+            }
+            $classes = $filteredClasses;
         }
 
         // Fetch registered entries for THIS event and club
