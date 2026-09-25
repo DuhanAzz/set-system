@@ -597,8 +597,8 @@ class RollEntryController extends Controller {
             $stmtClasses->execute([$event['id']]);
             $classes = $stmtClasses->fetchAll(PDO::FETCH_ASSOC);
         }
-        // Fetch Tokens for this event
         $tokens = [];
+        $tokenError = null;
         try {
             $stmtTokens = $db->prepare("
                 SELECT t.*, c.club_name, 
@@ -612,7 +612,7 @@ class RollEntryController extends Controller {
             $stmtTokens->execute([$targetEventId]);
             $tokens = $stmtTokens->fetchAll(PDO::FETCH_ASSOC);
         } catch (\PDOException $e) {
-            // Table might not exist yet
+            $tokenError = $e->getMessage();
         }
 
         return $this->view('roll/admin/entries/create', [
@@ -620,7 +620,8 @@ class RollEntryController extends Controller {
             'clubs'   => $clubs,
             'classes' => $classes,
             'targetEventId' => $targetEventId,
-            'tokens'  => $tokens
+            'tokens'  => $tokens,
+            'tokenError' => $tokenError
         ]);
     }
 

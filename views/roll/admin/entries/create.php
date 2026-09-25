@@ -246,7 +246,12 @@
             </div>
             <?php unset($_SESSION['generated_token'], $_SESSION['generated_phone']); ?>
         <?php endif; ?>
-        
+        <?php if(!empty($tokenError)): ?>
+            <div class="mt-8 p-4 rounded-xl text-xs font-bold text-red-600 bg-red-50 border border-red-200">
+                DB Error: <?= htmlspecialchars($tokenError) ?>
+            </div>
+        <?php endif; ?>
+
         <?php if(!empty($tokens)): ?>
         <div class="mt-10 border-t border-slate-100 pt-8">
             <h4 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Daftar Token yang Pernah Dibuat</h4>
