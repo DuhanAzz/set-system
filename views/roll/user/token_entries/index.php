@@ -924,5 +924,13 @@ function validateTeamMembers() {
 window.addEventListener('DOMContentLoaded', function() {
     switchTab('<?= htmlspecialchars($_GET['form']) ?>');
 });
+<?php else: ?>
+window.addEventListener('DOMContentLoaded', function() {
+    <?php if ($allow_individu): ?>
+        switchTab('individu');
+    <?php elseif ($allow_team): ?>
+        switchTab('team');
+    <?php endif; ?>
+});
 <?php endif; ?>
 </script>
