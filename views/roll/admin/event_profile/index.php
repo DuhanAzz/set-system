@@ -85,12 +85,12 @@
                         <div>
                             <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Status Kejuaraan</label>
                             <select name="status" class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-800 focus:ring-2 focus:ring-blue-500 font-bold">
-                                <option value="Draft" <?= ($row['status'] == 'Draft') ? 'selected' : '' ?>>Draft (Sembunyikan)</option>
-                                <option value="Published" <?= ($row['status'] == 'Published') ? 'selected' : '' ?>>Published</option>
-                                <option value="Open Registration" <?= ($row['status'] == 'Open Registration') ? 'selected' : '' ?>>Open Registration</option>
-                                <option value="Close Registration" <?= ($row['status'] == 'Close Registration') ? 'selected' : '' ?>>Close Registration</option>
-                                <option value="Running" <?= ($row['status'] == 'Running') ? 'selected' : '' ?>>Running</option>
-                                <option value="Finished" <?= ($row['status'] == 'Finished') ? 'selected' : '' ?>>Finished</option>
+                                <option value="Draft" <?= (($row['status'] ?? 'Draft') == 'Draft') ? 'selected' : '' ?>>Draft (Sembunyikan)</option>
+                                <option value="Published" <?= (($row['status'] ?? '') == 'Published') ? 'selected' : '' ?>>Published</option>
+                                <option value="Open Registration" <?= (($row['status'] ?? '') == 'Open Registration') ? 'selected' : '' ?>>Open Registration</option>
+                                <option value="Close Registration" <?= (($row['status'] ?? '') == 'Close Registration') ? 'selected' : '' ?>>Close Registration</option>
+                                <option value="Running" <?= (($row['status'] ?? '') == 'Running') ? 'selected' : '' ?>>Running</option>
+                                <option value="Finished" <?= (($row['status'] ?? '') == 'Finished') ? 'selected' : '' ?>>Finished</option>
                             </select>
                         </div>
                     </div>

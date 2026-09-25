@@ -26,9 +26,15 @@
                 </div>
 
                 <div class="mt-8 pt-6 border-t border-slate-100 flex gap-4 flex-wrap">
-                    <a href="<?= getenv('APP_URL') ?>/roll/user/registration/index/<?= $event['id'] ?>" class="bg-blue-600 hover:bg-blue-700 text-white font-black uppercase text-sm px-10 py-4 rounded-xl shadow-xl shadow-blue-200 hover:shadow-blue-300 hover:-translate-y-1 transition duration-300 inline-block">
-                        Mulai Pendaftaran Tim 🚀
-                    </a>
+                    <?php if(($event['status'] ?? '') === 'Open Registration'): ?>
+                        <a href="<?= getenv('APP_URL') ?>/roll/user/registration/index/<?= $event['id'] ?>" class="bg-blue-600 hover:bg-blue-700 text-white font-black uppercase text-sm px-10 py-4 rounded-xl shadow-xl shadow-blue-200 hover:shadow-blue-300 hover:-translate-y-1 transition duration-300 inline-block">
+                            Mulai Pendaftaran Tim 🚀
+                        </a>
+                    <?php else: ?>
+                        <a href="<?= getenv('APP_URL') ?>/roll/user/registration/index/<?= $event['id'] ?>" class="bg-slate-600 hover:bg-slate-700 text-white font-black uppercase text-sm px-10 py-4 rounded-xl shadow-xl hover:-translate-y-1 transition duration-300 inline-block">
+                            <?= ($event['status'] ?? '') === 'Published' ? 'Pendaftaran Segera Dibuka ⏳' : 'Pendaftaran Ditutup - Lihat Tim 🔒' ?>
+                        </a>
+                    <?php endif; ?>
                 </div>
             </div>
 

@@ -74,7 +74,12 @@ class RollRegistrationController extends Controller {
         $existingEntries = $stmtEntries->fetchAll(PDO::FETCH_ASSOC);
 
         $isEditable = !empty(array_filter($existingEntries, fn($e) => in_array($e['payment_status'], ['Unpaid', 'Rejected'])));
-        $isLocked  = !empty($existingEntries) && !$isEditable; // Terkunci hanya jika semua Pending/Paid
+        $isLocked  = !empty($existingEntries) && !$isEditable; // Terkunci jika semua Pending/Paid
+        
+        // Kunci form jika status bukan Open Registration
+        if ($event && $event['status'] !== 'Open Registration') {
+            $isLocked = true;
+        }
 
         return $this->view('roll/user/entries/index', [
             'athletes'        => $athletes,
@@ -233,6 +238,17 @@ class RollRegistrationController extends Controller {
         }
 
         $db = Database::getInstance()->getConnection();
+        
+        // Cek status event
+        $stmtEventStat = $db->prepare("SELECT status FROM roll_events WHERE id = ?");
+        $stmtEventStat->execute([$event_id]);
+        $eventStatus = $stmtEventStat->fetchColumn();
+        if ($eventStatus !== 'Open Registration') {
+            $_SESSION['flash_message'] = "Pendaftaran untuk event ini sedang ditutup.";
+            $_SESSION['flash_type'] = "error";
+            header("Location: " . getenv('APP_URL') . "/roll/user/registration/index/" . $event_id);
+            exit;
+        }
         
         // Cek status pembayaran, jika Pending/Paid, kunci (lock)
         $stmtPayment = $db->prepare("SELECT status FROM roll_payments WHERE club_id = ? AND event_id = ?");
@@ -438,6 +454,18 @@ class RollRegistrationController extends Controller {
         $entry = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($entry) {
+            // Cek status event
+            $stmtEventStat = $db->prepare("SELECT status FROM roll_events WHERE id = ?");
+            $stmtEventStat->execute([$entry['event_id']]);
+            $eventStatus = $stmtEventStat->fetchColumn();
+            
+            if ($eventStatus !== 'Open Registration') {
+                $_SESSION['flash_message'] = "Tidak bisa membatalkan entri saat pendaftaran ditutup.";
+                $_SESSION['flash_type'] = "error";
+                header("Location: " . getenv('APP_URL') . "/roll/user/registration/index/" . $entry['event_id']);
+                exit;
+            }
+
             $db->prepare("DELETE FROM roll_entries WHERE id = ?")->execute([$entry['id']]);
             $_SESSION['flash_message'] = "Pendaftaran dibatalkan.";
             $_SESSION['flash_type'] = "success";

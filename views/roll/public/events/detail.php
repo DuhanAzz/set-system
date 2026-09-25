@@ -61,7 +61,13 @@ $appName      = $s['app_name'] ?? 'SET Roll System';
         <div class="bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden mb-12">
             <div class="p-8 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
                 <h3 class="font-black text-slate-800 uppercase tracking-wider text-lg">Daftar Kelas Lomba</h3>
-                <a href="<?= getenv('APP_URL') ?>/roll/login" class="bg-orange-600 hover:bg-orange-700 text-white px-6 py-2 rounded-xl font-black uppercase text-xs tracking-widest shadow-lg transition">Daftar Event Ini</a>
+                <?php if(($event['status'] ?? '') === 'Open Registration'): ?>
+                    <a href="<?= getenv('APP_URL') ?>/roll/login" class="bg-orange-600 hover:bg-orange-700 text-white px-6 py-2 rounded-xl font-black uppercase text-xs tracking-widest shadow-lg transition">Daftar Event Ini</a>
+                <?php else: ?>
+                    <button disabled class="bg-slate-300 text-slate-500 px-6 py-2 rounded-xl font-black uppercase text-xs tracking-widest cursor-not-allowed">
+                        <?= ($event['status'] ?? '') === 'Published' ? 'Pendaftaran Segera Dibuka' : 'Pendaftaran Ditutup' ?>
+                    </button>
+                <?php endif; ?>
             </div>
             
             <div class="overflow-x-auto">

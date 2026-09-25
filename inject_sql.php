@@ -148,6 +148,11 @@ try {
         }
     }
     
+    // 1.4 Modifikasi kolom status di roll_events
+    try {
+        $db->exec("ALTER TABLE roll_events MODIFY COLUMN status ENUM('Draft','Published','Open Registration','Close Registration','Running','Finished') DEFAULT 'Draft'");
+    } catch (PDOException $e) {}
+    
     // 1.5 Backfill club_id untuk data registrasi lama yang masih NULL
     $db->exec("
         UPDATE roll_entries e 
