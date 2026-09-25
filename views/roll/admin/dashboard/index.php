@@ -75,7 +75,7 @@
         </div>
     </div>
 
-    <div class="bg-gradient-to-br from-white to-slate-50 rounded-2xl p-6 border-b-4 border-orange-500 shadow-sm hover:shadow-lg transition-all duration-300 group">
+    <a href="<?= getenv('APP_URL') ?>/roll/admin/dashboard/clubs" class="bg-gradient-to-br from-white to-slate-50 rounded-2xl p-6 border-b-4 border-orange-500 shadow-sm hover:shadow-lg transition-all duration-300 group block">
         <div class="flex justify-between items-start">
             <div>
                 <p class="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Klub/Sekolah</p>
@@ -84,7 +84,7 @@
             </div>
             <div class="w-12 h-12 bg-orange-100 text-orange-600 rounded-xl flex items-center justify-center text-2xl shadow-inner group-hover:bg-orange-600 group-hover:text-white transition">🏢</div>
         </div>
-    </div>
+    </a>
 </div>
 
 <!-- BOTTOM: CHART + QUICK MENU -->
