@@ -231,14 +231,72 @@
                 </div>
                 <div>
                     <?php 
+                        $phoneObj = $_SESSION['generated_phone'] ?? '';
+                        // Format ke 62xxxx
+                        $phoneFormatted = preg_replace('/[^0-9]/', '', $phoneObj);
+                        if(strpos($phoneFormatted, '0') === 0) $phoneFormatted = '62' . substr($phoneFormatted, 1);
+                        
                         $waMsg = urlencode("Halo Pelatih,\n\nIni adalah Token Jalur Khusus untuk mendaftarkan atlet pada event " . $event['event_name'] . ".\n\n*TOKEN ANDA: " . $_SESSION['generated_token'] . "*\n\nSilakan masukkan token tersebut di halaman event berikut:\n" . getenv('APP_URL') . "/roll/user/explore/detail/" . $event['id']);
+                        $waUrl = $phoneFormatted ? "https://wa.me/{$phoneFormatted}?text={$waMsg}" : "https://wa.me/?text={$waMsg}";
                     ?>
-                    <a href="https://wa.me/?text=<?= $waMsg ?>" target="_blank" class="px-6 py-2 bg-green-500 hover:bg-green-600 text-white font-black text-xs uppercase tracking-widest rounded-lg transition inline-flex items-center gap-2">
-                        Kirim via WhatsApp
+                    <a href="<?= $waUrl ?>" target="_blank" class="px-6 py-2 bg-green-500 hover:bg-green-600 text-white font-black text-xs uppercase tracking-widest rounded-lg transition inline-flex items-center gap-2">
+                        <?= $phoneFormatted ? 'Kirim via WhatsApp ke Pelatih' : 'Kirim via WhatsApp' ?>
                     </a>
                 </div>
             </div>
-            <?php unset($_SESSION['generated_token']); ?>
+            <?php unset($_SESSION['generated_token'], $_SESSION['generated_phone']); ?>
+        <?php endif; ?>
+        
+        <?php if(!empty($tokens)): ?>
+        <div class="mt-10 border-t border-slate-100 pt-8">
+            <h4 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Daftar Token yang Pernah Dibuat</h4>
+            <div class="overflow-x-auto rounded-xl border border-slate-200">
+                <table class="w-full text-left text-sm text-slate-600">
+                    <thead class="bg-slate-50 text-[10px] uppercase font-black text-slate-400 tracking-widest border-b border-slate-200">
+                        <tr>
+                            <th class="px-4 py-3">Token Code</th>
+                            <th class="px-4 py-3">Nama Klub</th>
+                            <th class="px-4 py-3">Dibuat Pada</th>
+                            <th class="px-4 py-3">Status</th>
+                            <th class="px-4 py-3 text-right">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        <?php foreach($tokens as $t): 
+                            if ($t['is_used'] == 1) {
+                                $statusLabel = '<span class="px-2 py-1 bg-green-50 text-green-600 border border-green-200 rounded text-[10px] font-bold">Sudah Digunakan</span>';
+                                $canDelete = true;
+                            } elseif ($t['entry_count'] > 0) {
+                                $statusLabel = '<span class="px-2 py-1 bg-orange-50 text-orange-600 border border-orange-200 rounded text-[10px] font-bold">Sedang Digunakan</span>';
+                                $canDelete = false;
+                            } else {
+                                $statusLabel = '<span class="px-2 py-1 bg-slate-100 text-slate-500 border border-slate-200 rounded text-[10px] font-bold">Belum Digunakan</span>';
+                                $canDelete = true;
+                            }
+                        ?>
+                        <tr class="hover:bg-slate-50">
+                            <td class="px-4 py-3 font-black text-emerald-600"><?= $t['token_code'] ?></td>
+                            <td class="px-4 py-3 font-bold text-slate-800">
+                                <?= htmlspecialchars($t['club_name']) ?>
+                                <?php if($t['club_phone']): ?>
+                                    <br><span class="text-[10px] text-slate-400 font-normal"><?= $t['club_phone'] ?></span>
+                                <?php endif; ?>
+                            </td>
+                            <td class="px-4 py-3 text-xs"><?= date('d/m/Y H:i', strtotime($t['created_at'])) ?></td>
+                            <td class="px-4 py-3"><?= $statusLabel ?></td>
+                            <td class="px-4 py-3 text-right">
+                                <?php if($canDelete): ?>
+                                <form action="<?= getenv('APP_URL') ?>/roll/admin/entries/delete_token/<?= $t['id'] ?>" method="POST" onsubmit="return confirm('Hapus token ini?');">
+                                    <button type="submit" class="text-red-500 hover:text-red-700 text-xs font-bold uppercase tracking-widest">Hapus</button>
+                                </form>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
         <?php endif; ?>
     </div>
 </div>

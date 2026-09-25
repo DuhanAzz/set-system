@@ -597,12 +597,30 @@ class RollEntryController extends Controller {
             $stmtClasses->execute([$event['id']]);
             $classes = $stmtClasses->fetchAll(PDO::FETCH_ASSOC);
         }
+        // Fetch Tokens for this event
+        $tokens = [];
+        try {
+            $stmtTokens = $db->prepare("
+                SELECT t.*, c.club_name, 
+                       (SELECT u.phone FROM roll_users u WHERE u.club_id = c.id LIMIT 1) as club_phone,
+                       (SELECT COUNT(*) FROM roll_entries e WHERE e.manual_invoice_code = t.manual_invoice_code) as entry_count
+                FROM roll_event_tokens t
+                JOIN roll_clubs c ON t.club_id = c.id
+                WHERE t.event_id = ?
+                ORDER BY t.created_at DESC
+            ");
+            $stmtTokens->execute([$targetEventId]);
+            $tokens = $stmtTokens->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\PDOException $e) {
+            // Table might not exist yet
+        }
 
         return $this->view('roll/admin/entries/create', [
             'event'   => $event,
             'clubs'   => $clubs,
             'classes' => $classes,
-            'targetEventId' => $targetEventId
+            'targetEventId' => $targetEventId,
+            'tokens'  => $tokens
         ]);
     }
 
@@ -755,7 +773,13 @@ class RollEntryController extends Controller {
                     $stmt = $db->prepare("INSERT INTO roll_event_tokens (event_id, club_id, token_code, manual_invoice_code) VALUES (?, ?, ?, ?)");
                     $stmt->execute([$event_id, $club_id, $token, $manual_invoice_code]);
 
+                    // Fetch club phone
+                    $stmtPhone = $db->prepare("SELECT u.phone FROM roll_users u WHERE u.club_id = ? LIMIT 1");
+                    $stmtPhone->execute([$club_id]);
+                    $phone = $stmtPhone->fetchColumn();
+
                     $_SESSION['generated_token'] = $token;
+                    $_SESSION['generated_phone'] = $phone ?: '';
                     $_SESSION['flash_message'] = "Token berhasil dibuat!";
                     $_SESSION['flash_type'] = "success";
                 } catch (\PDOException $e) {
@@ -767,5 +791,25 @@ class RollEntryController extends Controller {
         header("Location: " . getenv('APP_URL') . "/roll/admin/entries/manual_add");
         exit;
     }
-}
 
+    public function delete_token($token_id) {
+        if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+            header("Location: " . getenv('APP_URL') . "/roll/login");
+            exit;
+        }
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $db = Database::getInstance()->getConnection();
+            $stmt = $db->prepare("DELETE FROM roll_event_tokens WHERE id = ?");
+            if ($stmt->execute([$token_id])) {
+                $_SESSION['flash_message'] = "Token berhasil dihapus.";
+                $_SESSION['flash_type'] = "success";
+            } else {
+                $_SESSION['flash_message'] = "Gagal menghapus token.";
+                $_SESSION['flash_type'] = "error";
+            }
+        }
+        header("Location: " . getenv('APP_URL') . "/roll/admin/entries/manual_add");
+        exit;
+    }
+}
