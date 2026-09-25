@@ -764,6 +764,8 @@ class RollEntryController extends Controller {
             $db = Database::getInstance()->getConnection();
             $event_id = $_POST['event_id'] ?? 0;
             $club_id = $_POST['club_id'] ?? 0;
+            $allow_individu = isset($_POST['allow_individu']) ? 1 : 0;
+            $allow_team = isset($_POST['allow_team']) ? 1 : 0;
 
             if ($event_id && $club_id) {
                 // Generate a random 6-character token, e.g., T-8A9F2C
@@ -771,8 +773,8 @@ class RollEntryController extends Controller {
                 $manual_invoice_code = 'MAN-TOK-' . $token;
 
                 try {
-                    $stmt = $db->prepare("INSERT INTO roll_event_tokens (event_id, club_id, token_code, manual_invoice_code) VALUES (?, ?, ?, ?)");
-                    $stmt->execute([$event_id, $club_id, $token, $manual_invoice_code]);
+                    $stmt = $db->prepare("INSERT INTO roll_event_tokens (event_id, club_id, token_code, manual_invoice_code, allow_individu, allow_team) VALUES (?, ?, ?, ?, ?, ?)");
+                    $stmt->execute([$event_id, $club_id, $token, $manual_invoice_code, $allow_individu, $allow_team]);
 
                     // Fetch club phone
                     $stmtPhone = $db->prepare("SELECT u.phone FROM roll_users u WHERE u.club_id = ? LIMIT 1");

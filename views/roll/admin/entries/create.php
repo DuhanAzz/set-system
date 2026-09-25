@@ -214,6 +214,16 @@
                         <?php endforeach; ?>
                     </select>
                 </div>
+                <div class="flex gap-4 mt-2">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" name="allow_individu" value="1" checked class="w-4 h-4 text-emerald-600 border-slate-300 rounded focus:ring-emerald-500">
+                        <span class="text-xs font-bold text-slate-600">Izinkan Individu</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" name="allow_team" value="1" checked class="w-4 h-4 text-emerald-600 border-slate-300 rounded focus:ring-emerald-500">
+                        <span class="text-xs font-bold text-slate-600">Izinkan Tim / Relay</span>
+                    </label>
+                </div>
             </div>
 
             <div class="pt-6 mt-6 border-t border-slate-100 flex items-center gap-4">
@@ -271,7 +281,7 @@
                             if ($t['is_used'] == 1) {
                                 $statusLabel = '<span class="px-2 py-1 bg-green-50 text-green-600 border border-green-200 rounded text-[10px] font-bold">Sudah Digunakan</span>';
                                 $canDelete = true;
-                            } elseif ($t['entry_count'] > 0) {
+                            } elseif (!empty($t['redeemed_at'])) {
                                 $statusLabel = '<span class="px-2 py-1 bg-orange-50 text-orange-600 border border-orange-200 rounded text-[10px] font-bold">Sedang Digunakan</span>';
                                 $canDelete = false;
                             } else {
