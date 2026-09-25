@@ -74,8 +74,8 @@ $sponsors = !empty($event['sponsor_logos']) ? json_decode($event['sponsor_logos'
         .sponsor-footer img { height: 35px; width: auto; object-fit: contain; margin: 0 10px; }
         
         /* TABEL STYLE */
-        .club-title { font-size: 11pt; font-weight: 900; margin-bottom: 4px; text-transform: uppercase; font-family: 'Arial Narrow', sans-serif; text-decoration: underline; margin-top: 8px; }
-        .data-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; page-break-inside: avoid; }
+        .club-title { font-size: 11pt; font-weight: 900; margin-bottom: 4px; text-transform: uppercase; font-family: 'Arial Narrow', sans-serif; text-decoration: underline; margin-top: 8px; page-break-after: avoid; }
+        .data-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
         .data-table th { border: 1px solid #000; background-color: #eee; padding: 2px 4px; text-align: left; font-size: 9pt; font-weight: bold; text-transform: uppercase; }
         .data-table td { border: 1px solid #000; padding: 2px 4px; font-size: 9pt; vertical-align: middle; }
         .data-table th.col-no, .data-table td.col-no { width: 40px; text-align: center; font-weight: bold; }
@@ -136,29 +136,27 @@ $sponsors = !empty($event['sponsor_logos']) ? json_decode($event['sponsor_logos'
                         </div>
                     <?php else: ?>
                         <?php foreach ($clubsData as $clubName => $athletes): ?>
-                            <div style="page-break-inside: avoid; margin-bottom: 5px;">
-                                <div class="club-title"><?= htmlspecialchars($clubName) ?></div>
-                                <table class="data-table">
-                                    <thead>
+                            <div class="club-title"><?= htmlspecialchars($clubName) ?></div>
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th class="col-no">NO</th>
+                                        <th class="col-bib">NO BIB</th>
+                                        <th class="col-nama">NAMA ATLET</th>
+                                        <th class="col-ku">KU</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php $no = 1; foreach ($athletes as $ath): ?>
                                         <tr>
-                                            <th class="col-no">NO</th>
-                                            <th class="col-bib">NO BIB</th>
-                                            <th class="col-nama">NAMA ATLET</th>
-                                            <th class="col-ku">KU</th>
+                                            <td class="col-no"><?= $no++ ?></td>
+                                            <td class="col-bib" style="font-size: 10pt; font-weight: bold;"><?= htmlspecialchars($ath['bib_number'] ?? '-') ?></td>
+                                            <td class="col-nama"><strong><?= htmlspecialchars($ath['skater_name']) ?></strong></td>
+                                            <td class="col-ku"><?= htmlspecialchars($ath['ku']) ?></td>
                                         </tr>
-                                    </thead>
-                                    <tbody>
-                                        <?php $no = 1; foreach ($athletes as $ath): ?>
-                                            <tr>
-                                                <td class="col-no"><?= $no++ ?></td>
-                                                <td class="col-bib" style="font-size: 10pt; font-weight: bold;"><?= htmlspecialchars($ath['bib_number'] ?? '-') ?></td>
-                                                <td class="col-nama"><strong><?= htmlspecialchars($ath['skater_name']) ?></strong></td>
-                                                <td class="col-ku"><?= htmlspecialchars($ath['ku']) ?></td>
-                                            </tr>
-                                        <?php endforeach; ?>
-                                    </tbody>
-                                </table>
-                            </div>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
                         <?php endforeach; ?>
                     <?php endif; ?>
                 </td>
