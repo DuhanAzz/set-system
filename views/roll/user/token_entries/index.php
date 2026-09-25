@@ -489,7 +489,10 @@ function populateAthleteSelect(selectId) {
     if (!select) return;
     select.innerHTML = "<option value=\"\">- Pilih Atlet -</option>";
     myAthletes.forEach(a => {
-        select.innerHTML += `<option value="${a.id}" data-dob="${a.birth_date}" data-gender="${a.gender}">${a.skater_name} (${a.gender === "M" ? "Putra" : "Putri"})</option>`;
+        const bDate = a.birth_date ? a.birth_date : '1970-01-01';
+        const dobYear = parseInt(bDate.split('-')[0]);
+        const age = eventYear - dobYear;
+        select.innerHTML += `<option value="${a.id}" data-dob="${bDate}" data-age="${age}" data-gender="${a.gender}">${a.skater_name} (${a.gender === "M" ? "Putra" : "Putri"})</option>`;
     });
     select.disabled = false;
 }
@@ -504,23 +507,23 @@ window.addEventListener("DOMContentLoaded", function() {
 let athletesCache = {}; // { club_id: [ athletes array ] }
 
 function switchTab(tab) {
-    document.getElementById('form_individu').classList.add('hidden');
-    document.getElementById('form_team').classList.add('hidden');
-    document.getElementById('form_token').classList.add('hidden');
+    const formIndv = document.getElementById('form_individu');
+    const formTeam = document.getElementById('form_team');
+    if (formIndv) formIndv.classList.add('hidden');
+    if (formTeam) formTeam.classList.add('hidden');
     
-    document.getElementById('tab_btn_individu').className = 'px-6 py-3 bg-white text-slate-500 border border-slate-200 rounded-xl font-black text-xs hover:bg-slate-50 transition uppercase tracking-widest';
-    document.getElementById('tab_btn_team').className = 'px-6 py-3 bg-white text-slate-500 border border-slate-200 rounded-xl font-black text-xs hover:bg-slate-50 transition uppercase tracking-widest';
-    document.getElementById('tab_btn_token').className = 'px-6 py-3 bg-white text-emerald-600 border border-emerald-200 rounded-xl font-black text-xs hover:bg-emerald-50 transition uppercase tracking-widest ml-4 shadow-sm shadow-emerald-100';
+    const btnIndv = document.getElementById('tab_btn_individu');
+    const btnTeam = document.getElementById('tab_btn_team');
+    
+    if (btnIndv) btnIndv.className = 'px-6 py-3 bg-white text-slate-500 border border-slate-200 rounded-xl font-black text-xs hover:bg-slate-50 transition uppercase tracking-widest';
+    if (btnTeam) btnTeam.className = 'px-6 py-3 bg-white text-slate-500 border border-slate-200 rounded-xl font-black text-xs hover:bg-slate-50 transition uppercase tracking-widest';
     
     if (tab === 'individu') {
-        document.getElementById('form_individu').classList.remove('hidden');
-        document.getElementById('tab_btn_individu').className = 'px-6 py-3 bg-blue-600 text-white rounded-xl font-black text-xs shadow-lg shadow-blue-200 hover:bg-blue-700 transition uppercase tracking-widest';
+        if (formIndv) formIndv.classList.remove('hidden');
+        if (btnIndv) btnIndv.className = 'px-6 py-3 bg-blue-600 text-white rounded-xl font-black text-xs shadow-lg shadow-blue-200 hover:bg-blue-700 transition uppercase tracking-widest';
     } else if (tab === 'team') {
-        document.getElementById('form_team').classList.remove('hidden');
-        document.getElementById('tab_btn_team').className = 'px-6 py-3 bg-indigo-600 text-white rounded-xl font-black text-xs shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition uppercase tracking-widest';
-    } else if (tab === 'token') {
-        document.getElementById('form_token').classList.remove('hidden');
-        document.getElementById('tab_btn_token').className = 'px-6 py-3 bg-emerald-600 text-white rounded-xl font-black text-xs shadow-lg shadow-emerald-200 transition uppercase tracking-widest ml-4';
+        if (formTeam) formTeam.classList.remove('hidden');
+        if (btnTeam) btnTeam.className = 'px-6 py-3 bg-indigo-600 text-white rounded-xl font-black text-xs shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition uppercase tracking-widest';
     }
 }
 
@@ -573,57 +576,14 @@ function loadAthletes(clubId, targetSelectId) {
     }
 
     myAthletes.forEach(a => {
-        const age = parseInt(a.birth_date ? (new Date().getFullYear() - parseInt(a.birth_date.split('-')[0])) : 0); // Simplified age or use server age
-        // Wait, age in our system is calculated properly by year.
-        // The server sends birth_date, so age = eventYear - birthYear. Let's just render all and let the next validation step hide them.
-        select.innerHTML += `<option value="${a.id}" data-dob="${a.birth_date}" data-gender="${a.gender}">${a.skater_name} (${a.gender === 'M' ? 'Putra' : 'Putri'})</option>`;
+        const age = parseInt(a.birth_date ? (eventYear - parseInt(a.birth_date.split('-')[0])) : 0);
+        select.innerHTML += `<option value="${a.id}" data-dob="${a.birth_date}" data-age="${age}" data-gender="${a.gender}">${a.skater_name} (${a.gender === 'M' ? 'Putra' : 'Putri'})</option>`;
     });
 
     select.disabled = false;
     
     if (targetSelectId === 'indv_skater_select') onSkaterSelect(select);
     if (targetSelectId.startsWith('team_skater')) validateTeamMembers();
-}
-        const teamClassSelect = document.getElementById('team_class_select');
-        if (teamClassSelect.value) {
-            const cls = allClasses.find(c => c.id == teamClassSelect.value);
-            if (cls && cls.gender) targetGender = cls.gender.toLowerCase();
-        }
-    }
-
-    data.forEach(a => {
-        const dobYear = parseInt(a.birth_date.split('-')[0]);
-        const age = eventYear - dobYear;
-        const genderText = a.gender === 'M' ? 'Putra' : 'Putri';
-        
-        const opt = document.createElement('option');
-        opt.value = a.id;
-        opt.dataset.dob = a.birth_date;
-        opt.dataset.age = age;
-        opt.dataset.gender = a.gender;
-        opt.textContent = `${a.skater_name} (${age} Thn, ${genderText})`;
-        
-        // Logika disable untuk Tim berdasarkan umur/gender
-        if (isTeam) {
-            // Kita gunakan validasi usia jika KU sudah dipilih (maxAge < 99)
-            if (maxAge !== 99 && (age < minAge || age > maxAge)) {
-                opt.disabled = true;
-                opt.textContent += ' [Umur tidak sesuai]';
-            } else if (targetGender === 'putra' && a.gender === 'F') {
-                opt.disabled = true;
-                opt.textContent += ' [Khusus Putra]';
-            } else if (targetGender === 'putri' && a.gender === 'M') {
-                opt.disabled = true;
-                opt.textContent += ' [Khusus Putri]';
-            }
-        }
-
-        select.appendChild(opt);
-    });
-    
-    select.disabled = false;
-    if (!isTeam) onSkaterSelect(select);
-    else validateTeamMembers();
 }
 
 // --- LOGIKA INDIVIDU ---
