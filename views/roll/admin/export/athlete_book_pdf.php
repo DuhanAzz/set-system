@@ -168,8 +168,13 @@ $sponsors = !empty($event['sponsor_logos']) ? json_decode($event['sponsor_logos'
         <tfoot>
             <tr>
                 <td>
-                    <!-- KOSONG ATAU UNTUK NOMOR HALAMAN JIKA BISA -->
-                    <div style="height: 30px;"></div>
+                    <div class="footer-wrapper">
+                        <div class="sponsor-footer">
+                            <?php if(!empty($sponsors)): foreach($sponsors as $img): ?>
+                                <img src="<?= getenv('APP_URL') . '/' . ltrim(str_replace('public/', '', $img), '/') ?>">
+                            <?php endforeach; endif; ?>
+                        </div>
+                    </div>
                 </td>
             </tr>
         </tfoot>
