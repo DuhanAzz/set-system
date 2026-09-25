@@ -560,53 +560,85 @@ function switchTab(tab) {
 function loadAthletes(clubId, targetSelectId) {
     const select = document.getElementById(targetSelectId);
     if (!select) return;
-    select.innerHTML = '<option value="">- Pilih Atlet -</option>';
+    select.innerHTML = '<option value="">- Memuat... -</option>';
     select.disabled = true;
 
     if (!clubId) {
+        select.innerHTML = '<option value="">- Pilih Atlet -</option>';
         if (targetSelectId === 'indv_skater_select') onSkaterSelect(select);
         if (targetSelectId.startsWith('team_skater')) validateTeamMembers();
         return;
     }
 
-    // Filter using existing myAthletes and target restrictions
+    if (athletesCache[clubId]) {
+        populateAthleteSelect(targetSelectId, athletesCache[clubId]);
+        return;
+    }
+
+    fetch(`<?= getenv('APP_URL') ?>/roll/user/token_registration/get_athletes_by_club?club_id=${clubId}`)
+        .then(res => res.json())
+        .then(data => {
+            athletesCache[clubId] = data;
+            populateAthleteSelect(targetSelectId, data);
+        })
+        .catch(err => {
+            console.error("Error fetching athletes:", err);
+            select.innerHTML = '<option value="">- Gagal memuat -</option>';
+        });
+}
+
+function populateAthleteSelect(targetSelectId, athletesList) {
+    const select = document.getElementById(targetSelectId);
+    select.innerHTML = '<option value="">- Pilih Atlet -</option>';
+    
     let minAge = 0; let maxAge = 99;
     let catGender = 'campuran';
     let targetGroup = '';
+    let mustFilter = false;
 
     if (targetSelectId === 'indv_skater_select') {
-        const classId = document.getElementById('indv_class_container').querySelector('input[type="radio"]:checked')?.value;
+        const classId = document.getElementById('indv_class_container')?.querySelector('input[type="radio"]:checked')?.value;
         if (classId) {
+            mustFilter = true;
             const c = allClasses.find(x => x.id == classId);
             if (c) {
                 minAge = parseInt(c.min_year) || 0;
                 maxAge = parseInt(c.max_year) || 99;
                 catGender = (c.gender || 'campuran').toLowerCase();
-                const tCatStr = (c.class_name || '').toLowerCase();
-                if (tCatStr.includes('speed')) targetGroup = 'speed';
-                else if (tCatStr.includes('standar')) targetGroup = 'standar';
-                else if (tCatStr.includes('pemula')) targetGroup = 'pemula';
             }
         }
     } else if (targetSelectId.startsWith('team_skater')) {
-        const classId = document.getElementById('team_class_select').value;
-        if (classId) {
-            const c = allClasses.find(x => x.id == classId);
-            if (c) {
-                minAge = parseInt(c.min_year) || 0;
-                maxAge = parseInt(c.max_year) || 99;
-                catGender = (c.gender || 'campuran').toLowerCase();
-                const tCatStr = (c.class_name || '').toLowerCase();
-                if (tCatStr.includes('speed')) targetGroup = 'speed';
-                else if (tCatStr.includes('standar')) targetGroup = 'standar';
-                else if (tCatStr.includes('pemula')) targetGroup = 'pemula';
-            }
+        const classId = document.getElementById('team_class_select')?.value;
+        if (!classId) {
+            select.innerHTML = '<option value="">- Lengkapi Kategori & Nomor Lomba -</option>';
+            select.disabled = true;
+            return;
+        }
+        mustFilter = true;
+        const c = allClasses.find(x => x.id == classId);
+        if (c) {
+            minAge = parseInt(c.min_year) || 0;
+            maxAge = parseInt(c.max_year) || 99;
+            catGender = (c.gender || 'campuran').toLowerCase();
         }
     }
 
-    myAthletes.forEach(a => {
-        const age = parseInt(a.birth_date ? (eventYear - parseInt(a.birth_date.split('-')[0])) : 0);
-        select.innerHTML += `<option value="${a.id}" data-dob="${a.birth_date}" data-age="${age}" data-gender="${a.gender}">${a.skater_name} (${a.gender === 'M' ? 'Putra' : 'Putri'})</option>`;
+    athletesList.forEach(s => {
+        let age = eventYear - parseInt(s.birth_date ? s.birth_date.substring(0, 4) : '0');
+        const gender = s.gender; // 'M' or 'F'
+        
+        let matchesAge = (age >= minAge && age <= maxAge);
+        let matchesGender = ((catGender === 'putra' && gender === 'M') || (catGender === 'putri' && gender === 'F') || catGender === 'campuran');
+
+        if (!mustFilter || (matchesAge && matchesGender)) {
+            const opt = document.createElement('option');
+            opt.value = s.id;
+            opt.dataset.age = age;
+            opt.dataset.gender = s.gender;
+            opt.dataset.dob = s.birth_date;
+            opt.text = s.skater_name + ' (' + age + ' th) - ' + (gender === 'M' ? 'Putra' : 'Putri');
+            select.appendChild(opt);
+        }
     });
 
     select.disabled = false;
