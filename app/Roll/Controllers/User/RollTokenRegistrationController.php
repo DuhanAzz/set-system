@@ -42,9 +42,19 @@ class RollTokenRegistrationController extends Controller {
         $stmtAthletes->execute([$club_id]);
         $athletes = $stmtAthletes->fetchAll(PDO::FETCH_ASSOC);
 
-        // Fetch All Clubs
-        $stmtAllClubs = $db->prepare("SELECT id, club_name FROM roll_clubs ORDER BY club_name ASC");
-        $stmtAllClubs->execute();
+        // Fetch All Clubs (Participating + User's Own Club)
+        $stmtAllClubs = $db->prepare("
+            SELECT id, club_name FROM (
+                SELECT DISTINCT c.id, c.club_name 
+                FROM roll_clubs c
+                JOIN roll_entries e ON c.id = e.club_id
+                WHERE e.event_id = ?
+                UNION
+                SELECT id, club_name FROM roll_clubs WHERE id = ?
+            ) AS combined_clubs
+            ORDER BY club_name ASC
+        ");
+        $stmtAllClubs->execute([$event_id, $club_id]);
         $all_clubs = $stmtAllClubs->fetchAll(PDO::FETCH_ASSOC);
 
         // Fetch Current Club Name
