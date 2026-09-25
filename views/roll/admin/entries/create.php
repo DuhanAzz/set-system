@@ -233,7 +233,7 @@
                     <?php 
                         $phoneObj = $_SESSION['generated_phone'] ?? '';
                         // Format ke 62xxxx
-                        $phoneFormatted = preg_replace('/[^0-9]/', '', $phoneObj);
+                        $phoneFormatted = preg_replace('/[^0-9]/', '', (string)$phoneObj);
                         if(strpos($phoneFormatted, '0') === 0) $phoneFormatted = '62' . substr($phoneFormatted, 1);
                         
                         $waMsg = urlencode("Halo Pelatih,\n\nIni adalah Token Jalur Khusus untuk mendaftarkan atlet pada event " . $event['event_name'] . ".\n\n*TOKEN ANDA: " . $_SESSION['generated_token'] . "*\n\nSilakan masukkan token tersebut di halaman event berikut:\n" . getenv('APP_URL') . "/roll/user/explore/detail/" . $event['id']);
@@ -287,8 +287,8 @@
                             <td class="px-4 py-3 text-right">
                                 <div class="flex items-center justify-end gap-2">
                                     <?php 
-                                        $phoneObj2 = $t['club_phone'];
-                                        $phoneFormatted2 = preg_replace('/[^0-9]/', '', $phoneObj2);
+                                        $phoneObj2 = $t['club_phone'] ?? '';
+                                        $phoneFormatted2 = preg_replace('/[^0-9]/', '', (string)$phoneObj2);
                                         if(strpos($phoneFormatted2, '0') === 0) $phoneFormatted2 = '62' . substr($phoneFormatted2, 1);
                                         $waMsg2 = urlencode("Halo Pelatih,\n\nIni adalah Token Jalur Khusus untuk mendaftarkan atlet pada event " . $event['event_name'] . ".\n\n*TOKEN ANDA: " . $t['token_code'] . "*\n\nSilakan masukkan token tersebut di halaman event berikut:\n" . getenv('APP_URL') . "/roll/user/explore/detail/" . $event['id']);
                                         $waUrl2 = $phoneFormatted2 ? "https://wa.me/{$phoneFormatted2}?text={$waMsg2}" : "https://wa.me/?text={$waMsg2}";
