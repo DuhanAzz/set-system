@@ -216,7 +216,7 @@
                     <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Pilih Klub Penerima <span class="text-red-500">*</span></label>
                     <select name="club_id" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition">
                         <option value="">-- Pilih Klub --</option>
-                        <?php foreach($participatingClubs as $club): ?>
+                        <?php foreach($clubs as $club): ?>
                             <option value="<?= $club['id'] ?>"><?= htmlspecialchars($club['club_name']) ?></option>
                         <?php endforeach; ?>
                     </select>
