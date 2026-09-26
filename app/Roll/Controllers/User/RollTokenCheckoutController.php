@@ -60,6 +60,18 @@ class RollTokenCheckoutController extends Controller {
             $stmtFee = $db->prepare("SELECT fee_speed, fee_standart, fee_pemula, allow_pemula_standart_mix FROM roll_events WHERE id = ?");
             $stmtFee->execute([$eid]);
             $eventFees = $stmtFee->fetch(PDO::FETCH_ASSOC) ?: ['fee_speed'=>450000, 'fee_standart'=>350000, 'fee_pemula'=>350000, 'allow_pemula_standart_mix'=>0];
+            
+            // Override dengan harga khusus token jika ada
+            try {
+                $stmtTokenFee = $db->prepare("SELECT custom_fee_speed, custom_fee_standart, custom_fee_pemula FROM roll_event_tokens WHERE manual_invoice_code = ? LIMIT 1");
+                $stmtTokenFee->execute([$active_invoice]);
+                $tokenFee = $stmtTokenFee->fetch(PDO::FETCH_ASSOC);
+                if ($tokenFee) {
+                    if ($tokenFee['custom_fee_speed'] !== null) $eventFees['fee_speed'] = (float)$tokenFee['custom_fee_speed'];
+                    if ($tokenFee['custom_fee_standart'] !== null) $eventFees['fee_standart'] = (float)$tokenFee['custom_fee_standart'];
+                    if ($tokenFee['custom_fee_pemula'] !== null) $eventFees['fee_pemula'] = (float)$tokenFee['custom_fee_pemula'];
+                }
+            } catch (\Exception $e) {}
 
             // Hitung total tagihan berdasarkan kelas masing-masing entry
             $stmtEntries = $db->prepare("
@@ -125,6 +137,18 @@ class RollTokenCheckoutController extends Controller {
         $stmtFee = $db->prepare("SELECT fee_speed, fee_standart, fee_pemula, allow_pemula_standart_mix FROM roll_events WHERE id = ?");
         $stmtFee->execute([$event_id]);
         $eventFees = $stmtFee->fetch(PDO::FETCH_ASSOC) ?: ['fee_speed'=>450000, 'fee_standart'=>350000, 'fee_pemula'=>350000, 'allow_pemula_standart_mix'=>0];
+        
+        // Override dengan harga khusus token jika ada
+        try {
+            $stmtTokenFee = $db->prepare("SELECT custom_fee_speed, custom_fee_standart, custom_fee_pemula FROM roll_event_tokens WHERE manual_invoice_code = ? LIMIT 1");
+            $stmtTokenFee->execute([$active_invoice]);
+            $tokenFee = $stmtTokenFee->fetch(PDO::FETCH_ASSOC);
+            if ($tokenFee) {
+                if ($tokenFee['custom_fee_speed'] !== null) $eventFees['fee_speed'] = (float)$tokenFee['custom_fee_speed'];
+                if ($tokenFee['custom_fee_standart'] !== null) $eventFees['fee_standart'] = (float)$tokenFee['custom_fee_standart'];
+                if ($tokenFee['custom_fee_pemula'] !== null) $eventFees['fee_pemula'] = (float)$tokenFee['custom_fee_pemula'];
+            }
+        } catch (\Exception $e) {}
 
         $unpaidEntries = [];
         $historyEntries = [];
@@ -383,6 +407,18 @@ class RollTokenCheckoutController extends Controller {
                 $stmtFee = $db->prepare("SELECT fee_speed, fee_standart, fee_pemula, allow_pemula_standart_mix FROM roll_events WHERE id = ?");
                 $stmtFee->execute([$event_id]);
                 $eventFees = $stmtFee->fetch(PDO::FETCH_ASSOC) ?: ['fee_speed'=>450000, 'fee_standart'=>350000, 'fee_pemula'=>350000, 'allow_pemula_standart_mix'=>0];
+                
+                // Override dengan harga khusus token jika ada
+                try {
+                    $stmtTokenFee = $db->prepare("SELECT custom_fee_speed, custom_fee_standart, custom_fee_pemula FROM roll_event_tokens WHERE manual_invoice_code = ? LIMIT 1");
+                    $stmtTokenFee->execute([$active_invoice]);
+                    $tokenFee = $stmtTokenFee->fetch(PDO::FETCH_ASSOC);
+                    if ($tokenFee) {
+                        if ($tokenFee['custom_fee_speed'] !== null) $eventFees['fee_speed'] = (float)$tokenFee['custom_fee_speed'];
+                        if ($tokenFee['custom_fee_standart'] !== null) $eventFees['fee_standart'] = (float)$tokenFee['custom_fee_standart'];
+                        if ($tokenFee['custom_fee_pemula'] !== null) $eventFees['fee_pemula'] = (float)$tokenFee['custom_fee_pemula'];
+                    }
+                } catch (\Exception $e) {}
                 
                 $total_amount = 0;
                 if (!empty($entry_ids)) {

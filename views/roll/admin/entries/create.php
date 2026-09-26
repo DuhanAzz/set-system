@@ -232,7 +232,24 @@
                     </label>
                 </div>
             </div>
-
+            <div class="mt-6 border-t border-slate-100 pt-6">
+                <h4 class="text-xs font-black uppercase tracking-widest text-slate-800 mb-4">Pengaturan Harga Khusus (Opsional)</h4>
+                <p class="text-[10px] text-slate-500 mb-4">Biarkan kosong jika ingin mengikuti harga normal event. Harga ini akan berlaku per-entri untuk pendaftaran menggunakan token ini.</p>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Harga Kelas Speed</label>
+                        <input type="number" name="custom_fee_speed" placeholder="Contoh: 350000" class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-emerald-500">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Harga Kelas Standart</label>
+                        <input type="number" name="custom_fee_standart" placeholder="Contoh: 250000" class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-emerald-500">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Harga Kelas Pemula</label>
+                        <input type="number" name="custom_fee_pemula" placeholder="Contoh: 150000" class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-emerald-500">
+                    </div>
+                </div>
+            </div>
             <div class="pt-6 mt-6 border-t border-slate-100 flex items-center gap-4">
                 <button type="submit" class="px-8 py-3 bg-emerald-600 text-white rounded-xl font-black uppercase tracking-widest text-xs hover:bg-emerald-700 shadow-lg shadow-emerald-200 transition">
                     Generate Token 🔑
