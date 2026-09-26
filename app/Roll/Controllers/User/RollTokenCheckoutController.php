@@ -47,9 +47,9 @@ class RollTokenCheckoutController extends Controller {
         foreach ($eventRows as $ev) {
             $eid = $ev['event_id'];
 
-            // Status: dari roll_payments
-            $stmtStat = $db->prepare("SELECT status FROM roll_payments WHERE club_id = ? AND event_id = ?");
-            $stmtStat->execute([$club_id, $eid]);
+            // Status: dari roll_manual_payments
+            $stmtStat = $db->prepare("SELECT status FROM roll_manual_payments WHERE invoice_code = ?");
+            $stmtStat->execute([$active_invoice]);
             $paymentStatus = $stmtStat->fetchColumn();
             
             $status = $paymentStatus ?: 'Unpaid';
@@ -111,9 +111,9 @@ class RollTokenCheckoutController extends Controller {
             exit;
         }
 
-        // Get payment status for the club in this event
-        $stmtStatus = $db->prepare("SELECT status FROM roll_payments WHERE club_id = ? AND event_id = ?");
-        $stmtStatus->execute([$club_id, $event_id]);
+        // Get payment status for the token invoice
+        $stmtStatus = $db->prepare("SELECT status FROM roll_manual_payments WHERE invoice_code = ?");
+        $stmtStatus->execute([$active_invoice]);
         $paymentStatus = $stmtStatus->fetchColumn();
         $status = $paymentStatus ?: 'Unpaid';
 
@@ -139,7 +139,7 @@ class RollTokenCheckoutController extends Controller {
                 LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
                 WHERE e.event_id = ? AND e.manual_invoice_code = ?
             ");
-            $stmtUnpaid->execute([$club_id, $event_id]);
+            $stmtUnpaid->execute([$event_id, $active_invoice]);
             $unpaidEntries = $stmtUnpaid->fetchAll(PDO::FETCH_ASSOC);
 
             // Assign payment amount for display
@@ -393,8 +393,12 @@ class RollTokenCheckoutController extends Controller {
                 }
                 
                 // Check if they already paid this manual invoice? Usually not because token is single use.
-                // Insert or Update to roll_payments with invoice_code
-                $stmtCheck = $db->prepare("SELECT id, status FROM roll_payments WHERE invoice_code = ?");
+                // Insert or Update to roll_manual_payments with invoice_code
+                
+                try { $db->exec("ALTER TABLE roll_manual_payments ADD COLUMN payment_proof VARCHAR(255) NULL"); } catch (\Exception $e) {}
+                try { $db->exec("ALTER TABLE roll_manual_payments ADD COLUMN club_id INT NULL"); } catch (\Exception $e) {}
+
+                $stmtCheck = $db->prepare("SELECT id, status FROM roll_manual_payments WHERE invoice_code = ?");
                 $stmtCheck->execute([$active_invoice]);
                 $payRow = $stmtCheck->fetch(PDO::FETCH_ASSOC);
                 
@@ -402,10 +406,10 @@ class RollTokenCheckoutController extends Controller {
                     if ($payRow['status'] === 'Paid') {
                         throw new \Exception("Pembayaran Anda sudah Lunas (Paid) dan diverifikasi. Tidak bisa mengunggah ulang.");
                     }
-                    $stmtUpdate = $db->prepare("UPDATE roll_payments SET status = 'Pending', payment_proof = ?, total_amount = ? WHERE id = ?");
+                    $stmtUpdate = $db->prepare("UPDATE roll_manual_payments SET status = 'Pending', payment_proof = ?, total_amount = ? WHERE id = ?");
                     $stmtUpdate->execute([$proof_file, $total_amount, $payRow['id']]);
                 } else {
-                    $stmtInsert = $db->prepare("INSERT INTO roll_payments (club_id, event_id, total_amount, payment_proof, status, invoice_code) VALUES (?, ?, ?, ?, 'Pending', ?)");
+                    $stmtInsert = $db->prepare("INSERT INTO roll_manual_payments (club_id, event_id, total_amount, payment_proof, status, invoice_code, created_at) VALUES (?, ?, ?, ?, 'Pending', ?, NOW())");
                     $stmtInsert->execute([$club_id, $event_id, $total_amount, $proof_file, $active_invoice]);
                 }
 
