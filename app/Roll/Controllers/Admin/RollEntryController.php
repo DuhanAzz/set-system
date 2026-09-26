@@ -62,6 +62,27 @@ class RollEntryController extends Controller {
                 } catch (\Exception $e) {}
                 header("Location: " . getenv('APP_URL') . "/roll/admin/entries"); exit;
             }
+
+            $deleteClubId = (int)($_POST["delete_club_id"] ?? 0);
+            if ($deleteClubId > 0) {
+                try {
+                    $db->beginTransaction();
+                    $stmtDelE = $db->prepare("DELETE FROM roll_entries WHERE club_id = ? AND event_id = ? AND (manual_invoice_code IS NULL OR manual_invoice_code NOT LIKE 'MAN-TOK-%')");
+                    $stmtDelE->execute([$deleteClubId, $targetEventId]);
+
+                    $stmtDelP = $db->prepare("DELETE FROM roll_payments WHERE club_id = ? AND event_id = ?");
+                    $stmtDelP->execute([$deleteClubId, $targetEventId]);
+                    $db->commit();
+
+                    $_SESSION["flash_type"] = "success";
+                    $_SESSION["flash_message"] = "Seluruh pendaftaran klub & bukti bayar berhasil dihapus permanen.";
+                } catch (\Exception $e) {
+                    $db->rollBack();
+                    $_SESSION["flash_type"] = "error";
+                    $_SESSION["flash_message"] = "Gagal menghapus pendaftaran: " . $e->getMessage();
+                }
+                header("Location: " . getenv('APP_URL') . "/roll/admin/entries"); exit;
+            }
         }
 
         // Fetch entry fees for dynamic calculation
@@ -760,6 +781,29 @@ class RollEntryController extends Controller {
             $stmt->execute([$id]);
             $_SESSION['flash_message'] = "Invoice Manual ditolak (Rejected).";
             $_SESSION['flash_type'] = "error";
+        } elseif ($action === 'delete') {
+            try {
+                $db->beginTransaction();
+                $stmtInv = $db->prepare("SELECT invoice_code FROM roll_manual_payments WHERE id = ?");
+                $stmtInv->execute([$id]);
+                $invCode = $stmtInv->fetchColumn();
+
+                if ($invCode) {
+                    $stmtDelE = $db->prepare("DELETE FROM roll_entries WHERE manual_invoice_code = ?");
+                    $stmtDelE->execute([$invCode]);
+                }
+
+                $stmtDel = $db->prepare("DELETE FROM roll_manual_payments WHERE id = ?");
+                $stmtDel->execute([$id]);
+
+                $db->commit();
+                $_SESSION['flash_message'] = "Invoice Manual & entri terkait berhasil dihapus.";
+                $_SESSION['flash_type'] = "success";
+            } catch (\Exception $e) {
+                $db->rollBack();
+                $_SESSION['flash_message'] = "Gagal menghapus: " . $e->getMessage();
+                $_SESSION['flash_type'] = "error";
+            }
         } elseif ($action === 'upload_proof' && isset($_FILES['payment_proof'])) {
             // Kita bisa memanfaatkan upload yang ada, tapi karena admin panel, biasanya langsung approve.
             // Biarkan saja jika dibutuhkan nanti.

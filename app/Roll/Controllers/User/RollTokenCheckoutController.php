@@ -371,6 +371,11 @@ class RollTokenCheckoutController extends Controller {
                 }
             }
 
+            // Alter table safely outside transaction
+            try { $db->exec("ALTER TABLE roll_manual_payments ADD COLUMN payment_proof VARCHAR(255) NULL"); } catch (\Exception $e) {}
+            try { $db->exec("ALTER TABLE roll_manual_payments ADD COLUMN club_id INT NULL"); } catch (\Exception $e) {}
+            try { $db->exec("ALTER TABLE roll_manual_payments ADD COLUMN created_at DATETIME NULL"); } catch (\Exception $e) {}
+
             try {
                 $db->beginTransaction();
                 
@@ -398,9 +403,6 @@ class RollTokenCheckoutController extends Controller {
                 
                 // Check if they already paid this manual invoice? Usually not because token is single use.
                 // Insert or Update to roll_manual_payments with invoice_code
-                
-                try { $db->exec("ALTER TABLE roll_manual_payments ADD COLUMN payment_proof VARCHAR(255) NULL"); } catch (\Exception $e) {}
-                try { $db->exec("ALTER TABLE roll_manual_payments ADD COLUMN club_id INT NULL"); } catch (\Exception $e) {}
 
                 $stmtCheck = $db->prepare("SELECT id, status FROM roll_manual_payments WHERE invoice_code = ?");
                 $stmtCheck->execute([$active_invoice]);
