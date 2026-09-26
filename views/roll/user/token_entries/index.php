@@ -605,6 +605,10 @@ function populateAthleteSelect(targetSelectId, athletesList) {
                 minAge = parseInt(c.min_year) || 0;
                 maxAge = parseInt(c.max_year) || 99;
                 catGender = (c.gender || 'campuran').toLowerCase();
+                let catName = (c.class_name || '').toLowerCase();
+                if (catName.includes('speed')) targetGroup = 'speed';
+                else if (catName.includes('standar')) targetGroup = 'standar';
+                else if (catName.includes('pemula')) targetGroup = 'pemula';
             }
         }
     } else if (targetSelectId.startsWith('team_skater')) {
@@ -620,6 +624,10 @@ function populateAthleteSelect(targetSelectId, athletesList) {
             minAge = parseInt(c.min_year) || 0;
             maxAge = parseInt(c.max_year) || 99;
             catGender = (c.gender || 'campuran').toLowerCase();
+            let catName = (c.class_name || '').toLowerCase();
+            if (catName.includes('speed')) targetGroup = 'speed';
+            else if (catName.includes('standar')) targetGroup = 'standar';
+            else if (catName.includes('pemula')) targetGroup = 'pemula';
         }
     }
 
