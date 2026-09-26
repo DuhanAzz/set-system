@@ -781,6 +781,11 @@ class RollEntryController extends Controller {
             $stmt->execute([$id]);
             $_SESSION['flash_message'] = "Invoice Manual ditolak (Rejected).";
             $_SESSION['flash_type'] = "error";
+        } elseif ($action === 'rollback') {
+            $stmt = $db->prepare("UPDATE roll_manual_payments SET status = 'Unpaid' WHERE id = ?");
+            $stmt->execute([$id]);
+            $_SESSION['flash_message'] = "Invoice Manual dibatalkan (Unpaid).";
+            $_SESSION['flash_type'] = "info";
         } elseif ($action === 'delete') {
             try {
                 $db->beginTransaction();
