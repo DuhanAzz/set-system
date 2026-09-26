@@ -371,7 +371,7 @@ class RollPelotonController extends Controller {
             // 3. Tarik atlet 
             // Untuk saat ini, asumsikan semua atlet Paid masuk (ke depannya jika babak = Final, filter berdasarkan hasil babak sebelumnya)
             $stmtAthletes = $db->prepare("
-                SELECT DISTINCT e.skater_id, s.club_id, e.team_name
+                SELECT DISTINCT e.skater_id, e.club_id, e.team_name
                 FROM roll_entries e
                 JOIN roll_skaters s ON e.skater_id = s.id
                 LEFT JOIN roll_payments pay ON pay.club_id = s.club_id AND pay.event_id = e.event_id AND (e.is_manual = 0 OR e.is_manual IS NULL)
@@ -678,7 +678,7 @@ class RollPelotonController extends Controller {
 
             // Tarik seluruh atlet Valid (Paid)
             $stmtAthletes = $db->prepare("
-                SELECT e.skater_id, s.club_id
+                SELECT e.skater_id, e.club_id AS club_id
                 FROM roll_entries e
                 JOIN roll_skaters s ON e.skater_id = s.id
                 LEFT JOIN roll_payments pay ON pay.club_id = s.club_id AND pay.event_id = e.event_id AND (e.is_manual = 0 OR e.is_manual IS NULL)
@@ -821,7 +821,7 @@ class RollPelotonController extends Controller {
                 
                 // Get all paid skaters in this class
                 $stmt = $db->prepare("
-                    SELECT e.skater_id, s.club_id 
+                    SELECT e.skater_id, e.club_id AS club_id 
                     FROM roll_entries e
                     JOIN roll_skaters s ON e.skater_id = s.id
                     LEFT JOIN roll_payments pay ON pay.club_id = s.club_id AND pay.event_id = e.event_id AND (e.is_manual = 0 OR e.is_manual IS NULL)
