@@ -274,7 +274,7 @@
                         $phoneFormatted = preg_replace('/[^0-9]/', '', (string)$phoneObj);
                         if(strpos($phoneFormatted, '0') === 0) $phoneFormatted = '62' . substr($phoneFormatted, 1);
                         
-                        $waMsg = urlencode("Halo Pelatih,\n\nIni adalah Token Jalur Khusus untuk mendaftarkan atlet pada event " . $event['event_name'] . ".\n\n*TOKEN ANDA: " . $_SESSION['generated_token'] . "*\n\nSilakan masukkan token tersebut di halaman event berikut:\n" . getenv('APP_URL') . "/roll/user/explore/detail/" . $event['id']);
+                        $waMsg = urlencode("Halo Pelatih,\n\nIni adalah Token Jalur Khusus untuk mendaftarkan atlet pada event " . $event['event_name'] . ".\n\n*TOKEN ANDA: " . $_SESSION['generated_token'] . "*\n\nSilakan masukkan token tersebut di halaman sistem.");
                         $waUrl = $phoneFormatted ? "https://wa.me/{$phoneFormatted}?text={$waMsg}" : "https://wa.me/?text={$waMsg}";
                     ?>
                     <a href="<?= $waUrl ?>" target="_blank" class="px-6 py-2 bg-green-500 hover:bg-green-600 text-white font-black text-xs uppercase tracking-widest rounded-lg transition inline-flex items-center gap-2">
