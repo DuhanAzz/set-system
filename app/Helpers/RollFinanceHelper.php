@@ -60,7 +60,7 @@ class RollFinanceHelper {
             }
             
             // Minimal pembayaran (Fallback jika format penamaan kelas diluar ekspektasi)
-            if ($amount == 0) {
+            if (!isset($cats['speed']) && !isset($cats['standar']) && !isset($cats['pemula'])) {
                 if (isset($cats['relay'])) {
                     // Jika hanya ikut relay
                     $amount = isset($eventFees['fee_relay']) ? (float)$eventFees['fee_relay'] : 150000;

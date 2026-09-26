@@ -831,10 +831,10 @@ class RollEntryController extends Controller {
             $allow_individu = isset($_POST['allow_individu']) ? 1 : 0;
             $allow_team = isset($_POST['allow_team']) ? 1 : 0;
             
-            $custom_fee_speed = !empty($_POST['custom_fee_speed']) ? (float)$_POST['custom_fee_speed'] : null;
-            $custom_fee_standart = !empty($_POST['custom_fee_standart']) ? (float)$_POST['custom_fee_standart'] : null;
-            $custom_fee_pemula = !empty($_POST['custom_fee_pemula']) ? (float)$_POST['custom_fee_pemula'] : null;
-            $custom_fee_relay = !empty($_POST['custom_fee_relay']) ? (float)$_POST['custom_fee_relay'] : null;
+            $custom_fee_speed = isset($_POST['custom_fee_speed']) && $_POST['custom_fee_speed'] !== '' ? (float)$_POST['custom_fee_speed'] : null;
+            $custom_fee_standart = isset($_POST['custom_fee_standart']) && $_POST['custom_fee_standart'] !== '' ? (float)$_POST['custom_fee_standart'] : null;
+            $custom_fee_pemula = isset($_POST['custom_fee_pemula']) && $_POST['custom_fee_pemula'] !== '' ? (float)$_POST['custom_fee_pemula'] : null;
+            $custom_fee_relay = isset($_POST['custom_fee_relay']) && $_POST['custom_fee_relay'] !== '' ? (float)$_POST['custom_fee_relay'] : null;
 
             if ($event_id && $club_id) {
                 // Generate a random 6-character token, e.g., T-8A9F2C
