@@ -27,10 +27,10 @@ class RollTokenCheckoutController extends Controller {
             FROM roll_events ev
             JOIN roll_entries e ON e.event_id = ev.id
             JOIN roll_skaters s ON e.skater_id = s.id
-            WHERE s.club_id = ? AND e.manual_invoice_code = '$active_invoice'
+            WHERE e.manual_invoice_code = ?
             ORDER BY ev.event_date_start DESC
         ");
-        $stmt->execute([$club_id]);
+        $stmt->execute([$active_invoice]);
         $eventRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         if (count($eventRows) === 0) {
@@ -66,9 +66,9 @@ class RollTokenCheckoutController extends Controller {
                 JOIN roll_skaters s ON e.skater_id = s.id
                 JOIN roll_event_details ed ON e.race_class_id = ed.id
                 LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
-                WHERE s.club_id = ? AND e.event_id = ? AND e.manual_invoice_code = '$active_invoice'
+                WHERE e.event_id = ? AND e.manual_invoice_code = ?
             ");
-            $stmtEntries->execute([$club_id, $eid]);
+            $stmtEntries->execute([$eid, $active_invoice]);
             $rows = $stmtEntries->fetchAll(PDO::FETCH_ASSOC);
             $entries = count($rows);
             
@@ -137,7 +137,7 @@ class RollTokenCheckoutController extends Controller {
                 LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
                 LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id
                 LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
-                WHERE s.club_id = ? AND e.event_id = ? AND e.manual_invoice_code = '$active_invoice'
+                WHERE e.event_id = ? AND e.manual_invoice_code = ?
             ");
             $stmtUnpaid->execute([$club_id, $event_id]);
             $unpaidEntries = $stmtUnpaid->fetchAll(PDO::FETCH_ASSOC);
@@ -169,7 +169,7 @@ class RollTokenCheckoutController extends Controller {
                 LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
                 LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id
                 LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
-                WHERE s.club_id = ? AND e.event_id = ? AND e.manual_invoice_code = '$active_invoice'
+                WHERE e.event_id = ? AND e.manual_invoice_code = ?
                 ORDER BY s.skater_name ASC
             ");
             $stmtHistory->execute([$club_id, $event_id]);
@@ -307,10 +307,10 @@ class RollTokenCheckoutController extends Controller {
                 JOIN roll_ref_distances d ON c.distance_id = d.id
                 JOIN roll_ref_age_groups a ON c.age_group_id = a.id
                 JOIN roll_skaters s ON e.skater_id = s.id
-                WHERE s.club_id = ? AND e.event_id = ? AND e.manual_invoice_code = '$active_invoice' AND (d.distance_name LIKE '%Relay%' OR d.distance_name LIKE '%Pair%')
+                WHERE e.event_id = ? AND e.manual_invoice_code = ? AND (d.distance_name LIKE '%Relay%' OR d.distance_name LIKE '%Pair%')
                 ORDER BY e.team_name, d.distance_name
             ");
-            $stmtRelayCheck->execute([$club_id, $event_id]);
+            $stmtRelayCheck->execute([$event_id, $active_invoice]);
             $relayEntries = $stmtRelayCheck->fetchAll(PDO::FETCH_ASSOC);
             
             $relayGroups = [];
