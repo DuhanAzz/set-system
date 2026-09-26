@@ -63,13 +63,14 @@ class RollTokenCheckoutController extends Controller {
             
             // Override dengan harga khusus token jika ada
             try {
-                $stmtTokenFee = $db->prepare("SELECT custom_fee_speed, custom_fee_standart, custom_fee_pemula FROM roll_event_tokens WHERE manual_invoice_code = ? LIMIT 1");
+                $stmtTokenFee = $db->prepare("SELECT custom_fee_speed, custom_fee_standart, custom_fee_pemula, custom_fee_relay FROM roll_event_tokens WHERE manual_invoice_code = ? LIMIT 1");
                 $stmtTokenFee->execute([$active_invoice]);
                 $tokenFee = $stmtTokenFee->fetch(PDO::FETCH_ASSOC);
                 if ($tokenFee) {
                     if ($tokenFee['custom_fee_speed'] !== null) $eventFees['fee_speed'] = (float)$tokenFee['custom_fee_speed'];
                     if ($tokenFee['custom_fee_standart'] !== null) $eventFees['fee_standart'] = (float)$tokenFee['custom_fee_standart'];
                     if ($tokenFee['custom_fee_pemula'] !== null) $eventFees['fee_pemula'] = (float)$tokenFee['custom_fee_pemula'];
+                    if ($tokenFee['custom_fee_relay'] !== null) $eventFees['fee_relay'] = (float)$tokenFee['custom_fee_relay'];
                 }
             } catch (\Exception $e) {}
 
@@ -140,13 +141,14 @@ class RollTokenCheckoutController extends Controller {
         
         // Override dengan harga khusus token jika ada
         try {
-            $stmtTokenFee = $db->prepare("SELECT custom_fee_speed, custom_fee_standart, custom_fee_pemula FROM roll_event_tokens WHERE manual_invoice_code = ? LIMIT 1");
+            $stmtTokenFee = $db->prepare("SELECT custom_fee_speed, custom_fee_standart, custom_fee_pemula, custom_fee_relay FROM roll_event_tokens WHERE manual_invoice_code = ? LIMIT 1");
             $stmtTokenFee->execute([$active_invoice]);
             $tokenFee = $stmtTokenFee->fetch(PDO::FETCH_ASSOC);
             if ($tokenFee) {
                 if ($tokenFee['custom_fee_speed'] !== null) $eventFees['fee_speed'] = (float)$tokenFee['custom_fee_speed'];
                 if ($tokenFee['custom_fee_standart'] !== null) $eventFees['fee_standart'] = (float)$tokenFee['custom_fee_standart'];
                 if ($tokenFee['custom_fee_pemula'] !== null) $eventFees['fee_pemula'] = (float)$tokenFee['custom_fee_pemula'];
+                if ($tokenFee['custom_fee_relay'] !== null) $eventFees['fee_relay'] = (float)$tokenFee['custom_fee_relay'];
             }
         } catch (\Exception $e) {}
 
@@ -410,13 +412,14 @@ class RollTokenCheckoutController extends Controller {
                 
                 // Override dengan harga khusus token jika ada
                 try {
-                    $stmtTokenFee = $db->prepare("SELECT custom_fee_speed, custom_fee_standart, custom_fee_pemula FROM roll_event_tokens WHERE manual_invoice_code = ? LIMIT 1");
+                    $stmtTokenFee = $db->prepare("SELECT custom_fee_speed, custom_fee_standart, custom_fee_pemula, custom_fee_relay FROM roll_event_tokens WHERE manual_invoice_code = ? LIMIT 1");
                     $stmtTokenFee->execute([$active_invoice]);
                     $tokenFee = $stmtTokenFee->fetch(PDO::FETCH_ASSOC);
                     if ($tokenFee) {
                         if ($tokenFee['custom_fee_speed'] !== null) $eventFees['fee_speed'] = (float)$tokenFee['custom_fee_speed'];
                         if ($tokenFee['custom_fee_standart'] !== null) $eventFees['fee_standart'] = (float)$tokenFee['custom_fee_standart'];
                         if ($tokenFee['custom_fee_pemula'] !== null) $eventFees['fee_pemula'] = (float)$tokenFee['custom_fee_pemula'];
+                        if ($tokenFee['custom_fee_relay'] !== null) $eventFees['fee_relay'] = (float)$tokenFee['custom_fee_relay'];
                     }
                 } catch (\Exception $e) {}
                 
@@ -424,7 +427,7 @@ class RollTokenCheckoutController extends Controller {
                 if (!empty($entry_ids)) {
                     $placeholders = str_repeat('?,', count($entry_ids) - 1) . '?';
                     $stmtCls = $db->prepare("
-                        SELECT e.skater_id, sc.class_name 
+                        SELECT e.skater_id, sc.class_name, e.team_name 
                         FROM roll_entries e
                         LEFT JOIN roll_event_details ed ON e.race_class_id = ed.id
                         LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id

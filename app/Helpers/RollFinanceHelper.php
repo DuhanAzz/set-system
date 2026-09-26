@@ -19,10 +19,12 @@ class RollFinanceHelper {
             $sId = $r['skater_id'] ?? 0;
             if ($sId == 0) continue;
             
-            // Nama kelas bisa dari index 'class_name' atau 'skate_class_name'
             $cName = strtolower($r['skate_class_name'] ?? $r['class_name'] ?? '');
+            $isRelay = !empty($r['team_name']) || strpos(strtolower($r['distance_name'] ?? ''), 'relay') !== false || strpos(strtolower($r['distance_name'] ?? ''), 'pair') !== false;
             
-            if (strpos($cName, 'speed') !== false) {
+            if ($isRelay) {
+                $skaterCats[$sId]['relay'] = true;
+            } elseif (strpos($cName, 'speed') !== false) {
                 $skaterCats[$sId]['speed'] = true;
             } elseif (strpos($cName, 'standar') !== false) {
                 $skaterCats[$sId]['standar'] = true;
@@ -59,7 +61,17 @@ class RollFinanceHelper {
             
             // Minimal pembayaran (Fallback jika format penamaan kelas diluar ekspektasi)
             if ($amount == 0) {
-                $amount = 150000;
+                if (isset($cats['relay'])) {
+                    // Jika hanya ikut relay
+                    $amount = isset($eventFees['fee_relay']) ? (float)$eventFees['fee_relay'] : 150000;
+                } else {
+                    $amount = 150000;
+                }
+            } else {
+                // Jika ikut kelas lain DAN ikut relay, cek apakah fee_relay ditambahkan ekstra
+                if (isset($cats['relay']) && isset($eventFees['fee_relay'])) {
+                    $amount += (float)$eventFees['fee_relay'];
+                }
             }
             
             $skaterFees[$sId] = $amount;

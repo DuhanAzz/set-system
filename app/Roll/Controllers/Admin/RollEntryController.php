@@ -834,6 +834,7 @@ class RollEntryController extends Controller {
             $custom_fee_speed = !empty($_POST['custom_fee_speed']) ? (float)$_POST['custom_fee_speed'] : null;
             $custom_fee_standart = !empty($_POST['custom_fee_standart']) ? (float)$_POST['custom_fee_standart'] : null;
             $custom_fee_pemula = !empty($_POST['custom_fee_pemula']) ? (float)$_POST['custom_fee_pemula'] : null;
+            $custom_fee_relay = !empty($_POST['custom_fee_relay']) ? (float)$_POST['custom_fee_relay'] : null;
 
             if ($event_id && $club_id) {
                 // Generate a random 6-character token, e.g., T-8A9F2C
@@ -843,11 +844,11 @@ class RollEntryController extends Controller {
                 try {
                     // Try to add the columns if they don't exist yet
                     try {
-                        $db->exec("ALTER TABLE roll_event_tokens ADD COLUMN custom_fee_speed DECIMAL(10,2) NULL, ADD COLUMN custom_fee_standart DECIMAL(10,2) NULL, ADD COLUMN custom_fee_pemula DECIMAL(10,2) NULL");
+                        $db->exec("ALTER TABLE roll_event_tokens ADD COLUMN custom_fee_speed DECIMAL(10,2) NULL, ADD COLUMN custom_fee_standart DECIMAL(10,2) NULL, ADD COLUMN custom_fee_pemula DECIMAL(10,2) NULL, ADD COLUMN custom_fee_relay DECIMAL(10,2) NULL");
                     } catch (\Exception $e) {}
 
-                    $stmt = $db->prepare("INSERT INTO roll_event_tokens (event_id, club_id, token_code, manual_invoice_code, allow_individu, allow_team, custom_fee_speed, custom_fee_standart, custom_fee_pemula) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
-                    $stmt->execute([$event_id, $club_id, $token, $manual_invoice_code, $allow_individu, $allow_team, $custom_fee_speed, $custom_fee_standart, $custom_fee_pemula]);
+                    $stmt = $db->prepare("INSERT INTO roll_event_tokens (event_id, club_id, token_code, manual_invoice_code, allow_individu, allow_team, custom_fee_speed, custom_fee_standart, custom_fee_pemula, custom_fee_relay) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                    $stmt->execute([$event_id, $club_id, $token, $manual_invoice_code, $allow_individu, $allow_team, $custom_fee_speed, $custom_fee_standart, $custom_fee_pemula, $custom_fee_relay]);
 
                     // Fetch club phone
                     $stmtPhone = $db->prepare("SELECT u.phone FROM roll_users u WHERE u.club_id = ? LIMIT 1");
