@@ -260,20 +260,18 @@ class RollTokenCheckoutController extends Controller {
             exit;
         }
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $db = Database::getInstance()->getConnection();
+            $db = \App\Core\Database::getInstance()->getConnection();
 
-        $active_token = $_SESSION['active_token_' . $event_id] ?? null;
-        // Variables for POST logic
-        if (!$active_token || !$active_invoice) {
-            $_SESSION['flash_message'] = "Sesi Token Anda tidak valid atau telah berakhir.";
-            $_SESSION['flash_type'] = "error";
-            header("Location: " . getenv('APP_URL') . "/roll/user/explore");
-            exit;
-        }
-
+            $active_token = $_SESSION['active_token_' . $event_id] ?? null;
+            $active_invoice = $_SESSION['active_manual_invoice_' . $event_id] ?? null;
             $club_id = $_SESSION['roll_club_id'] ?? 0;
-        $active_invoice = $_SESSION['active_manual_invoice_' . $event_id] ?? null;
-        if (!$active_invoice) { header("Location: " . getenv('APP_URL') . "/roll/user/explore"); exit; }
+
+            if (!$active_token || !$active_invoice) {
+                $_SESSION['flash_message'] = "Sesi Token Anda tidak valid atau telah berakhir.";
+                $_SESSION['flash_type'] = "error";
+                header("Location: " . getenv('APP_URL') . "/roll/user/explore");
+                exit;
+            }
             
             $entry_ids = $_POST['entry_ids'] ?? []; // Array of entry IDs being paid
             $proof_file = '';
