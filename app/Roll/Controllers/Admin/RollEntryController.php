@@ -842,10 +842,11 @@ class RollEntryController extends Controller {
                 $manual_invoice_code = 'MAN-TOK-' . $token;
 
                 try {
-                    // Try to add the columns if they don't exist yet
-                    try {
-                        $db->exec("ALTER TABLE roll_event_tokens ADD COLUMN custom_fee_speed DECIMAL(10,2) NULL, ADD COLUMN custom_fee_standart DECIMAL(10,2) NULL, ADD COLUMN custom_fee_pemula DECIMAL(10,2) NULL, ADD COLUMN custom_fee_relay DECIMAL(10,2) NULL");
-                    } catch (\Exception $e) {}
+                    // Try to add the columns if they don't exist yet (separate statements to prevent one duplicate failing others)
+                    try { $db->exec("ALTER TABLE roll_event_tokens ADD COLUMN custom_fee_speed DECIMAL(10,2) NULL"); } catch (\Exception $e) {}
+                    try { $db->exec("ALTER TABLE roll_event_tokens ADD COLUMN custom_fee_standart DECIMAL(10,2) NULL"); } catch (\Exception $e) {}
+                    try { $db->exec("ALTER TABLE roll_event_tokens ADD COLUMN custom_fee_pemula DECIMAL(10,2) NULL"); } catch (\Exception $e) {}
+                    try { $db->exec("ALTER TABLE roll_event_tokens ADD COLUMN custom_fee_relay DECIMAL(10,2) NULL"); } catch (\Exception $e) {}
 
                     $stmt = $db->prepare("INSERT INTO roll_event_tokens (event_id, club_id, token_code, manual_invoice_code, allow_individu, allow_team, custom_fee_speed, custom_fee_standart, custom_fee_pemula, custom_fee_relay) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
                     $stmt->execute([$event_id, $club_id, $token, $manual_invoice_code, $allow_individu, $allow_team, $custom_fee_speed, $custom_fee_standart, $custom_fee_pemula, $custom_fee_relay]);
