@@ -238,19 +238,19 @@
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div>
                         <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Harga Kelas Speed</label>
-                        <input type="number" name="custom_fee_speed" placeholder="Contoh: 350000" class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-emerald-500">
+                        <input type="number" name="custom_fee_speed" value="<?= $_SESSION['saved_custom_fee_speed'] ?? '' ?>" placeholder="Contoh: 350000" class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-emerald-500">
                     </div>
                     <div>
                         <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Harga Kelas Standart</label>
-                        <input type="number" name="custom_fee_standart" placeholder="Contoh: 250000" class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-emerald-500">
+                        <input type="number" name="custom_fee_standart" value="<?= $_SESSION['saved_custom_fee_standart'] ?? '' ?>" placeholder="Contoh: 250000" class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-emerald-500">
                     </div>
                     <div>
                         <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Harga Kelas Pemula</label>
-                        <input type="number" name="custom_fee_pemula" placeholder="Contoh: 150000" class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-emerald-500">
+                        <input type="number" name="custom_fee_pemula" value="<?= $_SESSION['saved_custom_fee_pemula'] ?? '' ?>" placeholder="Contoh: 150000" class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-emerald-500">
                     </div>
                     <div>
                         <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Harga Tim / Relay (Per Orang)</label>
-                        <input type="number" name="custom_fee_relay" placeholder="Contoh: 150000" class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-emerald-500">
+                        <input type="number" name="custom_fee_relay" value="<?= $_SESSION['saved_custom_fee_relay'] ?? '' ?>" placeholder="Contoh: 150000" class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-emerald-500">
                     </div>
                 </div>
             </div>

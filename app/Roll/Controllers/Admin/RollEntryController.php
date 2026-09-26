@@ -856,6 +856,12 @@ class RollEntryController extends Controller {
                     $stmtPhone->execute([$club_id]);
                     $phone = $stmtPhone->fetchColumn();
 
+                    // Simpan preferensi harga ke session agar tidak perlu mengetik ulang
+                    $_SESSION['saved_custom_fee_speed'] = $custom_fee_speed;
+                    $_SESSION['saved_custom_fee_standart'] = $custom_fee_standart;
+                    $_SESSION['saved_custom_fee_pemula'] = $custom_fee_pemula;
+                    $_SESSION['saved_custom_fee_relay'] = $custom_fee_relay;
+
                     $_SESSION['generated_token'] = $token;
                     $_SESSION['generated_phone'] = $phone ?: '';
                     $_SESSION['flash_message'] = "Token berhasil dibuat!";
