@@ -280,17 +280,6 @@ class RollTokenRegistrationController extends Controller {
         
         // Bypass check status event for Token
         
-        // Cek status pembayaran, jika Pending/Paid, kunci (lock)
-        $stmtPayment = $db->prepare("SELECT status FROM roll_payments WHERE club_id = ? AND event_id = ?");
-        $stmtPayment->execute([$club_id, $event_id]);
-        $paymentStatus = $stmtPayment->fetchColumn();
-        if ($paymentStatus && in_array($paymentStatus, ['Pending', 'Paid'])) {
-            $_SESSION['flash_message'] = "Pendaftaran terkunci karena status pembayaran ($paymentStatus).";
-            $_SESSION['flash_type'] = "error";
-            header("Location: " . getenv('APP_URL') . "/roll/user/token_registration/index/" . $event_id . "?form=" . $entry_type);
-            exit;
-        }
-        
         // Fetch event limits
         $stmtLimit = $db->prepare("SELECT limit_speed_ind, limit_speed_team, limit_std_ind, limit_std_team, limit_pemula_ind, limit_pemula_team FROM roll_events WHERE id = ?");
         $stmtLimit->execute([$event_id]);
