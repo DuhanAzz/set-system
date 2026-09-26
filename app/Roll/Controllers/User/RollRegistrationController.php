@@ -279,6 +279,9 @@ class RollRegistrationController extends Controller {
         $successCount = 0;
         $failMessages = [];
 
+        $teamFail = false;
+        if ($is_team_reg) { $db->beginTransaction(); }
+
         foreach ($skater_ids as $skater_id) {
             $skater_id = (int)$skater_id;
             
@@ -369,7 +372,7 @@ class RollRegistrationController extends Controller {
                 // Check limits
                 if ($is_team_reg && $currTeam >= $maxTeam) {
                     $failMessages[] = "$skater_name mencapai batas maksimal Team ($maxTeam).";
-                    continue; // Skip this race for this skater
+                    if ($is_team_reg) { $teamFail = true; } continue; // Skip this race for this skater
                 }
                 if (!$is_team_reg && $currIndv >= $maxIndv) {
                     $failMessages[] = "$skater_name mencapai batas maksimal Individu ($maxIndv).";
@@ -381,7 +384,7 @@ class RollRegistrationController extends Controller {
                 $stmtDup->execute([$skater_id, $race_class_id, $event_id]);
                 if ($stmtDup->fetch()) {
                     $failMessages[] = "$skater_name sudah terdaftar di nomor lomba ini.";
-                    continue;
+                    if ($is_team_reg) { $teamFail = true; } continue;
                 }
                 
                 // Cek pindah kategori (1 atlet hanya 1 kategori: Speed/Standart/Pemula)
@@ -414,7 +417,7 @@ class RollRegistrationController extends Controller {
                     
                     if ($eGroup && $tGroup && $eGroup !== $tGroup) {
                         $failMessages[] = "$skater_name tidak bisa dicampur antara " . strtoupper($eGroup) . " dan " . strtoupper($tGroup) . ".";
-                        continue; 
+                        if ($is_team_reg) { $teamFail = true; } continue; 
                     }
                 }
 
@@ -432,6 +435,16 @@ class RollRegistrationController extends Controller {
             }
         }
         
+        if ($is_team_reg) {
+            if ($teamFail || empty($successCount)) {
+                $db->rollBack();
+                $successCount = 0;
+                $failMessages[] = "Seluruh pendaftaran tim dibatalkan karena ada anggota yang tidak memenuhi syarat.";
+            } else {
+                $db->commit();
+            }
+        }
+
         if ($successCount > 0) {
             $msg = "Berhasil mendaftarkan $successCount entri.";
             if (!empty($failMessages)) {
