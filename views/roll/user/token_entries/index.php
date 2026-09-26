@@ -527,7 +527,7 @@ let athletesCache = {}; // { club_id: [ athletes array ] }
 
 window.addEventListener("DOMContentLoaded", function() {
     // Initialize cache with current user's athletes
-    athletesCache[myClubId] = allSkaters;
+    athletesCache[myClubId] = myAthletes;
     
     loadAthletes(myClubId, "indv_skater_select");
     for(let i=1; i<=4; i++) {
