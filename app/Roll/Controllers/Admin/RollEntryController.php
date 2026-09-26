@@ -80,11 +80,11 @@ class RollEntryController extends Controller {
                         c.id as club_id,
                         c.club_name as nama_lengkap,
                         u.email,
-                        (SELECT COUNT(*) FROM roll_entries e JOIN roll_skaters s ON e.skater_id = s.id WHERE s.club_id = c.id AND e.event_id = ?) as total_entries
+                        (SELECT COUNT(*) FROM roll_entries e JOIN roll_skaters s ON e.skater_id = s.id WHERE s.club_id = c.id AND e.event_id = ? AND (e.manual_invoice_code IS NULL OR e.manual_invoice_code NOT LIKE 'MAN-TOK-%')) as total_entries
                     FROM roll_clubs c
                     LEFT JOIN roll_payments p ON p.club_id = c.id AND p.event_id = ?
                     LEFT JOIN roll_users u ON u.club_id = c.id
-                    WHERE (SELECT COUNT(*) FROM roll_entries e JOIN roll_skaters s ON e.skater_id = s.id WHERE s.club_id = c.id AND e.event_id = ?) > 0
+                    WHERE (SELECT COUNT(*) FROM roll_entries e JOIN roll_skaters s ON e.skater_id = s.id WHERE s.club_id = c.id AND e.event_id = ? AND (e.manual_invoice_code IS NULL OR e.manual_invoice_code NOT LIKE 'MAN-TOK-%')) > 0
                     ORDER BY 
                         CASE WHEN p.status = 'Pending' THEN 1 ELSE 2 END, 
                         p.created_at DESC";
@@ -101,7 +101,7 @@ class RollEntryController extends Controller {
                     JOIN roll_skaters s ON e.skater_id = s.id
                     JOIN roll_event_details ed ON e.race_class_id = ed.id
                     LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
-                    WHERE s.club_id = ? AND e.event_id = ?
+                    WHERE s.club_id = ? AND e.event_id = ? AND (e.manual_invoice_code IS NULL OR e.manual_invoice_code NOT LIKE 'MAN-TOK-%')
                 ");
                 $stmtEntries->execute([$row['club_id'], $targetEventId]);
                 $entriesData = $stmtEntries->fetchAll(PDO::FETCH_ASSOC);
@@ -195,7 +195,7 @@ class RollEntryController extends Controller {
                        LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
                        LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id
                        LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
-                       WHERE e.event_id = ? AND s.club_id = ? AND e.manual_invoice_code IS NULL
+                       WHERE e.event_id = ? AND s.club_id = ? AND (e.manual_invoice_code IS NULL OR e.manual_invoice_code NOT LIKE 'MAN-TOK-%')
                        ORDER BY s.skater_name ASC";
         $stmtE = $db->prepare($sqlEntries);
         $stmtE->execute([$eventId, $targetClubId]);
@@ -280,7 +280,7 @@ class RollEntryController extends Controller {
                        LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
                        LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id
                        LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
-                       WHERE e.event_id = ? AND s.club_id = ? AND e.manual_invoice_code IS NULL
+                       WHERE e.event_id = ? AND s.club_id = ? AND (e.manual_invoice_code IS NULL OR e.manual_invoice_code NOT LIKE 'MAN-TOK-%')
                        ORDER BY s.skater_name ASC";
         $stmtE = $db->prepare($sqlEntries);
         $stmtE->execute([$eventId, $targetClubId]);
