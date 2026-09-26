@@ -73,8 +73,9 @@ class RollPelotonController extends Controller {
             SELECT COUNT(DISTINCT e.skater_id) 
             FROM roll_entries e
             JOIN roll_skaters s ON e.skater_id = s.id
-            JOIN roll_payments pay ON pay.club_id = s.club_id AND pay.event_id = e.event_id
-            WHERE e.event_id = ? AND pay.status = 'Paid'
+            LEFT JOIN roll_payments pay ON pay.club_id = s.club_id AND pay.event_id = e.event_id AND (e.is_manual = 0 OR e.is_manual IS NULL)
+            LEFT JOIN roll_manual_payments mpay ON mpay.invoice_code = e.manual_invoice_code AND e.is_manual = 1
+            WHERE e.event_id = ? AND (pay.status = 'Paid' OR mpay.status = 'Paid')
         ");
         $stmt->execute([$eventId]);
         $totalPaidAthletes = (int)$stmt->fetchColumn();
@@ -94,16 +95,19 @@ class RollPelotonController extends Controller {
             SELECT ed.id as class_id, ed.race_number, ed.category_name, d.distance_name, a.group_name, sc.class_name as roller_name, ed.gender, ed.max_lanes,
             (SELECT COUNT(*) FROM roll_entries e 
              JOIN roll_skaters s ON e.skater_id = s.id
-             JOIN roll_payments pay ON pay.club_id = s.club_id AND pay.event_id = e.event_id
-             WHERE e.race_class_id = ed.id AND pay.status = 'Paid') as total_entries,
+             LEFT JOIN roll_payments pay ON pay.club_id = s.club_id AND pay.event_id = e.event_id AND (e.is_manual = 0 OR e.is_manual IS NULL)
+             LEFT JOIN roll_manual_payments mpay ON mpay.invoice_code = e.manual_invoice_code AND e.is_manual = 1
+             WHERE e.race_class_id = ed.id AND (pay.status = 'Paid' OR mpay.status = 'Paid')) as total_entries,
             (SELECT COUNT(*) FROM roll_entries e 
              JOIN roll_skaters s ON e.skater_id = s.id
-             JOIN roll_payments pay ON pay.club_id = s.club_id AND pay.event_id = e.event_id
-             WHERE e.race_class_id = ed.id AND pay.status = 'Paid' AND s.gender IN ('M', 'Male', 'L', 'Man', 'Putra', 'Pa')) as total_pa_entries,
+             LEFT JOIN roll_payments pay ON pay.club_id = s.club_id AND pay.event_id = e.event_id AND (e.is_manual = 0 OR e.is_manual IS NULL)
+             LEFT JOIN roll_manual_payments mpay ON mpay.invoice_code = e.manual_invoice_code AND e.is_manual = 1
+             WHERE e.race_class_id = ed.id AND (pay.status = 'Paid' OR mpay.status = 'Paid') AND s.gender IN ('M', 'Male', 'L', 'Man', 'Putra', 'Pa')) as total_pa_entries,
             (SELECT COUNT(*) FROM roll_entries e 
              JOIN roll_skaters s ON e.skater_id = s.id
-             JOIN roll_payments pay ON pay.club_id = s.club_id AND pay.event_id = e.event_id
-             WHERE e.race_class_id = ed.id AND pay.status = 'Paid' AND s.gender IN ('F', 'Female', 'P', 'Woman', 'Putri', 'Pi')) as total_pi_entries
+             LEFT JOIN roll_payments pay ON pay.club_id = s.club_id AND pay.event_id = e.event_id AND (e.is_manual = 0 OR e.is_manual IS NULL)
+             LEFT JOIN roll_manual_payments mpay ON mpay.invoice_code = e.manual_invoice_code AND e.is_manual = 1
+             WHERE e.race_class_id = ed.id AND (pay.status = 'Paid' OR mpay.status = 'Paid') AND s.gender IN ('F', 'Female', 'P', 'Woman', 'Putri', 'Pi')) as total_pi_entries
             FROM roll_event_details ed 
             LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id 
             LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id 
@@ -222,8 +226,9 @@ class RollPelotonController extends Controller {
         $sqlClasses = "SELECT ed.id as class_id, ed.race_number, ed.category_name, d.distance_name, a.group_name, sc.class_name as roller_name,
                        (SELECT COUNT(*) FROM roll_entries e 
                         JOIN roll_skaters s ON e.skater_id = s.id
-                        JOIN roll_payments pay ON pay.club_id = s.club_id AND pay.event_id = e.event_id
-                        WHERE e.race_class_id = ed.id AND pay.status = 'Paid') as total_paid_entries
+                        LEFT JOIN roll_payments pay ON pay.club_id = s.club_id AND pay.event_id = e.event_id AND (e.is_manual = 0 OR e.is_manual IS NULL)
+                        LEFT JOIN roll_manual_payments mpay ON mpay.invoice_code = e.manual_invoice_code AND e.is_manual = 1
+                        WHERE e.race_class_id = ed.id AND (pay.status = 'Paid' OR mpay.status = 'Paid')) as total_paid_entries
                        FROM roll_event_details ed 
                        LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id 
                        LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id 
@@ -369,8 +374,9 @@ class RollPelotonController extends Controller {
                 SELECT DISTINCT e.skater_id, s.club_id, e.team_name
                 FROM roll_entries e
                 JOIN roll_skaters s ON e.skater_id = s.id
-                JOIN roll_payments pay ON pay.club_id = s.club_id AND pay.event_id = e.event_id
-                WHERE e.event_id = ? AND e.race_class_id = ? AND pay.status = 'Paid'
+                LEFT JOIN roll_payments pay ON pay.club_id = s.club_id AND pay.event_id = e.event_id AND (e.is_manual = 0 OR e.is_manual IS NULL)
+                LEFT JOIN roll_manual_payments mpay ON mpay.invoice_code = e.manual_invoice_code AND e.is_manual = 1
+                WHERE e.event_id = ? AND e.race_class_id = ? AND (pay.status = 'Paid' OR mpay.status = 'Paid')
             ");
             $stmtAthletes->execute([$eventId, $classId]);
             $athletes = $stmtAthletes->fetchAll(PDO::FETCH_ASSOC);
@@ -576,8 +582,9 @@ class RollPelotonController extends Controller {
             JOIN roll_skaters s ON e.skater_id = s.id
             LEFT JOIN roll_clubs c ON s.club_id = c.id
             LEFT JOIN roll_pelotons p ON e.skater_id = p.skater_id AND p.race_class_id = e.race_class_id AND p.event_id = e.event_id
-            JOIN roll_payments pay ON pay.club_id = s.club_id AND pay.event_id = e.event_id
-            WHERE e.event_id = ? AND e.race_class_id = ? AND pay.status = 'Paid'
+            LEFT JOIN roll_payments pay ON pay.club_id = s.club_id AND pay.event_id = e.event_id AND (e.is_manual = 0 OR e.is_manual IS NULL)
+            LEFT JOIN roll_manual_payments mpay ON mpay.invoice_code = e.manual_invoice_code AND e.is_manual = 1
+            WHERE e.event_id = ? AND e.race_class_id = ? AND (pay.status = 'Paid' OR mpay.status = 'Paid')
             ORDER BY p.round ASC, p.heat_name ASC, p.start_grid ASC, s.skater_name ASC
         ");
         $stmtEntries->execute([$eventId, $classId]);
@@ -674,8 +681,9 @@ class RollPelotonController extends Controller {
                 SELECT e.skater_id, s.club_id
                 FROM roll_entries e
                 JOIN roll_skaters s ON e.skater_id = s.id
-                JOIN roll_payments pay ON pay.club_id = s.club_id AND pay.event_id = e.event_id
-                WHERE e.event_id = ? AND e.race_class_id = ? AND pay.status = 'Paid'
+                LEFT JOIN roll_payments pay ON pay.club_id = s.club_id AND pay.event_id = e.event_id AND (e.is_manual = 0 OR e.is_manual IS NULL)
+                LEFT JOIN roll_manual_payments mpay ON mpay.invoice_code = e.manual_invoice_code AND e.is_manual = 1
+                WHERE e.event_id = ? AND e.race_class_id = ? AND (pay.status = 'Paid' OR mpay.status = 'Paid')
             ");
             $stmtAthletes->execute([$eventId, $classId]);
             $allAthletes = $stmtAthletes->fetchAll(PDO::FETCH_ASSOC);
@@ -816,8 +824,9 @@ class RollPelotonController extends Controller {
                     SELECT e.skater_id, s.club_id 
                     FROM roll_entries e
                     JOIN roll_skaters s ON e.skater_id = s.id
-                    JOIN roll_payments pay ON pay.club_id = s.club_id AND pay.event_id = e.event_id
-                    WHERE e.event_id = ? AND e.race_class_id = ? AND pay.status = 'Paid'
+                    LEFT JOIN roll_payments pay ON pay.club_id = s.club_id AND pay.event_id = e.event_id AND (e.is_manual = 0 OR e.is_manual IS NULL)
+                    LEFT JOIN roll_manual_payments mpay ON mpay.invoice_code = e.manual_invoice_code AND e.is_manual = 1
+                    WHERE e.event_id = ? AND e.race_class_id = ? AND (pay.status = 'Paid' OR mpay.status = 'Paid')
                 ");
                 $stmt->execute([$eventId, $classId]);
                 $skaters = $stmt->fetchAll(PDO::FETCH_ASSOC);
