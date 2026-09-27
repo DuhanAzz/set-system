@@ -557,7 +557,7 @@ function filterClasses() {
     });
 
     const athleteLevel = skaterSelect.options[skaterSelect.selectedIndex].dataset.level || 'pemula';
-    let eGroup = athleteLevel;
+    eGroup = athleteLevel;
     
     if (hasSpeed) eGroup = 'speed';
     else if (hasStandar && eGroup !== 'speed') eGroup = 'standar';
