@@ -178,6 +178,17 @@
                                             <div class="font-black text-indigo-700 text-sm uppercase mt-1">
                                                 <?= htmlspecialchars($firstEnt['team_name'] ?: 'Tanpa Tim') ?>
                                             </div>
+                                            <?php if (in_array($firstEnt['payment_status'], ['Unpaid', 'Rejected'])): ?>
+                                            <form action="<?= getenv('APP_URL') ?>/roll/user/token_registration/removeTeam" method="POST" onsubmit="return confirm('Hapus seluruh tim ini?')">
+                                                <input type="hidden" name="event_id" value="<?= $event['id'] ?>">
+                                                <input type="hidden" name="team_name" value="<?= htmlspecialchars($firstEnt['team_name']) ?>">
+                                                <input type="hidden" name="race_class_id" value="<?= $firstEnt['race_class_id'] ?>">
+                                                <button type="submit" class="mt-2 flex items-center gap-1 text-[10px] font-bold text-red-500 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded transition">
+                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                                    HAPUS TIM
+                                                </button>
+                                            </form>
+                                            <?php endif; ?>
                                         </td>
                                         <td class="px-6 py-4">
                                             <div class="font-bold text-blue-600 text-xs uppercase mt-1">

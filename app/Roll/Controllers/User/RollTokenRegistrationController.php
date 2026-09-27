@@ -500,6 +500,53 @@ class RollTokenRegistrationController extends Controller {
         exit;
     }
 
+    public function removeTeam() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header("Location: " . getenv('APP_URL') . "/roll/user/explore");
+            exit;
+        }
+
+        $club_id = (int)($_SESSION['roll_club_id'] ?? 0);
+        $event_id = (int)($_POST['event_id'] ?? 0);
+        $team_name = $_POST['team_name'] ?? '';
+        $race_class_id = (int)($_POST['race_class_id'] ?? 0);
+
+        if (!$event_id || !$team_name || !$race_class_id) {
+            $_SESSION['flash_message'] = "Data tidak valid.";
+            $_SESSION['flash_type'] = "error";
+            header("Location: " . getenv('APP_URL') . "/roll/user/explore");
+            exit;
+        }
+
+        $db = \App\Core\Database::getInstance()->getConnection();
+
+        // Pastikan tim milik klub ini dan masih Unpaid/Rejected
+        $stmt = $db->prepare("
+            SELECT e.id
+            FROM roll_entries e
+            LEFT JOIN roll_payments p ON p.club_id = e.club_id AND p.event_id = e.event_id
+            WHERE e.team_name = ? AND e.race_class_id = ? AND e.event_id = ? AND e.club_id = ? 
+              AND COALESCE(p.status, 'Unpaid') IN ('Unpaid', 'Rejected')
+        ");
+        $stmt->execute([$team_name, $race_class_id, $event_id, $club_id]);
+        $entries = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        if (count($entries) > 0) {
+            $ids = array_column($entries, 'id');
+            $placeholders = implode(',', array_fill(0, count($ids), '?'));
+            $db->prepare("DELETE FROM roll_entries WHERE id IN ($placeholders)")->execute($ids);
+            
+            $_SESSION['flash_message'] = "Tim beserta seluruh anggotanya berhasil dihapus.";
+            $_SESSION['flash_type'] = "success";
+            header("Location: " . getenv('APP_URL') . "/roll/user/token_registration/index/" . $event_id);
+        } else {
+            $_SESSION['flash_message'] = "Tim tidak dapat dihapus (sudah diproses atau tidak ditemukan).";
+            $_SESSION['flash_type'] = "error";
+            header("Location: " . getenv('APP_URL') . "/roll/user/token_registration/index/" . $event_id);
+        }
+        exit;
+    }
+
     public function get_athlete_entries() {
         if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'user') {
             echo json_encode([]);
