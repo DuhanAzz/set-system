@@ -1005,10 +1005,32 @@ class RollEntryController extends Controller {
                 $invoiceDetails[$code] = $stmtEnt->fetchAll(PDO::FETCH_ASSOC);
             }
 
+            // Cek Pencarian Atlet Tersembunyi/Orphaned
+            $searchQuery = $_GET['q'] ?? '';
+            $searchResults = [];
+            if (!empty($searchQuery)) {
+                $stmtSearch = $db->prepare("
+                    SELECT e.id as entry_id, e.team_name, e.manual_invoice_code, e.token_id, 
+                           s.skater_name, c.club_name, d.distance_name, sc.class_name, a.group_name
+                    FROM roll_entries e
+                    JOIN roll_skaters s ON e.skater_id = s.id
+                    LEFT JOIN roll_clubs c ON e.club_id = c.id
+                    LEFT JOIN roll_event_details ed ON e.race_class_id = ed.id
+                    LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
+                    LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
+                    LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id
+                    WHERE e.event_id = ? AND s.skater_name LIKE ?
+                ");
+                $stmtSearch->execute([$targetEventId, "%$searchQuery%"]);
+                $searchResults = $stmtSearch->fetchAll(\PDO::FETCH_ASSOC);
+            }
+
             return $this->view('roll/admin/entries/manual_invoices', [
                 'invoices' => $invoices,
                 'invoiceDetails' => $invoiceDetails,
-                'targetEventId' => $targetEventId
+                'targetEventId' => $targetEventId,
+                'searchQuery' => $searchQuery,
+                'searchResults' => $searchResults
             ]);
         } catch (\Throwable $e) {
             die("FATAL ERROR IN MANUAL INVOICES: " . $e->getMessage() . " | LINE: " . $e->getLine());
@@ -1136,7 +1158,7 @@ class RollEntryController extends Controller {
         }
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $db = Database::getInstance()->getConnection();
+            $db = \App\Core\Database::getInstance()->getConnection();
             $stmt = $db->prepare("DELETE FROM roll_event_tokens WHERE id = ?");
             if ($stmt->execute([$token_id])) {
                 $_SESSION['flash_message'] = "Token berhasil dihapus.";
@@ -1147,6 +1169,18 @@ class RollEntryController extends Controller {
             }
         }
         header("Location: " . getenv('APP_URL') . "/roll/admin/entries/manual_add?form=token");
+        exit;
+    }
+
+    public function delete_entry($entry_id) {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') exit;
+        if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') exit;
+        $db = \App\Core\Database::getInstance()->getConnection();
+        $stmt = $db->prepare("DELETE FROM roll_entries WHERE id = ?");
+        $stmt->execute([$entry_id]);
+        $_SESSION['flash_message'] = "Entri berhasil dihapus secara paksa (Force Delete).";
+        $_SESSION['flash_type'] = "success";
+        header("Location: " . $_SERVER['HTTP_REFERER']);
         exit;
     }
 
