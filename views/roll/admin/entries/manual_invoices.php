@@ -24,21 +24,30 @@
 
 <?php if(isset($orphanedEntries) && !empty($orphanedEntries)): ?>
 <div class="max-w-[95%] mx-auto mb-10">
-    <div class="bg-red-50 p-6 rounded-t-2xl border-x border-t border-red-200">
-        <h3 class="text-lg font-black text-red-700 uppercase mb-1">Daftar Entri Menggantung (Orphaned)</h3>
-        <p class="text-xs text-red-600 font-bold">Entri di bawah ini sudah tersimpan di database tetapi belum memiliki tagihan/token. Entri ini bisa menyebabkan limit terpenuhi sehingga Anda tidak bisa mendaftarkan atlet tersebut. Silakan Hapus jika tidak diperlukan.</p>
-    </div>
-    <div class="bg-white rounded-b-3xl shadow-sm border border-slate-200 overflow-hidden">
-        <table class="w-full text-left border-collapse">
-            <thead>
-                <tr class="bg-slate-50 border-b border-slate-200 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                    <th class="py-3 px-4">Nama Tim</th>
-                    <th class="py-3 px-4">Nama Atlet</th>
-                    <th class="py-3 px-4">Kategori</th>
-                    <th class="py-3 px-4">Nomor Lomba</th>
-                    <th class="py-3 px-4 text-right">Aksi</th>
-                </tr>
-            </thead>
+    <details class="group bg-white rounded-2xl shadow-sm border border-red-200 overflow-hidden">
+        <summary class="bg-red-50 p-4 cursor-pointer list-none flex items-center justify-between hover:bg-red-100 transition">
+            <div>
+                <h3 class="text-sm font-black text-red-700 uppercase flex items-center gap-2">
+                    <span class="text-lg">⚠️</span> Terdapat <?= count($orphanedEntries) ?> Entri Menggantung (Orphaned)
+                </h3>
+                <p class="text-[10px] text-red-600 font-bold mt-1">Klik untuk melihat dan menghapus entri tim yang menyangkut (tidak ada tagihan).</p>
+            </div>
+            <div class="text-red-500 group-open:rotate-180 transition-transform duration-300">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+            </div>
+        </summary>
+        
+        <div class="border-t border-red-100 overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-slate-50 border-b border-slate-200 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                        <th class="py-3 px-4">Nama Tim</th>
+                        <th class="py-3 px-4">Nama Atlet</th>
+                        <th class="py-3 px-4">Kategori</th>
+                        <th class="py-3 px-4">Nomor Lomba</th>
+                        <th class="py-3 px-4 text-right">Aksi</th>
+                    </tr>
+                </thead>
             <tbody class="divide-y divide-slate-100">
                 <?php foreach($orphanedEntries as $res): ?>
                 <tr class="hover:bg-slate-50 transition">
@@ -68,7 +77,8 @@
                 <?php endforeach; ?>
             </tbody>
         </table>
-    </div>
+        </div>
+    </details>
 </div>
 <?php endif; ?>
 
