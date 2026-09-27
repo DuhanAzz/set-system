@@ -710,6 +710,212 @@ class RollEntryController extends Controller {
         ]);
         exit;
     }
+    public function manual_invoice_detail() {
+        if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+            header("Location: " . getenv('APP_URL') . "/roll/login");
+            exit;
+        }
+        
+        $db = \App\Core\Database::getInstance()->getConnection();
+        $eventId = (int)($_GET['event_id'] ?? 0);
+        $invoiceCode = $_GET['invoice_code'] ?? '';
+        
+        if ($eventId == 0 || empty($invoiceCode)) {
+            die("Parameter URL tidak lengkap.");
+        }
+        
+        // --- HANDLE POST AKSI ---
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_type'])) {
+            $payId = (int)($_POST['payment_id'] ?? 0);
+            $action = $_POST['action_type']; 
+            
+            if ($payId > 0) {
+                try {
+                    $newStatus = 'Pending';
+                    if ($action === 'approve') $newStatus = 'Paid';
+                    elseif ($action === 'reject') $newStatus = 'Rejected';
+                    elseif ($action === 'rollback') $newStatus = 'Unpaid';
+                    
+                    $stmt = $db->prepare("UPDATE roll_manual_payments SET status = ? WHERE id = ?");
+                    $stmt->execute([$newStatus, $payId]);
+                    
+                    $_SESSION['flash_type'] = 'success';
+                    $_SESSION['flash_message'] = 'Status pembayaran berhasil diperbarui!';
+                } catch (\Exception $e) {
+                    $_SESSION['flash_type'] = 'error';
+                    $_SESSION['flash_message'] = 'Gagal memperbarui status.';
+                }
+            }
+            
+            header("Location: " . getenv('APP_URL') . "/roll/admin/entries/manual_invoice_detail?invoice_code=$invoiceCode&event_id=$eventId");
+            exit;
+        }
+        
+        // 2. AMBIL DATA EVENT
+        $stmtEvt = $db->prepare("SELECT * FROM roll_events WHERE id = ? LIMIT 1");
+        $stmtEvt->execute([$eventId]);
+        $eventData = $stmtEvt->fetch(PDO::FETCH_ASSOC);
+        if (!$eventData) die("Event tidak ditemukan");
+        
+        // AMBIL DATA PEMBAYARAN MANUAL
+        $stmtPay = $db->prepare("SELECT * FROM roll_manual_payments WHERE event_id = ? AND invoice_code = ? LIMIT 1");
+        $stmtPay->execute([$eventId, $invoiceCode]);
+        $payData = $stmtPay->fetch(PDO::FETCH_ASSOC);
+        if (!$payData) die("Invoice tidak ditemukan");
+        
+        // AMBIL DATA KLUB/PENGIRIM (Dari pendaftar pertama)
+        $clubName = 'Invoice Manual: ' . $invoiceCode;
+        $emailUser = '-';
+        $phoneUser = '-';
+        
+        $stmtClub = $db->prepare("SELECT c.club_name, u.email, u.phone FROM roll_entries e JOIN roll_clubs c ON e.club_id = c.id LEFT JOIN roll_users u ON u.club_id = c.id WHERE e.manual_invoice_code = ? LIMIT 1");
+        $stmtClub->execute([$invoiceCode]);
+        $clubData = $stmtClub->fetch(\PDO::FETCH_ASSOC);
+        if ($clubData) {
+            $clubName = $clubData['club_name'];
+            $emailUser = $clubData['email'] ?? '-';
+            $phoneUser = $clubData['phone'] ?? '-';
+        }
+        
+        // AMBIL SEMUA ENTRI ATLET DARI INVOICE INI
+        $sqlEntries = "SELECT s.id as skater_id, s.skater_name, s.gender, s.birth_date, a.group_name, d.distance_name, ed.category_name, ed.distance, e.race_class_id, sc.class_name, e.is_manual
+                       FROM roll_entries e
+                       JOIN roll_skaters s ON e.skater_id = s.id
+                       LEFT JOIN roll_event_details ed ON e.race_class_id = ed.id
+                       LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
+                       LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id
+                       LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
+                       WHERE e.event_id = ? AND e.manual_invoice_code = ?
+                       ORDER BY s.skater_name ASC";
+        $stmtE = $db->prepare($sqlEntries);
+        $stmtE->execute([$eventId, $invoiceCode]);
+        $allEntries = $stmtE->fetchAll(\PDO::FETCH_ASSOC);
+        
+        $financeCalc = \App\Helpers\RollFinanceHelper::calculateTotalTagihan($allEntries, $eventData);
+        $totalTagihan = $financeCalc['total_amount'];
+        $skaterFees = $financeCalc['skater_fees'];
+
+        // KELOMPOKKAN PER ATLET
+        $groupedSkaters = [];
+        foreach($allEntries as $ent) {
+            $sId = $ent['skater_id'];
+            if(!isset($groupedSkaters[$sId])) {
+                $groupedSkaters[$sId] = [
+                    'info' => [
+                        'nama' => $ent['skater_name'],
+                        'gender' => $ent['gender'] == 'M' ? 'Putra' : 'Putri',
+                        'lahir' => $ent['birth_date']
+                    ],
+                    'items' => [],
+                    'subtotal' => $skaterFees[$sId] ?? 0
+                ];
+            }
+            
+            $rawCName = $ent['class_name'] ?? '';
+            
+            $groupedSkaters[$sId]['items'][] = [
+                'distance' => $ent['distance'],
+                'stroke' => $ent['category_name'] ?: $ent['distance_name'],
+                'age_group' => $ent['group_name'],
+                'class_name' => $rawCName,
+                'is_manual' => $ent['is_manual']
+            ];
+        }
+        
+        return $this->view('roll/admin/entries/manual_invoice_detail', [
+            'eventId' => $eventId,
+            'invoiceCode' => $invoiceCode,
+            'clubName' => $clubName,
+            'emailUser' => $emailUser,
+            'phoneUser' => $phoneUser,
+            'payData' => $payData,
+            'groupedSkaters' => $groupedSkaters,
+            'totalTagihan' => $totalTagihan
+        ]);
+    }
+
+    public function print_manual_invoice() {
+        if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+            die("Unauthorized");
+        }
+        
+        $db = \App\Core\Database::getInstance()->getConnection();
+        $eventId = (int)($_GET['event_id'] ?? 0);
+        $invoiceCode = $_GET['invoice_code'] ?? '';
+        
+        if ($eventId == 0 || empty($invoiceCode)) {
+            die("Parameter URL tidak lengkap.");
+        }
+        
+        $stmtEvt = $db->prepare("SELECT * FROM roll_events WHERE id = ? LIMIT 1");
+        $stmtEvt->execute([$eventId]);
+        $eventData = $stmtEvt->fetch(\PDO::FETCH_ASSOC);
+        if (!$eventData) die("Event tidak ditemukan");
+        
+        $clubName = 'Invoice Manual: ' . $invoiceCode;
+        $stmtClub = $db->prepare("SELECT c.club_name FROM roll_entries e JOIN roll_clubs c ON e.club_id = c.id WHERE e.manual_invoice_code = ? LIMIT 1");
+        $stmtClub->execute([$invoiceCode]);
+        $clubData = $stmtClub->fetch(\PDO::FETCH_ASSOC);
+        if ($clubData) {
+            $clubName = $clubData['club_name'];
+        }
+        
+        $stmtPay = $db->prepare("SELECT * FROM roll_manual_payments WHERE event_id = ? AND invoice_code = ? LIMIT 1");
+        $stmtPay->execute([$eventId, $invoiceCode]);
+        $payData = $stmtPay->fetch(\PDO::FETCH_ASSOC);
+        
+        $sqlEntries = "SELECT s.id as skater_id, s.skater_name, s.gender, s.birth_date, a.group_name, d.distance_name, ed.category_name, ed.distance, e.race_class_id, sc.class_name, e.is_manual
+                       FROM roll_entries e
+                       JOIN roll_skaters s ON e.skater_id = s.id
+                       LEFT JOIN roll_event_details ed ON e.race_class_id = ed.id
+                       LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
+                       LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id
+                       LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
+                       WHERE e.event_id = ? AND e.manual_invoice_code = ?
+                       ORDER BY s.skater_name ASC";
+        $stmtE = $db->prepare($sqlEntries);
+        $stmtE->execute([$eventId, $invoiceCode]);
+        $allEntries = $stmtE->fetchAll(\PDO::FETCH_ASSOC);
+        
+        $financeCalc = \App\Helpers\RollFinanceHelper::calculateTotalTagihan($allEntries, $eventData);
+        $totalTagihan = $financeCalc['total_amount'];
+        $skaterFees = $financeCalc['skater_fees'];
+        
+        $groupedSkaters = [];
+        foreach($allEntries as $ent) {
+            $sId = $ent['skater_id'];
+            if(!isset($groupedSkaters[$sId])) {
+                $groupedSkaters[$sId] = [
+                    'info' => [
+                        'nama' => $ent['skater_name'],
+                        'gender' => $ent['gender'] == 'M' ? 'Putra' : 'Putri'
+                    ],
+                    'items' => [],
+                    'subtotal' => $skaterFees[$sId] ?? 0
+                ];
+            }
+            
+            $rawCName = $ent['class_name'] ?? '';
+            
+            $groupedSkaters[$sId]['items'][] = [
+                'distance' => $ent['distance'],
+                'stroke' => $ent['category_name'] ?: $ent['distance_name'],
+                'age_group' => $ent['group_name'],
+                'class_name' => $rawCName,
+                'is_manual' => $ent['is_manual']
+            ];
+        }
+        
+        return $this->view('roll/admin/entries/print_manual_invoice', [
+            'event' => $eventData,
+            'clubName' => $clubName,
+            'payData' => $payData,
+            'groupedSkaters' => $groupedSkaters,
+            'totalTagihan' => $totalTagihan,
+            'invoiceCode' => $invoiceCode
+        ]);
+    }
+
     public function manual_invoices() {
         try {
             if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {

@@ -110,9 +110,9 @@
                         <td class="py-4 px-6 text-right">
                             <div class="flex items-center justify-end gap-2">
                                 
-                                <button type="button" onclick="document.getElementById('details_<?= $i ?>').classList.toggle('hidden')" class="px-4 py-2 rounded-lg bg-slate-800 text-white hover:bg-slate-900 text-[10px] font-black uppercase transition shadow-lg shadow-slate-200">
+                                <a href="<?= getenv('APP_URL') ?>/roll/admin/entries/manual_invoice_detail?invoice_code=<?= urlencode($inv['invoice_code']) ?>&event_id=<?= $targetEventId ?>" class="px-4 py-2 rounded-lg bg-slate-800 text-white hover:bg-slate-900 text-[10px] font-black uppercase transition shadow-lg shadow-slate-200 inline-block text-center">
                                     Lihat Detail
-                                </button>
+                                </a>
 
                                 <?php if($status === 'Paid'): ?>
                                     <form method="POST" action="<?= getenv('APP_URL') ?>/roll/admin/entries/manual_invoice_action" class="inline" onsubmit="return confirm('Batal Verifikasi Lunas? Status akan kembali Pending.');">
@@ -147,33 +147,6 @@
                                     </button>
                                 </form>
 
-                            </div>
-                        </td>
-                    </tr>
-                    
-                    <!-- Rincian Atlet Row (Hidden by default) -->
-                    <tr id="details_<?= $i ?>" class="hidden bg-slate-50/50">
-                        <td colspan="6" class="p-6 border-b border-slate-200">
-                            <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
-                                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 border-b border-slate-100 pb-2">Rincian Atlet (<?= count($details) ?> Entri)</p>
-                                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                                    <?php foreach($details as $d): ?>
-                                        <div class="p-3 bg-slate-50 border border-slate-100 rounded-xl flex flex-col justify-center hover:border-blue-200 transition">
-                                            <div class="text-xs font-black text-slate-800 uppercase mb-1 flex justify-between items-start gap-2">
-                                                <span><?= htmlspecialchars($d['skater_name']) ?></span>
-                                                <?php if($d['team_name']): ?>
-                                                    <span class="px-2 py-0.5 bg-blue-100 text-blue-600 rounded text-[9px] truncate max-w-[80px]" title="<?= htmlspecialchars($d['team_name']) ?>"><?= htmlspecialchars($d['team_name']) ?></span>
-                                                <?php endif; ?>
-                                            </div>
-                                            <div class="text-[10px] font-bold text-slate-500 mb-1">
-                                                Klub Asal: <?= htmlspecialchars($d['club_name'] ?? '-') ?>
-                                            </div>
-                                            <div class="text-[10px] text-slate-400 leading-tight">
-                                                Lomba: <?= htmlspecialchars($d['distance_name'] . ' - ' . $d['group_name']) ?>
-                                            </div>
-                                        </div>
-                                    <?php endforeach; ?>
-                                </div>
                             </div>
                         </td>
                     </tr>
