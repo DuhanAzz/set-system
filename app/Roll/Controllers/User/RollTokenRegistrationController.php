@@ -335,7 +335,7 @@ class RollTokenRegistrationController extends Controller {
             $skater_id = (int)$skater_id;
             
             // Dapatkan info atlet (hilangkan constraint club_id untuk mendukung Mix-Club)
-            $stmtOwn = $db->prepare("SELECT skater_name, birth_date, gender, is_pon_veteran, athlete_level FROM roll_skaters WHERE id = ?");
+            $stmtOwn = $db->prepare("SELECT skater_name, birth_date, gender, is_pon_veteran FROM roll_skaters WHERE id = ?");
             $stmtOwn->execute([$skater_id]);
             $skater = $stmtOwn->fetch(PDO::FETCH_ASSOC);
             if (!$skater) continue;

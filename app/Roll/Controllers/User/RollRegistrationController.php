@@ -308,7 +308,7 @@ class RollRegistrationController extends Controller {
             $skater_id = (int)$skater_id;
             
             // Pastikan atlet milik klub ini
-            $stmtOwn = $db->prepare("SELECT skater_name, birth_date, gender, is_pon_veteran, athlete_level FROM roll_skaters WHERE id = ? AND club_id = ?");
+            $stmtOwn = $db->prepare("SELECT skater_name, birth_date, gender, is_pon_veteran FROM roll_skaters WHERE id = ? AND club_id = ?");
             $stmtOwn->execute([$skater_id, $club_id]);
             $skater = $stmtOwn->fetch(PDO::FETCH_ASSOC);
             if (!$skater) continue;
