@@ -778,9 +778,10 @@ class RollEntryController extends Controller {
         }
         
         // AMBIL SEMUA ENTRI ATLET DARI INVOICE INI
-        $sqlEntries = "SELECT s.id as skater_id, s.skater_name, s.gender, s.birth_date, a.group_name, d.distance_name, ed.category_name, ed.distance, e.race_class_id, sc.class_name, e.is_manual
+        $sqlEntries = "SELECT s.id as skater_id, s.skater_name, s.gender, s.birth_date, a.group_name, d.distance_name, ed.category_name, ed.distance, e.race_class_id, sc.class_name, e.is_manual, e.team_name, c.club_name
                        FROM roll_entries e
                        JOIN roll_skaters s ON e.skater_id = s.id
+                       LEFT JOIN roll_clubs c ON s.club_id = c.id
                        LEFT JOIN roll_event_details ed ON e.race_class_id = ed.id
                        LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
                        LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id
@@ -792,8 +793,15 @@ class RollEntryController extends Controller {
         $allEntries = $stmtE->fetchAll(\PDO::FETCH_ASSOC);
         
         $financeCalc = \App\Helpers\RollFinanceHelper::calculateTotalTagihan($allEntries, $eventData);
-        $totalTagihan = $financeCalc['total_amount'];
-        $skaterFees = $financeCalc['skater_fees'];
+        $totalTagihan = $payData['total_amount'] ?? 0;
+        
+        // Distribusikan fee secara merata jika ada, atau 0
+        $skaterCount = count(array_unique(array_column($allEntries, 'skater_id')));
+        $feePerSkater = $skaterCount > 0 ? ($totalTagihan / $skaterCount) : 0;
+        $skaterFees = [];
+        foreach($allEntries as $e) {
+            $skaterFees[$e['skater_id']] = $feePerSkater;
+        }
 
         // KELOMPOKKAN PER ATLET
         $groupedSkaters = [];
@@ -878,10 +886,18 @@ class RollEntryController extends Controller {
         $allEntries = $stmtE->fetchAll(\PDO::FETCH_ASSOC);
         
         $financeCalc = \App\Helpers\RollFinanceHelper::calculateTotalTagihan($allEntries, $eventData);
-        $totalTagihan = $financeCalc['total_amount'];
-        $skaterFees = $financeCalc['skater_fees'];
+        $totalTagihan = $payData['total_amount'] ?? 0;
+        
+        // Distribusikan fee secara merata jika ada, atau 0
+        $skaterCount = count(array_unique(array_column($allEntries, 'skater_id')));
+        $feePerSkater = $skaterCount > 0 ? ($totalTagihan / $skaterCount) : 0;
+        $skaterFees = [];
+        foreach($allEntries as $e) {
+            $skaterFees[$e['skater_id']] = $feePerSkater;
+        }
         
         $groupedSkaters = [];
+        $teams = [];
         foreach($allEntries as $ent) {
             $sId = $ent['skater_id'];
             if(!isset($groupedSkaters[$sId])) {
@@ -904,9 +920,19 @@ class RollEntryController extends Controller {
                 'class_name' => $rawCName,
                 'is_manual' => $ent['is_manual']
             ];
+            
+            if (!empty($ent['team_name'])) {
+                $teams[$ent['team_name']][] = [
+                    'skater_name' => $ent['skater_name'],
+                    'gender' => $ent['gender'] == 'M' ? 'Putra' : 'Putri',
+                    'club_name' => $ent['club_name'] ?? 'Klub Pendaftar',
+                    'race_name' => ($rawCName ? strtoupper($rawCName) . ' - ' : '') . $ent['distance_name'] . ' - ' . $ent['group_name']
+                ];
+            }
         }
         
         return $this->view('roll/admin/entries/print_manual_invoice', [
+            'teams' => $teams,
             'event' => $eventData,
             'clubName' => $clubName,
             'payData' => $payData,
