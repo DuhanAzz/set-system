@@ -865,10 +865,13 @@ function filterTeamClasses() {
     classSelect.disabled = true;
     document.getElementById('team_class_info').classList.add('hidden');
     
-    // Re-populate skaters to apply age limits
+    // Clear athletes since class is reset
     for(let i=1; i<=4; i++) {
-        const clubId = document.getElementById('team_club_select_'+i).value;
-        if(clubId) loadAthletes(clubId, 'team_skater_select_'+i);
+        const select = document.getElementById('team_skater_select_'+i);
+        if (select) {
+            select.innerHTML = '<option value="">- Lengkapi Kategori & Nomor Lomba -</option>';
+            select.disabled = true;
+        }
     }
 
     if (!catId || !kuId) return;
@@ -931,6 +934,12 @@ function updateTeamGenderRule() {
                         labelEl.innerText = 'Opsional';
                     }
                 }
+            }
+            
+            // Reload athletes now that class is selected
+            for(let i=1; i<=4; i++) {
+                const clubId = document.getElementById('team_club_select_'+i).value;
+                if(clubId) loadAthletes(clubId, 'team_skater_select_'+i);
             }
         }
     } else {
