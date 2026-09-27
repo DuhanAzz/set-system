@@ -337,8 +337,10 @@ class RollEntryController extends Controller {
                 'is_manual' => $ent['is_manual']
             ];
             
-            if (!empty($ent['team_name'])) {
-                $teams[$ent['team_name']][] = [
+            $isRelay = !empty($ent['team_name']) || stripos($ent['distance_name'] ?? '', 'relay') !== false || stripos($ent['distance_name'] ?? '', 'pair') !== false;
+            if ($isRelay) {
+                $teamName = !empty($ent['team_name']) ? $ent['team_name'] : ('Tim ' . ($ent['club_name'] ?? 'Klub') . ' - ' . $ent['group_name']);
+                $teams[$teamName][] = [
                     'skater_name' => $ent['skater_name'],
                     'gender' => $ent['gender'] == 'M' ? 'Putra' : 'Putri',
                     'club_name' => $ent['club_name'] ?? 'Klub Pendaftar',
@@ -933,8 +935,10 @@ class RollEntryController extends Controller {
                 'is_manual' => $ent['is_manual']
             ];
             
-            if (!empty($ent['team_name'])) {
-                $teams[$ent['team_name']][] = [
+            $isRelay = !empty($ent['team_name']) || stripos($ent['distance_name'] ?? '', 'relay') !== false || stripos($ent['distance_name'] ?? '', 'pair') !== false;
+            if ($isRelay) {
+                $teamName = !empty($ent['team_name']) ? $ent['team_name'] : ('Tim ' . ($ent['club_name'] ?? 'Klub') . ' - ' . $ent['group_name']);
+                $teams[$teamName][] = [
                     'skater_name' => $ent['skater_name'],
                     'gender' => $ent['gender'] == 'M' ? 'Putra' : 'Putri',
                     'club_name' => $ent['club_name'] ?? 'Klub Pendaftar',
