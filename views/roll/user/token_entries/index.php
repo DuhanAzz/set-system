@@ -624,15 +624,21 @@ function editTeam(teamName, catId, kuId, classId, athletesData) {
 
     document.getElementById('team_name').value = teamName;
     document.getElementById('team_cat_select').value = catId;
+    filterTeamKU();
     document.getElementById('team_ku_select').value = kuId;
-    loadTeamClasses();
+    filterTeamClasses();
     document.getElementById('team_class_select').value = classId;
-    updateTeamGenderRule();
     
     athletesData.forEach((a, idx) => {
         const slot = idx + 1;
         const clubEl = document.getElementById('team_club_select_' + slot);
         if (clubEl) clubEl.value = a.club_id;
+    });
+
+    updateTeamGenderRule();
+    
+    athletesData.forEach((a, idx) => {
+        const slot = idx + 1;
         // Since loadAthletes was called by updateTeamGenderRule asynchronously,
         // we use setTimeout to wait for fetch to finish rendering
         setTimeout(() => {
