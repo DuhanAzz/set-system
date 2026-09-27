@@ -624,7 +624,7 @@ function filterClasses() {
 
                 if (eGroup && targetGroup && eGroup !== targetGroup) {
                     if (typeof allowPemulaStandarMix !== 'undefined' && allowPemulaStandarMix) {
-                        const isMixable = (eGroup === 'pemula' || eGroup === 'standar') && (targetGroup === 'pemula' || targetGroup === 'standar');
+                        const isMixable = (eGroup === 'pemula' && targetGroup === 'standar');
                         if (!isMixable) return;
                     } else {
                         return;

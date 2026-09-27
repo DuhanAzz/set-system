@@ -221,7 +221,7 @@ class RollRegistrationController extends Controller {
             if ($eGroup && $tGroup && $eGroup !== $tGroup) {
                 $allowMix = !empty($event['allow_pemula_standart_mix']);
                 if ($allowMix) {
-                    $isMixable = (($eGroup === 'pemula' && $tGroup === 'standar') || ($eGroup === 'standar' && $tGroup === 'pemula'));
+                    $isMixable = ($eGroup === 'pemula' && $tGroup === 'standar');
                     if (!$isMixable) {
                         echo json_encode([
                             'success' => false,
@@ -463,7 +463,7 @@ class RollRegistrationController extends Controller {
                     if ($eGroup && $tGroup && $eGroup !== $tGroup) {
                         $allowMix = !empty($eventLimits['allow_pemula_standart_mix']);
                         if ($allowMix) {
-                            $isMixable = (($eGroup === 'pemula' && $tGroup === 'standar') || ($eGroup === 'standar' && $tGroup === 'pemula'));
+                            $isMixable = ($eGroup === 'pemula' && $tGroup === 'standar');
                             if (!$isMixable) {
                                 $failMessages[] = "$skater_name tidak bisa dicampur antara " . strtoupper($eGroup) . " dan " . strtoupper($tGroup) . ".";
                                 if ($is_team_reg) { $teamFail = true; } continue; 
