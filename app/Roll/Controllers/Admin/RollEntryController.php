@@ -343,7 +343,7 @@ class RollEntryController extends Controller {
                 $teams[$teamName][] = [
                     'skater_name' => $ent['skater_name'],
                     'gender' => $ent['gender'] == 'M' ? 'Putra' : 'Putri',
-                    'club_name' => $clubName ?? ($ent['club_name'] ?? 'Klub Pendaftar'),
+                    'club_name' => $ent['club_name'] ?? 'Klub Pendaftar',
                     'race_name' => ($rawCName ? strtoupper($rawCName) . ' - ' : '') . $ent['distance_name'] . ' - ' . $ent['group_name']
                 ];
             }
@@ -942,7 +942,7 @@ class RollEntryController extends Controller {
                 $teams[$teamName][] = [
                     'skater_name' => $ent['skater_name'],
                     'gender' => $ent['gender'] == 'M' ? 'Putra' : 'Putri',
-                    'club_name' => $clubName ?? ($ent['club_name'] ?? 'Klub Pendaftar'),
+                    'club_name' => $ent['club_name'] ?? 'Klub Pendaftar',
                     'race_name' => ($rawCName ? strtoupper($rawCName) . ' - ' : '') . $ent['distance_name'] . ' - ' . $ent['group_name']
                 ];
             }
