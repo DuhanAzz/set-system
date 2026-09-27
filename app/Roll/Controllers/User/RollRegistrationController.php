@@ -120,7 +120,7 @@ class RollRegistrationController extends Controller {
         $db = Database::getInstance()->getConnection();
 
         // Ambil Data Atlet
-        $stmtA = $db->prepare("SELECT gender, birth_date, athlete_level FROM roll_skaters WHERE id = ?");
+        $stmtA = $db->prepare("SELECT gender, birth_date FROM roll_skaters WHERE id = ?");
         $stmtA->execute([$skater_id]);
         $athlete = $stmtA->fetch(PDO::FETCH_ASSOC);
 
@@ -199,9 +199,9 @@ class RollRegistrationController extends Controller {
                 elseif (strpos($cStr, 'standar') !== false) $hasStandar = true;
             }
             
-            $eGroup = strtolower($athlete['athlete_level'] ?? 'pemula');
+            $eGroup = 'pemula';
             if ($hasSpeed) $eGroup = 'speed';
-            elseif ($hasStandar && $eGroup !== 'speed') $eGroup = 'standar';
+            elseif ($hasStandar) $eGroup = 'standar';
             
             $stmtTargetCat = $db->prepare("
                 SELECT sc.class_name 
@@ -303,7 +303,7 @@ class RollRegistrationController extends Controller {
             $skater_id = (int)$skater_id;
             
             // Pastikan atlet milik klub ini
-            $stmtOwn = $db->prepare("SELECT skater_name, birth_date, gender, athlete_level FROM roll_skaters WHERE id = ? AND club_id = ?");
+            $stmtOwn = $db->prepare("SELECT skater_name, birth_date, gender FROM roll_skaters WHERE id = ? AND club_id = ?");
             $stmtOwn->execute([$skater_id, $club_id]);
             $skater = $stmtOwn->fetch(PDO::FETCH_ASSOC);
             if (!$skater) continue;
@@ -449,9 +449,9 @@ class RollRegistrationController extends Controller {
                         elseif (strpos($cStr, 'standar') !== false) $hasStandar = true;
                     }
                     
-                    $eGroup = strtolower($skater['athlete_level'] ?? 'pemula');
+                    $eGroup = 'pemula';
                     if ($hasSpeed) $eGroup = 'speed';
-                    elseif ($hasStandar && $eGroup !== 'speed') $eGroup = 'standar';
+                    elseif ($hasStandar) $eGroup = 'standar';
                     
                     $tCatStr = strtolower($targetCatStr);
                     
