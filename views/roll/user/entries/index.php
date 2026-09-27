@@ -523,128 +523,151 @@ const limits = {
 let maxIndv = 99;
 
 function filterClasses() {
-    const skaterSelect = document.getElementById('skater_select');
-    const skaterId = skaterSelect.value;
-    const catSelect = document.getElementById('skate_category_select');
-    const catId = catSelect.value;
-    const classContainer = document.getElementById('race_class_checkboxes');
-    
-    // Reset options
-    classContainer.innerHTML = '<div class="text-xs text-slate-400 italic text-center p-2">- Pilih Kategori Terlebih Dahulu -</div>';
-    
-    document.getElementById('validation_alert').classList.add('hidden');
-    const btn = document.getElementById('btn_submit_entry');
-    btn.disabled = true;
-    btn.className = 'w-full bg-slate-300 text-white py-3 rounded-xl font-black text-xs shadow-md transition-all uppercase tracking-widest cursor-not-allowed';
-
-    if (!skaterId || !catId) return;
-
-    const age = parseInt(skaterSelect.dataset.age);
-    const gender = skaterSelect.dataset.gender;
-    
-    let eGroup = '';
-    let hasSpeed = false;
-    let hasPemula = false;
-    let hasStandar = false;
-    
-    existingEntriesData.forEach(e => {
-        if (e.skater_id == skaterId && e.skate_class) {
-            const eCatStr = (e.skate_class || '').toLowerCase();
-            if (eCatStr.includes('speed')) hasSpeed = true;
-            else if (eCatStr.includes('standar')) hasStandar = true;
-            else if (eCatStr.includes('pemula')) hasPemula = true;
+    try {
+        const skaterSelect = document.getElementById('skater_select');
+        const skaterId = skaterSelect ? skaterSelect.value : '';
+        const catSelect = document.getElementById('skate_category_select');
+        const catId = catSelect ? catSelect.value : '';
+        const classContainer = document.getElementById('race_class_checkboxes');
+        
+        if (classContainer) {
+            classContainer.innerHTML = '<div class="text-xs text-slate-400 italic text-center p-2">- Pilih Kategori Terlebih Dahulu -</div>';
         }
-    });
-
-    const athleteLevel = skaterSelect.options[skaterSelect.selectedIndex].dataset.level || 'pemula';
-    eGroup = athleteLevel;
-    
-    if (hasSpeed) eGroup = 'speed';
-    else if (hasStandar && eGroup !== 'speed') eGroup = 'standar';
-    
-    // Determine category text to set limit
-    let targetGroupForLimit = '';
-    const catNameText = catSelect.options[catSelect.selectedIndex].text.toLowerCase();
-    if (catNameText.includes('speed')) { targetGroupForLimit = 'speed'; maxIndv = limits.speed; }
-    else if (catNameText.includes('standar')) { targetGroupForLimit = 'standar'; maxIndv = limits.standar; }
-    else if (catNameText.includes('pemula')) { targetGroupForLimit = 'pemula'; maxIndv = limits.pemula; }
-    else { maxIndv = 99; }
-    
-    let existingIndvCountForCategory = 0;
-    existingEntriesData.forEach(e => {
-        if (e.skater_id == skaterId && e.skate_class && (!e.team_name || e.team_name === '')) {
-            const eCatStr = (e.skate_class || '').toLowerCase();
-            if (targetGroupForLimit === 'speed' && eCatStr.includes('speed')) existingIndvCountForCategory++;
-            else if (targetGroupForLimit === 'standar' && eCatStr.includes('standar')) existingIndvCountForCategory++;
-            else if (targetGroupForLimit === 'pemula' && eCatStr.includes('pemula')) existingIndvCountForCategory++;
-        }
-    });
-    
-    if (maxIndv !== 99) {
-        maxIndv = maxIndv - existingIndvCountForCategory;
-        if (maxIndv < 0) maxIndv = 0;
-    }
-    
-    document.getElementById('max_indv_label').innerText = maxIndv !== 99 ? '(Sisa ' + maxIndv + ')' : '';
-
-    // Filter classes
-    let validCount = 0;
-    classContainer.innerHTML = '';
-    
-    allClasses.forEach(c => {
-        // Exclude team races from individual registration
-        const distanceName = (c.distance_name || '').toLowerCase();
-        if (distanceName.includes('relay') || distanceName.includes('team') || distanceName.includes('pair')) return;
-
-        // Enforce category locking
-        let targetGroup = '';
-        const tCatStr = (c.class_name || '').toLowerCase();
-        if (tCatStr.includes('speed')) targetGroup = 'speed';
-        else if (tCatStr.includes('standar')) targetGroup = 'standar';
-        else if (tCatStr.includes('pemula')) targetGroup = 'pemula';
-
-        if (eGroup && targetGroup && eGroup !== targetGroup) {
-            if (allowPemulaStandarMix) {
-                const isMixable = (eGroup === 'pemula' || eGroup === 'standar') && (targetGroup === 'pemula' || targetGroup === 'standar');
-                if (!isMixable) return;
-            } else {
-                return;
-            }
+        
+        const alertBox = document.getElementById('validation_alert');
+        if (alertBox) alertBox.classList.add('hidden');
+        
+        const btn = document.getElementById('btn_submit_entry');
+        if (btn) {
+            btn.disabled = true;
+            btn.className = 'w-full bg-slate-300 text-white py-3 rounded-xl font-black text-xs shadow-md transition-all uppercase tracking-widest cursor-not-allowed';
         }
 
-        if (c.class_cat_id == catId) {
-            // Check age group
-            if (age >= parseInt(c.min_year) && age <= parseInt(c.max_year)) {
-                // Check gender
-                const catGender = (c.gender || '').toLowerCase();
-                if ((catGender === 'putra' && gender === 'M') || (catGender === 'putri' && gender === 'F') || catGender === 'campuran') {
-                    // Deteksi kelas Wajib (Mandatory)
-                    const isMandatory = c.race_number && c.race_number.includes('*');
-                    const displayRaceNumber = c.race_number ? c.race_number.replace('*', '') + ' - ' : '';
-                    let labelText = displayRaceNumber + c.distance_name;
-                    
-                    if (isMandatory) {
-                        labelText += ' <span class="text-red-500 font-bold ml-1 text-[9px] bg-red-50 px-1 py-0.5 rounded uppercase tracking-wider" title="Wajib Diikuti">Wajib</span>';
-                    }
-                    
-                    const label = document.createElement('label');
-                    label.className = `flex items-center gap-3 p-2 rounded cursor-pointer transition-colors border border-transparent ${isMandatory ? 'bg-red-50/30' : 'hover:bg-slate-50 hover:border-slate-200'}`;
-                    label.innerHTML = `
-                        <input type="checkbox" name="race_class_id[]" value="${c.id}" class="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 individual-race-cb" onchange="checkIndividualLimits(this)" ${isMandatory ? 'checked onclick="return false;"' : ''}>
-                        <span class="text-xs font-bold text-slate-700 uppercase ${isMandatory ? 'opacity-80' : ''}">${labelText}</span>
-                    `;
-                    classContainer.appendChild(label);
-                    validCount++;
+        if (!skaterId || !catId) return;
+
+        const age = parseInt(skaterSelect.dataset.age || '0');
+        const gender = skaterSelect.dataset.gender || '';
+        
+        let eGroup = '';
+        let hasSpeed = false;
+        let hasPemula = false;
+        let hasStandar = false;
+        
+        if (typeof existingEntriesData !== 'undefined') {
+            existingEntriesData.forEach(e => {
+                if (e.skater_id == skaterId && e.skate_class) {
+                    const eCatStr = (e.skate_class || '').toLowerCase();
+                    if (eCatStr.includes('speed')) hasSpeed = true;
+                    else if (eCatStr.includes('standar')) hasStandar = true;
+                    else if (eCatStr.includes('pemula')) hasPemula = true;
                 }
+            });
+        }
+
+        let athleteLevel = 'pemula';
+        if (skaterSelect && skaterSelect.options && skaterSelect.selectedIndex >= 0) {
+            const opt = skaterSelect.options[skaterSelect.selectedIndex];
+            if (opt && opt.dataset && opt.dataset.level) {
+                athleteLevel = opt.dataset.level;
             }
         }
-    });
-    
-    if (validCount === 0) {
-        classContainer.innerHTML = '<div class="text-xs text-slate-400 italic text-center p-2">- Tidak ada nomor lomba yang sesuai umur atlet -</div>';
-    } else {
-        // Jalankan pengecekan limit awal untuk memvalidasi mandatory checks
-        checkIndividualLimits(null);
+        eGroup = athleteLevel;
+        
+        if (hasSpeed) eGroup = 'speed';
+        else if (hasStandar && eGroup !== 'speed') eGroup = 'standar';
+        
+        let targetGroupForLimit = '';
+        let catNameText = '';
+        if (catSelect && catSelect.options && catSelect.selectedIndex >= 0) {
+            const cOpt = catSelect.options[catSelect.selectedIndex];
+            if (cOpt) catNameText = (cOpt.text || '').toLowerCase();
+        }
+        
+        if (catNameText.includes('speed')) { targetGroupForLimit = 'speed'; maxIndv = typeof limits !== 'undefined' ? limits.speed : 2; }
+        else if (catNameText.includes('standar')) { targetGroupForLimit = 'standar'; maxIndv = typeof limits !== 'undefined' ? limits.standar : 2; }
+        else if (catNameText.includes('pemula')) { targetGroupForLimit = 'pemula'; maxIndv = typeof limits !== 'undefined' ? limits.pemula : 2; }
+        else { maxIndv = 99; }
+        
+        let existingIndvCountForCategory = 0;
+        if (typeof existingEntriesData !== 'undefined') {
+            existingEntriesData.forEach(e => {
+                if (e.skater_id == skaterId && e.skate_class && (!e.team_name || e.team_name === '')) {
+                    const eCatStr = (e.skate_class || '').toLowerCase();
+                    if (targetGroupForLimit === 'speed' && eCatStr.includes('speed')) existingIndvCountForCategory++;
+                    else if (targetGroupForLimit === 'standar' && eCatStr.includes('standar')) existingIndvCountForCategory++;
+                    else if (targetGroupForLimit === 'pemula' && eCatStr.includes('pemula')) existingIndvCountForCategory++;
+                }
+            });
+        }
+        
+        if (maxIndv !== 99) {
+            maxIndv = maxIndv - existingIndvCountForCategory;
+            if (maxIndv < 0) maxIndv = 0;
+        }
+        
+        const labelEl = document.getElementById('max_indv_label');
+        if (labelEl) labelEl.innerText = maxIndv !== 99 ? '(Sisa ' + maxIndv + ')' : '';
+
+        let validCount = 0;
+        if (classContainer) classContainer.innerHTML = '';
+        
+        if (typeof allClasses !== 'undefined') {
+            allClasses.forEach(c => {
+                const distanceName = (c.distance_name || '').toLowerCase();
+                if (distanceName.includes('relay') || distanceName.includes('team') || distanceName.includes('pair')) return;
+
+                let targetGroup = '';
+                const tCatStr = (c.class_name || '').toLowerCase();
+                if (tCatStr.includes('speed')) targetGroup = 'speed';
+                else if (tCatStr.includes('standar')) targetGroup = 'standar';
+                else if (tCatStr.includes('pemula')) targetGroup = 'pemula';
+
+                if (eGroup && targetGroup && eGroup !== targetGroup) {
+                    if (typeof allowPemulaStandarMix !== 'undefined' && allowPemulaStandarMix) {
+                        const isMixable = (eGroup === 'pemula' || eGroup === 'standar') && (targetGroup === 'pemula' || targetGroup === 'standar');
+                        if (!isMixable) return;
+                    } else {
+                        return;
+                    }
+                }
+
+                if (c.class_cat_id == catId) {
+                    if (age >= parseInt(c.min_year) && age <= parseInt(c.max_year)) {
+                        const catGender = (c.gender || '').toLowerCase();
+                        if ((catGender === 'putra' && gender === 'M') || (catGender === 'putri' && gender === 'F') || catGender === 'campuran') {
+                            
+                            const isMandatory = c.race_number && c.race_number.includes('*');
+                            const displayRaceNumber = c.race_number ? c.race_number.replace('*', '') + ' - ' : '';
+                            let labelText = displayRaceNumber + c.distance_name;
+                            
+                            if (isMandatory) {
+                                labelText += ' <span class="text-red-500 font-bold ml-1 text-[9px] bg-red-50 px-1 py-0.5 rounded uppercase tracking-wider" title="Wajib Diikuti">Wajib</span>';
+                            }
+                            
+                            const label = document.createElement('label');
+                            label.className = `flex items-center gap-3 p-2 rounded cursor-pointer transition-colors border border-transparent ${isMandatory ? 'bg-red-50/30' : 'hover:bg-slate-50 hover:border-slate-200'}`;
+                            label.innerHTML = `
+                                <input type="checkbox" name="race_class_id[]" value="${c.id}" class="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 individual-race-cb" onchange="checkIndividualLimits(this)" ${isMandatory ? 'checked onclick="return false;"' : ''}>
+                                <span class="text-xs font-bold text-slate-700 uppercase ${isMandatory ? 'opacity-80' : ''}">${labelText}</span>
+                            `;
+                            if (classContainer) classContainer.appendChild(label);
+                            validCount++;
+                        }
+                    }
+                }
+            });
+        }
+        
+        if (validCount === 0 && classContainer) {
+            classContainer.innerHTML = '<div class="text-xs text-slate-400 italic text-center p-2">- Tidak ada nomor lomba yang sesuai umur atlet -</div>';
+        } else {
+            if (typeof checkIndividualLimits === 'function') {
+                checkIndividualLimits(null);
+            }
+        }
+    } catch(err) {
+        console.error(err);
+        alert('Gagal meload kelas lomba. Error: ' + err.message);
     }
 }
 
