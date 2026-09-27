@@ -163,8 +163,10 @@ class RollRegistrationController extends Controller {
         }
 
         // Validasi 2: Umur (Age Calculator)
-        // Note: min_year dan max_year pada sistem ini bertindak sebagai batas UMUR.
         $age = DateHelper::calculateAge($athlete['birth_date'], $event['event_date_start']);
+        if (!empty($athlete['is_pon_veteran'])) {
+            $age = 25;
+        }
         
         $minAge = $class['min_year'] ?? 0;
         $maxAge = $class['max_year'] ?? 99; // Jika null, anggap max 99 (Dewasa)
@@ -199,9 +201,12 @@ class RollRegistrationController extends Controller {
                 elseif (strpos($cStr, 'standar') !== false) $hasStandar = true;
             }
             
-            $eGroup = 'pemula';
+            $eGroup = strtolower($athlete['athlete_level'] ?? 'pemula');
+            if (!empty($athlete['is_pon_veteran'])) {
+                $eGroup = 'speed';
+            }
             if ($hasSpeed) $eGroup = 'speed';
-            elseif ($hasStandar) $eGroup = 'standar';
+            elseif ($hasStandar && $eGroup !== 'speed') $eGroup = 'standar';
             
             $stmtTargetCat = $db->prepare("
                 SELECT sc.class_name 
@@ -303,7 +308,7 @@ class RollRegistrationController extends Controller {
             $skater_id = (int)$skater_id;
             
             // Pastikan atlet milik klub ini
-            $stmtOwn = $db->prepare("SELECT skater_name, birth_date, gender FROM roll_skaters WHERE id = ? AND club_id = ?");
+            $stmtOwn = $db->prepare("SELECT skater_name, birth_date, gender, is_pon_veteran, athlete_level FROM roll_skaters WHERE id = ? AND club_id = ?");
             $stmtOwn->execute([$skater_id, $club_id]);
             $skater = $stmtOwn->fetch(PDO::FETCH_ASSOC);
             if (!$skater) continue;
@@ -355,6 +360,9 @@ class RollRegistrationController extends Controller {
                     $evDate = $stmtEvDate->fetchColumn();
                     
                     $skaterAge = \App\Helpers\DateHelper::calculateAge($skater['birth_date'], $evDate);
+                    if (!empty($skater['is_pon_veteran'])) {
+                        $skaterAge = 25; // Paksa ke KU Senior
+                    }
                     
                     $stmtMandatory = $db->prepare("
                         SELECT c.id 
@@ -449,9 +457,12 @@ class RollRegistrationController extends Controller {
                         elseif (strpos($cStr, 'standar') !== false) $hasStandar = true;
                     }
                     
-                    $eGroup = 'pemula';
+                    $eGroup = strtolower($skater['athlete_level'] ?? 'pemula');
+                    if (!empty($skater['is_pon_veteran'])) {
+                        $eGroup = 'speed';
+                    }
                     if ($hasSpeed) $eGroup = 'speed';
-                    elseif ($hasStandar) $eGroup = 'standar';
+                    elseif ($hasStandar && $eGroup !== 'speed') $eGroup = 'standar';
                     
                     $tCatStr = strtolower($targetCatStr);
                     
