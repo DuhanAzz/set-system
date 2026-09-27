@@ -321,6 +321,43 @@
                             </tfoot>
                         </table>
                         
+                        <?php if(!empty($teams)): ?>
+                        <div style="margin-top: 30px; padding-top: 15px; border-top: 1px dashed #ccc;">
+                            <h2 style="font-size: 11pt; font-weight: 900; color: #333; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;">Susunan Tim Relay</h2>
+                            <table style="width: 100%; text-align: left; border-collapse: collapse; border: 1px solid #ccc; font-size: 10pt;">
+                                <thead>
+                                    <tr style="background-color: #f8fafc; text-transform: uppercase; font-weight: 900; color: #334155;">
+                                        <th style="border: 1px solid #ccc; padding: 8px; text-align: center; width: 40px;">NO</th>
+                                        <th style="border: 1px solid #ccc; padding: 8px;">NAMA TIM</th>
+                                        <th style="border: 1px solid #ccc; padding: 8px;">NAMA ATLET</th>
+                                        <th style="border: 1px solid #ccc; padding: 8px; text-align: center;">GENDER</th>
+                                        <th style="border: 1px solid #ccc; padding: 8px;">NOMOR LOMBA</th>
+                                        <th style="border: 1px solid #ccc; padding: 8px;">KLUB / KONTINGEN</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php 
+                                    $no = 1;
+                                    foreach($teams as $teamName => $members): 
+                                        $rowspan = count($members);
+                                    ?>
+                                        <?php foreach($members as $index => $m): ?>
+                                            <tr>
+                                                <?php if($index === 0): ?>
+                                                    <td style="border: 1px solid #ccc; padding: 8px; text-align: center; font-weight: bold; vertical-align: middle;" rowspan="<?= $rowspan ?>"><?= $no++ ?></td>
+                                                    <td style="border: 1px solid #ccc; padding: 8px; font-weight: bold; vertical-align: middle; background-color: #f8fafc;" rowspan="<?= $rowspan ?>"><?= htmlspecialchars($teamName) ?></td>
+                                                <?php endif; ?>
+                                                <td style="border: 1px solid #ccc; padding: 8px; font-weight: 600;"><?= htmlspecialchars($m['skater_name']) ?></td>
+                                                <td style="border: 1px solid #ccc; padding: 8px; text-align: center;"><?= $m['gender'] ?></td>
+                                                <td style="border: 1px solid #ccc; padding: 8px; font-size: 9pt; color: #64748b; text-transform: uppercase;"><?= htmlspecialchars($m['race_name']) ?></td>
+                                                <td style="border: 1px solid #ccc; padding: 8px; font-weight: 500;"><?= htmlspecialchars($m['club_name']) ?></td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                        <?php endif; ?>
                         <p style="font-size: 8pt; margin-top: 15px; text-align: justify; color: #555;">
                             <em>* Dokumen ini adalah tanda terima resmi. Semua data atlet dan nomor lomba yang tercetak di atas telah tervalidasi dan sah mengikuti perlombaan. Harap simpan dokumen ini sebagai bukti jika terjadi perbedaan data di lapangan.</em>
                         </p>
