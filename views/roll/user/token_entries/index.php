@@ -176,7 +176,6 @@
                                     ?>
                                     <tr class="hover:bg-slate-50 transition group align-top border-b border-slate-50">
                                         <td class="px-6 py-4">
-                                            <?php if (in_array($firstEnt['payment_status'], ['Unpaid', 'Rejected'])): ?>
                                             <div class="flex flex-col gap-2 w-full">
                                                 <button type="button" onclick="editTeam('<?= htmlspecialchars(addslashes((string)$firstEnt['team_name'])) ?>', <?= $firstEnt['class_cat_id'] ?? 'null' ?>, <?= $firstEnt['age_group_id'] ?? 'null' ?>, <?= $firstEnt['race_class_id'] ?? 'null' ?>, <?= htmlspecialchars(json_encode(array_map(fn($e) => ['club_id' => $e['athlete_club_id'], 'skater_id' => $e['skater_id']], $teamEntries))) ?>)" class="flex items-center justify-center gap-1 text-[10px] font-bold text-blue-500 hover:text-blue-700 hover:bg-blue-50 px-2 py-1.5 rounded transition border border-blue-100">
                                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
@@ -192,9 +191,6 @@
                                                     </button>
                                                 </form>
                                             </div>
-                                            <?php else: ?>
-                                                <span class="text-emerald-500 text-[10px] font-bold tracking-widest bg-emerald-50 px-2 py-1 rounded w-full text-center block">PAID</span>
-                                            <?php endif; ?>
                                         </td>
                                         <td class="px-6 py-4">
                                             <div class="font-black text-indigo-700 text-sm uppercase mt-1">

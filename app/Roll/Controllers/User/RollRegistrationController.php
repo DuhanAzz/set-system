@@ -214,11 +214,23 @@ class RollRegistrationController extends Controller {
             elseif (strpos($tCatStr, 'pemula') !== false) $tGroup = 'pemula';
             
             if ($eGroup && $tGroup && $eGroup !== $tGroup) {
-                echo json_encode([
-                    'success' => false,
-                    'message' => "Atlet sudah terdaftar di " . strtoupper($eGroup) . ", tidak bisa didaftarkan ke " . strtoupper($tGroup) . "."
-                ]);
-                exit;
+                $allowMix = !empty($event['allow_pemula_standart_mix']);
+                if ($allowMix) {
+                    $isMixable = ($eGroup === 'pemula' && $tGroup === 'standar');
+                    if (!$isMixable) {
+                        echo json_encode([
+                            'success' => false,
+                            'message' => "Atlet sudah terdaftar di " . strtoupper($eGroup) . ", tidak bisa didaftarkan ke " . strtoupper($tGroup) . "."
+                        ]);
+                        exit;
+                    }
+                } else {
+                    echo json_encode([
+                        'success' => false,
+                        'message' => "Atlet sudah terdaftar di " . strtoupper($eGroup) . ", tidak bisa didaftarkan ke " . strtoupper($tGroup) . "."
+                    ]);
+                    exit;
+                }
             }
         }
 
@@ -272,7 +284,7 @@ class RollRegistrationController extends Controller {
         }
         
         // Fetch event limits
-        $stmtLimit = $db->prepare("SELECT limit_speed_ind, limit_speed_team, limit_std_ind, limit_std_team, limit_pemula_ind, limit_pemula_team FROM roll_events WHERE id = ?");
+        $stmtLimit = $db->prepare("SELECT limit_speed_ind, limit_speed_team, limit_std_ind, limit_std_team, limit_pemula_ind, limit_pemula_team, allow_pemula_standart_mix FROM roll_events WHERE id = ?");
         $stmtLimit->execute([$event_id]);
         $eventLimits = $stmtLimit->fetch(PDO::FETCH_ASSOC);
         
@@ -416,8 +428,17 @@ class RollRegistrationController extends Controller {
                     elseif (strpos($tCatStr, 'pemula') !== false) $tGroup = 'pemula';
                     
                     if ($eGroup && $tGroup && $eGroup !== $tGroup) {
-                        $failMessages[] = "$skater_name tidak bisa dicampur antara " . strtoupper($eGroup) . " dan " . strtoupper($tGroup) . ".";
-                        if ($is_team_reg) { $teamFail = true; } continue; 
+                        $allowMix = !empty($eventLimits['allow_pemula_standart_mix']);
+                        if ($allowMix) {
+                            $isMixable = ($eGroup === 'pemula' && $tGroup === 'standar');
+                            if (!$isMixable) {
+                                $failMessages[] = "$skater_name tidak bisa dicampur antara " . strtoupper($eGroup) . " dan " . strtoupper($tGroup) . ".";
+                                if ($is_team_reg) { $teamFail = true; } continue; 
+                            }
+                        } else {
+                            $failMessages[] = "$skater_name tidak bisa dicampur antara " . strtoupper($eGroup) . " dan " . strtoupper($tGroup) . ".";
+                            if ($is_team_reg) { $teamFail = true; } continue; 
+                        }
                     }
                 }
 
