@@ -84,8 +84,8 @@ class RollTokenRegistrationController extends Controller {
 
         // Fetch registered entries for THIS event and club
         $stmtEntries = $db->prepare("
-            SELECT e.id as entry_id, e.race_class_id, e.team_name, e.skater_id,
-                   s.skater_name, s.gender,
+            SELECT e.id as entry_id, e.race_class_id, e.team_name, e.skater_id, c.class_cat_id, c.age_group_id,
+                   s.skater_name, s.gender, s.club_id as athlete_club_id,
                    a.group_name, c.category_name, skc.class_name as skate_class,
                    d.distance_name, c.race_number, c.gender as class_gender,
                    COALESCE(p.status, 'Unpaid') as payment_status
@@ -276,8 +276,27 @@ class RollTokenRegistrationController extends Controller {
             exit;
         }
 
-        $db = Database::getInstance()->getConnection();
+        $db = \App\Core\Database::getInstance()->getConnection();
         
+        $old_team_name = $_POST['old_team_name'] ?? null;
+        $old_race_class_id = (int)($_POST['old_race_class_id'] ?? 0);
+        if ($is_team_reg && !empty($old_team_name) && $old_race_class_id > 0) {
+            // Hapus tim lama sebelum menyimpan yang baru
+            $stmtDelSel = $db->prepare("
+                SELECT e.id FROM roll_entries e
+                LEFT JOIN roll_payments p ON p.club_id = e.club_id AND p.event_id = e.event_id
+                WHERE e.team_name = ? AND e.race_class_id = ? AND e.event_id = ? AND e.club_id = ? 
+                  AND COALESCE(p.status, 'Unpaid') IN ('Unpaid', 'Rejected')
+            ");
+            $stmtDelSel->execute([$old_team_name, $old_race_class_id, $event_id, $club_id]);
+            $delEntries = $stmtDelSel->fetchAll(\PDO::FETCH_ASSOC);
+            if (count($delEntries) > 0) {
+                $ids = array_column($delEntries, 'id');
+                $placeholders = implode(',', array_fill(0, count($ids), '?'));
+                $db->prepare("DELETE FROM roll_entries WHERE id IN ($placeholders)")->execute($ids);
+            }
+        }
+
         // Bypass check status event for Token
         
         // Fetch event limits

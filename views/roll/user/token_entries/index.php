@@ -157,6 +157,7 @@
                             <table class="w-full text-left text-sm">
                                 <thead class="bg-indigo-50/50 border-b border-indigo-200 text-[10px] uppercase text-indigo-500 tracking-wider">
                                     <tr>
+                                        <th class="px-6 py-4 w-32 text-center">Aksi</th>
                                         <th class="px-6 py-4">Nama Tim</th>
                                         <th class="px-6 py-4">Kategori & Nomor Lomba</th>
                                         <th class="px-6 py-4 text-center">Kelompok Umur</th>
@@ -175,20 +176,30 @@
                                     ?>
                                     <tr class="hover:bg-slate-50 transition group align-top border-b border-slate-50">
                                         <td class="px-6 py-4">
+                                            <?php if (in_array($firstEnt['payment_status'], ['Unpaid', 'Rejected'])): ?>
+                                            <div class="flex flex-col gap-2 w-full">
+                                                <button type="button" onclick="editTeam('<?= htmlspecialchars(addslashes($firstEnt['team_name'])) ?>', <?= $firstEnt['class_cat_id'] ?>, <?= $firstEnt['age_group_id'] ?>, <?= $firstEnt['race_class_id'] ?>, <?= htmlspecialchars(json_encode(array_map(fn($e) => ['club_id' => $e['athlete_club_id'], 'skater_id' => $e['skater_id']], $teamEntries))) ?>)" class="flex items-center justify-center gap-1 text-[10px] font-bold text-blue-500 hover:text-blue-700 hover:bg-blue-50 px-2 py-1.5 rounded transition border border-blue-100">
+                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                                                    EDIT
+                                                </button>
+                                                <form action="<?= getenv('APP_URL') ?>/roll/user/token_registration/removeTeam" method="POST" onsubmit="return confirm('Hapus seluruh tim ini?')">
+                                                    <input type="hidden" name="event_id" value="<?= $event['id'] ?>">
+                                                    <input type="hidden" name="team_name" value="<?= htmlspecialchars($firstEnt['team_name']) ?>">
+                                                    <input type="hidden" name="race_class_id" value="<?= $firstEnt['race_class_id'] ?>">
+                                                    <button type="submit" class="w-full flex items-center justify-center gap-1 text-[10px] font-bold text-red-500 hover:text-red-700 hover:bg-red-50 px-2 py-1.5 rounded transition border border-red-100">
+                                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                                        HAPUS
+                                                    </button>
+                                                </form>
+                                            </div>
+                                            <?php else: ?>
+                                                <span class="text-emerald-500 text-[10px] font-bold tracking-widest bg-emerald-50 px-2 py-1 rounded w-full text-center block">PAID</span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td class="px-6 py-4">
                                             <div class="font-black text-indigo-700 text-sm uppercase mt-1">
                                                 <?= htmlspecialchars($firstEnt['team_name'] ?: 'Tanpa Tim') ?>
                                             </div>
-                                            <?php if (in_array($firstEnt['payment_status'], ['Unpaid', 'Rejected'])): ?>
-                                            <form action="<?= getenv('APP_URL') ?>/roll/user/token_registration/removeTeam" method="POST" onsubmit="return confirm('Hapus seluruh tim ini?')">
-                                                <input type="hidden" name="event_id" value="<?= $event['id'] ?>">
-                                                <input type="hidden" name="team_name" value="<?= htmlspecialchars($firstEnt['team_name']) ?>">
-                                                <input type="hidden" name="race_class_id" value="<?= $firstEnt['race_class_id'] ?>">
-                                                <button type="submit" class="mt-2 flex items-center gap-1 text-[10px] font-bold text-red-500 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded transition">
-                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                                                    HAPUS TIM
-                                                </button>
-                                            </form>
-                                            <?php endif; ?>
                                         </td>
                                         <td class="px-6 py-4">
                                             <div class="font-bold text-blue-600 text-xs uppercase mt-1">
@@ -596,6 +607,69 @@ function loadAthletes(clubId, targetSelectId) {
             console.error("Error fetching athletes:", err);
             select.innerHTML = '<option value="">- Gagal memuat -</option>';
         });
+    return fetch(`<?= getenv('APP_URL') ?>/roll/user/token_registration/get_athletes_by_club?club_id=${clubId}&event_id=<?= $event['id'] ?>`);
+}
+
+function editTeam(teamName, catId, kuId, classId, athletesData) {
+    switchTab('team');
+    
+    // Set old data for deletion
+    let oldForm = document.getElementById('edit_team_form_data');
+    if(!oldForm) {
+        oldForm = document.createElement('div');
+        oldForm.id = 'edit_team_form_data';
+        document.getElementById('form_team').appendChild(oldForm);
+    }
+    oldForm.innerHTML = `<input type="hidden" name="old_team_name" value="${teamName}"><input type="hidden" name="old_race_class_id" value="${classId}">`;
+    
+    // Add banner
+    let banner = document.getElementById('edit_team_banner');
+    if(!banner) {
+        banner = document.createElement('div');
+        banner.id = 'edit_team_banner';
+        document.getElementById('form_team').prepend(banner);
+    }
+    banner.innerHTML = `<div class="bg-amber-100 border border-amber-300 text-amber-800 px-4 py-3 rounded-xl mb-4 text-xs font-bold flex justify-between items-center">
+        <span>Sedang mengedit tim: <b>${teamName}</b></span>
+        <button type="button" onclick="cancelEditTeam()" class="text-amber-800 hover:text-amber-900 underline font-black">Batal</button>
+    </div>`;
+
+    document.getElementById('team_name').value = teamName;
+    document.getElementById('team_cat_select').value = catId;
+    document.getElementById('team_ku_select').value = kuId;
+    loadTeamClasses();
+    document.getElementById('team_class_select').value = classId;
+    updateTeamGenderRule();
+    
+    athletesData.forEach((a, idx) => {
+        const slot = idx + 1;
+        const clubEl = document.getElementById('team_club_select_' + slot);
+        if (clubEl) clubEl.value = a.club_id;
+        // Since loadAthletes was called by updateTeamGenderRule asynchronously,
+        // we use setTimeout to wait for fetch to finish rendering
+        setTimeout(() => {
+            const selectEl = document.getElementById('team_skater_select_' + slot);
+            if (selectEl && selectEl.querySelector(`option[value="${a.skater_id}"]`)) {
+                selectEl.value = a.skater_id;
+            } else {
+                // If network is slow, retry setting it
+                setTimeout(() => { if(selectEl) selectEl.value = a.skater_id; }, 1000);
+            }
+        }, 300);
+    });
+    
+    window.scrollTo({ top: document.getElementById('form_team').offsetTop - 100, behavior: 'smooth' });
+}
+
+function cancelEditTeam() {
+    document.getElementById('edit_team_form_data')?.remove();
+    document.getElementById('edit_team_banner')?.remove();
+    document.getElementById('form_team').reset();
+    document.getElementById('team_class_select').innerHTML = '<option value="">- Pilih Nomor Lomba -</option>';
+    document.getElementById('team_class_info').classList.add('hidden');
+    for(let i=1; i<=4; i++) {
+        document.getElementById('team_skater_select_'+i).innerHTML = '<option value="">- Pilih Atlet -</option>';
+    }
 }
 
 function populateAthleteSelect(targetSelectId, athletesList) {
