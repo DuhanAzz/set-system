@@ -178,20 +178,32 @@ class RollRegistrationController extends Controller {
         }
 
         // Validasi 3: Cek pindah kategori (1 atlet = 1 kategori)
-        $stmtCat = $db->prepare("
+        $stmtCats = $db->prepare("
             SELECT sc.class_name 
             FROM roll_entries e
             JOIN roll_event_details ed ON e.race_class_id = ed.id
             JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
-            WHERE e.skater_id = ? AND e.event_id = ? LIMIT 1
+            WHERE e.skater_id = ? AND e.event_id = ?
         ");
-        $stmtCat->execute([$skater_id, $event_id]);
-        $existingCat = $stmtCat->fetchColumn();
+        $stmtCats->execute([$skater_id, $event_id]);
+        $existingCats = $stmtCats->fetchAll(PDO::FETCH_COLUMN);
 
-        if ($existingCat) {
-            $eCatStr = strtolower($existingCat);
-            $tCatStr = strtolower($class['category_name'] ?? ''); // wait, $class from stmtC is category_name (putra/putri), I need class_name
-            // Wait, in AJAX, we need to query the class_name of the target race_class_id
+        if (!empty($existingCats)) {
+            $hasSpeed = false;
+            $hasPemula = false;
+            $hasStandar = false;
+            foreach($existingCats as $c) {
+                $cStr = strtolower($c);
+                if (strpos($cStr, 'speed') !== false) $hasSpeed = true;
+                elseif (strpos($cStr, 'pemula') !== false) $hasPemula = true;
+                elseif (strpos($cStr, 'standar') !== false) $hasStandar = true;
+            }
+            
+            $eGroup = '';
+            if ($hasSpeed) $eGroup = 'speed';
+            elseif ($hasPemula) $eGroup = 'pemula';
+            elseif ($hasStandar) $eGroup = 'standar';
+            
             $stmtTargetCat = $db->prepare("
                 SELECT sc.class_name 
                 FROM roll_event_details ed
@@ -200,13 +212,7 @@ class RollRegistrationController extends Controller {
             ");
             $stmtTargetCat->execute([$class_id]);
             $targetCat = $stmtTargetCat->fetchColumn();
-            
             $tCatStr = strtolower($targetCat);
-            
-            $eGroup = '';
-            if (strpos($eCatStr, 'speed') !== false) $eGroup = 'speed';
-            elseif (strpos($eCatStr, 'standar') !== false) $eGroup = 'standar';
-            elseif (strpos($eCatStr, 'pemula') !== false) $eGroup = 'pemula';
             
             $tGroup = '';
             if (strpos($tCatStr, 'speed') !== false) $tGroup = 'speed';
@@ -400,27 +406,33 @@ class RollRegistrationController extends Controller {
                 }
                 
                 // Cek pindah kategori (1 atlet hanya 1 kategori: Speed/Standart/Pemula)
-                $stmtCat = $db->prepare("
+                $stmtCats = $db->prepare("
                     SELECT sc.class_name 
                     FROM roll_entries e
                     JOIN roll_event_details ed ON e.race_class_id = ed.id
                     JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
-                    WHERE e.skater_id = ? AND e.event_id = ? LIMIT 1
+                    WHERE e.skater_id = ? AND e.event_id = ?
                 ");
-                $stmtCat->execute([$skater_id, $event_id]);
-                $existingCat = $stmtCat->fetchColumn();
+                $stmtCats->execute([$skater_id, $event_id]);
+                $existingCats = $stmtCats->fetchAll(PDO::FETCH_COLUMN);
 
-                if ($existingCat) {
-                    // $stmtTargetCat already executed above, reuse $targetCatStr
-                    $targetCat = $targetCatStr;
-                    
-                    $eCatStr = strtolower($existingCat);
-                    $tCatStr = strtolower($targetCat);
+                if (!empty($existingCats)) {
+                    $hasSpeed = false;
+                    $hasPemula = false;
+                    $hasStandar = false;
+                    foreach($existingCats as $c) {
+                        $cStr = strtolower($c);
+                        if (strpos($cStr, 'speed') !== false) $hasSpeed = true;
+                        elseif (strpos($cStr, 'pemula') !== false) $hasPemula = true;
+                        elseif (strpos($cStr, 'standar') !== false) $hasStandar = true;
+                    }
                     
                     $eGroup = '';
-                    if (strpos($eCatStr, 'speed') !== false) $eGroup = 'speed';
-                    elseif (strpos($eCatStr, 'standar') !== false) $eGroup = 'standar';
-                    elseif (strpos($eCatStr, 'pemula') !== false) $eGroup = 'pemula';
+                    if ($hasSpeed) $eGroup = 'speed';
+                    elseif ($hasPemula) $eGroup = 'pemula';
+                    elseif ($hasStandar) $eGroup = 'standar';
+                    
+                    $tCatStr = strtolower($targetCatStr);
                     
                     $tGroup = '';
                     if (strpos($tCatStr, 'speed') !== false) $tGroup = 'speed';

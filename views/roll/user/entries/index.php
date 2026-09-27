@@ -542,15 +542,23 @@ function filterClasses() {
     const age = parseInt(skaterSelect.dataset.age);
     const gender = skaterSelect.dataset.gender;
     
-    // Check if skater is already locked to a category group
     let eGroup = '';
-    const existing = existingEntriesData.find(e => e.skater_id == skaterId && e.skate_class);
-    if (existing) {
-        const eCatStr = (existing.skate_class || '').toLowerCase();
-        if (eCatStr.includes('speed')) eGroup = 'speed';
-        else if (eCatStr.includes('standar')) eGroup = 'standar';
-        else if (eCatStr.includes('pemula')) eGroup = 'pemula';
-    }
+    let hasSpeed = false;
+    let hasPemula = false;
+    let hasStandar = false;
+    
+    existingEntriesData.forEach(e => {
+        if (e.skater_id == skaterId && e.skate_class) {
+            const eCatStr = (e.skate_class || '').toLowerCase();
+            if (eCatStr.includes('speed')) hasSpeed = true;
+            else if (eCatStr.includes('standar')) hasStandar = true;
+            else if (eCatStr.includes('pemula')) hasPemula = true;
+        }
+    });
+
+    if (hasSpeed) eGroup = 'speed';
+    else if (hasPemula) eGroup = 'pemula';
+    else if (hasStandar) eGroup = 'standar';
     
     // Determine category text to set limit
     let targetGroupForLimit = '';
