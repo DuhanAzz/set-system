@@ -26,8 +26,20 @@
             <p class="text-[10px] font-bold text-slate-400 uppercase tracking-[3px] mt-1">Pendaftaran Atlet</p>
         </div>
         <div class="flex gap-3">
-            <?php if ($isLocked): ?>
-                <div class="bg-red-100 border border-red-200 text-red-700 px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2">🔒 Menunggu Verifikasi</div>
+            <?php if ($isLocked): 
+                $paymentStatus = $existingEntries[0]['payment_status'] ?? 'Unpaid';
+                if ($event['status'] !== 'Open Registration') {
+                    $lockMsg = '🔒 PENDAFTARAN DITUTUP';
+                    $lockClass = 'bg-slate-100 border border-slate-300 text-slate-700';
+                } elseif ($paymentStatus === 'Paid') {
+                    $lockMsg = '✅ LUNAS / TERVERIFIKASI';
+                    $lockClass = 'bg-emerald-100 border border-emerald-300 text-emerald-700';
+                } else {
+                    $lockMsg = '🔒 MENUNGGU VERIFIKASI';
+                    $lockClass = 'bg-amber-100 border border-amber-300 text-amber-700';
+                }
+            ?>
+                <div class="<?= $lockClass ?> px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2"><?= $lockMsg ?></div>
                 <a href="<?= getenv('APP_URL') ?>/roll/user/token_checkout/detail/<?= $event['id'] ?>" class="bg-slate-900 text-white px-6 py-3 rounded-xl font-black text-xs shadow-lg hover:bg-blue-600 transition">LIHAT STATUS BAYAR</a>
             <?php else: ?>
                 <div class="flex flex-col md:flex-row gap-2">
