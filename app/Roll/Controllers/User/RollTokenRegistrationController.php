@@ -146,7 +146,7 @@ class RollTokenRegistrationController extends Controller {
         $db = Database::getInstance()->getConnection();
 
         // Ambil Data Atlet
-        $stmtA = $db->prepare("SELECT gender, birth_date FROM roll_skaters WHERE id = ?");
+        $stmtA = $db->prepare("SELECT gender, birth_date, athlete_level FROM roll_skaters WHERE id = ?");
         $stmtA->execute([$skater_id]);
         $athlete = $stmtA->fetch(PDO::FETCH_ASSOC);
 
@@ -225,10 +225,9 @@ class RollTokenRegistrationController extends Controller {
                 elseif (strpos($cStr, 'standar') !== false) $hasStandar = true;
             }
             
-            $eGroup = '';
+            $eGroup = strtolower($athlete['athlete_level'] ?? 'pemula');
             if ($hasSpeed) $eGroup = 'speed';
-            elseif ($hasPemula) $eGroup = 'pemula';
-            elseif ($hasStandar) $eGroup = 'standar';
+            elseif ($hasStandar && $eGroup !== 'speed') $eGroup = 'standar';
             
             $stmtTargetCat = $db->prepare("
                 SELECT sc.class_name 
@@ -331,25 +330,44 @@ class RollTokenRegistrationController extends Controller {
             $skater_id = (int)$skater_id;
             
             // Dapatkan info atlet (hilangkan constraint club_id untuk mendukung Mix-Club)
-            $stmtOwn = $db->prepare("SELECT skater_name, birth_date, gender FROM roll_skaters WHERE id = ?");
+            $stmtOwn = $db->prepare("SELECT skater_name, birth_date, gender, athlete_level FROM roll_skaters WHERE id = ?");
             $stmtOwn->execute([$skater_id]);
             $skater = $stmtOwn->fetch(PDO::FETCH_ASSOC);
             if (!$skater) continue;
             
             $skater_name = $skater['skater_name'];
 
-            // Get current counts for this skater in this event
+            // Get current counts for this skater in this event by category
             $stmtCount = $db->prepare("
                 SELECT 
-                    SUM(CASE WHEN team_name IS NULL OR team_name = '' THEN 1 ELSE 0 END) as indv_count,
-                    SUM(CASE WHEN team_name IS NOT NULL AND team_name != '' THEN 1 ELSE 0 END) as team_count
-                FROM roll_entries 
-                WHERE skater_id = ? AND event_id = ?
+                    sc.class_name,
+                    SUM(CASE WHEN e.team_name IS NULL OR e.team_name = '' THEN 1 ELSE 0 END) as indv_count,
+                    SUM(CASE WHEN e.team_name IS NOT NULL AND e.team_name != '' THEN 1 ELSE 0 END) as team_count
+                FROM roll_entries e
+                JOIN roll_event_details ed ON e.race_class_id = ed.id
+                JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
+                WHERE e.skater_id = ? AND e.event_id = ?
+                GROUP BY sc.class_name
             ");
             $stmtCount->execute([$skater_id, $event_id]);
-            $counts = $stmtCount->fetch(PDO::FETCH_ASSOC);
-            $currIndv = (int)$counts['indv_count'];
-            $currTeam = (int)$counts['team_count'];
+            $countRows = $stmtCount->fetchAll(PDO::FETCH_ASSOC);
+            
+            $currIndvCounts = ['speed' => 0, 'standar' => 0, 'pemula' => 0];
+            $currTeamCounts = ['speed' => 0, 'standar' => 0, 'pemula' => 0];
+            
+            foreach ($countRows as $row) {
+                $cName = strtolower($row['class_name']);
+                if (strpos($cName, 'speed') !== false) {
+                    $currIndvCounts['speed'] += (int)$row['indv_count'];
+                    $currTeamCounts['speed'] += (int)$row['team_count'];
+                } elseif (strpos($cName, 'standar') !== false) {
+                    $currIndvCounts['standar'] += (int)$row['indv_count'];
+                    $currTeamCounts['standar'] += (int)$row['team_count'];
+                } elseif (strpos($cName, 'pemula') !== false) {
+                    $currIndvCounts['pemula'] += (int)$row['indv_count'];
+                    $currTeamCounts['pemula'] += (int)$row['team_count'];
+                }
+            }
 
             // AUTO INJECT MANDATORY CLASSES
             if (!$is_team_reg && !empty($race_class_ids)) {
@@ -403,24 +421,28 @@ class RollTokenRegistrationController extends Controller {
                 
                 $maxIndv = 99;
                 $maxTeam = 99;
+                $targetGroup = '';
                 if (strpos($targetCatStr, 'speed') !== false) {
+                    $targetGroup = 'speed';
                     $maxIndv = $eventLimits['limit_speed_ind'] ?? 99;
                     $maxTeam = $eventLimits['limit_speed_team'] ?? 99;
                 } elseif (strpos($targetCatStr, 'standar') !== false) {
+                    $targetGroup = 'standar';
                     $maxIndv = $eventLimits['limit_std_ind'] ?? 99;
                     $maxTeam = $eventLimits['limit_std_team'] ?? 99;
                 } elseif (strpos($targetCatStr, 'pemula') !== false) {
+                    $targetGroup = 'pemula';
                     $maxIndv = $eventLimits['limit_pemula_ind'] ?? 99;
                     $maxTeam = $eventLimits['limit_pemula_team'] ?? 99;
                 }
 
                 // Check limits
-                if ($is_team_reg && $currTeam >= $maxTeam) {
-                    $failMessages[] = "$skater_name mencapai batas maksimal Team ($maxTeam).";
+                if ($is_team_reg && isset($currTeamCounts[$targetGroup]) && $currTeamCounts[$targetGroup] >= $maxTeam) {
+                    $failMessages[] = "$skater_name mencapai batas maksimal Team ($maxTeam) untuk kategori " . ucfirst($targetGroup) . ".";
                     if ($is_team_reg) { $teamFail = true; } continue; // Skip this race for this skater
                 }
-                if (!$is_team_reg && $currIndv >= $maxIndv) {
-                    $failMessages[] = "$skater_name mencapai batas maksimal Individu ($maxIndv).";
+                if (!$is_team_reg && isset($currIndvCounts[$targetGroup]) && $currIndvCounts[$targetGroup] >= $maxIndv) {
+                    $failMessages[] = "$skater_name mencapai batas maksimal Individu ($maxIndv) untuk kategori " . ucfirst($targetGroup) . ".";
                     continue; // Skip this race for this skater
                 }
 
@@ -454,10 +476,9 @@ class RollTokenRegistrationController extends Controller {
                         elseif (strpos($cStr, 'standar') !== false) $hasStandar = true;
                     }
                     
-                    $eGroup = '';
+                    $eGroup = strtolower($skater['athlete_level'] ?? 'pemula');
                     if ($hasSpeed) $eGroup = 'speed';
-                    elseif ($hasPemula) $eGroup = 'pemula';
-                    elseif ($hasStandar) $eGroup = 'standar';
+                    elseif ($hasStandar && $eGroup !== 'speed') $eGroup = 'standar';
                     
                     $tCatStr = strtolower($targetCatStr);
                     
@@ -490,7 +511,9 @@ class RollTokenRegistrationController extends Controller {
                 $stmtInsert = $db->prepare("INSERT INTO roll_entries (club_id, event_id, skater_id, race_class_id, distance_id, team_name, is_manual, manual_invoice_code, created_at) VALUES (?, ?, ?, ?, ?, ?, 1, ?, NOW())");
                 if ($stmtInsert->execute([$club_id, $event_id, $skater_id, $race_class_id, $distance_id, $team_name, $active_invoice])) {
                     $successCount++;
-                    if ($is_team_reg) { $currTeam++; } else { $currIndv++; }
+                    if ($targetGroup) {
+                        if ($is_team_reg) { $currTeamCounts[$targetGroup]++; } else { $currIndvCounts[$targetGroup]++; }
+                    }
                 }
             }
         }

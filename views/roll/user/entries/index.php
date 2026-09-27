@@ -329,7 +329,7 @@
                 <select name="skater_id" id="skater_select" onchange="onSkaterChange(this)" required class="w-full text-xs font-bold bg-white border border-slate-300 rounded-xl px-4 py-3 text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none">
                     <option value="">- Pilih Atlet -</option>
                     <?php foreach($athletes as $a): ?>
-                        <option value="<?= $a['id'] ?>" data-dob="<?= $a['birth_date'] ?>" data-gender="<?= $a['gender'] ?>"><?= htmlspecialchars($a['skater_name']) ?> (<?= $a['gender'] === 'M' ? 'Putra' : 'Putri' ?>)</option>
+                        <option value="<?= $a['id'] ?>" data-dob="<?= $a['birth_date'] ?>" data-gender="<?= $a['gender'] ?>" data-level="<?= strtolower($a['athlete_level'] ?? 'pemula') ?>"><?= htmlspecialchars($a['skater_name']) ?> (<?= $a['gender'] === 'M' ? 'Putra' : 'Putri' ?>)</option>
                     <?php endforeach; ?>
                 </select>
                 <div id="athlete_info" class="mt-2 text-[10px] text-slate-400 font-bold hidden">Lahir: <span id="modal_skater_dob"></span></div>
@@ -556,9 +556,11 @@ function filterClasses() {
         }
     });
 
+    const athleteLevel = skaterSelect.options[skaterSelect.selectedIndex].dataset.level || 'pemula';
+    let eGroup = athleteLevel;
+    
     if (hasSpeed) eGroup = 'speed';
-    else if (hasPemula) eGroup = 'pemula';
-    else if (hasStandar) eGroup = 'standar';
+    else if (hasStandar && eGroup !== 'speed') eGroup = 'standar';
     
     // Determine category text to set limit
     let targetGroupForLimit = '';
@@ -568,7 +570,22 @@ function filterClasses() {
     else if (catNameText.includes('pemula')) { targetGroupForLimit = 'pemula'; maxIndv = limits.pemula; }
     else { maxIndv = 99; }
     
-    document.getElementById('max_indv_label').innerText = maxIndv !== 99 ? '(Max ' + maxIndv + ')' : '';
+    let existingIndvCountForCategory = 0;
+    existingEntriesData.forEach(e => {
+        if (e.skater_id == skaterId && e.skate_class && (!e.team_name || e.team_name === '')) {
+            const eCatStr = (e.skate_class || '').toLowerCase();
+            if (targetGroupForLimit === 'speed' && eCatStr.includes('speed')) existingIndvCountForCategory++;
+            else if (targetGroupForLimit === 'standar' && eCatStr.includes('standar')) existingIndvCountForCategory++;
+            else if (targetGroupForLimit === 'pemula' && eCatStr.includes('pemula')) existingIndvCountForCategory++;
+        }
+    });
+    
+    if (maxIndv !== 99) {
+        maxIndv = maxIndv - existingIndvCountForCategory;
+        if (maxIndv < 0) maxIndv = 0;
+    }
+    
+    document.getElementById('max_indv_label').innerText = maxIndv !== 99 ? '(Sisa ' + maxIndv + ')' : '';
 
     // Filter classes
     let validCount = 0;
