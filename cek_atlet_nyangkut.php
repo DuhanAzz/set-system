@@ -1,19 +1,37 @@
 <?php
-require_once __DIR__ . '/vendor/autoload.php';
+// ============================================================
+// 🛡️ BULLETPROOF ENV PARSER
+// ============================================================
+$envFile = __DIR__ . '/.env';
+if (file_exists($envFile)) {
+    $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    foreach ($lines as $line) {
+        if (strpos(trim($line), '#') === 0) continue;
+        
+        $parts = explode('=', $line, 2);
+        if (count($parts) === 2) {
+            $name  = trim($parts[0]);
+            $value = trim($parts[1]);
+            
+            // Hapus tanda kutip jika ada
+            $value = trim($value, "\"'");
+            
+            putenv(sprintf('%s=%s', $name, $value));
+            $_ENV[$name] = $value;
+            $_SERVER[$name] = $value;
+        }
+    }
+}
 
-$dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
-$dotenv->load();
-
-$host = $_ENV['DB_HOST'];
-$db   = $_ENV['DB_DATABASE'];
-$user = $_ENV['DB_USERNAME'];
-$pass = $_ENV['DB_PASSWORD'];
+$host = getenv('DB_HOST') ?: ($_ENV['DB_HOST'] ?? ($_SERVER['DB_HOST'] ?? 'localhost'));
+$db   = getenv('DB_NAME') ?: ($_ENV['DB_NAME'] ?? ($_SERVER['DB_NAME'] ?? ''));
+$user = getenv('DB_USER') ?: ($_ENV['DB_USER'] ?? ($_SERVER['DB_USER'] ?? 'root'));
+$pass = getenv('DB_PASS') ?: ($_ENV['DB_PASS'] ?? ($_SERVER['DB_PASS'] ?? ''));
 
 try {
     $pdo = new PDO("mysql:host=$host;dbname=$db;charset=utf8mb4", $user, $pass);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     
-    // Check if there is a delete request
     if (isset($_POST['delete_entry_id'])) {
         $delId = (int)$_POST['delete_entry_id'];
         $stmtDel = $pdo->prepare("DELETE FROM roll_entries WHERE id = ?");
