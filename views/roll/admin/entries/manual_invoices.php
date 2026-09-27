@@ -22,54 +22,42 @@
     <?php unset($_SESSION['flash_message'], $_SESSION['flash_type']); ?>
 <?php endif; ?>
 
-<div class="max-w-[95%] mx-auto mb-8 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-    <h2 class="text-xl font-black text-slate-800 uppercase italic mb-4">Cari Entri Atlet (Pencarian Paksa)</h2>
-    <p class="text-xs text-slate-500 font-bold mb-4">Gunakan fitur ini untuk mencari dan menghapus entri atlet yang tersembunyi, belum dibayar, atau nyangkut di dalam sistem (orphaned).</p>
-    <form method="GET" action="<?= getenv('APP_URL') ?>/roll/admin/entries/manual_invoices" class="flex gap-2">
-        <input type="text" name="q" value="<?= htmlspecialchars($_GET['q'] ?? '') ?>" placeholder="Masukkan nama atlet..." class="flex-1 px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none" required>
-        <button type="submit" class="px-6 py-2 bg-blue-600 text-white font-black text-xs uppercase tracking-widest rounded-xl hover:bg-blue-700 transition">Cari</button>
-        <?php if(!empty($_GET['q'])): ?>
-            <a href="<?= getenv('APP_URL') ?>/roll/admin/entries/manual_invoices" class="px-6 py-2 bg-slate-100 text-slate-600 font-black text-xs uppercase tracking-widest rounded-xl hover:bg-slate-200 border border-slate-200 transition">Reset</a>
-        <?php endif; ?>
-    </form>
-</div>
-
-<?php if(isset($searchResults) && !empty($searchResults)): ?>
+<?php if(isset($orphanedEntries) && !empty($orphanedEntries)): ?>
 <div class="max-w-[95%] mx-auto mb-10">
-    <h3 class="text-lg font-black text-slate-800 uppercase mb-3">Hasil Pencarian: <span class="text-blue-600"><?= count($searchResults) ?> Entri Ditemukan</span></h3>
-    <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+    <div class="bg-red-50 p-6 rounded-t-2xl border-x border-t border-red-200">
+        <h3 class="text-lg font-black text-red-700 uppercase mb-1">Daftar Entri Menggantung (Orphaned)</h3>
+        <p class="text-xs text-red-600 font-bold">Entri di bawah ini sudah tersimpan di database tetapi belum memiliki tagihan/token. Entri ini bisa menyebabkan limit terpenuhi sehingga Anda tidak bisa mendaftarkan atlet tersebut. Silakan Hapus jika tidak diperlukan.</p>
+    </div>
+    <div class="bg-white rounded-b-3xl shadow-sm border border-slate-200 overflow-hidden">
         <table class="w-full text-left border-collapse">
             <thead>
                 <tr class="bg-slate-50 border-b border-slate-200 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    <th class="py-3 px-4">Nama Tim</th>
                     <th class="py-3 px-4">Nama Atlet</th>
-                    <th class="py-3 px-4">Klub</th>
+                    <th class="py-3 px-4">Kategori</th>
                     <th class="py-3 px-4">Nomor Lomba</th>
-                    <th class="py-3 px-4">Keterangan</th>
                     <th class="py-3 px-4 text-right">Aksi</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
-                <?php foreach($searchResults as $res): ?>
+                <?php foreach($orphanedEntries as $res): ?>
                 <tr class="hover:bg-slate-50 transition">
+                    <td class="py-3 px-4">
+                        <?php if(!empty($res['team_name'])): ?>
+                            <div class="font-black text-indigo-700 text-xs uppercase bg-indigo-50 px-2 py-1 rounded-md inline-block"><?= htmlspecialchars($res['team_name']) ?></div>
+                        <?php else: ?>
+                            <div class="font-bold text-slate-400 text-[10px] italic">Individu</div>
+                        <?php endif; ?>
+                    </td>
                     <td class="py-3 px-4">
                         <div class="font-black text-slate-800 text-xs uppercase"><?= htmlspecialchars($res['skater_name']) ?></div>
                     </td>
-                    <td class="py-3 px-4 text-xs font-bold text-slate-500 uppercase"><?= htmlspecialchars($res['club_name'] ?? 'Independen') ?></td>
                     <td class="py-3 px-4">
-                        <div class="font-bold text-blue-600 text-[11px] uppercase"><?= htmlspecialchars($res['distance_name'] ?? '-') ?></div>
-                        <div class="font-bold text-slate-400 text-[10px] uppercase"><?= htmlspecialchars($res['class_name'] ?? '-') ?> (<?= htmlspecialchars($res['group_name'] ?? '-') ?>)</div>
+                        <div class="font-bold text-slate-600 text-[10px] uppercase"><?= htmlspecialchars($res['class_name'] ?? '-') ?></div>
                     </td>
                     <td class="py-3 px-4">
-                        <?php if(!empty($res['team_name'])): ?>
-                            <div class="text-[9px] text-indigo-600 font-black bg-indigo-50 px-2 py-1 rounded-md inline-block uppercase">Tim: <?= htmlspecialchars($res['team_name']) ?></div>
-                        <?php endif; ?>
-                        <?php if(!empty($res['manual_invoice_code'])): ?>
-                            <div class="text-[9px] text-amber-600 font-black mt-1 uppercase">Inv: <?= htmlspecialchars($res['manual_invoice_code']) ?></div>
-                        <?php elseif(!empty($res['token_id'])): ?>
-                            <div class="text-[9px] text-emerald-600 font-black mt-1 uppercase">Token: <?= htmlspecialchars($res['token_id']) ?></div>
-                        <?php else: ?>
-                            <div class="text-[9px] text-red-500 font-black mt-1 uppercase animate-pulse">Orphaned (Tidak terikat)</div>
-                        <?php endif; ?>
+                        <div class="font-bold text-blue-600 text-[11px] uppercase"><?= htmlspecialchars($res['distance_name'] ?? '-') ?></div>
+                        <div class="font-bold text-slate-400 text-[10px] uppercase">(<?= htmlspecialchars($res['group_name'] ?? '-') ?>)</div>
                     </td>
                     <td class="py-3 px-4 text-right">
                         <form method="POST" action="<?= getenv('APP_URL') ?>/roll/admin/entries/delete_entry/<?= $res['entry_id'] ?>" onsubmit="return confirm('Anda yakin ingin MENGHAPUS PAKSA entri ini?');">
@@ -81,10 +69,6 @@
             </tbody>
         </table>
     </div>
-</div>
-<?php elseif(isset($_GET['q'])): ?>
-<div class="max-w-[95%] mx-auto mb-10 p-6 bg-amber-50 text-amber-700 rounded-2xl border border-amber-200 font-bold text-sm text-center">
-    Tidak ditemukan entri untuk atlet "<?= htmlspecialchars($_GET['q']) ?>".
 </div>
 <?php endif; ?>
 

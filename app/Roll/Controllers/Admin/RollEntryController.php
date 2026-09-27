@@ -1005,32 +1005,28 @@ class RollEntryController extends Controller {
                 $invoiceDetails[$code] = $stmtEnt->fetchAll(PDO::FETCH_ASSOC);
             }
 
-            // Cek Pencarian Atlet Tersembunyi/Orphaned
-            $searchQuery = $_GET['q'] ?? '';
-            $searchResults = [];
-            if (!empty($searchQuery)) {
-                $stmtSearch = $db->prepare("
-                    SELECT e.id as entry_id, e.team_name, e.manual_invoice_code, e.token_id, 
-                           s.skater_name, c.club_name, d.distance_name, sc.class_name, a.group_name
-                    FROM roll_entries e
-                    JOIN roll_skaters s ON e.skater_id = s.id
-                    LEFT JOIN roll_clubs c ON e.club_id = c.id
-                    LEFT JOIN roll_event_details ed ON e.race_class_id = ed.id
-                    LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
-                    LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
-                    LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id
-                    WHERE e.event_id = ? AND s.skater_name LIKE ?
-                ");
-                $stmtSearch->execute([$targetEventId, "%$searchQuery%"]);
-                $searchResults = $stmtSearch->fetchAll(\PDO::FETCH_ASSOC);
-            }
+            // Cari Entri Orphaned (Nyangkut / Tanpa Invoice & Token)
+            $stmtOrphaned = $db->prepare("
+                SELECT e.id as entry_id, e.team_name, e.manual_invoice_code, e.token_id, 
+                       s.skater_name, c.club_name, d.distance_name, sc.class_name, a.group_name
+                FROM roll_entries e
+                JOIN roll_skaters s ON e.skater_id = s.id
+                LEFT JOIN roll_clubs c ON e.club_id = c.id
+                LEFT JOIN roll_event_details ed ON e.race_class_id = ed.id
+                LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
+                LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
+                LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id
+                WHERE e.event_id = ? AND (e.manual_invoice_code IS NULL OR e.manual_invoice_code = '') AND e.token_id IS NULL
+                ORDER BY e.team_name ASC, s.skater_name ASC
+            ");
+            $stmtOrphaned->execute([$targetEventId]);
+            $orphanedEntries = $stmtOrphaned->fetchAll(\PDO::FETCH_ASSOC);
 
             return $this->view('roll/admin/entries/manual_invoices', [
                 'invoices' => $invoices,
                 'invoiceDetails' => $invoiceDetails,
                 'targetEventId' => $targetEventId,
-                'searchQuery' => $searchQuery,
-                'searchResults' => $searchResults
+                'orphanedEntries' => $orphanedEntries
             ]);
         } catch (\Throwable $e) {
             die("FATAL ERROR IN MANUAL INVOICES: " . $e->getMessage() . " | LINE: " . $e->getLine());
