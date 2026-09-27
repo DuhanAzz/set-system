@@ -84,7 +84,7 @@ class RollTokenRegistrationController extends Controller {
 
         // Fetch registered entries for THIS event and club
         $stmtEntries = $db->prepare("
-            SELECT e.id as entry_id, e.race_class_id, e.team_name, e.skater_id, c.class_cat_id, c.age_group_id,
+            SELECT e.id as entry_id, e.race_class_id, e.team_name, e.skater_id, skc.id as class_cat_id, c.age_group_id,
                    s.skater_name, s.gender, s.club_id as athlete_club_id,
                    a.group_name, c.category_name, skc.class_name as skate_class,
                    d.distance_name, c.race_number, c.gender as class_gender,

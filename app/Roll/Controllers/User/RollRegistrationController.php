@@ -130,7 +130,7 @@ class RollRegistrationController extends Controller {
         }
 
         // Ambil Data Event (untuk tanggal)
-        $stmtE = $db->prepare("SELECT event_date_start FROM roll_events WHERE id = ?");
+        $stmtE = $db->prepare("SELECT event_date_start, allow_pemula_standart_mix FROM roll_events WHERE id = ?");
         $stmtE->execute([$event_id]);
         $event = $stmtE->fetch(PDO::FETCH_ASSOC);
 

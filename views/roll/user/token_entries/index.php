@@ -184,7 +184,7 @@
                                                 </button>
                                                 <form action="<?= getenv('APP_URL') ?>/roll/user/token_registration/removeTeam" method="POST" onsubmit="return confirm('Hapus seluruh tim ini?')">
                                                     <input type="hidden" name="event_id" value="<?= $event['id'] ?>">
-                                                    <input type="hidden" name="team_name" value="<?= htmlspecialchars($firstEnt['team_name']) ?>">
+                                                    <input type="hidden" name="team_name" value="<?= htmlspecialchars((string)$firstEnt['team_name']) ?>">
                                                     <input type="hidden" name="race_class_id" value="<?= $firstEnt['race_class_id'] ?>">
                                                     <button type="submit" class="w-full flex items-center justify-center gap-1 text-[10px] font-bold text-red-500 hover:text-red-700 hover:bg-red-50 px-2 py-1.5 rounded transition border border-red-100">
                                                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
@@ -286,7 +286,7 @@
                                                         </div>
                                                         <?php if (!empty($ent['team_name'])): ?>
                                                         <div class="text-[9px] text-indigo-500 font-bold mt-0.5">
-                                                            &bull; Tim: <?= htmlspecialchars($ent['team_name']) ?>
+                                                            &bull; Tim: <?= htmlspecialchars((string)$ent['team_name']) ?>
                                                         </div>
                                                         <?php endif; ?>
                                                     </div>
