@@ -343,7 +343,7 @@ class RollEntryController extends Controller {
                 $teams[$teamName][] = [
                     'skater_name' => $ent['skater_name'],
                     'gender' => $ent['gender'] == 'M' ? 'Putra' : 'Putri',
-                    'club_name' => $ent['club_name'] ?? 'Klub Pendaftar',
+                    'club_name' => $clubName ?? ($ent['club_name'] ?? 'Klub Pendaftar'),
                     'race_name' => ($rawCName ? strtoupper($rawCName) . ' - ' : '') . $ent['distance_name'] . ' - ' . $ent['group_name']
                 ];
             }
@@ -886,9 +886,10 @@ class RollEntryController extends Controller {
         $stmtPay->execute([$eventId, $invoiceCode]);
         $payData = $stmtPay->fetch(\PDO::FETCH_ASSOC);
         
-        $sqlEntries = "SELECT s.id as skater_id, s.skater_name, s.gender, s.birth_date, a.group_name, d.distance_name, ed.category_name, ed.distance, e.race_class_id, sc.class_name, e.is_manual
+        $sqlEntries = "SELECT s.id as skater_id, s.skater_name, s.gender, s.birth_date, a.group_name, d.distance_name, ed.category_name, ed.distance, e.race_class_id, sc.class_name, e.is_manual, e.team_name, c.club_name
                        FROM roll_entries e
                        JOIN roll_skaters s ON e.skater_id = s.id
+                       LEFT JOIN roll_clubs c ON s.club_id = c.id
                        LEFT JOIN roll_event_details ed ON e.race_class_id = ed.id
                        LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
                        LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id
@@ -941,7 +942,7 @@ class RollEntryController extends Controller {
                 $teams[$teamName][] = [
                     'skater_name' => $ent['skater_name'],
                     'gender' => $ent['gender'] == 'M' ? 'Putra' : 'Putri',
-                    'club_name' => $ent['club_name'] ?? 'Klub Pendaftar',
+                    'club_name' => $clubName ?? ($ent['club_name'] ?? 'Klub Pendaftar'),
                     'race_name' => ($rawCName ? strtoupper($rawCName) . ' - ' : '') . $ent['distance_name'] . ' - ' . $ent['group_name']
                 ];
             }
