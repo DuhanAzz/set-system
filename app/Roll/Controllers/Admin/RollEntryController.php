@@ -1005,9 +1005,9 @@ class RollEntryController extends Controller {
                 $invoiceDetails[$code] = $stmtEnt->fetchAll(PDO::FETCH_ASSOC);
             }
 
-            // Cari Entri Orphaned (Nyangkut / Tanpa Invoice & Token)
+            // Cari Entri Tim Orphaned (Nyangkut / Tanpa Invoice)
             $stmtOrphaned = $db->prepare("
-                SELECT e.id as entry_id, e.team_name, e.manual_invoice_code, e.token_id, 
+                SELECT e.id as entry_id, e.team_name, e.manual_invoice_code, 
                        s.skater_name, c.club_name, d.distance_name, sc.class_name, a.group_name
                 FROM roll_entries e
                 JOIN roll_skaters s ON e.skater_id = s.id
@@ -1016,7 +1016,8 @@ class RollEntryController extends Controller {
                 LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
                 LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
                 LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id
-                WHERE e.event_id = ? AND (e.manual_invoice_code IS NULL OR e.manual_invoice_code = '') AND e.token_id IS NULL
+                WHERE e.event_id = ? AND (e.manual_invoice_code IS NULL OR e.manual_invoice_code = '') 
+                  AND e.team_name IS NOT NULL AND e.team_name != ''
                 ORDER BY e.team_name ASC, s.skater_name ASC
             ");
             $stmtOrphaned->execute([$targetEventId]);
