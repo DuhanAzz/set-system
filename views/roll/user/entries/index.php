@@ -340,8 +340,12 @@
                 <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Pilih Atlet</label>
                 <select name="skater_id" id="skater_select" onchange="onSkaterChange(this)" required class="w-full text-xs font-bold bg-white border border-slate-300 rounded-xl px-4 py-3 text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none">
                     <option value="">- Pilih Atlet -</option>
-                    <?php foreach($athletes as $a): ?>
-                        <option value="<?= $a['id'] ?>" data-dob="<?= $a['birth_date'] ?>" data-gender="<?= $a['gender'] ?>" data-level="<?= strtolower($a['athlete_level'] ?? 'pemula') ?>"><?= htmlspecialchars($a['skater_name']) ?> (<?= $a['gender'] === 'M' ? 'Putra' : 'Putri' ?>)</option>
+                    <?php foreach($athletes as $a): 
+                        $isPon = $a['is_pon_veteran'] ?? 0;
+                    ?>
+                        <option value="<?= $a['id'] ?>" data-dob="<?= $a['birth_date'] ?>" data-gender="<?= $a['gender'] ?>" data-is-pon="<?= $isPon ?>" data-level="<?= strtolower($a['athlete_level'] ?? 'pemula') ?>">
+                            <?= htmlspecialchars($a['skater_name']) ?> (<?= $a['gender'] === 'M' ? 'Putra' : 'Putri' ?>) <?= $isPon ? '🏅 PON' : '' ?>
+                        </option>
                     <?php endforeach; ?>
                 </select>
                 <div id="athlete_info" class="mt-2 text-[10px] text-slate-400 font-bold hidden">Lahir: <span id="modal_skater_dob"></span></div>
@@ -425,8 +429,9 @@
                         <option value="">- Pilih Atlet -</option>
                         <?php foreach($athletes as $a): 
                             $aAge = \App\Helpers\DateHelper::calculateAge($a['birth_date'], $event['event_date_start']);
+                            $isPon = $a['is_pon_veteran'] ?? 0;
                         ?>
-                            <option value="<?= $a['id'] ?>" class="relay-athlete-option hidden" data-age="<?= $aAge ?>" data-gender="<?= $a['gender'] ?>" data-name="<?= htmlspecialchars($a['skater_name']) ?>"><?= htmlspecialchars($a['skater_name']) ?> (<?= $aAge ?> Thn - <?= $a['gender'] === 'M' ? 'Putra' : 'Putri' ?>)</option>
+                            <option value="<?= $a['id'] ?>" class="relay-athlete-option hidden" data-age="<?= $aAge ?>" data-gender="<?= $a['gender'] ?>" data-is-pon="<?= $isPon ?>" data-name="<?= htmlspecialchars($a['skater_name']) ?>"><?= htmlspecialchars($a['skater_name']) ?> (<?= $aAge ?> Thn - <?= $a['gender'] === 'M' ? 'Putra' : 'Putri' ?>) <?= $isPon ? '🏅' : '' ?></option>
                         <?php endforeach; ?>
                     </select>
                     
@@ -462,7 +467,14 @@ function onSkaterChange(sel) {
         document.getElementById('modal_skater_dob').innerText = opt.dataset.dob;
         // Hitung umur
         const dobYear = parseInt(opt.dataset.dob.split('-')[0]);
-        const age = eventYear - dobYear;
+        let age = eventYear - dobYear;
+        
+        // ATURAN PB: Jika Veteran PON, paksa umur jadi 25 (Masuk Kategori Senior)
+        if (opt.dataset.isPon == '1') {
+            age = 25;
+            document.getElementById('modal_skater_dob').innerText += ' (🏅 Diwajibkan ke KU Senior)';
+        }
+
         // Simpan age di element biar bisa diakses filterClasses
         sel.dataset.age = age;
         sel.dataset.gender = opt.dataset.gender; // Perlu untuk filter Putra/Putri

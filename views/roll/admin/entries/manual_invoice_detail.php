@@ -153,8 +153,11 @@
                                 <?= $isMale ? 'P' : 'W' ?>
                             </div>
                             <div>
-                                <h3 class="text-sm font-black text-slate-800 uppercase italic leading-tight">
+                                <h3 class="text-sm font-black text-slate-800 uppercase italic leading-tight flex items-center gap-2">
                                     <?= htmlspecialchars($info['nama']) ?>
+                                    <?php if(isset($info['is_pon_veteran']) && $info['is_pon_veteran'] == 1): ?>
+                                        <span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full text-[9px] font-black tracking-widest border border-amber-200">🏅 PON</span>
+                                    <?php endif; ?>
                                 </h3>
                                 <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                                     <?= $info['gender'] ?> • Lahir: <?= date('Y', strtotime($info['lahir'])) ?>
@@ -180,6 +183,12 @@
                                             <span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded text-[9px] font-black tracking-widest border border-amber-200" title="Ditambahkan/Diubah oleh Admin">+ Tambahan Admin</span>
                                         <?php endif; ?>
                                     </span>
+                                    <?php if(isset($info['is_pon_veteran']) && $info['is_pon_veteran'] == 1 && stripos(strtolower($ev['stroke']), 'senior') === false): ?>
+                                        <div class="mt-1 flex items-center gap-1.5 text-red-600 bg-red-50 border border-red-200 rounded px-2 py-1">
+                                            <span class="text-[10px]">⚠️</span>
+                                            <span class="text-[9px] font-black uppercase tracking-wider leading-none">Pelanggaran Aturan: Atlet Eks-PON dilarang di KU ini. Hapus & Pindahkan!</span>
+                                        </div>
+                                    <?php endif; ?>
                                     <span class="text-[10px] text-slate-400 font-medium mt-0.5 uppercase">
                                         KU <?= $ev['age_group'] ?>
                                     </span>

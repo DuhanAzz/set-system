@@ -539,8 +539,15 @@ function populateAthleteSelect(selectId, data = myAthletes) {
     data.forEach(a => {
         const bDate = a.birth_date ? a.birth_date : '1970-01-01';
         const dobYear = parseInt(bDate.split('-')[0]);
-        const age = eventYear - dobYear;
-        select.innerHTML += `<option value="${a.id}" data-dob="${bDate}" data-age="${age}" data-gender="${a.gender}">${a.skater_name} (${a.gender === "M" ? "Putra" : "Putri"})</option>`;
+        let age = eventYear - dobYear;
+        const isPon = a.is_pon_veteran == '1';
+        
+        let label = `${a.skater_name} (${a.gender === "M" ? "Putra" : "Putri"})`;
+        if (isPon) {
+            age = 25; // Paksa umur senior
+            label += ' 🏅 PON';
+        }
+        select.innerHTML += `<option value="${a.id}" data-dob="${bDate}" data-age="${age}" data-gender="${a.gender}" data-is-pon="${isPon ? '1' : '0'}">${label}</option>`;
     });
     select.disabled = false;
 }

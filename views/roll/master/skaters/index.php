@@ -71,7 +71,12 @@
                                             <?= strtoupper($s['gender']) == 'M' ? 'Pa' : 'Pi' ?>
                                         </div>
                                         <div>
-                                            <div class="font-black text-slate-800 text-sm uppercase"><?= htmlspecialchars($s['skater_name']) ?></div>
+                                            <div class="font-black text-slate-800 text-sm uppercase flex items-center gap-2">
+                                                <?= htmlspecialchars($s['skater_name']) ?>
+                                                <?php if (isset($s['is_pon_veteran']) && $s['is_pon_veteran'] == 1): ?>
+                                                    <span class="bg-amber-100 text-amber-700 text-[9px] px-2 py-0.5 rounded-full font-black tracking-widest border border-amber-200" title="Veteran PON (Wajib Senior)">🏅 PON</span>
+                                                <?php endif; ?>
+                                            </div>
                                             <div class="font-mono text-slate-400 text-[10px] tracking-wide mt-0.5">
                                                 Reg: <span class="font-bold text-slate-500"><?= date('d M Y', strtotime($s['created_at'])) ?></span>
                                             </div>
@@ -142,6 +147,16 @@
                         <input type="date" name="birth_date" id="edit_birth_date" class="w-full px-4 py-3 border border-slate-200 bg-slate-50 rounded-xl text-sm font-bold focus:bg-white focus:border-blue-500 outline-none" required>
                     </div>
                 </div>
+
+                <div class="mt-4 p-4 bg-amber-50 rounded-xl border border-amber-200 flex items-start gap-3">
+                    <input type="checkbox" name="is_pon_veteran" id="edit_is_pon_veteran" value="1" class="mt-1 w-4 h-4 text-amber-600 bg-white border-amber-300 rounded focus:ring-amber-500 focus:ring-2 cursor-pointer">
+                    <label for="edit_is_pon_veteran" class="text-sm font-bold text-amber-900 cursor-pointer">
+                        🏅 Tetapkan sebagai Veteran PON
+                        <p class="text-[10px] text-amber-700 font-medium mt-1 leading-relaxed">
+                            Jika dicentang, atlet ini akan **dipaksa** turun di Kategori Senior di semua event mendatang tanpa mempedulikan umur aslinya (Sesuai aturan PB Porserosi).
+                        </p>
+                    </label>
+                </div>
             </div>
 
             <button type="submit" class="w-full bg-slate-900 hover:bg-amber-500 text-white font-black py-4 rounded-xl shadow-lg transition uppercase tracking-widest text-xs mt-4">
@@ -157,6 +172,7 @@ function openEditModal(data) {
     document.getElementById('edit_skater_name').value = data.skater_name;
     document.getElementById('edit_gender').value = data.gender.toUpperCase();
     document.getElementById('edit_birth_date').value = data.birth_date;
+    document.getElementById('edit_is_pon_veteran').checked = (data.is_pon_veteran == 1);
     document.getElementById('modal-edit').classList.remove('hidden');
 }
 </script>

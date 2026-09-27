@@ -83,9 +83,10 @@ class RollMasterSkaterController extends Controller {
                 $age = $currentYear - $year;
                 
                 $age_group_str = $age . " Thn";
+                $is_pon_veteran = isset($_POST['is_pon_veteran']) ? 1 : 0;
 
-                $stmt = $db->prepare("UPDATE roll_skaters SET skater_name = ?, gender = ?, birth_date = ?, age_group = ? WHERE id = ?");
-                $stmt->execute([$skater_name, $gender, $birth_date, $age_group_str, $id]);
+                $stmt = $db->prepare("UPDATE roll_skaters SET skater_name = ?, gender = ?, birth_date = ?, age_group = ?, is_pon_veteran = ? WHERE id = ?");
+                $stmt->execute([$skater_name, $gender, $birth_date, $age_group_str, $is_pon_veteran, $id]);
 
                 $_SESSION['flash_message'] = "Data skater berhasil diperbarui.";
                 $_SESSION['flash_type'] = "success";

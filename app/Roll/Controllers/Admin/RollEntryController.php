@@ -209,7 +209,7 @@ class RollEntryController extends Controller {
         $payData = $stmtPay->fetch(PDO::FETCH_ASSOC);
         
         // AMBIL SEMUA ENTRI ATLET DARI KLUB INI
-        $sqlEntries = "SELECT s.id as skater_id, s.skater_name, s.gender, s.birth_date, a.group_name, d.distance_name, ed.category_name, ed.distance, e.race_class_id, sc.class_name, e.is_manual
+        $sqlEntries = "SELECT s.id as skater_id, s.skater_name, s.gender, s.birth_date, s.is_pon_veteran, a.group_name, d.distance_name, ed.category_name, ed.distance, e.race_class_id, sc.class_name, e.is_manual
                        FROM roll_entries e
                        JOIN roll_skaters s ON e.skater_id = s.id
                        LEFT JOIN roll_event_details ed ON e.race_class_id = ed.id
@@ -235,7 +235,8 @@ class RollEntryController extends Controller {
                     'info' => [
                         'nama' => $ent['skater_name'],
                         'gender' => $ent['gender'] == 'M' ? 'Putra' : 'Putri',
-                        'lahir' => $ent['birth_date']
+                        'lahir' => $ent['birth_date'],
+                        'is_pon_veteran' => $ent['is_pon_veteran'] ?? 0
                     ],
                     'items' => [],
                     'subtotal' => $skaterFees[$sId] ?? 0
@@ -294,7 +295,7 @@ class RollEntryController extends Controller {
         $stmtPay->execute([$eventId, $targetClubId]);
         $payData = $stmtPay->fetch(PDO::FETCH_ASSOC);
         
-        $sqlEntries = "SELECT s.id as skater_id, s.skater_name, s.gender, s.birth_date, a.group_name, d.distance_name, ed.category_name, ed.distance, e.race_class_id, sc.class_name, e.is_manual, e.team_name, c.club_name
+        $sqlEntries = "SELECT s.id as skater_id, s.skater_name, s.gender, s.birth_date, s.is_pon_veteran, a.group_name, d.distance_name, ed.category_name, ed.distance, e.race_class_id, sc.class_name, e.is_manual, e.team_name, c.club_name
                        FROM roll_entries e
                        JOIN roll_skaters s ON e.skater_id = s.id
                        LEFT JOIN roll_clubs c ON s.club_id = c.id
@@ -320,7 +321,8 @@ class RollEntryController extends Controller {
                 $groupedSkaters[$sId] = [
                     'info' => [
                         'nama' => $ent['skater_name'],
-                        'gender' => $ent['gender'] == 'M' ? 'Putra' : 'Putri'
+                        'gender' => $ent['gender'] == 'M' ? 'Putra' : 'Putri',
+                        'is_pon_veteran' => $ent['is_pon_veteran'] ?? 0
                     ],
                     'items' => [],
                     'subtotal' => $skaterFees[$sId] ?? 0
@@ -792,7 +794,7 @@ class RollEntryController extends Controller {
         }
         
         // AMBIL SEMUA ENTRI ATLET DARI INVOICE INI
-        $sqlEntries = "SELECT s.id as skater_id, s.skater_name, s.gender, s.birth_date, a.group_name, d.distance_name, ed.category_name, ed.distance, e.race_class_id, sc.class_name, e.is_manual, e.team_name, c.club_name
+        $sqlEntries = "SELECT s.id as skater_id, s.skater_name, s.gender, s.birth_date, s.is_pon_veteran, a.group_name, d.distance_name, ed.category_name, ed.distance, e.race_class_id, sc.class_name, e.is_manual, e.team_name, c.club_name
                        FROM roll_entries e
                        JOIN roll_skaters s ON e.skater_id = s.id
                        LEFT JOIN roll_clubs c ON s.club_id = c.id
@@ -826,7 +828,8 @@ class RollEntryController extends Controller {
                     'info' => [
                         'nama' => $ent['skater_name'],
                         'gender' => $ent['gender'] == 'M' ? 'Putra' : 'Putri',
-                        'lahir' => $ent['birth_date']
+                        'lahir' => $ent['birth_date'],
+                        'is_pon_veteran' => $ent['is_pon_veteran'] ?? 0
                     ],
                     'items' => [],
                     'subtotal' => $skaterFees[$sId] ?? 0
@@ -886,7 +889,7 @@ class RollEntryController extends Controller {
         $stmtPay->execute([$eventId, $invoiceCode]);
         $payData = $stmtPay->fetch(\PDO::FETCH_ASSOC);
         
-        $sqlEntries = "SELECT s.id as skater_id, s.skater_name, s.gender, s.birth_date, a.group_name, d.distance_name, ed.category_name, ed.distance, e.race_class_id, sc.class_name, e.is_manual, e.team_name, c.club_name
+        $sqlEntries = "SELECT s.id as skater_id, s.skater_name, s.gender, s.birth_date, s.is_pon_veteran, a.group_name, d.distance_name, ed.category_name, ed.distance, e.race_class_id, sc.class_name, e.is_manual, e.team_name, c.club_name
                        FROM roll_entries e
                        JOIN roll_skaters s ON e.skater_id = s.id
                        LEFT JOIN roll_clubs c ON s.club_id = c.id
@@ -919,7 +922,8 @@ class RollEntryController extends Controller {
                 $groupedSkaters[$sId] = [
                     'info' => [
                         'nama' => $ent['skater_name'],
-                        'gender' => $ent['gender'] == 'M' ? 'Putra' : 'Putri'
+                        'gender' => $ent['gender'] == 'M' ? 'Putra' : 'Putri',
+                        'is_pon_veteran' => $ent['is_pon_veteran'] ?? 0
                     ],
                     'items' => [],
                     'subtotal' => $skaterFees[$sId] ?? 0
