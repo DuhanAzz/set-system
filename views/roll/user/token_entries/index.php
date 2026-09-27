@@ -219,15 +219,11 @@
                                                         <div class="font-bold text-slate-700 text-[11px] uppercase"><?= htmlspecialchars($ent['skater_name']) ?></div>
                                                     </div>
                                                     <div>
-                                                        <?php if (in_array($ent['payment_status'], ['Unpaid', 'Rejected'])): ?>
                                                         <form action="<?= getenv('APP_URL') ?>/roll/user/token_registration/removeEntry/<?= $ent['entry_id'] ?>" method="POST" onsubmit="return confirm('Keluarkan atlet ini dari tim?')">
                                                             <button type="submit" class="w-6 h-6 rounded-md bg-slate-100 text-slate-400 hover:bg-red-500 hover:text-white transition flex items-center justify-center opacity-0 group-hover/item:opacity-100" title="Keluarkan Atlet">
                                                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                                                             </button>
                                                         </form>
-                                                        <?php else: ?>
-                                                        <span class="text-emerald-500 text-[9px] font-bold tracking-widest bg-emerald-50 px-1.5 py-0.5 rounded">PAID</span>
-                                                        <?php endif; ?>
                                                     </div>
                                                 </div>
                                                 <?php endforeach; ?>
@@ -287,15 +283,11 @@
                                                         <?php endif; ?>
                                                     </div>
                                                     <div>
-                                                        <?php if (in_array($ent['payment_status'], ['Unpaid', 'Rejected'])): ?>
                                                         <form action="<?= getenv('APP_URL') ?>/roll/user/token_registration/removeEntry/<?= $ent['entry_id'] ?>" method="POST" onsubmit="return confirm('Batalkan pendaftaran ini?')">
                                                             <button type="submit" class="w-6 h-6 rounded-md bg-slate-100 text-slate-400 hover:bg-red-500 hover:text-white transition flex items-center justify-center opacity-0 group-hover/item:opacity-100" title="Batalkan Pendaftaran">
                                                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                                                             </button>
                                                         </form>
-                                                        <?php else: ?>
-                                                        <span class="text-emerald-500 text-[9px] font-bold tracking-widest bg-emerald-50 px-1.5 py-0.5 rounded">PAID</span>
-                                                        <?php endif; ?>
                                                     </div>
                                                 </div>
                                                 <?php endforeach; ?>

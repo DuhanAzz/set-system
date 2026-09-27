@@ -296,11 +296,10 @@ class RollTokenRegistrationController extends Controller {
             // Hapus tim lama sebelum menyimpan yang baru
             $stmtDelSel = $db->prepare("
                 SELECT e.id FROM roll_entries e
-                LEFT JOIN roll_payments p ON p.club_id = e.club_id AND p.event_id = e.event_id
                 WHERE e.team_name = ? AND e.race_class_id = ? AND e.event_id = ? AND e.club_id = ? 
-                  AND COALESCE(p.status, 'Unpaid') IN ('Unpaid', 'Rejected')
+                  AND e.manual_invoice_code = ?
             ");
-            $stmtDelSel->execute([$old_team_name, $old_race_class_id, $event_id, $club_id]);
+            $stmtDelSel->execute([$old_team_name, $old_race_class_id, $event_id, $club_id, $active_invoice]);
             $delEntries = $stmtDelSel->fetchAll(\PDO::FETCH_ASSOC);
             if (count($delEntries) > 0) {
                 $ids = array_column($delEntries, 'id');
@@ -512,20 +511,28 @@ class RollTokenRegistrationController extends Controller {
 
     public function removeEntry($entry_id = null) {
         $club_id = (int)($_SESSION['roll_club_id'] ?? 0);
-        $db = Database::getInstance()->getConnection();
+        $db = \App\Core\Database::getInstance()->getConnection();
 
-        // Pastikan entry milik klub ini dan masih Unpaid/Rejected
+        // Pastikan entry milik klub ini
         $stmt = $db->prepare("
             SELECT e.id, e.event_id 
             FROM roll_entries e
-            JOIN roll_skaters s ON e.skater_id = s.id
-            LEFT JOIN roll_payments p ON p.club_id = e.club_id AND p.event_id = e.event_id
-            WHERE e.id = ? AND e.club_id = ? AND COALESCE(p.status, 'Unpaid') IN ('Unpaid', 'Rejected')
+            WHERE e.id = ? AND e.club_id = ?
         ");
         $stmt->execute([$entry_id, $club_id]);
-        $entry = $stmt->fetch(PDO::FETCH_ASSOC);
+        $entry = $stmt->fetch(\PDO::FETCH_ASSOC);
 
         if ($entry) {
+            $active_invoice = $_SESSION['active_manual_invoice_' . $entry['event_id']] ?? null;
+            $stmtCheck = $db->prepare("SELECT id FROM roll_entries WHERE id = ? AND manual_invoice_code = ?");
+            $stmtCheck->execute([$entry['id'], $active_invoice]);
+            if (!$stmtCheck->fetch()) {
+                $_SESSION['flash_message'] = "Entry tidak dapat dihapus karena sudah tidak aktif/diproses.";
+                $_SESSION['flash_type'] = "error";
+                header("Location: " . getenv('APP_URL') . "/roll/user/explore");
+                exit;
+            }
+
             // Bypass check status event for Token
 
             $db->prepare("DELETE FROM roll_entries WHERE id = ?")->execute([$entry['id']]);
@@ -559,16 +566,16 @@ class RollTokenRegistrationController extends Controller {
         }
 
         $db = \App\Core\Database::getInstance()->getConnection();
+        $active_invoice = $_SESSION['active_manual_invoice_' . $event_id] ?? null;
 
-        // Pastikan tim milik klub ini dan masih Unpaid/Rejected
+        // Pastikan tim milik klub ini dan masih di invoice aktif
         $stmt = $db->prepare("
             SELECT e.id
             FROM roll_entries e
-            LEFT JOIN roll_payments p ON p.club_id = e.club_id AND p.event_id = e.event_id
             WHERE e.team_name = ? AND e.race_class_id = ? AND e.event_id = ? AND e.club_id = ? 
-              AND COALESCE(p.status, 'Unpaid') IN ('Unpaid', 'Rejected')
+              AND e.manual_invoice_code = ?
         ");
-        $stmt->execute([$team_name, $race_class_id, $event_id, $club_id]);
+        $stmt->execute([$team_name, $race_class_id, $event_id, $club_id, $active_invoice]);
         $entries = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
         if (count($entries) > 0) {
