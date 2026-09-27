@@ -468,6 +468,24 @@ function onSkaterChange(sel) {
     if (opt.value) {
         const age = parseInt(sel.dataset.age);
         const gender = sel.dataset.gender;
+        const skaterId = opt.value;
+        let eGroup = '';
+        let hasSpeed = false;
+        let hasPemula = false;
+        let hasStandar = false;
+        
+        existingEntriesData.forEach(e => {
+            if (e.skater_id == skaterId && e.skate_class) {
+                const eCatStr = (e.skate_class || '').toLowerCase();
+                if (eCatStr.includes('speed')) hasSpeed = true;
+                else if (eCatStr.includes('standar')) hasStandar = true;
+                else if (eCatStr.includes('pemula')) hasPemula = true;
+            }
+        });
+
+        if (hasSpeed) eGroup = 'speed';
+        else if (hasPemula) eGroup = 'pemula';
+        else if (hasStandar) eGroup = 'standar';
         
         // Filter category dropdown
         for (let i = 1; i < catSelect.options.length; i++) {
@@ -480,6 +498,21 @@ function onSkaterChange(sel) {
             for (const c of allClasses) {
                 const distanceName = (c.distance_name || '').toLowerCase();
                 if (distanceName.includes('relay') || distanceName.includes('team') || distanceName.includes('pair')) continue;
+                
+                let targetGroup = '';
+                const tCatStr = (c.class_name || '').toLowerCase();
+                if (tCatStr.includes('speed')) targetGroup = 'speed';
+                else if (tCatStr.includes('standar')) targetGroup = 'standar';
+                else if (tCatStr.includes('pemula')) targetGroup = 'pemula';
+
+                if (eGroup && targetGroup && eGroup !== targetGroup) {
+                    if (allowPemulaStandarMix) {
+                        const isMixable = (eGroup === 'pemula' && targetGroup === 'standar');
+                        if (!isMixable) continue;
+                    } else {
+                        continue;
+                    }
+                }
                 
                 if (c.class_cat_id == catId) {
                     if (age >= parseInt(c.min_year) && age <= parseInt(c.max_year)) {
