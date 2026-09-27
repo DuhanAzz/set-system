@@ -301,7 +301,8 @@ switch ($module) {
                     'results'   => '\\App\\Roll\\Controllers\\Admin\\RollResultController',
                     'medal_tally'=> '\\App\\Roll\\Controllers\\Admin\\RollMedalTallyController',
                     'export'    => '\\App\\Roll\\Controllers\\Admin\\RollExportController',
-                    'series'    => '\\App\\Roll\\Controllers\\Admin\\RollAdminSeriesController'
+                    'series'    => '\\App\\Roll\\Controllers\\Admin\\RollAdminSeriesController',
+                    'reports'   => '\\App\\Roll\\Controllers\\Admin\\RollAdminReportController'
                 ],
                 'User' => [
                     'dashboard'    => '\\App\\Roll\\Controllers\\User\\RollUserDashboardController',
