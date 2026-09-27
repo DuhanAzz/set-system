@@ -520,11 +520,11 @@ const ageGroups = <?php
 const myAthletes = <?= json_encode($athletes) ?>;
 const myClubId = <?= $club_id ?>;
 
-function populateAthleteSelect(selectId) {
+function populateAthleteSelect(selectId, data = myAthletes) {
     const select = document.getElementById(selectId);
     if (!select) return;
     select.innerHTML = "<option value=\"\">- Pilih Atlet -</option>";
-    myAthletes.forEach(a => {
+    data.forEach(a => {
         const bDate = a.birth_date ? a.birth_date : '1970-01-01';
         const dobYear = parseInt(bDate.split('-')[0]);
         const age = eventYear - dobYear;
@@ -569,7 +569,7 @@ function switchTab(tab) {
 // JS loadAthletes replacement untuk filter sisi klien
 function loadAthletes(clubId, targetSelectId) {
     const select = document.getElementById(targetSelectId);
-    if (!select) return;
+    if (!select) return Promise.resolve();
     select.innerHTML = '<option value="">- Memuat... -</option>';
     select.disabled = true;
 
@@ -577,15 +577,15 @@ function loadAthletes(clubId, targetSelectId) {
         select.innerHTML = '<option value="">- Pilih Atlet -</option>';
         if (targetSelectId === 'indv_skater_select') onSkaterSelect(select);
         if (targetSelectId.startsWith('team_skater')) validateTeamMembers();
-        return;
+        return Promise.resolve();
     }
 
     if (athletesCache[clubId]) {
         populateAthleteSelect(targetSelectId, athletesCache[clubId]);
-        return;
+        return Promise.resolve();
     }
 
-    fetch(`<?= getenv('APP_URL') ?>/roll/user/token_registration/get_athletes_by_club?club_id=${clubId}&event_id=<?= $event['id'] ?>`)
+    return fetch(`<?= getenv('APP_URL') ?>/roll/user/token_registration/get_athletes_by_club?club_id=${clubId}&event_id=<?= $event['id'] ?>`)
         .then(res => res.json())
         .then(data => {
             athletesCache[clubId] = data;
@@ -595,7 +595,6 @@ function loadAthletes(clubId, targetSelectId) {
             console.error("Error fetching athletes:", err);
             select.innerHTML = '<option value="">- Gagal memuat -</option>';
         });
-    return fetch(`<?= getenv('APP_URL') ?>/roll/user/token_registration/get_athletes_by_club?club_id=${clubId}&event_id=<?= $event['id'] ?>`);
 }
 
 function editTeam(teamName, catId, kuId, classId, athletesData) {
@@ -629,27 +628,28 @@ function editTeam(teamName, catId, kuId, classId, athletesData) {
     filterTeamClasses();
     document.getElementById('team_class_select').value = classId;
     
+    let fetchPromises = [];
     athletesData.forEach((a, idx) => {
         const slot = idx + 1;
         const clubEl = document.getElementById('team_club_select_' + slot);
-        if (clubEl) clubEl.value = a.club_id;
+        if (clubEl) {
+            clubEl.value = a.club_id;
+            fetchPromises.push(loadAthletes(a.club_id, 'team_skater_select_' + slot));
+        }
     });
 
-    updateTeamGenderRule();
-    
-    athletesData.forEach((a, idx) => {
-        const slot = idx + 1;
-        // Since loadAthletes was called by updateTeamGenderRule asynchronously,
-        // we use setTimeout to wait for fetch to finish rendering
-        setTimeout(() => {
+    Promise.all(fetchPromises).then(() => {
+        updateTeamGenderRule();
+        
+        athletesData.forEach((a, idx) => {
+            const slot = idx + 1;
             const selectEl = document.getElementById('team_skater_select_' + slot);
-            if (selectEl && selectEl.querySelector(`option[value="${a.skater_id}"]`)) {
+            if (selectEl) {
                 selectEl.value = a.skater_id;
-            } else {
-                // If network is slow, retry setting it
-                setTimeout(() => { if(selectEl) selectEl.value = a.skater_id; }, 1000);
             }
-        }, 300);
+        });
+        
+        validateTeamMembers();
     });
     
     window.scrollTo({ top: document.getElementById('form_team').offsetTop - 100, behavior: 'smooth' });
