@@ -594,6 +594,9 @@ function filterClasses() {
             if (opt && opt.dataset && opt.dataset.level) {
                 athleteLevel = opt.dataset.level;
             }
+            if (opt && opt.dataset && opt.dataset.isPon == '1') {
+                athleteLevel = 'speed'; // PON veterans are automatically forced to Speed
+            }
         }
         eGroup = athleteLevel;
         
