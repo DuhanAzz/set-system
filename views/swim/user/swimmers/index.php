@@ -4,7 +4,7 @@
         <p class="text-xs text-slate-500 font-bold uppercase tracking-widest mt-1">Kelola data profil dan best time.</p>
     </div>
     <?php if ($_SESSION['swim_role'] === 'user'): ?>
-    <a href="<?= getenv('APP_URL') ?>/swim/swimmers/create" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition transform hover:-translate-y-1 text-sm uppercase tracking-wider flex items-center gap-2">
+    <a href="<?= getenv('APP_URL') ?>/swim/user/swimmers/create" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition transform hover:-translate-y-1 text-sm uppercase tracking-wider flex items-center gap-2">
         <span>+</span> Tambah Atlet
     </a>
     <?php endif; ?>
@@ -43,7 +43,7 @@
                         <td colspan="4" class="p-12 text-center">
                             <div class="text-4xl mb-2">🏊</div>
                             <div class="text-slate-400 font-bold italic">Belum ada data atlet di roster Anda.</div>
-                            <a href="<?= getenv('APP_URL') ?>/swim/swimmers/create" class="text-blue-600 text-xs font-bold underline mt-2 block">Tambah Atlet Sekarang</a>
+                            <a href="<?= getenv('APP_URL') ?>/swim/user/swimmers/create" class="text-blue-600 text-xs font-bold underline mt-2 block">Tambah Atlet Sekarang</a>
                         </td>
                     </tr>
                 <?php else: ?>
@@ -87,7 +87,7 @@
                         </td>
 
                         <td class="p-5 text-center align-middle">
-                            <a href="<?= getenv('APP_URL') ?>/swim/athleteRecords/index/<?= $a['id'] ?>" class="group/btn relative inline-flex items-center gap-2 bg-emerald-50 hover:bg-emerald-500 hover:text-white text-emerald-600 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition border border-emerald-100 shadow-sm">
+                            <a href="<?= getenv('APP_URL') ?>/swim/user/athleteRecords/index/<?= $a['id'] ?>" class="group/btn relative inline-flex items-center gap-2 bg-emerald-50 hover:bg-emerald-500 hover:text-white text-emerald-600 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition border border-emerald-100 shadow-sm">
                                 <span>⏱</span>
                                 <span>Kelola Waktu</span>
                                 <?php if(isset($a['record_count']) && $a['record_count'] > 0): ?>
@@ -99,10 +99,10 @@
                         <?php if ($_SESSION['swim_role'] === 'user'): ?>
                         <td class="p-5 text-center align-middle">
                             <div class="flex items-center justify-center gap-2">
-                                <a href="<?= getenv('APP_URL') ?>/swim/swimmers/edit/<?= $a['id'] ?>" class="text-blue-600 bg-blue-50 hover:bg-blue-600 hover:text-white px-3 py-2 rounded-lg text-xs font-bold transition border border-blue-100">
+                                <a href="<?= getenv('APP_URL') ?>/swim/user/swimmers/edit/<?= $a['id'] ?>" class="text-blue-600 bg-blue-50 hover:bg-blue-600 hover:text-white px-3 py-2 rounded-lg text-xs font-bold transition border border-blue-100">
                                     Edit
                                 </a>
-                                <form action="<?= getenv('APP_URL') ?>/swim/swimmers/delete/<?= $a['id'] ?>" method="POST" onsubmit="return confirm('Yakin ingin menghapus atlet ini dari roster?');" class="inline m-0 p-0">
+                                <form action="<?= getenv('APP_URL') ?>/swim/user/swimmers/delete/<?= $a['id'] ?>" method="POST" onsubmit="return confirm('Yakin ingin menghapus atlet ini dari roster?');" class="inline m-0 p-0">
                                     <button type="submit" class="text-red-500 bg-red-50 hover:bg-red-500 hover:text-white px-3 py-2 rounded-lg text-xs font-bold transition border border-red-100">
                                         Hapus
                                     </button>

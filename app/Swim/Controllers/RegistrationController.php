@@ -88,14 +88,14 @@ class RegistrationController extends Controller {
         $uid = $_SESSION['swim_user_id'];
         
         if (!$event_id) {
-            header("Location: " . getenv('APP_URL') . "/swim/explore");
+            header("Location: " . getenv('APP_URL') . "/swim/user/explore");
             exit;
         }
 
         $event = $this->getEvent($event_id);
         
         if (!$event) {
-            header("Location: " . getenv('APP_URL') . "/swim/explore");
+            header("Location: " . getenv('APP_URL') . "/swim/user/explore");
             exit;
         }
 
@@ -132,15 +132,15 @@ class RegistrationController extends Controller {
         }
 
         if (isset($_GET['add_swimmer'])) {
-            if ($isLocked) { header("Location: " . getenv('APP_URL') . "/swim/registration/index/" . $event_id); exit; } 
+            if ($isLocked) { header("Location: " . getenv('APP_URL') . "/swim/user/registration/index/" . $event_id); exit; } 
             $addId = (int)$_GET['add_swimmer'];
             $validSw = false; foreach($allSwimmers as $s) { if($s['id'] == $addId) $validSw = true; }
             if ($validSw && !in_array($addId, $_SESSION['matrix_list'][$event_id])) { $_SESSION['matrix_list'][$event_id][] = $addId; }
-            header("Location: " . getenv('APP_URL') . "/swim/registration/index/" . $event_id); exit;
+            header("Location: " . getenv('APP_URL') . "/swim/user/registration/index/" . $event_id); exit;
         }
 
         if (isset($_GET['remove_swimmer'])) {
-            if ($isLocked) { header("Location: " . getenv('APP_URL') . "/swim/registration/index/" . $event_id); exit; } 
+            if ($isLocked) { header("Location: " . getenv('APP_URL') . "/swim/user/registration/index/" . $event_id); exit; } 
             $remId = (int)$_GET['remove_swimmer'];
             
             if (isset($_SESSION['matrix_list'][$event_id])) {
@@ -153,7 +153,7 @@ class RegistrationController extends Controller {
             $stmtDel = $this->db->prepare("DELETE FROM swim_event_entries WHERE user_id = ? AND event_id = ? AND swimmer_id = ?");
             $stmtDel->execute([$uid, $event_id, $remId]);
             
-            header("Location: " . getenv('APP_URL') . "/swim/registration/index/" . $event_id); 
+            header("Location: " . getenv('APP_URL') . "/swim/user/registration/index/" . $event_id); 
             exit;
         }
 
@@ -295,19 +295,19 @@ class RegistrationController extends Controller {
         $uid = $_SESSION['swim_user_id'];
         
         if (!$event_id || !$swimmer_id) {
-            header("Location: " . getenv('APP_URL') . "/swim/explore");
+            header("Location: " . getenv('APP_URL') . "/swim/user/explore");
             exit;
         }
 
         $event = $this->getEvent($event_id);
         if (!$event) {
-            header("Location: " . getenv('APP_URL') . "/swim/explore");
+            header("Location: " . getenv('APP_URL') . "/swim/user/explore");
             exit;
         }
 
         if ($this->isRegistrationClosed($event) || $this->getPaymentLock($uid, $event['id'])) {
             $_SESSION['flash_error'] = "Pendaftaran telah dikunci/ditutup.";
-            header("Location: " . getenv('APP_URL') . "/swim/registration/index/" . $event_id);
+            header("Location: " . getenv('APP_URL') . "/swim/user/registration/index/" . $event_id);
             exit;
         }
 
@@ -316,7 +316,7 @@ class RegistrationController extends Controller {
         $swimmer = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$swimmer) {
-            header("Location: " . getenv('APP_URL') . "/swim/registration");
+            header("Location: " . getenv('APP_URL') . "/swim/user/registration");
             exit;
         }
 
@@ -366,19 +366,19 @@ class RegistrationController extends Controller {
         $uid = $_SESSION['swim_user_id'];
         
         if (!$event_id || $_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['action']) || $_POST['action'] !== 'save_entries') {
-            header("Location: " . getenv('APP_URL') . "/swim/explore");
+            header("Location: " . getenv('APP_URL') . "/swim/user/explore");
             exit;
         }
 
         $event = $this->getEvent($event_id);
         if (!$event) {
-            header("Location: " . getenv('APP_URL') . "/swim/explore");
+            header("Location: " . getenv('APP_URL') . "/swim/user/explore");
             exit;
         }
 
         if ($this->isRegistrationClosed($event) || $this->getPaymentLock($uid, $event['id'])) {
             $_SESSION['flash_error'] = "Pendaftaran telah dikunci/ditutup.";
-            header("Location: " . getenv('APP_URL') . "/swim/registration/index/" . $event_id);
+            header("Location: " . getenv('APP_URL') . "/swim/user/registration/index/" . $event_id);
             exit;
         }
 
@@ -431,7 +431,7 @@ class RegistrationController extends Controller {
             $_SESSION['flash_error'] = "Gagal menyimpan: " . $e->getMessage();
         }
 
-        header("Location: " . getenv('APP_URL') . "/swim/registration/index/" . $event_id);
+        header("Location: " . getenv('APP_URL') . "/swim/user/registration/index/" . $event_id);
         exit;
     }
 
@@ -440,19 +440,19 @@ class RegistrationController extends Controller {
         $uid = $_SESSION['swim_user_id'];
         
         if (!$event_id || !$swimmer_id || $_SERVER['REQUEST_METHOD'] !== 'POST') {
-            header("Location: " . getenv('APP_URL') . "/swim/explore");
+            header("Location: " . getenv('APP_URL') . "/swim/user/explore");
             exit;
         }
 
         $event = $this->getEvent($event_id);
         if (!$event) {
-            header("Location: " . getenv('APP_URL') . "/swim/explore");
+            header("Location: " . getenv('APP_URL') . "/swim/user/explore");
             exit;
         }
 
         if ($this->isRegistrationClosed($event) || $this->getPaymentLock($uid, $event['id'])) {
             $_SESSION['flash_error'] = "Pendaftaran telah dikunci/ditutup, pembatalan tidak diizinkan.";
-            header("Location: " . getenv('APP_URL') . "/swim/registration/index/" . $event_id);
+            header("Location: " . getenv('APP_URL') . "/swim/user/registration/index/" . $event_id);
             exit;
         }
 
@@ -467,7 +467,7 @@ class RegistrationController extends Controller {
             $_SESSION['flash_error'] = "Gagal membatalkan.";
         }
 
-        header("Location: " . getenv('APP_URL') . "/swim/registration/index/" . $event_id);
+        header("Location: " . getenv('APP_URL') . "/swim/user/registration/index/" . $event_id);
         exit;
     }
 }

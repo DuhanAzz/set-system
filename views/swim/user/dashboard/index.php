@@ -15,7 +15,7 @@
                     <p class="text-sm text-orange-100 font-medium mt-1">Anda memiliki pendaftaran event yang belum dibayar atau masih menunggu verifikasi panitia.</p>
                 </div>
             </div>
-            <a href="<?= getenv('APP_URL') ?>/swim/checkout" class="whitespace-nowrap bg-white text-orange-600 px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-orange-50 transition transform group-hover:scale-105 shadow-md">Bayar Sekarang</a>
+            <a href="<?= getenv('APP_URL') ?>/swim/user/checkout" class="whitespace-nowrap bg-white text-orange-600 px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-orange-50 transition transform group-hover:scale-105 shadow-md">Bayar Sekarang</a>
         </div>
         <?php endif; ?>
 
@@ -28,7 +28,7 @@
                     <p class="text-sm text-blue-100 font-medium mt-1">Segera lengkapi data atlet Anda agar mendapatkan UID untuk bisa didaftarkan ke perlombaan.</p>
                 </div>
             </div>
-            <a href="<?= getenv('APP_URL') ?>/swim/swimmers" class="whitespace-nowrap bg-white text-blue-700 px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-blue-50 transition transform group-hover:scale-105 shadow-md">Lengkapi Data</a>
+            <a href="<?= getenv('APP_URL') ?>/swim/user/swimmers" class="whitespace-nowrap bg-white text-blue-700 px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-blue-50 transition transform group-hover:scale-105 shadow-md">Lengkapi Data</a>
         </div>
         <?php endif; ?>
     </div>
@@ -72,13 +72,13 @@
     <h3 class="font-black text-slate-800 uppercase text-sm tracking-tight mb-4 ml-2">Menu Cepat</h3>
     <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
 
-        <a href="<?= getenv('APP_URL') ?>/swim/swimmers" class="bg-gradient-to-br from-white to-slate-50 p-8 rounded-3xl shadow-sm border border-slate-200 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group border-b-4 border-blue-400">
+        <a href="<?= getenv('APP_URL') ?>/swim/user/swimmers" class="bg-gradient-to-br from-white to-slate-50 p-8 rounded-3xl shadow-sm border border-slate-200 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group border-b-4 border-blue-400">
             <span class="w-16 h-16 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center text-3xl mb-6 shadow-inner group-hover:scale-110 transition">📋</span>
             <h4 class="font-black text-lg text-slate-800 uppercase italic">Data Atlet</h4>
             <p class="text-xs text-slate-500 mt-2 font-medium">Input biodata perenang baru.</p>
         </a>
 
-        <a href="<?= getenv('APP_URL') ?>/swim/explore" class="bg-gradient-to-br from-white to-slate-50 p-8 rounded-3xl shadow-sm border border-slate-200 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group border-b-4 border-purple-400">
+        <a href="<?= getenv('APP_URL') ?>/swim/user/explore" class="bg-gradient-to-br from-white to-slate-50 p-8 rounded-3xl shadow-sm border border-slate-200 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group border-b-4 border-purple-400">
             <span class="w-16 h-16 bg-purple-100 text-purple-600 rounded-2xl flex items-center justify-center text-3xl mb-6 shadow-inner group-hover:scale-110 transition">🎯</span>
             <h4 class="font-black text-lg text-slate-800 uppercase italic">Daftar Lomba</h4>
             <p class="text-xs text-slate-500 mt-2 font-medium">Pilih nomor lomba per atlet.</p>
@@ -93,7 +93,7 @@
         </a>
         <?php endif; ?>
 
-        <a href="<?= getenv('APP_URL') ?>/swim/checkout" class="bg-gradient-to-br from-white to-slate-50 p-8 rounded-3xl shadow-sm border border-slate-200 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group border-b-4 border-orange-400">
+        <a href="<?= getenv('APP_URL') ?>/swim/user/checkout" class="bg-gradient-to-br from-white to-slate-50 p-8 rounded-3xl shadow-sm border border-slate-200 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group border-b-4 border-orange-400">
             <span class="w-16 h-16 bg-orange-100 text-orange-600 rounded-2xl flex items-center justify-center text-3xl mb-6 shadow-inner group-hover:scale-110 transition">💳</span>
             <h4 class="font-black text-lg text-slate-800 uppercase italic">Pembayaran</h4>
             <p class="text-xs text-slate-500 mt-2 font-medium">Upload bukti transfer.</p>

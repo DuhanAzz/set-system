@@ -54,21 +54,21 @@ class RelayRegistrationController extends Controller {
         $uid = $_SESSION['swim_user_id'];
         
         if (!$event_id) {
-            header("Location: " . getenv('APP_URL') . "/swim/explore");
+            header("Location: " . getenv('APP_URL') . "/swim/user/explore");
             exit;
         }
 
         $event = $this->getEvent($event_id);
         
         if (!$event) {
-            header("Location: " . getenv('APP_URL') . "/swim/explore");
+            header("Location: " . getenv('APP_URL') . "/swim/user/explore");
             exit;
         }
 
         $clubId = $this->getClubId($uid);
         if (!$clubId) {
             $_SESSION['flash_error'] = "Akun ini tidak terhubung dengan profil Klub.";
-            header("Location: " . getenv('APP_URL') . "/swim/swimmers");
+            header("Location: " . getenv('APP_URL') . "/swim/user/swimmers");
             exit;
         }
 
@@ -107,19 +107,19 @@ class RelayRegistrationController extends Controller {
         $uid = $_SESSION['swim_user_id'];
         
         if (!$event_id || $_SERVER['REQUEST_METHOD'] !== 'POST') {
-            header("Location: " . getenv('APP_URL') . "/swim/explore");
+            header("Location: " . getenv('APP_URL') . "/swim/user/explore");
             exit;
         }
 
         $event = $this->getEvent($event_id);
         if (!$event) {
-            header("Location: " . getenv('APP_URL') . "/swim/explore");
+            header("Location: " . getenv('APP_URL') . "/swim/user/explore");
             exit;
         }
 
         if ($this->isRegistrationClosed($event) || $this->getPaymentLock($uid, $event['id'])) {
             $_SESSION['flash_error'] = "Pendaftaran telah dikunci/ditutup.";
-            header("Location: " . getenv('APP_URL') . "/swim/relay_registration/index/" . $event_id);
+            header("Location: " . getenv('APP_URL') . "/swim/user/relay_registration/index/" . $event_id);
             exit;
         }
 
@@ -154,7 +154,7 @@ class RelayRegistrationController extends Controller {
             }
         }
 
-        header("Location: " . getenv('APP_URL') . "/swim/relay_registration/index/" . $event_id);
+        header("Location: " . getenv('APP_URL') . "/swim/user/relay_registration/index/" . $event_id);
         exit;
     }
 
@@ -163,19 +163,19 @@ class RelayRegistrationController extends Controller {
         $uid = $_SESSION['swim_user_id'];
         
         if (!$event_id || !$relay_id || $_SERVER['REQUEST_METHOD'] !== 'POST') {
-            header("Location: " . getenv('APP_URL') . "/swim/explore");
+            header("Location: " . getenv('APP_URL') . "/swim/user/explore");
             exit;
         }
 
         $event = $this->getEvent($event_id);
         if (!$event) {
-            header("Location: " . getenv('APP_URL') . "/swim/explore");
+            header("Location: " . getenv('APP_URL') . "/swim/user/explore");
             exit;
         }
 
         if ($this->isRegistrationClosed($event) || $this->getPaymentLock($uid, $event['id'])) {
             $_SESSION['flash_error'] = "Pendaftaran telah dikunci/ditutup, pembatalan tidak diizinkan.";
-            header("Location: " . getenv('APP_URL') . "/swim/relay_registration/index/" . $event_id);
+            header("Location: " . getenv('APP_URL') . "/swim/user/relay_registration/index/" . $event_id);
             exit;
         }
 
@@ -192,7 +192,7 @@ class RelayRegistrationController extends Controller {
             $_SESSION['flash_error'] = "Gagal membatalkan estafet.";
         }
 
-        header("Location: " . getenv('APP_URL') . "/swim/relay_registration/index/" . $event_id);
+        header("Location: " . getenv('APP_URL') . "/swim/user/relay_registration/index/" . $event_id);
         exit;
     }
 }

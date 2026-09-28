@@ -10,7 +10,7 @@
         <p class="text-xs font-bold text-blue-700">ℹ️ UID Atlet akan di-generate otomatis oleh sistem setelah data berhasil disimpan.</p>
     </div>
 
-    <form method="POST" action="<?= getenv('APP_URL') ?>/swim/swimmers/store">
+    <form method="POST" action="<?= getenv('APP_URL') ?>/swim/user/swimmers/store">
         <div class="mb-4">
             <label class="block text-xs font-bold text-slate-500 mb-2 uppercase">Nama Lengkap</label>
             <input type="text" name="nama_atlet" required class="w-full border-2 border-slate-100 rounded-xl p-3 focus:border-blue-500 outline-none uppercase" placeholder="Contoh: I GEDE SIMAN">
@@ -33,7 +33,7 @@
             <input type="text" name="asal_sekolah" class="w-full border-2 border-slate-100 rounded-xl p-3 focus:border-blue-500 outline-none uppercase" placeholder="Contoh: SMPN 1 YOGYAKARTA">
         </div>
         <div class="flex gap-4">
-            <a href="<?= getenv('APP_URL') ?>/swim/swimmers" class="w-1/3 text-center py-3 rounded-xl border border-slate-200 font-bold text-slate-500 hover:bg-slate-50 transition">Batal</a>
+            <a href="<?= getenv('APP_URL') ?>/swim/user/swimmers" class="w-1/3 text-center py-3 rounded-xl border border-slate-200 font-bold text-slate-500 hover:bg-slate-50 transition">Batal</a>
             <button type="submit" class="w-2/3 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl uppercase transition">Simpan Atlet</button>
         </div>
     </form>

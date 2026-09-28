@@ -1,7 +1,7 @@
 <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-8 mb-8 relative overflow-hidden">
     <div class="absolute top-0 right-0 w-64 h-64 bg-blue-50 rounded-full -mr-20 -mt-20 opacity-50 pointer-events-none"></div>
     
-    <a href="<?= getenv('APP_URL') ?>/swim/explore" class="text-slate-400 hover:text-blue-600 font-bold text-xs uppercase tracking-widest mb-6 inline-block transition relative z-10 bg-slate-50 px-4 py-2 rounded-lg border border-slate-200">
+    <a href="<?= getenv('APP_URL') ?>/swim/user/explore" class="text-slate-400 hover:text-blue-600 font-bold text-xs uppercase tracking-widest mb-6 inline-block transition relative z-10 bg-slate-50 px-4 py-2 rounded-lg border border-slate-200">
         &larr; Kembali ke Jadwal
     </a>
     
@@ -43,7 +43,7 @@
     </div>
 
     <div class="mt-8 flex gap-4 relative z-10 border-t border-slate-100 pt-8 flex-wrap">
-        <a href="<?= getenv('APP_URL') ?>/swim/registration/index/<?= $event_id ?>" class="bg-blue-600 hover:bg-blue-700 text-white font-black uppercase text-sm px-10 py-4 rounded-xl shadow-xl shadow-blue-200 hover:shadow-blue-300 hover:-translate-y-1 transition duration-300">
+        <a href="<?= getenv('APP_URL') ?>/swim/user/registration/index/<?= $event_id ?>" class="bg-blue-600 hover:bg-blue-700 text-white font-black uppercase text-sm px-10 py-4 rounded-xl shadow-xl shadow-blue-200 hover:shadow-blue-300 hover:-translate-y-1 transition duration-300">
             Mulai Pendaftaran Tim 🚀
         </a>
         
@@ -52,7 +52,7 @@
         foreach($raceList as $r) { if(isset($r['is_relay']) && $r['is_relay'] == 1) { $hasRelay = true; break; } }
         if($hasRelay):
         ?>
-        <a href="<?= getenv('APP_URL') ?>/swim/relay_registration/index/<?= $event_id ?>" class="bg-pink-600 hover:bg-pink-700 text-white font-black uppercase text-sm px-10 py-4 rounded-xl shadow-xl shadow-pink-200 hover:shadow-pink-300 hover:-translate-y-1 transition duration-300 relative overflow-hidden">
+        <a href="<?= getenv('APP_URL') ?>/swim/user/relay_registration/index/<?= $event_id ?>" class="bg-pink-600 hover:bg-pink-700 text-white font-black uppercase text-sm px-10 py-4 rounded-xl shadow-xl shadow-pink-200 hover:shadow-pink-300 hover:-translate-y-1 transition duration-300 relative overflow-hidden">
             <div class="absolute -right-4 -top-4 bg-white text-pink-600 text-[8px] font-black uppercase px-6 py-1.5 rotate-45 tracking-widest shadow-lg">NEW</div>
             Daftar Estafet 🏃‍♂️
         </a>

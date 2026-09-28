@@ -78,7 +78,7 @@
                 </div>
 
                 <?php if ($displayStatus === 'Unpaid' || $displayStatus === 'Rejected'): ?>
-                    <form action="<?= getenv('APP_URL') ?>/swim/checkout/upload_proof/<?= $event['id'] ?>" method="POST" enctype="multipart/form-data" class="space-y-4">
+                    <form action="<?= getenv('APP_URL') ?>/swim/user/checkout/upload_proof/<?= $event['id'] ?>" method="POST" enctype="multipart/form-data" class="space-y-4">
                         <input type="hidden" name="from_list" value="0">
                         <div class="bg-blue-50 border border-blue-100 p-4 rounded-2xl">
                             <p class="text-[10px] font-bold text-blue-800 uppercase tracking-widest mb-2">Instruksi Pembayaran</p>
@@ -112,7 +112,7 @@
                 <?php endif; ?>
             </div>
             
-            <a href="<?= getenv('APP_URL') ?>/swim/registration/index/<?= $event['id'] ?>" class="block w-full py-4 bg-white border border-slate-200 rounded-2xl text-center text-[10px] font-black text-slate-400 uppercase tracking-widest hover:bg-slate-50 hover:text-slate-600 transition-all outline-none">
+            <a href="<?= getenv('APP_URL') ?>/swim/user/registration/index/<?= $event['id'] ?>" class="block w-full py-4 bg-white border border-slate-200 rounded-2xl text-center text-[10px] font-black text-slate-400 uppercase tracking-widest hover:bg-slate-50 hover:text-slate-600 transition-all outline-none">
                 &larr; Kembali
             </a>
         </div>

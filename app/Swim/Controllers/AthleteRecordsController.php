@@ -24,7 +24,7 @@ class AthleteRecordsController extends Controller {
         $uid = $_SESSION['swim_user_id'];
         
         if (!$atlet_id) {
-            header("Location: " . getenv('APP_URL') . "/swim/swimmers");
+            header("Location: " . getenv('APP_URL') . "/swim/user/swimmers");
             exit;
         }
 
@@ -35,7 +35,7 @@ class AthleteRecordsController extends Controller {
 
         if (!$atlet) {
             $_SESSION['flash_error'] = "Atlet tidak ditemukan atau Anda tidak memiliki akses.";
-            header("Location: " . getenv('APP_URL') . "/swim/swimmers");
+            header("Location: " . getenv('APP_URL') . "/swim/user/swimmers");
             exit;
         }
 
@@ -98,7 +98,7 @@ class AthleteRecordsController extends Controller {
             $stmtCek->execute([$atlet_id, $uid]);
             if (!$stmtCek->fetchColumn()) {
                 $_SESSION['flash_error'] = "Akses ditolak.";
-                header("Location: " . getenv('APP_URL') . "/swim/swimmers");
+                header("Location: " . getenv('APP_URL') . "/swim/user/swimmers");
                 exit;
             }
 
@@ -115,7 +115,7 @@ class AthleteRecordsController extends Controller {
             }
         }
         
-        header("Location: " . getenv('APP_URL') . "/swim/athleteRecords/index/" . $atlet_id);
+        header("Location: " . getenv('APP_URL') . "/swim/user/athleteRecords/index/" . $atlet_id);
         exit;
     }
 
@@ -138,7 +138,7 @@ class AthleteRecordsController extends Controller {
             }
         }
         
-        header("Location: " . getenv('APP_URL') . "/swim/athleteRecords/index/" . $atlet_id);
+        header("Location: " . getenv('APP_URL') . "/swim/user/athleteRecords/index/" . $atlet_id);
         exit;
     }
 }

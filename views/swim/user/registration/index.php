@@ -19,10 +19,10 @@
     <div class="flex gap-3">
         <?php if ($isLocked): ?>
             <div class="bg-red-100 border border-red-200 text-red-700 px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2"><span>🔒</span> Menunggu Verifikasi. Data terkunci sementara.</div>
-            <a href="<?= getenv('APP_URL') ?>/swim/checkout/detail/<?= $event['id'] ?>" class="bg-slate-900 text-white px-6 py-3 rounded-xl font-bold text-xs shadow-lg">LIHAT STATUS</a>
+            <a href="<?= getenv('APP_URL') ?>/swim/user/checkout/detail/<?= $event['id'] ?>" class="bg-slate-900 text-white px-6 py-3 rounded-xl font-bold text-xs shadow-lg">LIHAT STATUS</a>
         <?php else: ?>
             <button onclick="document.getElementById('modalAdd').classList.remove('hidden')" class="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold text-xs shadow-lg hover:bg-blue-700">+ ATLET</button>
-            <a href="<?= getenv('APP_URL') ?>/swim/checkout/detail/<?= $event['id'] ?>" class="bg-slate-900 text-white px-6 py-3 rounded-xl font-bold text-xs shadow-lg">SELESAI / BAYAR</a>
+            <a href="<?= getenv('APP_URL') ?>/swim/user/checkout/detail/<?= $event['id'] ?>" class="bg-slate-900 text-white px-6 py-3 rounded-xl font-bold text-xs shadow-lg">SELESAI / BAYAR</a>
         <?php endif; ?>
     </div>
 </div>
@@ -164,7 +164,7 @@
             <div><h2 class="text-xl font-black italic uppercase tracking-tighter" id="mName">ATLET</h2><p class="text-[10px] font-bold text-blue-400 uppercase mt-1" id="mInfo">INFO</p></div>
             <button onclick="closeModal()" class="text-3xl hover:text-red-400">&times;</button>
         </div>
-        <form method="POST" action="<?= getenv('APP_URL') ?>/swim/registration/store/<?= $event['id'] ?>" class="flex flex-col flex-1 overflow-hidden">
+        <form method="POST" action="<?= getenv('APP_URL') ?>/swim/user/registration/store/<?= $event['id'] ?>" class="flex flex-col flex-1 overflow-hidden">
             <input type="hidden" name="action" value="save_entries">
             <input type="hidden" name="swimmer_id" id="mSwimmerId">
             <div class="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-50" id="mBody"></div>

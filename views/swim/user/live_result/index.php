@@ -1,5 +1,5 @@
 <div class="max-w-6xl mx-auto">
-    <a href="<?= getenv('APP_URL') ?>/swim/pengumuman" class="inline-flex items-center text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-blue-600 transition mb-6">
+    <a href="<?= getenv('APP_URL') ?>/swim/user/pengumuman" class="inline-flex items-center text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-blue-600 transition mb-6">
         &larr; Kembali ke Pusat Informasi
     </a>
 

@@ -1,5 +1,5 @@
 <div class="mb-6 flex gap-3 items-center">
-    <a href="<?= getenv('APP_URL') ?>/swim/swimmers" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2 rounded-lg font-bold text-sm transition">⬅ Kembali</a>
+    <a href="<?= getenv('APP_URL') ?>/swim/user/swimmers" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2 rounded-lg font-bold text-sm transition">⬅ Kembali</a>
     <div>
         <h1 class="text-2xl font-black uppercase italic text-slate-900">Kelola Rekor Waktu</h1>
         <p class="text-xs font-bold text-slate-500 uppercase tracking-widest mt-1">Atlet: <?= htmlspecialchars($atlet['nama_atlet']) ?></p>
@@ -23,7 +23,7 @@
 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
     <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 h-fit">
         <h3 class="font-black text-sm uppercase mb-4 text-slate-800">Tambah Best Time</h3>
-        <form method="POST" action="<?= getenv('APP_URL') ?>/swim/athleteRecords/store/<?= $atlet['id'] ?>">
+        <form method="POST" action="<?= getenv('APP_URL') ?>/swim/user/athleteRecords/store/<?= $atlet['id'] ?>">
             <div class="grid grid-cols-2 gap-2 mb-3">
                 <div>
                     <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Jarak</label>
@@ -89,7 +89,7 @@
                             <td class="p-4 text-xs font-bold text-slate-500 align-middle"><?= date('d M Y', strtotime($r['tanggal_dicapai'])) ?></td>
                             <td class="p-4 text-center align-middle">
                                 <?php if($r['type'] === 'MANUAL'): ?>
-                                    <form action="<?= getenv('APP_URL') ?>/swim/athleteRecords/delete/<?= $atlet['id'] ?>/<?= $r['id'] ?>" method="POST" onsubmit="return confirm('Hapus rekor ini?');" class="inline m-0 p-0">
+                                    <form action="<?= getenv('APP_URL') ?>/swim/user/athleteRecords/delete/<?= $atlet['id'] ?>/<?= $r['id'] ?>" method="POST" onsubmit="return confirm('Hapus rekor ini?');" class="inline m-0 p-0">
                                         <button type="submit" class="text-red-500 bg-red-50 hover:bg-red-500 hover:text-white px-3 py-1.5 rounded-md text-xs font-bold transition border border-red-100">Hapus</button>
                                     </form>
                                 <?php else: ?>

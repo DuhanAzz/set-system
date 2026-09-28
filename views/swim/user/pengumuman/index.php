@@ -13,7 +13,7 @@
             <span class="text-6xl block mb-4 opacity-30">📭</span>
             <h2 class="text-lg font-black text-slate-500 uppercase italic mb-2">Belum Mengikuti Event</h2>
             <p class="text-sm text-slate-400 font-bold">Silakan daftar atlet Anda pada event yang tersedia di menu Jelajah Kompetisi.</p>
-            <a href="<?= getenv('APP_URL') ?>/swim/explore" class="inline-block mt-6 px-6 py-3 bg-blue-600 text-white font-black text-xs uppercase tracking-widest rounded-xl hover:bg-slate-900 transition">Mulai Jelajah &rarr;</a>
+            <a href="<?= getenv('APP_URL') ?>/swim/user/explore" class="inline-block mt-6 px-6 py-3 bg-blue-600 text-white font-black text-xs uppercase tracking-widest rounded-xl hover:bg-slate-900 transition">Mulai Jelajah &rarr;</a>
         </div>
     <?php else: ?>
         <div class="flex flex-col space-y-6">
@@ -83,7 +83,7 @@
                                 <?php endif; ?>
                             </div>
 
-                            <a href="<?= getenv('APP_URL') ?>/swim/recap_starting_list/<?= $e['event_id'] ?>" target="_blank" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white border border-blue-200 hover:border-blue-600 rounded text-[10px] font-black uppercase tracking-widest shadow-sm transition-colors">
+                            <a href="<?= getenv('APP_URL') ?>/swim/user/recap_starting_list/<?= $e['event_id'] ?>" target="_blank" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white border border-blue-200 hover:border-blue-600 rounded text-[10px] font-black uppercase tracking-widest shadow-sm transition-colors">
                                 📝 Rekap Starting List Personal
                             </a>
                         </div>
@@ -91,7 +91,7 @@
 
                     <div class="mt-4 flex justify-end">
                         <?php if ($e['is_result_published'] == 1): ?>
-                            <a href="<?= getenv('APP_URL') ?>/swim/live_result/index/<?= $e['event_id'] ?>" class="px-6 py-2.5 rounded-xl bg-slate-900 text-white hover:bg-blue-600 transition shadow-lg text-[10px] font-black tracking-widest uppercase whitespace-nowrap">
+                            <a href="<?= getenv('APP_URL') ?>/swim/user/live_result/index/<?= $e['event_id'] ?>" class="px-6 py-2.5 rounded-xl bg-slate-900 text-white hover:bg-blue-600 transition shadow-lg text-[10px] font-black tracking-widest uppercase whitespace-nowrap">
                                 <span class="animate-pulse mr-1">🏆</span> Live Result &rarr;
                             </a>
                         <?php else: ?>

@@ -79,7 +79,7 @@
                     </div>
 
                     <div class="mt-4 flex justify-end">
-                        <a href="<?= getenv('APP_URL') ?>/swim/explore/detail/<?= $comp['event_id'] ?>" class="px-6 py-2.5 rounded-xl bg-slate-900 text-white font-black uppercase text-[10px] tracking-widest hover:bg-blue-600 transition shadow-lg whitespace-nowrap">
+                        <a href="<?= getenv('APP_URL') ?>/swim/user/explore/detail/<?= $comp['event_id'] ?>" class="px-6 py-2.5 rounded-xl bg-slate-900 text-white font-black uppercase text-[10px] tracking-widest hover:bg-blue-600 transition shadow-lg whitespace-nowrap">
                             Info Lomba & Daftar &rarr;
                         </a>
                     </div>

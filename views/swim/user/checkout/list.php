@@ -69,7 +69,7 @@
                             Upload Bukti
                         </button>
                     <?php endif; ?>
-                    <a href="<?= getenv('APP_URL') ?>/swim/checkout/detail/<?= $b['event_id'] ?>" class="text-blue-600 bg-blue-50 px-6 py-3 rounded-xl font-black text-[10px] tracking-widest uppercase border border-blue-200 hover:bg-blue-600 hover:text-white transition shadow-sm">
+                    <a href="<?= getenv('APP_URL') ?>/swim/user/checkout/detail/<?= $b['event_id'] ?>" class="text-blue-600 bg-blue-50 px-6 py-3 rounded-xl font-black text-[10px] tracking-widest uppercase border border-blue-200 hover:bg-blue-600 hover:text-white transition shadow-sm">
                         Rincian
                     </a>
                 </td>
@@ -89,7 +89,7 @@
             <button onclick="document.getElementById('uploadModal').classList.add('hidden')" class="text-2xl text-slate-300 hover:text-red-500 transition outline-none">&times;</button>
         </div>
 
-        <form method="POST" id="uploadForm" action="<?= getenv('APP_URL') ?>/swim/checkout/upload_proof/" enctype="multipart/form-data" class="space-y-5">
+        <form method="POST" id="uploadForm" action="<?= getenv('APP_URL') ?>/swim/user/checkout/upload_proof/" enctype="multipart/form-data" class="space-y-5">
             <input type="hidden" name="from_list" value="1">
             
             <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100">

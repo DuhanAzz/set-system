@@ -62,7 +62,7 @@ class ExploreController extends Controller {
         $this->checkAccess();
 
         if (!$event_id) {
-            header("Location: " . getenv('APP_URL') . "/swim/explore");
+            header("Location: " . getenv('APP_URL') . "/swim/user/explore");
             exit;
         }
 
@@ -77,7 +77,7 @@ class ExploreController extends Controller {
 
         if (!$eventInfo) { 
             $_SESSION['flash_error'] = "Data Event tidak ditemukan.";
-            header("Location: " . getenv('APP_URL') . "/swim/explore");
+            header("Location: " . getenv('APP_URL') . "/swim/user/explore");
             exit;
         }
 

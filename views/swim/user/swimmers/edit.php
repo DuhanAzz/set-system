@@ -20,7 +20,7 @@
         </div>
     <?php endif; ?>
 
-    <form method="POST" action="<?= getenv('APP_URL') ?>/swim/swimmers/update/<?= $swimmer['id'] ?>">
+    <form method="POST" action="<?= getenv('APP_URL') ?>/swim/user/swimmers/update/<?= $swimmer['id'] ?>">
         <div class="mb-4">
             <label class="block text-xs font-bold text-slate-500 mb-2 uppercase">Nama Lengkap</label>
             <input type="text" name="nama_atlet" required value="<?= htmlspecialchars($swimmer['nama_atlet']) ?>" class="w-full border-2 border-slate-100 rounded-xl p-3 focus:border-blue-500 outline-none uppercase">
@@ -43,7 +43,7 @@
             <input type="text" name="asal_sekolah" value="<?= htmlspecialchars($swimmer['asal_sekolah'] ?? '') ?>" class="w-full border-2 border-slate-100 rounded-xl p-3 focus:border-blue-500 outline-none uppercase">
         </div>
         <div class="flex gap-4">
-            <a href="<?= getenv('APP_URL') ?>/swim/swimmers" class="w-1/3 text-center py-3 rounded-xl border border-slate-200 font-bold text-slate-500 hover:bg-slate-50 transition">Batal</a>
+            <a href="<?= getenv('APP_URL') ?>/swim/user/swimmers" class="w-1/3 text-center py-3 rounded-xl border border-slate-200 font-bold text-slate-500 hover:bg-slate-50 transition">Batal</a>
             <button type="submit" class="w-2/3 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl uppercase transition">Update Data</button>
         </div>
     </form>
