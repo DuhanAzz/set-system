@@ -555,9 +555,11 @@ function onSkaterChange(sel) {
             
             if (hasValidClass) {
                 catOption.style.display = '';
+                catOption.disabled = false;
                 catOption.innerText = catOption.dataset.originalName + ' (' + matchingKU + ')';
             } else {
                 catOption.style.display = 'none';
+                catOption.disabled = true;
                 catOption.innerText = catOption.dataset.originalName;
             }
         }
@@ -565,6 +567,7 @@ function onSkaterChange(sel) {
         // Reset category dropdown
         for (let i = 1; i < catSelect.options.length; i++) {
             catSelect.options[i].style.display = '';
+            catSelect.options[i].disabled = false;
             catSelect.options[i].innerText = catSelect.options[i].dataset.originalName;
         }
     }
