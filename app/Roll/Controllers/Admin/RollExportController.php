@@ -173,7 +173,6 @@ class RollExportController extends Controller {
               AND (ed.category_name != 'EKSEBISI' OR ed.category_name IS NULL)
               AND r.rank IN (1, 2, 3) 
               AND r.status = 'OK'
-              AND e.status = 'Finished'
             GROUP BY c.id
             ORDER BY gold DESC, silver DESC, bronze DESC, c.club_name ASC
         ");
@@ -197,7 +196,6 @@ class RollExportController extends Controller {
               AND (ed.category_name != 'EKSEBISI' OR ed.category_name IS NULL)
               AND r.rank IN (1, 2, 3) 
               AND r.status = 'OK'
-              AND (e.status = 'Finished' OR e.status = 'Qualified')
             GROUP BY s.id, s.skater_name, s.gender, s.birth_date, sc.class_name, ag.group_name, c.club_name
             ORDER BY sc.class_name ASC, ag.group_name ASC, s.gender ASC, 
                      gold DESC, silver DESC, bronze DESC, s.birth_date DESC, s.skater_name ASC

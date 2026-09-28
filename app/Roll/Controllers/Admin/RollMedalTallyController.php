@@ -49,12 +49,10 @@ class RollMedalTallyController extends Controller {
                   ORDER BY CASE round WHEN 'Kualifikasi' THEN 1 WHEN 'Perempat Final' THEN 2 WHEN 'Semi Final' THEN 3 WHEN 'Final' THEN 4 ELSE 5 END DESC 
                   LIMIT 1
               )
-              AND (e.status = 'Finished' OR e.status = 'Qualified')
             GROUP BY c.id, c.club_name
             ORDER BY gold DESC, silver DESC, bronze DESC, c.club_name ASC
         ");
-        // Catatan: e.status = 'Qualified' juga disertakan kalau ada sistem PTP/Eliminasi yang tidak sempat update menjadi 'Finished' namun sudah final.
-        // Untuk aman, biasanya hanya Finished. Namun di script awal Swim juga ada pengecekan serupa. 
+        // Catatan: e.status dihapus karena di sistem sepatu roda tidak semua kelas menggunakan fitur Finished.
         $stmtTally->execute([$eventId]);
         $medalTally = $stmtTally->fetchAll(PDO::FETCH_ASSOC);
 
@@ -93,8 +91,7 @@ class RollMedalTallyController extends Controller {
                             WHERE event_id = r.event_id AND race_class_id = r.race_class_id 
                             ORDER BY CASE round WHEN 'Kualifikasi' THEN 1 WHEN 'Perempat Final' THEN 2 WHEN 'Semi Final' THEN 3 WHEN 'Final' THEN 4 ELSE 5 END DESC 
                             LIMIT 1
-                        )
-                        AND (e.status = 'Finished' OR e.status = 'Qualified')";
+                        )";
         
         if (!empty($category)) {
             $whereClause .= " AND sc.class_name = ?";
