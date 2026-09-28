@@ -477,7 +477,7 @@ class RollPelotonController extends Controller {
             // 3. Tarik atlet 
             // Untuk saat ini, asumsikan semua atlet Paid masuk (ke depannya jika babak = Final, filter berdasarkan hasil babak sebelumnya)
             $stmtAthletes = $db->prepare("
-                SELECT DISTINCT e.skater_id, e.club_id, e.team_name
+                SELECT DISTINCT e.skater_id, s.club_id, e.team_name
                 FROM roll_entries e
                 JOIN roll_skaters s ON e.skater_id = s.id
                 LEFT JOIN roll_payments pay ON pay.club_id = s.club_id AND pay.event_id = e.event_id AND (e.is_manual = 0 OR e.is_manual IS NULL)
@@ -525,15 +525,15 @@ class RollPelotonController extends Controller {
                         $heatIndex++;
                         if ($heatIndex > $totalHeats) $heatIndex = 1;
                     }
-                } else {
-                    // 4. Pengelompokan Klub (Distributed Random)
+                } else { // 'distributed'
+                    // Kelompokkan per klub (dan per tim untuk relay)
                     $clubGroups = [];
                     foreach ($athletes as $a) {
                         $cId = $a['club_id'] ?? 0;
                         if (!isset($clubGroups[$cId])) $clubGroups[$cId] = [];
                         
                         $tName = trim($a['team_name'] ?? '');
-                        if (!empty($tName)) {
+                        if ($teamSize > 1 && !empty($tName)) {
                             if (!isset($clubGroups[$cId]['teams'])) $clubGroups[$cId]['teams'] = [];
                             if (!isset($clubGroups[$cId]['teams'][$tName])) $clubGroups[$cId]['teams'][$tName] = [];
                             $clubGroups[$cId]['teams'][$tName][] = $a['skater_id'];
@@ -550,7 +550,6 @@ class RollPelotonController extends Controller {
                             foreach ($groups['teams'] as $tName => $tMembers) {
                                 $chunks = array_chunk($tMembers, $teamSize);
                                 foreach ($chunks as $c) {
-                                    // Hanya masukkan jika jumlah anggota genap sesuai kebutuhan tim
                                     if (count($c) == $teamSize) {
                                         $clubTeams[$cId][] = $c;
                                     }
@@ -558,37 +557,62 @@ class RollPelotonController extends Controller {
                             }
                         }
                         if (isset($groups['no_team'])) {
-                            shuffle($groups['no_team']);
-                            
-                            $fullTeamsCount = floor(count($groups['no_team']) / $teamSize);
-                            for ($i = 0; $i < $fullTeamsCount; $i++) {
-                                $clubTeams[$cId][] = array_slice($groups['no_team'], $i * $teamSize, $teamSize);
+                            $chunks = array_chunk($groups['no_team'], $teamSize);
+                            foreach ($chunks as $c) {
+                                if (count($c) == $teamSize) {
+                                    $clubTeams[$cId][] = $c;
+                                }
                             }
-                            // Sisa atlet (remainder) yang tidak mencukupi 1 tim akan dibuang / diabaikan
-                        }
-                        shuffle($clubTeams[$cId]);
-                        
-                        // Bersihkan klub yang ternyata tidak memiliki tim penuh sama sekali
-                        if (empty($clubTeams[$cId])) {
-                            unset($clubTeams[$cId]);
                         }
                     }
 
-                    // Urutkan klub berdasarkan jumlah TIM terbanyak ke tersedikit
-                    uasort($clubTeams, function($a, $b) {
-                        return count($b) - count($a);
-                    });
-                    
-                    // 5. Hitung jumlah Seri (Heats)
-                    if ($mechanism === 'starting_list') {
-                        $totalHeats = 1;
+                    if ($teamSize > 1) {
+                        // Jika relay/pair, datanya sudah berbentuk chunk dari atas
+                        $flatTeams = [];
+                        foreach ($clubTeams as $cId => $tms) {
+                            foreach ($tms as $t) {
+                                $flatTeams[] = $t;
+                            }
+                        }
+                        
+                        // Bentuk heats seperti biasa
+                        if ($mechanism === 'starting_list') {
+                            $totalHeats = 1;
+                        } else {
+                            $totalHeats = ceil(count($flatTeams) / $maxLanes);
+                        }
+                        
+                        $heatsAssigned = array_fill(1, $totalHeats, []);
+                        $heatIndex = 1;
+                        foreach ($flatTeams as $teamMembers) {
+                            foreach ($teamMembers as $skaterId) {
+                                $heatsAssigned[$heatIndex][] = $skaterId;
+                            }
+                            $heatIndex++;
+                            if ($heatIndex > $totalHeats) $heatIndex = 1;
+                        }
                     } else {
-                        $totalTeamsCount = 0;
-                        foreach ($clubTeams as $teams) $totalTeamsCount += count($teams);
-                        $totalHeats = ceil($totalTeamsCount / $maxLanes);
-                    }
-                    
-                    $heatsAssigned = array_fill(1, $totalHeats, []);
+                        // Untuk individu, urutkan klub berdasarkan jumlah partisipan
+                        foreach ($clubTeams as $cId => &$members) {
+                            shuffle($members);
+                        }
+                        unset($members);
+
+                        uasort($clubTeams, function($a, $b) {
+                            return count($b) - count($a);
+                        });
+                        
+                        // Hitung total heats
+                        if ($mechanism === 'starting_list') {
+                            $totalHeats = 1;
+                        } else {
+                            $totalTeamsCount = 0;
+                            foreach ($clubTeams as $teams) $totalTeamsCount += count($teams);
+                            $totalHeats = ceil($totalTeamsCount / $maxLanes);
+                        }
+                        
+                        $heatsAssigned = array_fill(1, $totalHeats, []);
+
                     
                     // Sebar setiap tim dari masing-masing klub secara round-robin
                     $heatIndex = 1;
@@ -603,6 +627,7 @@ class RollPelotonController extends Controller {
                             }
                         }
                     }
+                }
                 }
 
                 // 7. Simpan ke Database
