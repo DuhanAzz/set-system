@@ -91,12 +91,12 @@
     <?php else: ?>
 
         <?php
-        $verifiedInvoices = array_filter($invoices, fn($inv) => $inv['status'] === 'Paid');
-        $unverifiedInvoices = array_filter($invoices, fn($inv) => $inv['status'] !== 'Paid');
+        $terkirimInvoices = array_filter($invoices, fn($inv) => $inv['status'] !== 'Unpaid');
+        $drafInvoices = array_filter($invoices, fn($inv) => $inv['status'] === 'Unpaid');
         
         $tables = [
-            'Belum Terverifikasi' => $unverifiedInvoices,
-            'Terverifikasi' => $verifiedInvoices,
+            'Terkirim <span class="text-xs text-slate-400 font-bold normal-case">*Sudah mengirim (terverifikasi/belum terverifikasi)</span>' => $terkirimInvoices,
+            'Draf <span class="text-xs text-slate-400 font-bold normal-case">*Belum mengirimkan ke admin</span>' => $drafInvoices,
         ];
         ?>
 
@@ -199,14 +199,14 @@
                                 </a>
 
                                 <?php if($status === 'Paid'): ?>
-                                    <form method="POST" action="<?= getenv('APP_URL') ?>/roll/admin/entries/manual_invoice_action" class="inline" onsubmit="return confirm('Batal Verifikasi Lunas? Status akan kembali Pending.');">
+                                    <form method="POST" action="<?= getenv('APP_URL') ?>/roll/admin/entries/manual_invoice_action" class="inline" onsubmit="return confirm('Batal Verifikasi Lunas? Status akan kembali Unpaid.');">
                                         <input type="hidden" name="id" value="<?= $inv['id'] ?>">
                                         <input type="hidden" name="action" value="rollback">
                                         <button type="submit" class="px-3 py-2 rounded-lg bg-orange-50 text-orange-600 border border-orange-200 hover:bg-orange-500 hover:text-white text-[9px] font-black uppercase transition" title="Batal Verifikasi">
                                             ⏪ Batal
                                         </button>
                                     </form>
-                                <?php else: ?>
+                                <?php elseif($status === 'Pending' || $status === 'Unpaid'): ?>
                                     <form method="POST" action="<?= getenv('APP_URL') ?>/roll/admin/entries/manual_invoice_action" class="inline" onsubmit="return confirm('Tolak Pembayaran ini?');">
                                         <input type="hidden" name="id" value="<?= $inv['id'] ?>">
                                         <input type="hidden" name="action" value="reject">
