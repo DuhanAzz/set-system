@@ -172,8 +172,15 @@ class MaintenanceController extends Controller {
                 try {
                     $pdo->beginTransaction();
 
-                    $stmtUpdate = $pdo->prepare("UPDATE swim_swimmers SET club_id = ? WHERE club_id = ?");
-                    $stmtUpdate->execute([$targetId, $sourceId]);
+                    $stmtUser = $pdo->prepare("SELECT user_id FROM swim_clubs WHERE id = ?");
+                    $stmtUser->execute([$sourceId]);
+                    $sourceUserId = $stmtUser->fetchColumn();
+
+                    $stmtUser->execute([$targetId]);
+                    $targetUserId = $stmtUser->fetchColumn();
+
+                    $stmtUpdate = $pdo->prepare("UPDATE swim_swimmers SET user_id = ? WHERE user_id = ?");
+                    $stmtUpdate->execute([$targetUserId, $sourceUserId]);
                     $countMoved = $stmtUpdate->rowCount();
 
                     $stmtName = $pdo->prepare("SELECT nama_klub FROM swim_clubs WHERE id = ?");
@@ -184,6 +191,9 @@ class MaintenanceController extends Controller {
                     $clubNameTarget = $stmtName->fetchColumn();
 
                     $pdo->prepare("DELETE FROM swim_clubs WHERE id = ?")->execute([$sourceId]);
+                    if ($sourceUserId) {
+                        $pdo->prepare("DELETE FROM swim_users WHERE id = ?")->execute([$sourceUserId]);
+                    }
                     $userId = $_SESSION['swim_user_id'] ?? $_SESSION['user_id'] ?? 0;
                     writeLog($pdo, $userId, 'MERGE_CLUB', $targetId, "Menggabungkan '$clubNameSource' ke '$clubNameTarget'. $countMoved atlet dipindahkan.");
 

@@ -107,7 +107,7 @@
 
                             <td class="px-6 py-4 text-center">
                                 <?php if(!empty($p['admin_file_path'])): ?>
-                                    <a href="<?= getenv('APP_URL') ?>/uploads/admin_files/<?= htmlspecialchars($p['admin_file_path']) ?>" target="_blank" class="bg-purple-50 text-purple-600 hover:bg-purple-100 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wide border border-purple-100 inline-flex items-center gap-1 transition">
+                                    <a href="<?= getenv('APP_URL') ?>/public/uploads/admin_files/<?= htmlspecialchars($p['admin_file_path']) ?>" target="_blank" class="bg-purple-50 text-purple-600 hover:bg-purple-100 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wide border border-purple-100 inline-flex items-center gap-1 transition">
                                         🧾 Inv
                                     </a>
                                 <?php else: ?>
