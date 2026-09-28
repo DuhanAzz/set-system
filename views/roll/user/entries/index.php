@@ -493,16 +493,15 @@ function onSkaterChange(sel) {
         const age = parseInt(sel.dataset.age);
         const gender = sel.dataset.gender;
         
-        // Cek level atlet saat ini
-        let athleteLevel = opt.dataset.level || 'pemula';
-        if (opt.dataset.isPon == '1') athleteLevel = 'speed';
-        
-        let eGroup = athleteLevel;
+        // Cek riwayat lomba untuk menentukan level secara dinamis (jika atlet baru belum punya level di database)
+        let eGroup = '';
         let hasSpeed = false, hasPemula = false, hasStandar = false;
+        let hasAnyEntry = false;
         
         if (typeof existingEntriesData !== 'undefined') {
             existingEntriesData.forEach(e => {
-                if (e.skater_id == opt.value && e.skate_class) {
+                if (e.skater_id == opt.value && e.skate_class && (!e.team_name || e.team_name === '')) {
+                    hasAnyEntry = true;
                     const eCatStr = (e.skate_class || '').toLowerCase();
                     if (eCatStr.includes('speed')) hasSpeed = true;
                     else if (eCatStr.includes('standar')) hasStandar = true;
@@ -511,8 +510,15 @@ function onSkaterChange(sel) {
             });
         }
         
-        if (hasSpeed) eGroup = 'speed';
-        else if (hasStandar && eGroup !== 'speed') eGroup = 'standar';
+        if (hasAnyEntry) {
+            eGroup = opt.dataset.level || 'pemula';
+            if (hasSpeed) eGroup = 'speed';
+            else if (hasStandar && eGroup !== 'speed') eGroup = 'standar';
+        }
+        
+        if (opt.dataset.isPon == '1') {
+            eGroup = 'speed';
+        }
         
         // Filter category dropdown
         for (let i = 1; i < catSelect.options.length; i++) {
@@ -612,13 +618,13 @@ function filterClasses() {
         const gender = skaterSelect.dataset.gender || '';
         
         let eGroup = '';
-        let hasSpeed = false;
-        let hasPemula = false;
-        let hasStandar = false;
+        let hasSpeed = false, hasPemula = false, hasStandar = false;
+        let hasAnyEntry = false;
         
         if (typeof existingEntriesData !== 'undefined') {
             existingEntriesData.forEach(e => {
-                if (e.skater_id == skaterId && e.skate_class) {
+                if (e.skater_id == skaterId && e.skate_class && (!e.team_name || e.team_name === '')) {
+                    hasAnyEntry = true;
                     const eCatStr = (e.skate_class || '').toLowerCase();
                     if (eCatStr.includes('speed')) hasSpeed = true;
                     else if (eCatStr.includes('standar')) hasStandar = true;
@@ -627,20 +633,17 @@ function filterClasses() {
             });
         }
 
-        let athleteLevel = 'pemula';
         if (skaterSelect && skaterSelect.options && skaterSelect.selectedIndex >= 0) {
             const opt = skaterSelect.options[skaterSelect.selectedIndex];
-            if (opt && opt.dataset && opt.dataset.level) {
-                athleteLevel = opt.dataset.level;
+            if (hasAnyEntry) {
+                eGroup = (opt && opt.dataset && opt.dataset.level) ? opt.dataset.level : 'pemula';
+                if (hasSpeed) eGroup = 'speed';
+                else if (hasStandar && eGroup !== 'speed') eGroup = 'standar';
             }
             if (opt && opt.dataset && opt.dataset.isPon == '1') {
-                athleteLevel = 'speed'; // PON veterans are automatically forced to Speed
+                eGroup = 'speed';
             }
         }
-        eGroup = athleteLevel;
-        
-        if (hasSpeed) eGroup = 'speed';
-        else if (hasStandar && eGroup !== 'speed') eGroup = 'standar';
         
         let targetGroupForLimit = '';
         let catNameText = '';
