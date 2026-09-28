@@ -150,7 +150,7 @@ function downloadExport(type) {
     const limit = document.getElementById('limitSelect').value;
     const rankMode = document.getElementById('rankSplit').checked ? 'SPLIT' : 'OVERALL';
     
-    let baseUrl = type === 'canva' ? '<?= getenv('APP_URL') ?>/swim/export/download_canva' : '<?= getenv('APP_URL') ?>/swim/export/download_report';
+    let baseUrl = type === 'canva' ? '<?= getenv('APP_URL') ?>/swim/admin/export/download_canva' : '<?= getenv('APP_URL') ?>/swim/admin/export/download_report';
     let params = `?event_id=${eventId}&ku=${encodeURIComponent(ku)}&team=${encodeURIComponent(team)}&limit=${limit}&rank_mode=${rankMode}`;
     
     // Konfigurasi Checkbox Khusus Laporan

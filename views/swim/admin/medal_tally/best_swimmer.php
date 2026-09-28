@@ -82,17 +82,17 @@ $filter_gender = $_GET['gender'] ?? 'all';
             <p class="text-xs text-slate-500">Pilih mode tampilan:</p>
         </div>
         <div class="flex gap-2 bg-slate-100 p-1 rounded-lg">
-            <a href="<?= getenv('APP_URL') ?>/swim/medal_tally?team_source=<?= htmlspecialchars($team_source) ?>" class="text-gray-500 hover:text-gray-700 px-4 py-1.5 rounded text-xs font-bold uppercase transition">
+            <a href="<?= getenv('APP_URL') ?>/swim/admin/medal_tally?team_source=<?= htmlspecialchars($team_source) ?>" class="text-gray-500 hover:text-gray-700 px-4 py-1.5 rounded text-xs font-bold uppercase transition">
                 🏆 Juara Umum (Tim)
             </a>
-            <a href="<?= getenv('APP_URL') ?>/swim/medal_tally/best_swimmer?team_source=<?= htmlspecialchars($team_source) ?>" class="bg-white shadow text-blue-700 px-4 py-1.5 rounded text-xs font-bold uppercase transition">
+            <a href="<?= getenv('APP_URL') ?>/swim/admin/medal_tally/best_swimmer?team_source=<?= htmlspecialchars($team_source) ?>" class="bg-white shadow text-blue-700 px-4 py-1.5 rounded text-xs font-bold uppercase transition">
                 🏊‍♂️ Perenang Terbaik
             </a>
         </div>
     </div>
 
     <div class="bg-white p-4 rounded-xl shadow border border-blue-100">
-        <form method="GET" class="space-y-4" action="<?= getenv('APP_URL') ?>/swim/medal_tally/best_swimmer">
+        <form method="GET" class="space-y-4" action="<?= getenv('APP_URL') ?>/swim/admin/medal_tally/best_swimmer">
             <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
                 <div class="md:col-span-5 flex flex-col gap-1">
                     <label class="text-[10px] font-bold text-slate-400 uppercase">Pilih Kelompok Umur</label>
