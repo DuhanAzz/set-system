@@ -6,7 +6,7 @@
         </div>
 
         <div class="flex flex-col md:flex-row gap-3 w-full md:w-auto">
-            <a href="<?= getenv('APP_URL') ?>/swim/export" class="px-5 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs uppercase tracking-wider shadow-lg hover:shadow-emerald-200 transition flex items-center justify-center gap-2 group">
+            <a href="<?= getenv('APP_URL') ?>/swim/admin/export" class="px-5 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs uppercase tracking-wider shadow-lg hover:shadow-emerald-200 transition flex items-center justify-center gap-2 group">
                 <span class="group-hover:translate-y-0.5 transition-transform">📥</span> Download Full Hasil
             </a>
         </div>

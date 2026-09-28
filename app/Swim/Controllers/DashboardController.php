@@ -303,14 +303,14 @@ class DashboardController extends Controller {
         $role = strtolower($_SESSION['swim_role'] ?? '');
         switch ($role) {
             case 'master':
-                header('Location: ' . getenv('APP_URL') . '/swim/dashboard/master');
+                header('Location: ' . getenv('APP_URL') . '/swim/master/dashboard');
                 break;
             case 'admin':
-                header('Location: ' . getenv('APP_URL') . '/swim/dashboard/admin');
+                header('Location: ' . getenv('APP_URL') . '/swim/admin/dashboard');
                 break;
             case 'user':
             case 'club':
-                header('Location: ' . getenv('APP_URL') . '/swim/dashboard/user');
+                header('Location: ' . getenv('APP_URL') . '/swim/user/dashboard');
                 break;
             default:
                 header('Location: ' . getenv('APP_URL') . '/swim/login');
