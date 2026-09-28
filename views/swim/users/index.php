@@ -179,7 +179,7 @@
             <div><h3 id="modal-title" class="font-black uppercase tracking-widest italic text-lg leading-none">Tambah Akun</h3></div>
             <button onclick="closeModal()" class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-red-500 transition">✕</button>
         </div>
-        <form method="POST" class="p-8 space-y-6">
+        <form action="<?= getenv('APP_URL') ?>/swim/master/users/store" method="POST" class="p-8 space-y-6">
             <input type="hidden" name="save_user" value="1">
             <input type="hidden" name="user_id" id="form-id">
             <input type="hidden" name="role_type" value="<?= $targetRole ?>">

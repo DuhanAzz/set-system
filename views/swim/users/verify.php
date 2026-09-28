@@ -1,7 +1,7 @@
 <div class="font-sans">
     
     <div class="mb-8">
-        <a href="/swim/users/index?role=<?= $user['role'] ?>" class="text-blue-600 font-bold text-sm hover:underline flex items-center gap-2 w-max">
+        <a href="<?= getenv('APP_URL') ?>/swim/master/users?role=<?= $user['role'] ?>" class="text-blue-600 font-bold text-sm hover:underline flex items-center gap-2 w-max">
             <span class="text-lg">&larr;</span> Kembali ke Daftar Pengguna
         </a>
     </div>
