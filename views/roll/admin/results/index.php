@@ -71,7 +71,7 @@
                                 <div class="bg-slate-800 text-white font-black text-sm px-4 py-2 rounded-lg shadow-sm">R<?= $raceNum ?></div>
                                 <div>
                                     <div class="text-sm font-black text-slate-800 uppercase tracking-widest">
-                                        <?= htmlspecialchars($ev['distance_name']) ?> - <?= htmlspecialchars($ev['group_name']) ?> <?= $genderLabel ?>
+                                        <?= htmlspecialchars($ev['distance_name']) ?> - <?= htmlspecialchars($ev['custom_name'] ?? $ev['group_name']) ?> <?= $genderLabel ?>
                                     </div>
                                     <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1 flex items-center gap-2">
                                         <span class="bg-blue-50 text-blue-600 border border-blue-200 px-2 py-0.5 rounded">
@@ -140,7 +140,7 @@
                         <?php endif; ?>
                     </div>
                     <div class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1 truncate">
-                        <?= htmlspecialchars($raceInfo['group_name'] ?? '') ?> - <?= $hdrGenderLabel ?> &bull; <span class="text-slate-300"><?= htmlspecialchars($raceInfo['skate_class_name'] ?? 'Umum') ?></span>
+                        <?= htmlspecialchars($raceInfo['custom_name'] ?? $raceInfo['group_name'] ?? '') ?> - <?= $hdrGenderLabel ?> &bull; <span class="text-slate-300"><?= htmlspecialchars($raceInfo['skate_class_name'] ?? 'Umum') ?></span>
                     </div>
                 </div>
             </div>
