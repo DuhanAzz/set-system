@@ -23,15 +23,27 @@ class SwimmersController extends Controller {
     public function index() {
         $this->checkAccess();
         
+        $search = $_GET['search'] ?? '';
         $role = $_SESSION['swim_role'];
+        
         if ($role === 'user') {
             $uid = $_SESSION['swim_user_id'];
-            $stmt = $this->db->prepare("SELECT s.*, c.nama_klub FROM swim_swimmers s LEFT JOIN swim_clubs c ON s.user_id = c.user_id WHERE s.user_id = ? ORDER BY s.id DESC");
-            $stmt->execute([$uid]);
+            if (!empty($search)) {
+                $stmt = $this->db->prepare("SELECT s.*, c.nama_klub FROM swim_swimmers s LEFT JOIN swim_clubs c ON s.user_id = c.user_id WHERE s.user_id = ? AND (s.nama_atlet LIKE ? OR c.nama_klub LIKE ?) ORDER BY s.id DESC");
+                $stmt->execute([$uid, "%$search%", "%$search%"]);
+            } else {
+                $stmt = $this->db->prepare("SELECT s.*, c.nama_klub FROM swim_swimmers s LEFT JOIN swim_clubs c ON s.user_id = c.user_id WHERE s.user_id = ? ORDER BY s.id DESC");
+                $stmt->execute([$uid]);
+            }
         } else {
             // Master / Admin melihat semua atlet
-            $stmt = $this->db->prepare("SELECT s.*, c.nama_klub FROM swim_swimmers s LEFT JOIN swim_clubs c ON s.user_id = c.user_id ORDER BY s.id DESC");
-            $stmt->execute();
+            if (!empty($search)) {
+                $stmt = $this->db->prepare("SELECT s.*, c.nama_klub FROM swim_swimmers s LEFT JOIN swim_clubs c ON s.user_id = c.user_id WHERE s.nama_atlet LIKE ? OR c.nama_klub LIKE ? ORDER BY s.id DESC");
+                $stmt->execute(["%$search%", "%$search%"]);
+            } else {
+                $stmt = $this->db->prepare("SELECT s.*, c.nama_klub FROM swim_swimmers s LEFT JOIN swim_clubs c ON s.user_id = c.user_id ORDER BY s.id DESC");
+                $stmt->execute();
+            }
         }
         $swimmers = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -53,12 +65,14 @@ class SwimmersController extends Controller {
         if (isset($_SESSION['swim_role']) && $_SESSION['swim_role'] === 'master') {
             $this->view('swim/master/swimmers/index', [
                 'swimmers' => $swimmers,
+                'search' => $search,
                 'success' => $_SESSION['flash_success'] ?? null,
                 'error' => $_SESSION['flash_error'] ?? null
             ]);
         } else {
             $this->view('swim/user/swimmers/index', [
                 'swimmers' => $swimmers,
+                'search' => $search,
                 'success' => $_SESSION['flash_success'] ?? null,
                 'error' => $_SESSION['flash_error'] ?? null
             ]);
