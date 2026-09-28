@@ -71,14 +71,14 @@
                         
                         <div class="flex items-center gap-2">
                             <?php if($row['entry_status'] == 'Pending'): ?>
-                                <form method="POST" action="<?= getenv('APP_URL') ?>/swim/relay/verify" class="inline">
+                                <form method="POST" action="<?= getenv('APP_URL') ?>/swim/admin/relay/verify" class="inline">
                                     <input type="hidden" name="relay_id" value="<?= $row['relay_id'] ?>">
                                     <input type="hidden" name="action" value="approve">
                                     <button type="submit" class="px-4 py-2 rounded-lg bg-emerald-600 text-white font-bold text-xs uppercase hover:bg-emerald-700 transition shadow-lg shadow-emerald-200 flex items-center gap-1">
                                         ✅ Setuju
                                     </button>
                                 </form>
-                                <form method="POST" action="<?= getenv('APP_URL') ?>/swim/relay/verify" class="inline" onsubmit="return confirm('Tolak tim estafet ini?');">
+                                <form method="POST" action="<?= getenv('APP_URL') ?>/swim/admin/relay/verify" class="inline" onsubmit="return confirm('Tolak tim estafet ini?');">
                                     <input type="hidden" name="relay_id" value="<?= $row['relay_id'] ?>">
                                     <input type="hidden" name="action" value="reject">
                                     <button type="submit" class="px-3 py-2 rounded-lg bg-red-100 text-red-600 font-bold text-xs uppercase hover:bg-red-200 transition shadow-sm">
@@ -86,7 +86,7 @@
                                     </button>
                                 </form>
                             <?php else: ?>
-                                <form method="POST" action="<?= getenv('APP_URL') ?>/swim/relay/verify" class="inline" onsubmit="return confirm('Batalkan verifikasi estafet (Rollback ke Pending)?');">
+                                <form method="POST" action="<?= getenv('APP_URL') ?>/swim/admin/relay/verify" class="inline" onsubmit="return confirm('Batalkan verifikasi estafet (Rollback ke Pending)?');">
                                     <input type="hidden" name="relay_id" value="<?= $row['relay_id'] ?>">
                                     <input type="hidden" name="action" value="rollback">
                                     <button type="submit" class="px-4 py-2 rounded-lg bg-slate-200 text-slate-700 font-bold text-[10px] uppercase hover:bg-slate-300 transition shadow-sm">

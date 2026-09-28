@@ -44,7 +44,7 @@ document.addEventListener('DOMContentLoaded', function() {
             addLog("SELESAI! Semua nomor telah di-seeding.");
             progressText.innerText = "100%";
             setTimeout(() => {
-                window.location.href = '<?= getenv("APP_URL") ?>/swim/seeding/index?event_id=<?= $targetEventId ?>'; 
+                window.location.href = '<?= getenv("APP_URL") ?>/swim/admin/seeding/index?event_id=<?= $targetEventId ?>'; 
             }, 1500);
             return;
         }
@@ -57,7 +57,7 @@ document.addEventListener('DOMContentLoaded', function() {
         addLog("Processing: " + eventName + "...");
 
         try {
-            const response = await fetch("<?= getenv('APP_URL') ?>/swim/seeding/process?category_id=" + ev.id);
+            const response = await fetch("<?= getenv('APP_URL') ?>/swim/admin/seeding/process?category_id=" + ev.id);
             const data = await response.json();
             
             if (data.success) {
@@ -80,7 +80,7 @@ document.addEventListener('DOMContentLoaded', function() {
         addLog("TIDAK ADA NOMOR LOMBA UNTUK EVENT INI!");
         progressText.innerText = "100%";
         setTimeout(() => {
-            window.location.href = '<?= getenv("APP_URL") ?>/swim/seeding/index?event_id=<?= $targetEventId ?>'; 
+            window.location.href = '<?= getenv("APP_URL") ?>/swim/admin/seeding/index?event_id=<?= $targetEventId ?>'; 
         }, 2000);
     }
 });

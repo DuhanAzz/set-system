@@ -30,7 +30,7 @@
         
         <div class="bg-indigo-900 text-white p-6 rounded-[2rem] shadow-xl relative overflow-hidden">
             <h3 class="font-black uppercase text-sm text-indigo-300 mb-4 tracking-widest relative z-10">⚙️ Aturan Biaya</h3>
-            <form action="<?= getenv('APP_URL') ?>/swim/events/update_pricing" method="POST" class="relative z-10 grid md:grid-cols-2 gap-6">
+            <form action="<?= getenv('APP_URL') ?>/swim/admin/events/update_pricing" method="POST" class="relative z-10 grid md:grid-cols-2 gap-6">
                 <input type="hidden" name="action" value="update_pricing">
                 <div>
                     <label class="block text-[10px] font-bold text-indigo-300 uppercase mb-2">Metode</label>
@@ -63,7 +63,7 @@
             <div class="lg:col-span-4 space-y-6">
                 <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-200">
                     <h3 class="font-black uppercase text-xs text-slate-400 mb-4 tracking-widest">1. Buat Kelompok Umur</h3>
-                    <form action="<?= getenv('APP_URL') ?>/swim/events/add_ku" method="POST" class="space-y-4">
+                    <form action="<?= getenv('APP_URL') ?>/swim/admin/events/add_ku" method="POST" class="space-y-4">
                         <input type="hidden" name="action" value="add_ku">
                         <div><input type="text" name="group_name" placeholder="Nama Group (e.g., KU 1)" class="w-full font-bold text-sm border-b-2 border-slate-200 focus:border-blue-600 outline-none py-2 uppercase" required></div>
                         <div class="flex gap-2">
@@ -86,7 +86,7 @@
                                     <h4 class="font-black text-sm text-slate-700"><?= htmlspecialchars($ku['group_name']) ?></h4>
                                     <p class="text-[10px] font-bold text-slate-400"><?= $ku['min_age'] ?> - <?= $ku['max_age'] ?> Th</p>
                                 </div>
-                                <form action="<?= getenv('APP_URL') ?>/swim/events/delete_ku" method="POST" onsubmit="return confirm('Hapus KU ini?');">
+                                <form action="<?= getenv('APP_URL') ?>/swim/admin/events/delete_ku" method="POST" onsubmit="return confirm('Hapus KU ini?');">
                                     <input type="hidden" name="action" value="delete_ku">
                                     <input type="hidden" name="id" value="<?= $ku['id'] ?>">
                                     <button type="submit" class="text-slate-300 hover:text-red-500 font-bold text-lg px-2">&times;</button>
@@ -104,7 +104,7 @@
                     <div class="absolute top-0 right-0 p-4 opacity-5 text-8xl rotate-12">🏊</div>
                     <h3 class="font-black uppercase text-xs text-blue-600 mb-6 tracking-widest relative z-10">2. Buat Nomor Lomba Baru</h3>
                     
-                    <form action="<?= getenv('APP_URL') ?>/swim/events/store" method="POST" class="relative z-10">
+                    <form action="<?= getenv('APP_URL') ?>/swim/admin/events/store" method="POST" class="relative z-10">
                         <input type="hidden" name="action" value="add_event">
                         
                         <div class="grid grid-cols-12 gap-4 mb-4">
@@ -246,7 +246,7 @@
                                                 <?= $ev['age_group'] ?>
                                             </span>
                                             
-                                            <form action="<?= getenv('APP_URL') ?>/swim/events/update" method="POST" class="flex gap-1 ml-2 opacity-50 group-hover:opacity-100 transition">
+                                            <form action="<?= getenv('APP_URL') ?>/swim/admin/events/update" method="POST" class="flex gap-1 ml-2 opacity-50 group-hover:opacity-100 transition">
                                                 <input type="hidden" name="action" value="quick_update_schedule">
                                                 <input type="hidden" name="id" value="<?= $ev['id'] ?>">
                                                 <input type="date" name="schedule_date" value="<?= $ev['schedule_date'] ?>" class="w-24 text-[10px] bg-white border border-slate-200 rounded px-1 py-0.5">
@@ -258,7 +258,7 @@
                                 </div>
 
                                 <div class="flex items-center gap-3">
-                                    <form action="<?= getenv('APP_URL') ?>/swim/events/delete" method="POST" onsubmit="return confirm('Hapus Nomor <?= $ev['event_number'] ?>?');">
+                                    <form action="<?= getenv('APP_URL') ?>/swim/admin/events/delete" method="POST" onsubmit="return confirm('Hapus Nomor <?= $ev['event_number'] ?>?');">
                                         <input type="hidden" name="action" value="delete_event">
                                         <input type="hidden" name="id" value="<?= $ev['id'] ?>">
                                         <button type="submit" class="text-slate-300 hover:text-red-500 font-bold text-sm bg-white border border-slate-200 hover:bg-red-50 hover:border-red-200 px-3 py-2 rounded-xl transition">Hapus</button>

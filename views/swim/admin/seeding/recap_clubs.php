@@ -6,7 +6,7 @@
             <h1 class="text-3xl font-black uppercase tracking-tighter italic text-slate-900 leading-none">Recap Starting List</h1>
             <p class="text-sm text-slate-500 font-bold uppercase tracking-widest mt-2"><?= htmlspecialchars($event['event_name']) ?></p>
         </div>
-        <a href="<?= getenv("APP_URL") ?>/swim/seeding/index?event_id=<?= $event_id ?>" class="px-6 py-3 bg-white text-slate-600 rounded-xl font-bold text-xs uppercase border border-slate-200 hover:bg-slate-50 transition shadow-sm inline-flex items-center gap-2">
+        <a href="<?= getenv("APP_URL") ?>/swim/admin/seeding/index?event_id=<?= $event_id ?>" class="px-6 py-3 bg-white text-slate-600 rounded-xl font-bold text-xs uppercase border border-slate-200 hover:bg-slate-50 transition shadow-sm inline-flex items-center gap-2">
             🔙 Kembali
         </a>
     </div>
@@ -37,7 +37,7 @@
                                     <?= $c['total_atlet'] ?>
                                 </td>
                                 <td class="py-4 px-6 text-right">
-                                    <a href="<?= getenv("APP_URL") ?>/swim/seeding/printRecapClub?event_id=<?= $event_id ?>&club_id=<?= $c['club_user_id'] ?>" target="_blank" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-600 hover:text-white rounded-lg text-[10px] font-black uppercase tracking-widest transition shadow-sm">
+                                    <a href="<?= getenv("APP_URL") ?>/swim/admin/seeding/printRecapClub?event_id=<?= $event_id ?>&club_id=<?= $c['club_user_id'] ?>" target="_blank" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-600 hover:text-white rounded-lg text-[10px] font-black uppercase tracking-widest transition shadow-sm">
                                         👁️ View
                                     </a>
                                 </td>

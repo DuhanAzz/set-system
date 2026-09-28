@@ -13,7 +13,7 @@
         ?>
         
         <div class="flex flex-wrap items-start gap-3">
-            <a href="<?= getenv("APP_URL") ?>/swim/seeding/generateAll?event_id=<?= $targetEventId ?>" onclick="return confirm('⚠️ PERINGATAN:\nFitur ini akan mengacak ulang lintasan untuk SEMUA nomor.\nLanjutkan?')" 
+            <a href="<?= getenv("APP_URL") ?>/swim/admin/seeding/generateAll?event_id=<?= $targetEventId ?>" onclick="return confirm('⚠️ PERINGATAN:\nFitur ini akan mengacak ulang lintasan untuk SEMUA nomor.\nLanjutkan?')" 
                class="bg-indigo-600 text-white pl-6 pr-8 py-4 rounded-[2rem] transition flex items-center gap-4 group hover:-translate-y-1 shadow-xl shadow-indigo-200 hover:bg-indigo-700 h-[72px]">
                 <div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center group-hover:bg-white group-hover:text-indigo-600 transition">⚡</div>
                 <div class="text-left">
@@ -22,7 +22,7 @@
                 </div>
             </a>
 
-            <a href="<?= getenv("APP_URL") ?>/swim/seeding/recapClubs?event_id=<?= $targetEventId ?>" 
+            <a href="<?= getenv("APP_URL") ?>/swim/admin/seeding/recapClubs?event_id=<?= $targetEventId ?>" 
                class="bg-fuchsia-600 text-white pl-6 pr-8 py-4 rounded-[2rem] transition flex items-center gap-4 group hover:-translate-y-1 shadow-xl shadow-fuchsia-200 hover:bg-fuchsia-700 h-[72px]">
                 <div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center group-hover:bg-white group-hover:text-fuchsia-600 transition">📋</div>
                 <div class="text-left">
@@ -48,7 +48,7 @@
         </div>
     <?php else: ?>
 
-        <form id="configForm" action="<?= getenv("APP_URL") ?>/swim/seeding/printFull" method="POST" enctype="multipart/form-data" target="_blank" class="max-w-7xl mx-auto mb-6 bg-white rounded-[2rem] border border-slate-200 shadow-sm p-6 sm:p-8">
+        <form id="configForm" action="<?= getenv("APP_URL") ?>/swim/admin/seeding/printFull" method="POST" enctype="multipart/form-data" target="_blank" class="max-w-7xl mx-auto mb-6 bg-white rounded-[2rem] border border-slate-200 shadow-sm p-6 sm:p-8">
             <input type="hidden" name="event_id" value="<?= $targetEventId ?>">
             
             <div class="flex items-center gap-2 border-b border-slate-100 pb-3 mb-4">
@@ -152,9 +152,9 @@
                     </div>
                     <div class="flex gap-2 w-full md:w-auto">
                         <?php if($isReady): ?>
-                            <a href="<?= getenv("APP_URL") ?>/swim/seeding/viewStartlist?category_id=<?= $ev['id'] ?>" data-base-url="<?= getenv("APP_URL") ?>/swim/seeding/viewStartlist?category_id=<?= $ev['id'] ?>" class="view-startlist-btn px-6 py-3 bg-white hover:bg-slate-50 text-slate-600 rounded-xl font-bold text-xs uppercase border border-slate-200 text-center">View</a>
+                            <a href="<?= getenv("APP_URL") ?>/swim/admin/seeding/viewStartlist?category_id=<?= $ev['id'] ?>" data-base-url="<?= getenv("APP_URL") ?>/swim/admin/seeding/viewStartlist?category_id=<?= $ev['id'] ?>" class="view-startlist-btn px-6 py-3 bg-white hover:bg-slate-50 text-slate-600 rounded-xl font-bold text-xs uppercase border border-slate-200 text-center">View</a>
                             
-                            <a href="<?= getenv("APP_URL") ?>/swim/seeding/generateSingle?category_id=<?= $ev['id'] ?>" class="px-6 py-3 bg-slate-900 hover:bg-blue-600 text-white rounded-xl font-bold text-xs uppercase text-center" onclick="return confirm('Seeding ulang nomor ini?')">Generate</a>
+                            <a href="<?= getenv("APP_URL") ?>/swim/admin/seeding/generateSingle?category_id=<?= $ev['id'] ?>" class="px-6 py-3 bg-slate-900 hover:bg-blue-600 text-white rounded-xl font-bold text-xs uppercase text-center" onclick="return confirm('Seeding ulang nomor ini?')">Generate</a>
                         <?php else: ?>
                             <button disabled class="px-6 py-3 bg-slate-100 text-slate-400 rounded-xl font-bold text-xs uppercase border cursor-not-allowed">Empty</button>
                         <?php endif; ?>
