@@ -127,7 +127,7 @@ switch ($module) {
 
     case 'swim':
         // Halaman publik yang ditangani oleh HomeController
-        $publicPages = ['home', 'events', 'results', 'startlist', 'liveresult'];
+        $publicPages = ['home', 'events', 'results'];
         if (in_array($page, $publicPages)) {
             $controllerClass = "\\App\\Swim\\Controllers\\HomeController";
             if (class_exists($controllerClass)) {

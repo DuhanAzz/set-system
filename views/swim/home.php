@@ -222,7 +222,7 @@ $heroSubtitle = $s['hero_subtitle'] ?? 'Professional Timing System';
                     </div>
 
                     <div class="grid grid-cols-2 gap-3 mt-8">
-                        <a href="<?= getenv('APP_URL') ?>/swim/events?id=<?= $e['id'] ?>" class="py-3.5 px-2 rounded-xl border-2 border-slate-100 flex items-center justify-center gap-2 hover:border-slate-800 hover:bg-slate-800 hover:text-white transition-all uppercase text-[10px] font-black tracking-widest text-slate-600">
+                        <a href="<?= getenv('APP_URL') ?>/swim/events?q=<?= urlencode($e['event_name']) ?>" class="py-3.5 px-2 rounded-xl border-2 border-slate-100 flex items-center justify-center gap-2 hover:border-slate-800 hover:bg-slate-800 hover:text-white transition-all uppercase text-[10px] font-black tracking-widest text-slate-600">
                             <span>📖</span> Info Lomba
                         </a>
                         

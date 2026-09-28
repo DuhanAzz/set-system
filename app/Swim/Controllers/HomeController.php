@@ -8,21 +8,27 @@ use PDO;
 
 class HomeController extends Controller {
     
+    private function getSettings($db) {
+        try {
+            $stmt = $db->query("SELECT * FROM swim_site_settings WHERE id = 1");
+            return $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+        } catch (\Exception $e) {
+            try {
+                $stmt = $db->query("SELECT * FROM universal_settings WHERE id = 1");
+                return $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+            } catch (\Exception $e2) {
+                error_log("Failed to load settings: " . $e2->getMessage());
+                return [];
+            }
+        }
+    }
+
     public function index() {
         $this->trackVisitor("swim");
         $db = Database::getInstance()->getConnection();
         
         // 0. Ambil Settings
-        $s = [];
-        try {
-            $stmt = $db->query("SELECT * FROM swim_site_settings WHERE id = 1");
-            $s = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
-        } catch (\Exception $e) {
-            try {
-                $stmt = $db->query("SELECT * FROM universal_settings WHERE id = 1");
-                $s = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
-            } catch (\Exception $e) {}
-        }
+        $s = $this->getSettings($db);
 
         // 1. Ambil gambar slider/hero
         $sliders = [];
@@ -58,16 +64,7 @@ class HomeController extends Controller {
     public function events() {
         $db = Database::getInstance()->getConnection();
         
-        $s = [];
-        try {
-            $stmt = $db->query("SELECT * FROM swim_site_settings WHERE id = 1");
-            $s = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
-        } catch (\Exception $e) {
-            try {
-                $stmt = $db->query("SELECT * FROM universal_settings WHERE id = 1");
-                $s = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
-            } catch (\Exception $e) {}
-        }
+        $s = $this->getSettings($db);
 
         $search = $_GET['q'] ?? '';
         
@@ -115,16 +112,7 @@ class HomeController extends Controller {
     public function results() {
         $db = Database::getInstance()->getConnection();
         
-        $s = [];
-        try {
-            $stmt = $db->query("SELECT * FROM swim_site_settings WHERE id = 1");
-            $s = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
-        } catch (\Exception $e) {
-            try {
-                $stmt = $db->query("SELECT * FROM universal_settings WHERE id = 1");
-                $s = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
-            } catch (\Exception $e) {}
-        }
+        $s = $this->getSettings($db);
 
         $search = $_GET['q'] ?? '';
 
