@@ -327,11 +327,12 @@ class RollMasterSettingsController extends Controller {
 
         $inClause = implode(',', array_fill(0, count($eventIds), '?'));
         
-        // 1. Ambil rekap medali dari semua event (sesuai standar MVP THB)
+        // 1. Ambil seluruh hasil balapan perorangan (per-mata lomba)
         $stmtRaw = $db->prepare("
             SELECT 
                 r.event_id,
                 ev.event_name,
+                ev.event_date_start,
                 s.id as skater_id, 
                 s.skater_name, 
                 c.club_name, 
@@ -339,20 +340,24 @@ class RollMasterSettingsController extends Controller {
                 ag.group_name as age_group,
                 sc.class_name as category_name,
                 s.gender,
-                SUM(CASE WHEN r.rank = 1 THEN 1 ELSE 0 END) as gold,
-                SUM(CASE WHEN r.rank = 2 THEN 1 ELSE 0 END) as silver,
-                SUM(CASE WHEN r.rank = 3 THEN 1 ELSE 0 END) as bronze
+                r.rank,
+                d.distance_name
             FROM roll_event_results r
             JOIN roll_events ev ON r.event_id = ev.id
             JOIN roll_skaters s ON r.skater_id = s.id
             LEFT JOIN roll_clubs c ON s.club_id = c.id
             JOIN roll_event_details ed ON r.race_class_id = ed.id
+            LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
             LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
             JOIN roll_ref_age_groups ag ON ed.age_group_id = ag.id
-            JOIN roll_entries ent ON r.skater_id = ent.skater_id AND r.race_class_id = ent.race_class_id
             WHERE r.event_id IN ($inClause)
-              AND r.rank IN (1, 2, 3)
+              AND r.rank IS NOT NULL AND r.rank > 0
               AND r.status = 'OK'
+              AND (ed.category_name != 'EKSEBISI' OR ed.category_name IS NULL)
+              AND LOWER(d.distance_name) NOT LIKE '%relay%'
+              AND LOWER(d.distance_name) NOT LIKE '%team%'
+              AND LOWER(d.distance_name) NOT LIKE '%ts%'
+              AND LOWER(d.distance_name) NOT LIKE '%beregu%'
               AND r.round = (
                   SELECT round 
                   FROM roll_event_results 
@@ -360,100 +365,107 @@ class RollMasterSettingsController extends Controller {
                   ORDER BY CASE round WHEN 'Kualifikasi' THEN 1 WHEN 'Perempat Final' THEN 2 WHEN 'Semi Final' THEN 3 WHEN 'Final' THEN 4 ELSE 5 END DESC 
                   LIMIT 1
               )
-            GROUP BY r.event_id, ev.event_name, s.id, s.skater_name, c.club_name, s.birth_date, ag.group_name, sc.class_name, s.gender
-            HAVING gold > 0 OR silver > 0 OR bronze > 0
+            ORDER BY ev.event_date_start ASC
         ");
         $stmtRaw->execute($eventIds);
-        $rawMedals = $stmtRaw->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        $rawResults = $stmtRaw->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
-        // 2. Group raw medals by Event -> Kategori & KU -> Gender
         $eventsData = [];
-        foreach ($rawMedals as $row) {
+        $overallData = [];
+
+        // Loop dan hitung poin tiap balapan perorangan
+        foreach ($rawResults as $row) {
+            $rank = (int)$row['rank'];
+            $points = isset($point_rules[(string)$rank]) ? (int)$point_rules[(string)$rank] : 0;
+            
+            if ($points <= 0) continue; // Skip jika tidak dapat poin
+
             $eId = $row['event_id'];
             $cat = $row['category_name'] ?: 'Unknown';
             $ag = $row['age_group'] ?: 'Unknown KU';
             $ku = "$cat - $ag";
             
             $gender = ($row['gender'] === 'M' || $row['gender'] === 'L') ? 'Putra' : 'Putri';
+            $sId = $row['skater_id'];
             
+            // Simpan data per event (berdasarkan KU di event tersebut)
             if (!isset($eventsData[$eId])) {
                 $eventsData[$eId] = [
                     'event_name' => $row['event_name'],
-                    'groups' => []
+                    'standings' => []
                 ];
             }
-            if (!isset($eventsData[$eId]['groups'][$ku])) {
-                $eventsData[$eId]['groups'][$ku] = ['Putra' => [], 'Putri' => []];
+            if (!isset($eventsData[$eId]['standings'][$ku])) {
+                $eventsData[$eId]['standings'][$ku] = ['Putra' => [], 'Putri' => []];
             }
-            $eventsData[$eId]['groups'][$ku][$gender][] = $row;
+            
+            $skaterPerEventKey = $sId;
+            if (!isset($eventsData[$eId]['standings'][$ku][$gender][$skaterPerEventKey])) {
+                $eventsData[$eId]['standings'][$ku][$gender][$skaterPerEventKey] = [
+                    'skater_id' => $sId,
+                    'skater_name' => $row['skater_name'],
+                    'club_name' => $row['club_name'],
+                    'category_name' => $cat,
+                    'age_group' => $ag,
+                    'gender' => $row['gender'],
+                    'total_points' => 0,
+                    'races' => []
+                ];
+            }
+            $eventsData[$eId]['standings'][$ku][$gender][$skaterPerEventKey]['total_points'] += $points;
+            $eventsData[$eId]['standings'][$ku][$gender][$skaterPerEventKey]['races'][] = $row['distance_name'] . ' (Rank ' . $rank . ' = ' . $points . ' pts)';
+
+            // Simpan data Overall (Gabungan Lintas KU, HANYA dipisahkan oleh Kategori)
+            // Walaupun naik U, tetap gabung karena key = skater_id + category
+            $overallKey = $sId . '_' . md5($cat);
+            if (!isset($overallData[$overallKey])) {
+                $overallData[$overallKey] = [
+                    'skater_id' => $sId,
+                    'skater_name' => $row['skater_name'],
+                    'club_name' => $row['club_name'],
+                    'category_name' => $cat,
+                    'age_group' => $ag, // Akan selalu di-overwrite oleh event terbaru
+                    'gender' => $row['gender'],
+                    'total_points' => 0,
+                    'attended_events' => []
+                ];
+            }
+            $overallData[$overallKey]['total_points'] += $points;
+            $overallData[$overallKey]['age_group'] = $ag; // Overwrite dengan KU di event terbaru (karena query ORDER BY date ASC)
+            if (!in_array($eId, $overallData[$overallKey]['attended_events'])) {
+                $overallData[$overallKey]['attended_events'][] = $eId;
+            }
         }
 
-        // 3. Tentukan Rank MVP per event, inject poin, dan akumulasi ke Overall
-        $overallData = [];
+        // Format per_event output
         $perEventStandings = [];
-
-        foreach ($eventsData as $eventId => $eData) {
-            $perEventStandings[$eventId] = [
-                'event_name' => $eData['event_name'],
-                'standings' => []
-            ];
-            
-            foreach ($eData['groups'] as $ku => $genders) {
-                if (!isset($perEventStandings[$eventId]['standings'][$ku])) {
-                    $perEventStandings[$eventId]['standings'][$ku] = ['Putra' => [], 'Putri' => []];
-                }
-                
-                foreach ($genders as $gender => $skaters) {
-                    // Sorting berdasarkan medali & Tie-breaker umur termuda
+        foreach ($eventsData as $eId => $eData) {
+            foreach ($eData['standings'] as $ku => &$genders) {
+                foreach ($genders as $gender => &$skaters) {
+                    $skaters = array_values($skaters); // Reset key
                     usort($skaters, function($a, $b) {
-                        if ($a['gold'] != $b['gold']) return $b['gold'] <=> $a['gold'];
-                        if ($a['silver'] != $b['silver']) return $b['silver'] <=> $a['silver'];
-                        if ($a['bronze'] != $b['bronze']) return $b['bronze'] <=> $a['bronze'];
-                        
-                        $bdA = strtotime($a['birth_date'] ?: '1970-01-01');
-                        $bdB = strtotime($b['birth_date'] ?: '1970-01-01');
-                        if ($bdA != $bdB) return $bdB <=> $bdA;
-                        
+                        if ($a['total_points'] != $b['total_points']) return $b['total_points'] <=> $a['total_points'];
                         return $a['skater_name'] <=> $b['skater_name'];
                     });
-                    
-                    $rank = 1;
-                    foreach ($skaters as $skater) {
-                        $points = isset($point_rules[(string)$rank]) ? (int)$point_rules[(string)$rank] : 0;
-                        if ($points > 0) {
-                            $skater['total_points'] = $points; // for display in per_event
-                            $perEventStandings[$eventId]['standings'][$ku][$gender][] = $skater;
-                            
-                            // Akumulasi ke overall
-                            $sId = $skater['skater_id'];
-                            // Buat kunci unik berdasarkan id skater DAN kombinasinya di kategori tersebut
-                            $overallKey = $sId . '_' . md5($ku); 
-                            
-                            if (!isset($overallData[$overallKey])) {
-                                $overallData[$overallKey] = [
-                                    'skater_name' => $skater['skater_name'],
-                                    'club_name' => $skater['club_name'],
-                                    'category_name' => $skater['category_name'],
-                                    'age_group' => $skater['age_group'],
-                                    'group_key' => $ku,
-                                    'gender' => $skater['gender'],
-                                    'total_points' => 0
-                                ];
-                            }
-                            $overallData[$overallKey]['total_points'] += $points;
-                        }
-                        $rank++;
-                    }
                 }
             }
-            ksort($perEventStandings[$eventId]['standings']);
+            $perEventStandings[] = [
+                'event_name' => $eData['event_name'],
+                'standings' => $eData['standings']
+            ];
         }
 
-        // 4. Format Overall menjadi Hierarki (Kategori & KU -> Gender)
+        // Format Overall menjadi Hierarki (Kategori & KU Terkini -> Gender)
         $overallStandings = [];
         foreach ($overallData as $key => $skater) {
-            $ku = $skater['group_key'];
+            $cat = $skater['category_name'];
+            $ag = $skater['age_group'];
+            $ku = "$cat - $ag"; // Tampilkan di KU terakhir dia bertanding
+            
             $gender = ($skater['gender'] === 'M' || $skater['gender'] === 'L') ? 'Putra' : 'Putri';
+            
+            // Hitung persentase kehadiran (jumlah event yang dihadiri)
+            $skater['attendance_count'] = count($skater['attended_events']);
             
             if (!isset($overallStandings[$ku])) {
                 $overallStandings[$ku] = ['Putra' => [], 'Putri' => []];
