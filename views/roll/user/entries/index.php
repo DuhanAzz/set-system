@@ -493,6 +493,27 @@ function onSkaterChange(sel) {
         const age = parseInt(sel.dataset.age);
         const gender = sel.dataset.gender;
         
+        // Cek level atlet saat ini
+        let athleteLevel = opt.dataset.level || 'pemula';
+        if (opt.dataset.isPon == '1') athleteLevel = 'speed';
+        
+        let eGroup = athleteLevel;
+        let hasSpeed = false, hasPemula = false, hasStandar = false;
+        
+        if (typeof existingEntriesData !== 'undefined') {
+            existingEntriesData.forEach(e => {
+                if (e.skater_id == opt.value && e.skate_class) {
+                    const eCatStr = (e.skate_class || '').toLowerCase();
+                    if (eCatStr.includes('speed')) hasSpeed = true;
+                    else if (eCatStr.includes('standar')) hasStandar = true;
+                    else if (eCatStr.includes('pemula')) hasPemula = true;
+                }
+            });
+        }
+        
+        if (hasSpeed) eGroup = 'speed';
+        else if (hasStandar && eGroup !== 'speed') eGroup = 'standar';
+        
         // Filter category dropdown
         for (let i = 1; i < catSelect.options.length; i++) {
             const catOption = catSelect.options[i];
@@ -504,6 +525,21 @@ function onSkaterChange(sel) {
             for (const c of allClasses) {
                 const distanceName = (c.distance_name || '').toLowerCase();
                 if (distanceName.includes('relay') || distanceName.includes('team') || distanceName.includes('pair')) continue;
+                
+                let targetGroup = '';
+                const tCatStr = (c.class_name || '').toLowerCase();
+                if (tCatStr.includes('speed')) targetGroup = 'speed';
+                else if (tCatStr.includes('standar')) targetGroup = 'standar';
+                else if (tCatStr.includes('pemula')) targetGroup = 'pemula';
+
+                if (eGroup && targetGroup && eGroup !== targetGroup) {
+                    if (typeof allowPemulaStandarMix !== 'undefined' && allowPemulaStandarMix) {
+                        const isMixable = (eGroup === 'pemula' && targetGroup === 'standar');
+                        if (!isMixable) continue;
+                    } else {
+                        continue;
+                    }
+                }
                 
                 if (c.class_cat_id == catId) {
                     if (age >= parseInt(c.min_year) && age <= parseInt(c.max_year)) {
