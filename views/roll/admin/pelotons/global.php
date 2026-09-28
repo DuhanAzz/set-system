@@ -155,15 +155,21 @@
             <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Dikelompokkan berdasarkan kategori (Speed, Standard, Pemula)</p>
         </div>
         
-        <form id="formGenerateAuto" method="POST" action="<?= getenv('APP_URL') ?>/roll/admin/pelotons/generateAll" onsubmit="return confirm('⚡ GENERATE RACE BOOK\n\nProses ini akan menyusun daftar peserta untuk seluruh <?= $totalClasses ?> kelas lomba.\n\n• Kelas HEAT → Babak Kualifikasi (Acak Terdistribusi)\n• Kelas STARTING LIST → Daftar langsung final\n\n<?= $hasGenerated ? '⚠️ Data seeding sebelumnya akan DITIMPA!\n\n' : '' ?>Lanjutkan?')">
-            <input type="hidden" name="round" value="Kualifikasi">
-            <input type="hidden" name="algorithm" value="distributed">
-            <input type="hidden" name="max_lanes" value="0">
-            <button type="submit" class="bg-slate-800 hover:bg-slate-900 text-white font-bold uppercase tracking-widest text-xs py-3 px-5 rounded-xl transition-all shadow-md flex items-center gap-2">
-                <span class="text-sm">⚡</span>
-                <span>Generate Seluruh Heat</span>
+        <div class="flex items-center gap-2">
+            <button type="button" onclick="document.getElementById('modalMerge').classList.remove('hidden')" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold uppercase tracking-widest text-[11px] py-3 px-5 rounded-xl border border-indigo-200 transition-all shadow-sm flex items-center gap-2">
+                <span class="text-sm">🔗</span>
+                <span>Gabung Nomor Lomba</span>
             </button>
-        </form>
+            <form id="formGenerateAuto" method="POST" action="<?= getenv('APP_URL') ?>/roll/admin/pelotons/generateAll" onsubmit="return confirm('⚡ GENERATE RACE BOOK\n\nProses ini akan menyusun daftar peserta untuk seluruh <?= $totalClasses ?> kelas lomba.\n\n• Kelas HEAT → Babak Kualifikasi (Acak Terdistribusi)\n• Kelas STARTING LIST → Daftar langsung final\n\n<?= $hasGenerated ? '⚠️ Data seeding sebelumnya akan DITIMPA!\n\n' : '' ?>Lanjutkan?')">
+                <input type="hidden" name="round" value="Kualifikasi">
+                <input type="hidden" name="algorithm" value="distributed">
+                <input type="hidden" name="max_lanes" value="0">
+                <button type="submit" class="bg-slate-800 hover:bg-slate-900 text-white font-bold uppercase tracking-widest text-[11px] py-3 px-5 rounded-xl transition-all shadow-md flex items-center gap-2">
+                    <span class="text-sm">⚡</span>
+                    <span>Generate Seluruh Heat</span>
+                </button>
+            </form>
+        </div>
     </div>
 
     <div class="space-y-6">
@@ -393,3 +399,58 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
+
+<!-- MODAL MERGE CLASSES -->
+<div id="modalMerge" class="fixed inset-0 z-[100] hidden">
+    <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="document.getElementById('modalMerge').classList.add('hidden')"></div>
+    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-200 flex flex-col max-h-[90vh]">
+        <div class="p-6 bg-slate-50 border-b border-slate-200 flex justify-between items-center shrink-0">
+            <div>
+                <h3 class="text-lg font-black uppercase tracking-widest text-slate-800">🔗 Gabung Nomor Lomba (Hard Merge)</h3>
+                <p class="text-xs text-slate-500 font-bold mt-1">Peserta akan dipindahkan permanen ke Kelas Target.</p>
+            </div>
+            <button type="button" onclick="document.getElementById('modalMerge').classList.add('hidden')" class="text-slate-400 hover:text-slate-600 text-2xl font-bold">&times;</button>
+        </div>
+        <div class="p-6 overflow-y-auto">
+            <form method="POST" action="<?= getenv('APP_URL') ?>/roll/admin/pelotons/merge_classes">
+                <div class="mb-4">
+                    <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Kelas Target (Tujuan)</label>
+                    <select name="target_class_id" required class="w-full border-slate-200 rounded-xl shadow-sm text-sm focus:ring-indigo-500 focus:border-indigo-500 font-bold text-slate-700">
+                        <option value="">-- Pilih Kelas Target --</option>
+                        <?php foreach($allClasses as $c): ?>
+                            <option value="<?= $c['class_id'] ?>">
+                                <?= htmlspecialchars(($c['custom_name'] ?: $c['group_name']) . ' - ' . $c['gender'] . ' - ' . $c['distance_name'] . ' (' . ($c['roller_name'] ?: 'Eksebisi') . ')') ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Kelas Asal (Yang Akan Digabung & Dihapus)</label>
+                    <div class="max-h-48 overflow-y-auto border border-slate-200 rounded-xl p-3 bg-slate-50 space-y-2">
+                        <?php foreach($allClasses as $c): ?>
+                            <label class="flex items-center gap-3 cursor-pointer p-2 hover:bg-white rounded-lg transition">
+                                <input type="checkbox" name="source_class_ids[]" value="<?= $c['class_id'] ?>" class="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                                <span class="text-xs font-bold text-slate-700">
+                                    <?= htmlspecialchars(($c['custom_name'] ?: $c['group_name']) . ' - ' . $c['gender'] . ' - ' . $c['distance_name'] . ' (' . ($c['roller_name'] ?: 'Eksebisi') . ')') ?>
+                                    <span class="text-[9px] text-slate-400 ml-1">(<?= $c['total_entries'] ?> Atlet)</span>
+                                </span>
+                            </label>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+
+                <div class="mb-6">
+                    <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Nama Kelompok Umur Baru (Kustom)</label>
+                    <input type="text" name="custom_name" required placeholder="Contoh: SENIOR, JUNIOR" class="w-full border-slate-200 rounded-xl shadow-sm text-sm focus:ring-indigo-500 focus:border-indigo-500 font-bold text-slate-800 uppercase">
+                    <p class="text-[9px] text-slate-400 font-bold mt-1">Ini akan menggantikan nama Kelompok Umur (misal 'JUNIOR' menjadi 'SENIOR, JUNIOR') di buku hasil.</p>
+                </div>
+
+                <div class="flex justify-end gap-3 pt-4 border-t border-slate-100">
+                    <button type="button" onclick="document.getElementById('modalMerge').classList.add('hidden')" class="px-5 py-3 rounded-xl font-black text-xs uppercase tracking-widest text-slate-500 hover:bg-slate-100 transition">Batal</button>
+                    <button type="submit" onclick="return confirm('Yakin ingin menggabungkan? Semua entri dari Kelas Asal akan dipindahkan permanen ke Kelas Target, dan Kelas Asal akan dihapus.')" class="px-5 py-3 rounded-xl font-black text-xs uppercase tracking-widest bg-indigo-600 text-white shadow-lg hover:bg-indigo-700 transition">Proses Penggabungan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

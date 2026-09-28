@@ -59,6 +59,9 @@ class RollPelotonController extends Controller {
 
     public function global() {
         $db = Database::getInstance()->getConnection();
+        
+        try { $db->exec("ALTER TABLE roll_event_details ADD COLUMN custom_name VARCHAR(255) NULL"); } catch (\Exception $e) {}
+        
         $eventId = $_SESSION['roll_admin_active_event_id'] ?? 0;
 
         if ($eventId == 0) {
@@ -92,7 +95,7 @@ class RollPelotonController extends Controller {
 
         // Ambil daftar kelas untuk ditampilkan di bagian Generate Seri (dikelompokkan per kategori alat)
         $stmtClasses = $db->prepare("
-            SELECT ed.id as class_id, ed.race_number, ed.category_name, d.distance_name, a.group_name, sc.class_name as roller_name, ed.gender, ed.max_lanes,
+            SELECT ed.id as class_id, ed.race_number, ed.category_name, d.distance_name, a.group_name, ed.custom_name, sc.class_name as roller_name, ed.gender, ed.max_lanes,
             (SELECT COUNT(*) FROM roll_entries e 
              JOIN roll_skaters s ON e.skater_id = s.id
              LEFT JOIN roll_payments pay ON pay.club_id = s.club_id AND pay.event_id = e.event_id AND (e.is_manual = 0 OR e.is_manual IS NULL)
@@ -124,11 +127,12 @@ class RollPelotonController extends Controller {
             $rn = $cls['race_number'];
             $isEksebisi = (($cls['category_name'] ?? '') === 'EKSEBISI');
             $groupKey = $rn . ($isEksebisi ? '_EKS' : '');
+            $groupName = !empty($cls['custom_name']) ? $cls['custom_name'] : $cls['group_name'];
             
             if (!isset($groupedClasses[$cat][$groupKey])) {
                 $groupedClasses[$cat][$groupKey] = [
                     'race_number' => $rn,
-                    'group_name' => $cls['group_name'],
+                    'group_name' => $groupName,
                     'distance_name' => $cls['distance_name'],
                     'category_name' => $cls['category_name'],
                     'max_lanes' => $cls['max_lanes'] > 0 ? (int)$cls['max_lanes'] : self::getDefaultMaxLanes($cls['distance_name'], $cat),
@@ -170,8 +174,66 @@ class RollPelotonController extends Controller {
             'totalPaidAthletes' => $totalPaidAthletes,
             'totalClasses' => $totalClasses,
             'hasGenerated' => $hasGenerated,
-            'groupedClasses' => $groupedClasses
+            'groupedClasses' => $groupedClasses,
+            'allClasses' => $allClasses
         ]);
+    }
+
+    public function merge_classes() {
+        if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin' || $_SERVER['REQUEST_METHOD'] !== 'POST') {
+            die("Unauthorized");
+        }
+
+        $db = \App\Core\Database::getInstance()->getConnection();
+        $eventId = $_SESSION['roll_admin_active_event_id'] ?? 0;
+        
+        $targetClassId = (int)($_POST['target_class_id'] ?? 0);
+        $sourceClassIds = $_POST['source_class_ids'] ?? [];
+        $customName = $_POST['custom_name'] ?? '';
+
+        if ($eventId == 0 || $targetClassId == 0 || empty($sourceClassIds) || empty($customName)) {
+            $_SESSION['flash_message'] = "Parameter penggabungan tidak lengkap.";
+            $_SESSION['flash_type'] = "error";
+            header("Location: " . getenv('APP_URL') . "/roll/admin/pelotons/global");
+            exit;
+        }
+
+        try {
+            $db->beginTransaction();
+
+            // Pastikan kolom custom_name ada
+            try { $db->exec("ALTER TABLE roll_event_details ADD COLUMN custom_name VARCHAR(255) NULL"); } catch (\Exception $e) {}
+
+            $inQuery = implode(',', array_map('intval', $sourceClassIds));
+            
+            // 1. Pindahkan semua entri ke kelas target
+            $stmtUpdateEntries = $db->prepare("UPDATE roll_entries SET race_class_id = ? WHERE race_class_id IN ($inQuery) AND event_id = ?");
+            $stmtUpdateEntries->execute([$targetClassId, $eventId]);
+
+            // 2. Update nama custom di kelas target
+            $stmtUpdateTarget = $db->prepare("UPDATE roll_event_details SET custom_name = ? WHERE id = ? AND event_id = ?");
+            $stmtUpdateTarget->execute([$customName, $targetClassId, $eventId]);
+
+            // 3. Hapus kelas asal karena sudah ditarik
+            $stmtDeleteSources = $db->prepare("DELETE FROM roll_event_details WHERE id IN ($inQuery) AND event_id = ?");
+            $stmtDeleteSources->execute([$eventId]);
+
+            // Hapus juga pelotons lama jika ada
+            $stmtDeleteP = $db->prepare("DELETE FROM roll_pelotons WHERE event_id = ? AND race_class_id IN ($inQuery)");
+            $stmtDeleteP->execute([$eventId]);
+
+            $db->commit();
+            $_SESSION['flash_message'] = "Berhasil! Nomor lomba telah digabung menjadi: " . htmlspecialchars($customName);
+            $_SESSION['flash_type'] = "success";
+            
+        } catch (\Exception $e) {
+            $db->rollBack();
+            $_SESSION['flash_message'] = "Gagal menggabungkan: " . $e->getMessage();
+            $_SESSION['flash_type'] = "error";
+        }
+
+        header("Location: " . getenv('APP_URL') . "/roll/admin/pelotons/global");
+        exit;
     }
 
     public function category() {
