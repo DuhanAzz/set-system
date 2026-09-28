@@ -360,7 +360,6 @@ class RollMasterSettingsController extends Controller {
                   ORDER BY CASE round WHEN 'Kualifikasi' THEN 1 WHEN 'Perempat Final' THEN 2 WHEN 'Semi Final' THEN 3 WHEN 'Final' THEN 4 ELSE 5 END DESC 
                   LIMIT 1
               )
-              AND (ent.status = 'Finished' OR ent.status = 'Qualified')
             GROUP BY r.event_id, ev.event_name, s.id, s.skater_name, c.club_name, s.birth_date, ag.group_name, sc.class_name, s.gender
             HAVING gold > 0 OR silver > 0 OR bronze > 0
         ");
