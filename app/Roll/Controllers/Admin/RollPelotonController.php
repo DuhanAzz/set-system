@@ -219,10 +219,6 @@ class RollPelotonController extends Controller {
             $stmtUpdateTarget = $db->prepare("UPDATE roll_event_details SET custom_name = ? WHERE id = ? AND event_id = ?");
             $stmtUpdateTarget->execute([$customName, $targetClassId, $eventId]);
 
-            // 3. Hapus kelas asal karena sudah ditarik
-            $stmtDeleteSources = $db->prepare("DELETE FROM roll_event_details WHERE id IN ($inQuery) AND event_id = ?");
-            $stmtDeleteSources->execute([$eventId]);
-
             // Hapus juga pelotons lama jika ada (termasuk kelas target agar admin WAJIB meng-generate ulang dengan atlet yang baru masuk)
             $allAffectedIds = $sourceClassIds;
             $allAffectedIds[] = $targetClassId;
@@ -230,6 +226,10 @@ class RollPelotonController extends Controller {
             
             $stmtDeleteP = $db->prepare("DELETE FROM roll_pelotons WHERE event_id = ? AND race_class_id IN ($inQueryAll)");
             $stmtDeleteP->execute([$eventId]);
+
+            // 3. Hapus kelas asal karena sudah ditarik
+            $stmtDeleteSources = $db->prepare("DELETE FROM roll_event_details WHERE id IN ($inQuery) AND event_id = ?");
+            $stmtDeleteSources->execute([$eventId]);
 
             $db->commit();
             $_SESSION['flash_message'] = "Berhasil! Nomor lomba telah digabung menjadi: " . htmlspecialchars($customName);
