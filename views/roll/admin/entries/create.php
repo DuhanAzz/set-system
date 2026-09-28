@@ -20,13 +20,13 @@
     <!-- TABS & ACTIONS -->
     <div class="flex justify-between items-center mb-6">
         <div class="flex gap-2">
-            <button onclick="switchTab('individu')" id="tab_btn_individu" class="px-6 py-3 bg-blue-600 text-white rounded-xl font-black text-xs shadow-lg shadow-blue-200 hover:bg-blue-700 transition uppercase tracking-widest">
+            <button onclick="switchTab('individu')" id="tab_btn_individu" class="px-6 py-3 bg-white text-slate-500 border border-slate-200 rounded-xl font-black text-xs hover:bg-slate-50 transition uppercase tracking-widest">
                 + DAFTAR INDIVIDU
             </button>
             <button onclick="switchTab('team')" id="tab_btn_team" class="px-6 py-3 bg-white text-slate-500 border border-slate-200 rounded-xl font-black text-xs hover:bg-slate-50 transition uppercase tracking-widest">
                 + DAFTAR TIM / RELAY
             </button>
-            <button onclick="switchTab('token')" id="tab_btn_token" class="px-6 py-3 bg-white text-emerald-600 border border-emerald-200 rounded-xl font-black text-xs hover:bg-emerald-50 transition uppercase tracking-widest ml-4 shadow-sm shadow-emerald-100">
+            <button onclick="switchTab('token')" id="tab_btn_token" class="px-6 py-3 bg-emerald-600 text-white rounded-xl font-black text-xs shadow-lg shadow-emerald-200 hover:bg-emerald-700 transition uppercase tracking-widest ml-4">
                 🔑 BUAT TOKEN JALUR KHUSUS
             </button>
         </div>
@@ -39,7 +39,7 @@
     </div>
 
     <!-- FORM INDIVIDU -->
-    <div id="form_individu" class="bg-white rounded-[2.5rem] shadow-sm border border-slate-200 p-8">
+    <div id="form_individu" class="bg-white rounded-[2.5rem] shadow-sm border border-slate-200 p-8 hidden">
         <form action="<?= getenv('APP_URL') ?>/roll/admin/entries/manual_add" method="POST">
             <input type="hidden" name="entry_type" value="individu">
             <input type="hidden" name="event_id" value="<?= $targetEventId ?>">
@@ -194,7 +194,7 @@
     </div>
 
     <!-- FORM BUAT TOKEN JALUR KHUSUS -->
-    <div id="form_token" class="bg-white rounded-[2.5rem] shadow-sm border border-emerald-200 p-8 hidden relative overflow-hidden">
+    <div id="form_token" class="bg-white rounded-[2.5rem] shadow-sm border border-emerald-200 p-8 relative overflow-hidden">
         <div class="absolute -right-10 -top-10 w-40 h-40 bg-emerald-50 rounded-full opacity-50 pointer-events-none"></div>
         <form action="<?= getenv('APP_URL') ?>/roll/admin/entries/generate_token" method="POST">
             <input type="hidden" name="event_id" value="<?= $targetEventId ?>">
@@ -384,7 +384,10 @@ function switchTab(tab) {
     document.getElementById('tab_btn_team').className = 'px-6 py-3 bg-white text-slate-500 border border-slate-200 rounded-xl font-black text-xs hover:bg-slate-50 transition uppercase tracking-widest';
     document.getElementById('tab_btn_token').className = 'px-6 py-3 bg-white text-emerald-600 border border-emerald-200 rounded-xl font-black text-xs hover:bg-emerald-50 transition uppercase tracking-widest ml-4 shadow-sm shadow-emerald-100';
     
-    if (tab === 'individu') {
+    if (tab === 'token') {
+        document.getElementById('form_token').classList.remove('hidden');
+        document.getElementById('tab_btn_token').className = 'px-6 py-3 bg-emerald-600 text-white rounded-xl font-black text-xs shadow-lg shadow-emerald-200 hover:bg-emerald-700 transition uppercase tracking-widest ml-4';
+    } else if (tab === 'individu') {
         document.getElementById('form_individu').classList.remove('hidden');
         document.getElementById('tab_btn_individu').className = 'px-6 py-3 bg-blue-600 text-white rounded-xl font-black text-xs shadow-lg shadow-blue-200 hover:bg-blue-700 transition uppercase tracking-widest';
     } else if (tab === 'team') {
