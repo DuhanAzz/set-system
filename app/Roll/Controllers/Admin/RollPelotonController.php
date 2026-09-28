@@ -245,6 +245,41 @@ class RollPelotonController extends Controller {
         exit;
     }
 
+    public function update_custom_name() {
+        if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin' || $_SERVER['REQUEST_METHOD'] !== 'POST') {
+            die("Unauthorized");
+        }
+
+        $db = \App\Core\Database::getInstance()->getConnection();
+        $eventId = $_SESSION['roll_admin_active_event_id'] ?? 0;
+        
+        $classId = (int)($_POST['class_id'] ?? 0);
+        $action = $_POST['action'] ?? ''; // 'edit' or 'reset'
+        $customName = $_POST['custom_name'] ?? '';
+
+        if ($eventId == 0 || $classId == 0) {
+            $_SESSION['flash_message'] = "Parameter tidak valid.";
+            $_SESSION['flash_type'] = "error";
+            header("Location: " . getenv('APP_URL') . "/roll/admin/pelotons/global");
+            exit;
+        }
+
+        if ($action === 'reset') {
+            $stmt = $db->prepare("UPDATE roll_event_details SET custom_name = NULL WHERE id = ? AND event_id = ?");
+            $stmt->execute([$classId, $eventId]);
+            $_SESSION['flash_message'] = "Nama kustom berhasil di-reset ke nama asli.";
+            $_SESSION['flash_type'] = "info";
+        } elseif ($action === 'edit') {
+            $stmt = $db->prepare("UPDATE roll_event_details SET custom_name = ? WHERE id = ? AND event_id = ?");
+            $stmt->execute([$customName, $classId, $eventId]);
+            $_SESSION['flash_message'] = "Nama kustom berhasil diubah menjadi: " . htmlspecialchars($customName);
+            $_SESSION['flash_type'] = "success";
+        }
+
+        header("Location: " . getenv('APP_URL') . "/roll/admin/pelotons/global");
+        exit;
+    }
+
     public function category() {
         $db = \App\Core\Database::getInstance()->getConnection();
         $eventId = $_SESSION['roll_admin_active_event_id'] ?? 0;

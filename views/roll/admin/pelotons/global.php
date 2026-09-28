@@ -446,11 +446,48 @@ document.addEventListener('DOMContentLoaded', function() {
                     <p class="text-[9px] text-slate-400 font-bold mt-1">Ini akan menggantikan nama Kelompok Umur (misal 'JUNIOR' menjadi 'SENIOR, JUNIOR') di buku hasil.</p>
                 </div>
 
-                <div class="flex justify-end gap-3 pt-4 border-t border-slate-100">
-                    <button type="button" onclick="document.getElementById('modalMerge').classList.add('hidden')" class="px-5 py-3 rounded-xl font-black text-xs uppercase tracking-widest text-slate-500 hover:bg-slate-100 transition">Batal</button>
+                <div class="flex justify-end gap-3 pt-4 border-t border-slate-100 mb-6">
+                    <button type="button" onclick="document.getElementById('modalMerge').classList.add('hidden')" class="px-5 py-3 rounded-xl font-black text-xs uppercase tracking-widest text-slate-500 hover:bg-slate-100 transition">Tutup</button>
                     <button type="submit" onclick="return confirm('Yakin ingin menggabungkan? Semua entri dari Kelas Asal akan dipindahkan permanen ke Kelas Target, dan Kelas Asal akan dihapus.')" class="px-5 py-3 rounded-xl font-black text-xs uppercase tracking-widest bg-indigo-600 text-white shadow-lg hover:bg-indigo-700 transition">Proses Penggabungan</button>
                 </div>
             </form>
+
+            <!-- DAFTAR KELAS YANG SUDAH DIGABUNG / DIUBAH NAMANYA -->
+            <?php
+            $customClasses = array_filter($allClasses, function($c) {
+                return !empty($c['custom_name']);
+            });
+            ?>
+            <?php if(!empty($customClasses)): ?>
+                <div class="mt-8 border-t-2 border-dashed border-slate-200 pt-6">
+                    <h4 class="text-[11px] font-black uppercase tracking-widest text-slate-800 mb-4 flex items-center gap-2">
+                        <span class="text-indigo-500">📝</span> Kelola Kelas Kustom (Hasil Gabungan)
+                    </h4>
+                    <div class="space-y-3">
+                        <?php foreach($customClasses as $cc): ?>
+                            <div class="bg-white border border-slate-200 rounded-xl p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-sm">
+                                <div>
+                                    <h5 class="text-xs font-black text-slate-900"><?= htmlspecialchars($cc['custom_name']) ?></h5>
+                                    <p class="text-[9px] text-slate-500 font-bold mt-1">Asli: <?= htmlspecialchars($cc['group_name']) ?> - <?= htmlspecialchars($cc['gender']) ?> - <?= htmlspecialchars($cc['distance_name']) ?></p>
+                                </div>
+                                <div class="flex gap-2 w-full md:w-auto mt-2 md:mt-0">
+                                    <form method="POST" action="<?= getenv('APP_URL') ?>/roll/admin/pelotons/update_custom_name" class="flex gap-2 w-full md:w-auto">
+                                        <input type="hidden" name="class_id" value="<?= $cc['class_id'] ?>">
+                                        <input type="hidden" name="action" value="edit">
+                                        <input type="text" name="custom_name" value="<?= htmlspecialchars($cc['custom_name']) ?>" required class="w-full md:w-48 text-xs border-slate-200 rounded-lg py-1 px-2 focus:border-indigo-500 focus:ring-indigo-500 font-bold text-slate-700 uppercase">
+                                        <button type="submit" class="bg-indigo-50 hover:bg-indigo-600 hover:text-white text-indigo-600 font-bold text-[9px] uppercase tracking-widest px-3 py-1 rounded-lg transition shrink-0">Simpan</button>
+                                    </form>
+                                    <form method="POST" action="<?= getenv('APP_URL') ?>/roll/admin/pelotons/update_custom_name" onsubmit="return confirm('Yakin ingin mereset ke nama asli? (PERHATIAN: Atlet yang sudah dipindah TIDAK akan otomatis kembali ke kelas asalnya karena ini Hard Merge)')">
+                                        <input type="hidden" name="class_id" value="<?= $cc['class_id'] ?>">
+                                        <input type="hidden" name="action" value="reset">
+                                        <button type="submit" class="bg-red-50 hover:bg-red-600 hover:text-white text-red-600 font-bold text-[9px] uppercase tracking-widest px-3 py-2 rounded-lg transition shrink-0" title="Reset Nama">✕</button>
+                                    </form>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            <?php endif; ?>
         </div>
     </div>
 </div>
