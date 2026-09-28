@@ -191,20 +191,25 @@ class RollPelotonController extends Controller {
         $sourceClassIds = $_POST['source_class_ids'] ?? [];
         $customName = $_POST['custom_name'] ?? '';
 
+        // Filter out target from sources to prevent accidental deletion
+        $sourceClassIds = array_filter(array_map('intval', $sourceClassIds), function($id) use ($targetClassId) {
+            return $id !== $targetClassId && $id > 0;
+        });
+
         if ($eventId == 0 || $targetClassId == 0 || empty($sourceClassIds) || empty($customName)) {
-            $_SESSION['flash_message'] = "Parameter penggabungan tidak lengkap.";
+            $_SESSION['flash_message'] = "Parameter penggabungan tidak lengkap (atau kelas target tidak boleh sama dengan kelas asal).";
             $_SESSION['flash_type'] = "error";
             header("Location: " . getenv('APP_URL') . "/roll/admin/pelotons/global");
             exit;
         }
 
+        // Pastikan kolom custom_name ada sebelum transaksi
+        try { $db->exec("ALTER TABLE roll_event_details ADD COLUMN custom_name VARCHAR(255) NULL"); } catch (\Exception $e) {}
+
         try {
             $db->beginTransaction();
 
-            // Pastikan kolom custom_name ada
-            try { $db->exec("ALTER TABLE roll_event_details ADD COLUMN custom_name VARCHAR(255) NULL"); } catch (\Exception $e) {}
-
-            $inQuery = implode(',', array_map('intval', $sourceClassIds));
+            $inQuery = implode(',', $sourceClassIds);
             
             // 1. Pindahkan semua entri ke kelas target
             $stmtUpdateEntries = $db->prepare("UPDATE roll_entries SET race_class_id = ? WHERE race_class_id IN ($inQuery) AND event_id = ?");
