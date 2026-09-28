@@ -17,6 +17,11 @@ class MaintenanceController extends Controller {
         }
     }
 
+    public function index() {
+        header("Location: " . getenv('APP_URL') . "/swim/master/maintenance/system_health");
+        exit;
+    }
+
     public function system_health() {
         $pdo = Database::getInstance()->getConnection();
 

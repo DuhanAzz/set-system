@@ -18,6 +18,11 @@ class MasterSettingsController extends Controller {
         }
     }
 
+    public function index() {
+        header("Location: " . getenv('APP_URL') . "/swim/master/settings/global_config");
+        exit;
+    }
+
     public function dq_rules() {
         $pdo = Database::getInstance()->getConnection();
 

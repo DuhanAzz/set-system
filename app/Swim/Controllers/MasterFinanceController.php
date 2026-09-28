@@ -17,6 +17,11 @@ class MasterFinanceController extends Controller {
         }
     }
 
+    public function index() {
+        header("Location: " . getenv('APP_URL') . "/swim/master/finance/revenue");
+        exit;
+    }
+
     public function revenue() {
         $pdo = Database::getInstance()->getConnection();
 

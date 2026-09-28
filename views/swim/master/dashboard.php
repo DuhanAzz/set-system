@@ -123,7 +123,7 @@
             <div class="bg-white rounded-[2rem] shadow-sm border border-slate-200 p-8">
                 <div class="flex justify-between items-center mb-6">
                     <h3 class="font-black text-slate-800 uppercase italic text-sm tracking-widest">🗓️ Kompetisi Mendatang</h3>
-                    <a href="<?= getenv('APP_URL') ?>/swim/master/events" class="text-[10px] font-bold text-blue-600 hover:underline">Lihat Semua</a>
+                    <a href="<?= getenv('APP_URL') ?>/swim/events" class="text-[10px] font-bold text-blue-600 hover:underline">Lihat Semua</a>
                 </div>
 
                 <div class="space-y-4">
