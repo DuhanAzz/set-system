@@ -106,7 +106,7 @@ class EventProfileController extends Controller {
                 }
             }
         }
-        header("Location: " . getenv('APP_URL') . "/swim/event_profile/index?event_id=" . $eventId);
+        header("Location: " . getenv('APP_URL') . "/swim/admin/profile/index?event_id=" . $eventId);
         exit;
     }
 
@@ -132,7 +132,7 @@ class EventProfileController extends Controller {
                 $_SESSION['swal_msg']  = "Logo sponsor berhasil dihapus";
             }
         }
-        header("Location: " . getenv('APP_URL') . "/swim/event_profile/index?event_id=" . $eventId);
+        header("Location: " . getenv('APP_URL') . "/swim/admin/profile/index?event_id=" . $eventId);
         exit;
     }
 
@@ -203,7 +203,7 @@ class EventProfileController extends Controller {
             }
         }
         
-        header("Location: " . getenv('APP_URL') . "/swim/event_profile/index?event_id=" . $eventId);
+        header("Location: " . getenv('APP_URL') . "/swim/admin/profile/index?event_id=" . $eventId);
         exit;
     }
 

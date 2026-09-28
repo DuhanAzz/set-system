@@ -103,13 +103,13 @@
                         <td class="py-4 px-6 text-right">
                             <div class="flex items-center justify-end gap-2">
                                 
-                                <a href="<?= getenv('APP_URL') ?>/swim/entries/detail?id=<?= $row['club_id'] ?>&event_id=<?= $row['event_id'] ?>" 
+                                <a href="<?= getenv('APP_URL') ?>/swim/admin/entries/detail?id=<?= $row['club_id'] ?>&event_id=<?= $row['event_id'] ?>" 
                                    class="px-4 py-2 rounded-lg bg-slate-800 text-white hover:bg-slate-900 text-[10px] font-black uppercase transition shadow-lg shadow-slate-200">
                                     Lihat Detail
                                 </a>
 
                                 <?php if($status == "Paid" || $status == "completed"): ?>
-                                    <form method="POST" action="<?= getenv("APP_URL") ?>/swim/entries/index" class="inline" onsubmit="return confirm('Batal Verifikasi Lunas? Status akan kembali Pending.');">
+                                    <form method="POST" action="<?= getenv("APP_URL") ?>/swim/admin/entries/index" class="inline" onsubmit="return confirm('Batal Verifikasi Lunas? Status akan kembali Pending.');">
                                         <input type="hidden" name="rollback_payment_id" value="<?= $row["payment_id"] ?>">
                                         <button type="submit" class="px-3 py-2 rounded-lg bg-orange-50 text-orange-600 border border-orange-200 hover:bg-orange-500 hover:text-white text-[9px] font-black uppercase transition" title="Batal Verifikasi">
                                             ⏪ Batal
@@ -117,13 +117,13 @@
                                     </form>
                                 <?php endif; ?>
                                 <?php if($status == 'Pending'): ?>
-                                    <form method="POST" action="<?= getenv('APP_URL') ?>/swim/entries/index" class="inline" onsubmit="return confirm('Tolak Pembayaran ini?');">
+                                    <form method="POST" action="<?= getenv('APP_URL') ?>/swim/admin/entries/index" class="inline" onsubmit="return confirm('Tolak Pembayaran ini?');">
                                         <input type="hidden" name="reject_payment_id" value="<?= $row['payment_id'] ?>">
                                         <button type="submit" class="w-8 h-8 rounded-lg bg-red-50 text-red-600 border border-red-200 hover:bg-red-500 hover:text-white flex items-center justify-center transition" title="Tolak">
                                             ✕
                                         </button>
                                     </form>
-                                    <form method="POST" action="<?= getenv('APP_URL') ?>/swim/entries/index" class="inline" onsubmit="return confirm('Verifikasi LUNAS?');">
+                                    <form method="POST" action="<?= getenv('APP_URL') ?>/swim/admin/entries/index" class="inline" onsubmit="return confirm('Verifikasi LUNAS?');">
                                         <input type="hidden" name="approve_payment_id" value="<?= $row['payment_id'] ?>">
                                         <button type="submit" class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-500 hover:text-white flex items-center justify-center transition" title="Terima">
                                             ✓

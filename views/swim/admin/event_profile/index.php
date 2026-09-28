@@ -12,7 +12,7 @@
         </div>
     </div>
 
-    <form action="<?= getenv('APP_URL') ?>/swim/event_profile/update" method="POST" enctype="multipart/form-data" class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <form action="<?= getenv('APP_URL') ?>/swim/admin/profile/update" method="POST" enctype="multipart/form-data" class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
         <div class="lg:col-span-2 space-y-8">
             
@@ -125,7 +125,7 @@
                                     <a href="<?= getUrlPreview($row['poster_image']) ?>" target="_blank" class="shrink-0 h-16 w-16 bg-slate-100 rounded-xl border border-slate-200 overflow-hidden flex items-center justify-center">
                                         <img src="<?= getUrlPreview($row['poster_image']) ?>" class="max-h-full max-w-full object-cover">
                                     </a>
-                                    <a href="<?= getenv('APP_URL') ?>/swim/event_profile/delete_image?type=poster_image" onclick="return confirm('Apakah Anda yakin ingin menghapus gambar ini?');" class="bg-red-600 hover:bg-red-700 text-white text-[9px] px-2 py-1 rounded-md font-bold text-center w-full block">Hapus</a>
+                                    <a href="<?= getenv('APP_URL') ?>/swim/admin/profile/delete_image?type=poster_image" onclick="return confirm('Apakah Anda yakin ingin menghapus gambar ini?');" class="bg-red-600 hover:bg-red-700 text-white text-[9px] px-2 py-1 rounded-md font-bold text-center w-full block">Hapus</a>
                                 </div>
                             <?php endif; ?>
                             <input type="file" name="poster_file" accept="image/*" class="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-amber-100 file:text-amber-800 hover:file:bg-amber-200 transition">
@@ -226,7 +226,7 @@
                         <?php if(!empty($row['logo_left'])): ?>
                             <div class="flex flex-col items-center gap-1">
                                 <img src="<?= getUrlPreview($row['logo_left']) ?>" class="h-12 w-12 object-contain bg-slate-50 rounded-lg border">
-                                <a href="<?= getenv('APP_URL') ?>/swim/event_profile/delete_image?type=logo_left" onclick="return confirm('Apakah Anda yakin ingin menghapus gambar ini?');" class="bg-red-600 hover:bg-red-700 text-white text-[9px] px-2 py-0.5 rounded flex-shrink-0 font-bold block text-center w-full">Hapus</a>
+                                <a href="<?= getenv('APP_URL') ?>/swim/admin/profile/delete_image?type=logo_left" onclick="return confirm('Apakah Anda yakin ingin menghapus gambar ini?');" class="bg-red-600 hover:bg-red-700 text-white text-[9px] px-2 py-0.5 rounded flex-shrink-0 font-bold block text-center w-full">Hapus</a>
                             </div>
                         <?php endif; ?>
                         <input type="file" name="logo_left" class="block w-full text-[10px] text-slate-500 file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-[10px] file:font-bold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
@@ -239,7 +239,7 @@
                         <?php if(!empty($row['logo_right'])): ?>
                             <div class="flex flex-col items-center gap-1">
                                 <img src="<?= getUrlPreview($row['logo_right']) ?>" class="h-12 w-12 object-contain bg-slate-50 rounded-lg border">
-                                <a href="<?= getenv('APP_URL') ?>/swim/event_profile/delete_image?type=logo_right" onclick="return confirm('Apakah Anda yakin ingin menghapus gambar ini?');" class="bg-red-600 hover:bg-red-700 text-white text-[9px] px-2 py-0.5 rounded flex-shrink-0 font-bold block text-center w-full">Hapus</a>
+                                <a href="<?= getenv('APP_URL') ?>/swim/admin/profile/delete_image?type=logo_right" onclick="return confirm('Apakah Anda yakin ingin menghapus gambar ini?');" class="bg-red-600 hover:bg-red-700 text-white text-[9px] px-2 py-0.5 rounded flex-shrink-0 font-bold block text-center w-full">Hapus</a>
                             </div>
                         <?php endif; ?>
                         <input type="file" name="logo_right" class="block w-full text-[10px] text-slate-500 file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-[10px] file:font-bold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
@@ -257,7 +257,7 @@
                             <?php foreach($sponsors as $sp): ?>
                                 <div class="relative group bg-slate-50 border rounded-md h-12 flex items-center justify-center overflow-hidden">
                                     <img src="<?= getUrlPreview($sp['image_path']) ?>" class="max-h-full max-w-full p-1 object-contain">
-                                    <a href="<?= getenv('APP_URL') ?>/swim/event_profile/delete_sponsor?id=<?= $sp['id'] ?>" onclick="return confirm('Hapus?')" class="absolute inset-0 bg-red-500/80 text-white flex items-center justify-center text-xs font-bold opacity-0 group-hover:opacity-100 transition cursor-pointer">×</a>
+                                    <a href="<?= getenv('APP_URL') ?>/swim/admin/profile/delete_sponsor?id=<?= $sp['id'] ?>" onclick="return confirm('Hapus?')" class="absolute inset-0 bg-red-500/80 text-white flex items-center justify-center text-xs font-bold opacity-0 group-hover:opacity-100 transition cursor-pointer">×</a>
                                 </div>
                             <?php endforeach; ?>
                         </div>

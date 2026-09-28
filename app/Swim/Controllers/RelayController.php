@@ -97,14 +97,14 @@ class RelayController extends Controller {
                         if (count($clubIds) < 4) {
                             $_SESSION['swal_type'] = 'error';
                             $_SESSION['swal_msg'] = 'Gagal: Tim belum lengkap 4 perenang!';
-                            header("Location: " . getenv('APP_URL') . "/swim/relay/index");
+                            header("Location: " . getenv('APP_URL') . "/swim/admin/relay/index");
                             exit;
                         }
                         
                         if (count($uniqueClubs) > 1 || end($uniqueClubs) != $data['club_id']) {
                             $_SESSION['swal_type'] = 'error';
                             $_SESSION['swal_msg'] = 'Gagal: Ke-4 perenang harus berasal dari Klub yang sama!';
-                            header("Location: " . getenv('APP_URL') . "/swim/relay/index");
+                            header("Location: " . getenv('APP_URL') . "/swim/admin/relay/index");
                             exit;
                         }
                     }
@@ -129,7 +129,7 @@ class RelayController extends Controller {
             }
         }
         
-        header("Location: " . getenv('APP_URL') . "/swim/relay/index");
+        header("Location: " . getenv('APP_URL') . "/swim/admin/relay/index");
         exit;
     }
 }

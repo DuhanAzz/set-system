@@ -15,7 +15,7 @@
 
 <div class="max-w-7xl mx-auto mb-6 flex items-center justify-between">
     <div class="flex items-center gap-4">
-        <a href="<?= getenv('APP_URL') ?>/swim/entries/index" class="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:bg-slate-900 hover:text-white transition shadow-sm">←</a>
+        <a href="<?= getenv('APP_URL') ?>/swim/admin/entries/index" class="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:bg-slate-900 hover:text-white transition shadow-sm">←</a>
         <div>
             <h1 class="text-2xl font-black uppercase italic text-slate-900 leading-none">Verifikasi & Tagihan</h1>
             <p class="text-xs text-slate-500 font-bold uppercase tracking-widest mt-1">
@@ -24,7 +24,7 @@
         </div>
     </div>
     
-    <a href="<?= getenv('APP_URL') ?>/swim/entries/print?id=<?= $targetUserId ?>&event_id=<?= $eventId ?>" target="_blank" class="bg-slate-900 text-white px-6 py-2 rounded-xl text-xs font-bold uppercase shadow-lg hover:bg-slate-800 flex items-center gap-2 hover:translate-y-[-2px] transition-transform">
+    <a href="<?= getenv('APP_URL') ?>/swim/admin/entries/print?id=<?= $targetUserId ?>&event_id=<?= $eventId ?>" target="_blank" class="bg-slate-900 text-white px-6 py-2 rounded-xl text-xs font-bold uppercase shadow-lg hover:bg-slate-800 flex items-center gap-2 hover:translate-y-[-2px] transition-transform">
         🖨️ Cetak PDF A4
     </a>
 </div>
@@ -167,7 +167,7 @@
     </div>
 </div>
 
-<form id="actionForm" method="POST" action="<?= getenv('APP_URL') ?>/swim/entries/detail?id=<?= $targetUserId ?>&event_id=<?= $eventId ?>" class="hidden">
+<form id="actionForm" method="POST" action="<?= getenv('APP_URL') ?>/swim/admin/entries/detail?id=<?= $targetUserId ?>&event_id=<?= $eventId ?>" class="hidden">
     <input type="hidden" name="payment_id" value="<?= $payData['id'] ?? '' ?>">
     <input type="hidden" name="action_type" id="modalActionInput">
 </form>

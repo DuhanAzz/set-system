@@ -59,7 +59,7 @@ class EventsController extends Controller {
         $eventId = $this->getActiveEventId($pdo, $adminId);
         if (!$eventId) {
             $_SESSION['toast'] = ['type' => 'error', 'msg' => 'Buat Event Dulu di Menu Settings!'];
-            header("Location: " . getenv('APP_URL') . "/swim/events/index"); exit;
+            header("Location: " . getenv('APP_URL') . "/swim/admin/events/index"); exit;
         }
 
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
@@ -77,7 +77,7 @@ class EventsController extends Controller {
                 $_SESSION['toast'] = ['type' => 'error', 'msg' => 'Gagal Update Harga: ' . $e->getMessage()];
             }
         }
-        header("Location: " . getenv('APP_URL') . "/swim/events/index"); exit;
+        header("Location: " . getenv('APP_URL') . "/swim/admin/events/index"); exit;
     }
 
     public function add_ku() {
@@ -103,7 +103,7 @@ class EventsController extends Controller {
                 $_SESSION['toast'] = ['type' => 'error', 'msg' => 'Gagal: ' . $e->getMessage()];
             }
         }
-        header("Location: " . getenv('APP_URL') . "/swim/events/index"); exit;
+        header("Location: " . getenv('APP_URL') . "/swim/admin/events/index"); exit;
     }
 
     public function delete_ku() {
@@ -116,7 +116,7 @@ class EventsController extends Controller {
             $pdo->prepare("DELETE FROM swim_event_age_groups WHERE id = ? AND event_id = ?")->execute([$kuId, $eventId]);
             $_SESSION['toast'] = ['type' => 'success', 'msg' => 'Kelompok Umur Dihapus'];
         }
-        header("Location: " . getenv('APP_URL') . "/swim/events/index"); exit;
+        header("Location: " . getenv('APP_URL') . "/swim/admin/events/index"); exit;
     }
 
     public function store() {
@@ -131,7 +131,7 @@ class EventsController extends Controller {
 
         if ($eventId == 0) {
             $_SESSION['toast'] = ['type' => 'error', 'msg' => 'Buat Event Dulu di Menu Settings!'];
-            header("Location: " . getenv('APP_URL') . "/swim/events/index"); exit;
+            header("Location: " . getenv('APP_URL') . "/swim/admin/events/index"); exit;
         }
 
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
@@ -194,7 +194,7 @@ class EventsController extends Controller {
                 $_SESSION['toast'] = ['type' => 'error', 'msg' => 'Gagal: ' . $e->getMessage()];
             }
         }
-        header("Location: " . getenv('APP_URL') . "/swim/events/index"); exit;
+        header("Location: " . getenv('APP_URL') . "/swim/admin/events/index"); exit;
     }
 
     public function update() {
@@ -214,7 +214,7 @@ class EventsController extends Controller {
                 $_SESSION['toast'] = ['type' => 'error', 'msg' => 'Gagal Update Jadwal'];
             }
         }
-        header("Location: " . getenv('APP_URL') . "/swim/events/index"); exit;
+        header("Location: " . getenv('APP_URL') . "/swim/admin/events/index"); exit;
     }
 
     public function delete() {
@@ -228,7 +228,7 @@ class EventsController extends Controller {
                 $_SESSION['toast'] = ['type' => 'success', 'msg' => 'Nomor Lomba Dihapus'];
             }
         }
-        header("Location: " . getenv('APP_URL') . "/swim/events/index"); exit;
+        header("Location: " . getenv('APP_URL') . "/swim/admin/events/index"); exit;
     }
 
     private function getActiveEventId($pdo, $adminId) {
@@ -240,10 +240,10 @@ class EventsController extends Controller {
 
     // Optional methods that user requested for full CRUD but logic mostly done in modal index
     public function create() {
-        header("Location: " . getenv('APP_URL') . "/swim/events/index"); exit;
+        header("Location: " . getenv('APP_URL') . "/swim/admin/events/index"); exit;
     }
 
     public function edit() {
-        header("Location: " . getenv('APP_URL') . "/swim/events/index"); exit;
+        header("Location: " . getenv('APP_URL') . "/swim/admin/events/index"); exit;
     }
 }

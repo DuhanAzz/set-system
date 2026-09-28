@@ -13,7 +13,7 @@
         </div>
         
         <?php if($eventId == 0): ?>
-            <a href="<?= getenv('APP_URL') ?>/swim/settings/event_profile" class="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold text-xs uppercase hover:bg-blue-700 transition shadow-lg animate-bounce">
+            <a href="<?= getenv('APP_URL') ?>/swim/admin/profile" class="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold text-xs uppercase hover:bg-blue-700 transition shadow-lg animate-bounce">
                 + Buat Event Baru
             </a>
         <?php else: ?>
@@ -21,7 +21,7 @@
                 <span class="px-4 py-2 bg-emerald-100 text-emerald-700 rounded-lg text-xs font-black uppercase tracking-wide border border-emerald-200 shadow-sm">
                     Status: <?= htmlspecialchars($eventStatus) ?>
                 </span>
-                <a href="<?= getenv('APP_URL') ?>/swim/settings/event_profile?event_id=<?= $eventId ?>" class="px-4 py-2 bg-slate-800 text-white rounded-lg text-xs font-bold uppercase hover:bg-slate-700 transition shadow-sm">
+                <a href="<?= getenv('APP_URL') ?>/swim/admin/profile?event_id=<?= $eventId ?>" class="px-4 py-2 bg-slate-800 text-white rounded-lg text-xs font-bold uppercase hover:bg-slate-700 transition shadow-sm">
                     ⚙️ Edit Event
                 </a>
             </div>
@@ -39,19 +39,19 @@
                     <p class="text-sm text-orange-100 font-medium mt-1">Terdapat pendaftaran klub yang menunggu verifikasi pembayaran dari Anda.</p>
                 </div>
             </div>
-            <a href="<?= getenv('APP_URL') ?>/swim/entries/index" class="whitespace-nowrap bg-white text-orange-600 px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-orange-50 transition transform group-hover:scale-105 shadow-md">Verifikasi Sekarang</a>
+            <a href="<?= getenv('APP_URL') ?>/swim/admin/entries/index" class="whitespace-nowrap bg-white text-orange-600 px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-orange-50 transition transform group-hover:scale-105 shadow-md">Verifikasi Sekarang</a>
         </div>
     </div>
     <?php endif; ?>
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <a href="<?= getenv('APP_URL') ?>/swim/finance/revenue" class="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden group border-b-4 border-emerald-500 cursor-pointer block hover:from-slate-700 hover:to-slate-800 transition-colors">
+        <div class="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden group border-b-4 border-emerald-500 block">
             <div class="relative z-10">
                 <p class="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Total Pemasukan</p>
                 <h2 class="text-2xl font-black">Rp <?= number_format($stats['revenue'], 0, ',', '.') ?></h2>
             </div>
-            <div class="absolute right-[-10px] bottom-[-10px] opacity-10 group-hover:scale-110 transition text-white text-6xl">💰</div>
-        </a>
+            <div class="absolute right-[-10px] bottom-[-10px] opacity-10 text-white text-6xl">💰</div>
+        </div>
 
         <div class="bg-gradient-to-br from-white to-slate-50 rounded-2xl p-6 border-b-4 border-blue-500 shadow-sm hover:shadow-lg transition-all duration-300 group">
             <div class="flex justify-between items-start">
@@ -109,7 +109,7 @@
                 <h3 class="font-black text-slate-800 uppercase italic text-xs tracking-widest mb-4">⚡ Menu Cepat</h3>
                 <div class="grid grid-cols-1 gap-3">
                     
-                    <a href="<?= getenv('APP_URL') ?>/swim/entries/index" class="flex items-center gap-3 p-3 bg-slate-50 hover:bg-blue-50 rounded-xl transition group border border-slate-100">
+                    <a href="<?= getenv('APP_URL') ?>/swim/admin/entries/index" class="flex items-center gap-3 p-3 bg-slate-50 hover:bg-blue-50 rounded-xl transition group border border-slate-100">
                         <span class="w-8 h-8 flex items-center justify-center bg-white rounded-full shadow-sm text-xs border border-slate-100 group-hover:scale-110 transition">✅</span>
                         <div>
                             <p class="text-xs font-black text-slate-700 uppercase">Verifikasi Atlet</p>
@@ -117,7 +117,7 @@
                         </div>
                     </a>
 
-                    <a href="<?= getenv('APP_URL') ?>/swim/seeding/index" class="flex items-center gap-3 p-3 bg-slate-50 hover:bg-purple-50 rounded-xl transition group border border-slate-100">
+                    <a href="<?= getenv('APP_URL') ?>/swim/admin/seeding/index" class="flex items-center gap-3 p-3 bg-slate-50 hover:bg-purple-50 rounded-xl transition group border border-slate-100">
                         <span class="w-8 h-8 flex items-center justify-center bg-white rounded-full shadow-sm text-xs border border-slate-100 group-hover:scale-110 transition">🎲</span>
                         <div>
                             <p class="text-xs font-black text-slate-700 uppercase">Seeding / Undian</p>
@@ -125,7 +125,7 @@
                         </div>
                     </a>
 
-                    <a href="<?= getenv('APP_URL') ?>/swim/results/index" class="flex items-center gap-3 p-3 bg-slate-50 hover:bg-emerald-50 rounded-xl transition group border border-slate-100">
+                    <a href="<?= getenv('APP_URL') ?>/swim/admin/results/index" class="flex items-center gap-3 p-3 bg-slate-50 hover:bg-emerald-50 rounded-xl transition group border border-slate-100">
                         <span class="w-8 h-8 flex items-center justify-center bg-white rounded-full shadow-sm text-xs border border-slate-100 group-hover:scale-110 transition">⏱️</span>
                         <div>
                             <p class="text-xs font-black text-slate-700 uppercase">Input Hasil</p>

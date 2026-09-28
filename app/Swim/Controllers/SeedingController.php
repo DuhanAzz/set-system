@@ -268,7 +268,7 @@ class SeedingController extends Controller {
             $_SESSION['swal_msg'] = 'Seeding gagal: ' . ($data['message'] ?? 'Unknown');
         }
         
-        header("Location: " . getenv('APP_URL') . "/swim/seeding/index?event_id=" . $eventId);
+        header("Location: " . getenv('APP_URL') . "/swim/admin/seeding/index?event_id=" . $eventId);
         exit;
     }
     

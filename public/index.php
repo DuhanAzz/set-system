@@ -172,11 +172,14 @@ switch ($module) {
             $map = [
                 'Admin' => [
                     'dashboard' => '\\App\\Swim\\Controllers\\DashboardController',
-                    'profile'   => '\\App\\Swim\\Controllers\\ProfileController',
+                    'profile'   => '\\App\\Swim\\Controllers\\EventProfileController',
                     'events'    => '\\App\\Swim\\Controllers\\EventsController',
                     'entries'   => '\\App\\Swim\\Controllers\\EntriesController',
                     'results'   => '\\App\\Swim\\Controllers\\ResultsController',
-                    'seeding'   => '\\App\\Swim\\Controllers\\SeedingController'
+                    'seeding'   => '\\App\\Swim\\Controllers\\SeedingController',
+                    'relay'     => '\\App\\Swim\\Controllers\\RelayController',
+                    'medal_tally' => '\\App\\Swim\\Controllers\\MedalTallyController',
+                    'export'    => '\\App\\Swim\\Controllers\\ExportController'
                 ],
                 'User' => [
                     'dashboard' => '\\App\\Swim\\Controllers\\UserDashboardController',
