@@ -78,6 +78,7 @@ class MasterSettingsController extends Controller {
         // --- HANDLE LOGIC: UPDATE SETTINGS ---
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_config'])) {
             try {
+                $appName   = trim($_POST['app_name']);
                 $maintMode = isset($_POST['maintenance_mode']) ? 1 : 0;
                 $allowReg  = isset($_POST['allow_register']) ? 1 : 0;
                 $showAnn   = isset($_POST['show_announcement']) ? 1 : 0;
@@ -87,6 +88,7 @@ class MasterSettingsController extends Controller {
                 $supportEm = trim($_POST['support_email']);
 
                 $sql = "UPDATE swim_site_settings SET 
+                        app_name = ?,
                         maintenance_mode = ?, 
                         allow_register = ?,
                         show_announcement = ?,
@@ -95,7 +97,7 @@ class MasterSettingsController extends Controller {
                         support_email = ?
                         WHERE id = 1";
                 $stmt = $pdo->prepare($sql);
-                $stmt->execute([$maintMode, $allowReg, $showAnn, $annText, $supportWa, $supportEm]);
+                $stmt->execute([$appName, $maintMode, $allowReg, $showAnn, $annText, $supportWa, $supportEm]);
 
                 $_SESSION['msg'] = "Pengaturan berhasil diperbarui.";
                 $_SESSION['msg_type'] = "success";
@@ -202,8 +204,7 @@ class MasterSettingsController extends Controller {
             $row = $stmt->fetch(\PDO::FETCH_ASSOC);
             
             if ($row) {
-                $fullPath = __DIR__ . "/../../../../public/" . $row['image_path'];
-                if (file_exists($fullPath)) unlink($fullPath);
+                UploadService::deleteFile('hero', $row['image_path']);
             }
             $pdo->prepare("DELETE FROM swim_hero_images WHERE id = ?")->execute([$id]);
             $_SESSION['swal_type'] = 'success'; $_SESSION['swal_msg'] = 'Slide berhasil dihapus.';
