@@ -113,7 +113,7 @@
 
                         <?php if($targetRole == 'user'): ?>
                             <td class="px-6 py-5 align-top text-center">
-                                <a href="<?= getenv('APP_URL') ?>/swim/swimmers/index?search=<?= urlencode($u['nama_klub']) ?>" class="inline-block bg-slate-50 border border-slate-200 rounded-lg px-3 py-1 hover:bg-blue-50 hover:border-blue-200 hover:scale-105 transition cursor-pointer group/card">
+                                <a href="<?= getenv('APP_URL') ?>/swim/master/swimmers?search=<?= urlencode($u['nama_klub']) ?>" class="inline-block bg-slate-50 border border-slate-200 rounded-lg px-3 py-1 hover:bg-blue-50 hover:border-blue-200 hover:scale-105 transition cursor-pointer group/card">
                                     <span class="block text-lg font-black text-blue-600 leading-none group-hover/card:text-blue-700"><?= $u['total_atlet'] ?></span>
                                     <span class="text-[8px] uppercase font-bold text-slate-400">Atlet &rarr;</span>
                                 </a>
