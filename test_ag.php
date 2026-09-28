@@ -1,1 +1,0 @@
-<?php require_once "app/Core/Database.php"; $db = \App\Core\Database::getInstance()->getConnection(); $stmt = $db->query("SELECT * FROM roll_ref_age_groups"); print_r($stmt->fetchAll(PDO::FETCH_ASSOC));
