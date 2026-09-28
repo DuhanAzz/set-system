@@ -5,7 +5,7 @@
         
         <div class="flex justify-between items-center mb-6">
             <div>
-                <a href="<?= getenv('APP_URL') ?>/swim/records/manage_records" class="text-blue-600 hover:text-blue-800 text-sm font-bold flex items-center gap-1 mb-2">
+                <a href="<?= getenv('APP_URL') ?>/swim/master/records/manage_records" class="text-blue-600 hover:text-blue-800 text-sm font-bold flex items-center gap-1 mb-2">
                     &larr; Kembali ke Kelola Rekor
                 </a>
                 <h1 class="text-3xl font-black text-slate-800 uppercase tracking-tighter">INJEKSI REKORNAS (SPECTRA)</h1>

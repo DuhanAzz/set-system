@@ -4,12 +4,12 @@
     <div class="max-w-4xl mx-auto px-4 py-4">
         
         <div class="mb-8">
-            <a href="<?= getenv('APP_URL') ?>/swim/records/packages_index" class="text-blue-600 hover:underline font-bold text-sm mb-2 inline-block">← Kembali ke Daftar Paket</a>
+            <a href="<?= getenv('APP_URL') ?>/swim/master/records/packages_index" class="text-blue-600 hover:underline font-bold text-sm mb-2 inline-block">← Kembali ke Daftar Paket</a>
             <h1 class="text-3xl font-black text-slate-800 uppercase tracking-tighter">BUAT PAKET REKOR BARU</h1>
             <p class="text-slate-500 text-sm mt-1">Pilih event-event historis untuk diagregasi dan dijadikan paket rekor acuan.</p>
         </div>
 
-        <form action="<?= getenv('APP_URL') ?>/swim/records/packages_process_aggregate" method="POST" enctype="multipart/form-data" class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <form action="<?= getenv('APP_URL') ?>/swim/master/records/packages_process_aggregate" method="POST" enctype="multipart/form-data" class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
             
             <div class="p-6 border-b border-slate-100 bg-slate-50">
                 <label class="block text-xs font-bold text-slate-600 uppercase mb-2">Nama Paket Rekor</label>

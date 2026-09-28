@@ -9,7 +9,7 @@
                 <p class="text-slate-500 text-sm mt-1">Kelola basis data Rekor Nasional & Paket Rekor Acuan Event.</p>
             </div>
             <div>
-                <a href="<?= getenv('APP_URL') ?>/swim/records/packages_create" class="px-5 py-3 bg-blue-600 text-white font-bold text-xs rounded-xl uppercase tracking-wider shadow-lg shadow-blue-100 hover:bg-blue-700 transition flex items-center gap-2">
+                <a href="<?= getenv('APP_URL') ?>/swim/master/records/packages_create" class="px-5 py-3 bg-blue-600 text-white font-bold text-xs rounded-xl uppercase tracking-wider shadow-lg shadow-blue-100 hover:bg-blue-700 transition flex items-center gap-2">
                     ➕ Buat Paket Baru
                 </a>
             </div>
@@ -17,10 +17,10 @@
 
         <!-- NAVIGATION TABS -->
         <div class="flex border-b border-slate-200 mb-6 bg-white rounded-xl p-1.5 shadow-sm">
-            <a href="<?= getenv('APP_URL') ?>/swim/records/manage_records" class="flex-1 text-center py-3 font-bold text-sm rounded-lg transition text-slate-500 hover:text-slate-900">
+            <a href="<?= getenv('APP_URL') ?>/swim/master/records/manage_records" class="flex-1 text-center py-3 font-bold text-sm rounded-lg transition text-slate-500 hover:text-slate-900">
                 🇮🇩 DATA REKOR NASIONAL
             </a>
-            <a href="<?= getenv('APP_URL') ?>/swim/records/packages_index" class="flex-1 text-center py-3 font-bold text-sm rounded-lg transition bg-slate-900 text-white shadow">
+            <a href="<?= getenv('APP_URL') ?>/swim/master/records/packages_index" class="flex-1 text-center py-3 font-bold text-sm rounded-lg transition bg-slate-900 text-white shadow">
                 📦 PAKET REKOR ACUAN EVENT
             </a>
         </div>
@@ -51,7 +51,7 @@
                                 <td class="p-4 text-center"><span class="bg-slate-100 text-slate-700 px-3 py-1 rounded-lg font-bold"><?= $p['total_records'] ?> Rekor</span></td>
                                 <td class="p-4 text-slate-500 text-xs"><?= date('d M Y, H:i', strtotime($p['created_at'])) ?></td>
                                 <td class="p-4 text-center flex justify-center gap-2">
-                                    <a href="<?= getenv('APP_URL') ?>/swim/records/packages_detail?id=<?= $p['id'] ?>" class="px-4 py-2 bg-slate-900 text-white hover:bg-slate-800 rounded-lg text-xs font-bold transition">Lihat Detail</a>
+                                    <a href="<?= getenv('APP_URL') ?>/swim/master/records/packages_detail?id=<?= $p['id'] ?>" class="px-4 py-2 bg-slate-900 text-white hover:bg-slate-800 rounded-lg text-xs font-bold transition">Lihat Detail</a>
                                     <a href="?delete_id=<?= $p['id'] ?>" onclick="return confirm('Hapus paket ini beserta isinya?')" class="px-4 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg text-xs font-bold transition">Hapus</a>
                                 </td>
                             </tr>

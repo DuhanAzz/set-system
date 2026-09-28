@@ -43,7 +43,7 @@
                             </td>
                             <!-- Kolom Aksi -->
                             <td class="p-4 flex justify-center gap-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button onclick="editModal(<?= $r['id'] ?>, '<?= htmlspecialchars($r['kategori_gaya'], ENT_QUOTES) ?>', '<?= htmlspecialchars($r['pasal'], ENT_QUOTES) ?>', '<?= htmlspecialchars($r['deskripsi'], ENT_QUOTES) ?>')" class="bg-amber-100 text-amber-700 hover:bg-amber-200 px-3 py-2 rounded-lg text-xs transition">Edit</button>
+                                <button onclick="editModal(<?= $r['id'] ?>, <?= htmlspecialchars(json_encode($r['kategori_gaya']), ENT_QUOTES) ?>, <?= htmlspecialchars(json_encode($r['pasal']), ENT_QUOTES) ?>, <?= htmlspecialchars(json_encode($r['deskripsi']), ENT_QUOTES) ?>)" class="bg-amber-100 text-amber-700 hover:bg-amber-200 px-3 py-2 rounded-lg text-xs transition">Edit</button>
                                 <a href="?del=<?= $r['id'] ?>" onclick="return confirm('Apakah Anda yakin ingin menghapus pasal ini?')" class="bg-red-100 text-red-700 hover:bg-red-200 px-3 py-2 rounded-lg text-xs transition">Hapus</a>
                             </td>
                         </tr>

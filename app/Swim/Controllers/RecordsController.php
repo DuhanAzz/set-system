@@ -192,7 +192,7 @@ class RecordsController extends Controller {
             $pdo->prepare("DELETE FROM record_packages WHERE id = ?")->execute([$delId]);
             $_SESSION['flash_message'] = "Paket rekor berhasil dihapus!";
             $_SESSION['flash_type'] = "success";
-            header("Location: " . getenv('APP_URL') . "/swim/records/packages_index");
+            header("Location: " . getenv('APP_URL') . "/swim/master/records/packages_index");
             exit;
         }
 
@@ -228,7 +228,7 @@ class RecordsController extends Controller {
 
         $package_id = $_GET['id'] ?? 0;
         if (!$package_id) {
-            header("Location: " . getenv('APP_URL') . "/swim/records/packages_index");
+            header("Location: " . getenv('APP_URL') . "/swim/master/records/packages_index");
             exit;
         }
 
@@ -254,14 +254,14 @@ class RecordsController extends Controller {
                 $pdo->prepare($sql)->execute([$pkg_id, $distance, $stroke, $jenis_kel, $age_group, $holder_name, $location, $record_year, $record_time, $record_time_ms]);
                 $_SESSION['swal_type'] = 'success'; $_SESSION['swal_msg'] = 'Rekor baru berhasil ditambahkan!';
             }
-            header("Location: " . getenv('APP_URL') . "/swim/records/packages_detail?id=" . $pkg_id);
+            header("Location: " . getenv('APP_URL') . "/swim/master/records/packages_detail?id=" . $pkg_id);
             exit;
         }
 
         if (isset($_GET['delete_record'])) {
             $pdo->prepare("DELETE FROM event_historical_records WHERE id = ?")->execute([$_GET['delete_record']]);
             $_SESSION['swal_type'] = 'success'; $_SESSION['swal_msg'] = 'Rekor berhasil dihapus!';
-            header("Location: " . getenv('APP_URL') . "/swim/records/packages_detail?id=" . $package_id);
+            header("Location: " . getenv('APP_URL') . "/swim/master/records/packages_detail?id=" . $package_id);
             exit;
         }
 
@@ -270,7 +270,7 @@ class RecordsController extends Controller {
         $packageData = $package->fetch(\PDO::FETCH_ASSOC);
 
         if (!$packageData) {
-            header("Location: " . getenv('APP_URL') . "/swim/records/packages_index");
+            header("Location: " . getenv('APP_URL') . "/swim/master/records/packages_index");
             exit;
         }
 
@@ -289,7 +289,7 @@ class RecordsController extends Controller {
         $pdo = Database::getInstance()->getConnection();
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            header("Location: " . getenv('APP_URL') . "/swim/records/packages_index");
+            header("Location: " . getenv('APP_URL') . "/swim/master/records/packages_index");
             exit;
         }
 
@@ -305,14 +305,14 @@ class RecordsController extends Controller {
         if (empty($packageName)) {
             $_SESSION['flash_message'] = "Nama paket wajib diisi!";
             $_SESSION['flash_type'] = "error";
-            header("Location: " . getenv('APP_URL') . "/swim/records/packages_create");
+            header("Location: " . getenv('APP_URL') . "/swim/master/records/packages_create");
             exit;
         }
 
         if ($creationMethod === 'aggregate' && empty($sourceIds)) {
             $_SESSION['flash_message'] = "Minimal 1 event historis wajib diisi!";
             $_SESSION['flash_type'] = "error";
-            header("Location: " . getenv('APP_URL') . "/swim/records/packages_create");
+            header("Location: " . getenv('APP_URL') . "/swim/master/records/packages_create");
             exit;
         }
 
@@ -494,10 +494,10 @@ class RecordsController extends Controller {
             $_SESSION['flash_type'] = "success";
             
             if ($creationMethod === 'manual') {
-                header("Location: " . getenv('APP_URL') . "/swim/records/packages_detail?id=" . $packageId);
+                header("Location: " . getenv('APP_URL') . "/swim/master/records/packages_detail?id=" . $packageId);
                 exit;
             } else {
-                header("Location: " . getenv('APP_URL') . "/swim/records/packages_index");
+                header("Location: " . getenv('APP_URL') . "/swim/master/records/packages_index");
                 exit;
             }
 
@@ -505,7 +505,7 @@ class RecordsController extends Controller {
             $pdo->rollBack();
             $_SESSION['flash_message'] = "Terjadi kesalahan sistem: " . $e->getMessage();
             $_SESSION['flash_type'] = "error";
-            header("Location: " . getenv('APP_URL') . "/swim/records/packages_create");
+            header("Location: " . getenv('APP_URL') . "/swim/master/records/packages_create");
             exit;
         }
     }

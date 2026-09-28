@@ -2,7 +2,7 @@
     <div class="max-w-7xl mx-auto px-4 py-4">
         
         <div class="mb-8">
-            <a href="<?= getenv('APP_URL') ?>/swim/records/packages_index" class="text-blue-600 hover:text-blue-800 text-sm font-bold flex items-center gap-1 mb-2">← Kembali ke Daftar Paket</a>
+            <a href="<?= getenv('APP_URL') ?>/swim/master/records/packages_index" class="text-blue-600 hover:text-blue-800 text-sm font-bold flex items-center gap-1 mb-2">← Kembali ke Daftar Paket</a>
             <h1 class="text-3xl font-black text-slate-800 uppercase tracking-tighter">DETAIL PAKET REKOR</h1>
             <p class="text-slate-500 text-sm mt-1">Paket: <strong class="text-slate-800"><?= htmlspecialchars($packageData['package_name']) ?></strong></p>
         </div>
@@ -10,7 +10,7 @@
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
             <div class="p-6 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
                 <h2 class="font-bold text-slate-900 text-base uppercase">Isi Rekor (<?= count($records) ?> Data)</h2>
-                <a href="<?= getenv('APP_URL') ?>/swim/records/packages_index?delete_id=<?= $package_id ?>" class="text-xs text-red-600 hover:underline font-bold">Hapus Paket Ini</a>
+                <a href="<?= getenv('APP_URL') ?>/swim/master/records/packages_index?delete_id=<?= $package_id ?>" class="text-xs text-red-600 hover:underline font-bold">Hapus Paket Ini</a>
             </div>
             
             <div class="overflow-x-auto">
