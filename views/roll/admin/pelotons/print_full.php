@@ -87,7 +87,7 @@ $sponsors = !empty($eventInfo['sponsor_logos']) ? json_decode($eventInfo['sponso
 
 // Ambil seluruh data perlombaan & peloton yang berpartisipasi
 $sqlAll = "SELECT 
-            c.id as class_id, a.group_name, sc.class_name as roller_name, d.distance_name, c.gender, c.race_number, c.race_time,
+            c.id as class_id, a.group_name, c.custom_name, sc.class_name as roller_name, d.distance_name, c.gender, c.race_number, c.race_time,
             p.round, p.heat_name, p.start_grid, 
             e.bib_number, s.skater_name, cl.club_name, e.team_name
            FROM roll_event_details c
@@ -123,7 +123,8 @@ foreach ($rawData as $row) {
         $mechData = RollPelotonController::getMechanism($row['distance_name']);
         
         $judulParts = [];
-        if (!$isPemula && $pc['show_group'])    $judulParts[] = $row['group_name'];
+        $groupNameDisplay = !empty($row['custom_name']) ? $row['custom_name'] : $row['group_name'];
+        if (!$isPemula && $pc['show_group'])    $judulParts[] = $groupNameDisplay;
         if ($pc['show_gender'])   $judulParts[] = strtoupper($row['gender'] === 'pa' ? 'Putra' : ($row['gender'] === 'pi' ? 'Putri' : $row['gender']));
         if ($pc['show_distance']) $judulParts[] = $row['distance_name'];
         

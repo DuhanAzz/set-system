@@ -223,8 +223,12 @@ class RollPelotonController extends Controller {
             $stmtDeleteSources = $db->prepare("DELETE FROM roll_event_details WHERE id IN ($inQuery) AND event_id = ?");
             $stmtDeleteSources->execute([$eventId]);
 
-            // Hapus juga pelotons lama jika ada
-            $stmtDeleteP = $db->prepare("DELETE FROM roll_pelotons WHERE event_id = ? AND race_class_id IN ($inQuery)");
+            // Hapus juga pelotons lama jika ada (termasuk kelas target agar admin WAJIB meng-generate ulang dengan atlet yang baru masuk)
+            $allAffectedIds = $sourceClassIds;
+            $allAffectedIds[] = $targetClassId;
+            $inQueryAll = implode(',', $allAffectedIds);
+            
+            $stmtDeleteP = $db->prepare("DELETE FROM roll_pelotons WHERE event_id = ? AND race_class_id IN ($inQueryAll)");
             $stmtDeleteP->execute([$eventId]);
 
             $db->commit();
