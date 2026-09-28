@@ -3,7 +3,7 @@
     <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
         <div>
             <nav class="text-slate-400 text-[10px] font-bold uppercase tracking-widest mb-2">
-                <a href="<?= getenv('APP_URL') ?>/swim/dashboard/master" class="hover:text-blue-600">← Control Center</a>
+                <a href="<?= getenv('APP_URL') ?>/swim/master/dashboard" class="hover:text-blue-600">← Control Center</a>
             </nav>
             <h1 class="text-3xl font-black text-slate-900 uppercase tracking-tighter italic leading-none">
                 Manajemen <?= $targetRole == 'admin' ? 'Event Organizer' : 'User Klub' ?>
@@ -150,7 +150,7 @@
                         <td class="px-6 py-5 align-top text-right">
                             <div class="flex justify-end gap-2">
                                 <?php if($status === 'pending'): ?>
-                                    <a href="verify_user.php?id=<?= $u['id'] ?>" class="flex items-center justify-center bg-amber-500 hover:bg-amber-600 text-white px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition shadow-sm">
+                                    <a href="<?= getenv('APP_URL') ?>/swim/master/users/verify?id=<?= $u['id'] ?>" class="flex items-center justify-center bg-amber-500 hover:bg-amber-600 text-white px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition shadow-sm">
                                         Verifikasi Akun
                                     </a>
                                 <?php else: ?>
@@ -291,12 +291,18 @@
     }
 
     function editAdmin(buttonElement) {
-        const data = JSON.parse(buttonElement.getAttribute('data-user'));
-        editUser(data);
+        try {
+            const data = JSON.parse(buttonElement.getAttribute('data-user'));
+            editUser(data);
+        } catch (e) {
+            console.error("Gagal parse data user:", e);
+            alert("Terjadi kesalahan saat mengambil data. Cek console.");
+        }
     }
 
     function editUser(data) {
-        document.getElementById('modal-admin').classList.remove('hidden');
+        const modal = document.getElementById('modal-admin');
+        modal.classList.remove('hidden');
         document.getElementById('modal-title').innerText = 'Edit <?= strtoupper($targetRole) ?>';
         
         document.getElementById('form-id').value = data.id; 
@@ -326,16 +332,10 @@
         if(document.getElementById('form-kota')) {
             document.getElementById('form-kota').value = data.kota || '';
         }
-
-        modal.classList.remove('hidden');
-    } catch (e) {
-        console.error("Gagal parse data user:", e);
-        alert("Terjadi kesalahan saat mengambil data. Cek console.");
     }
-}
 
 function closeModal() { 
-    modal.classList.add('hidden'); 
+    document.getElementById('modal-admin').classList.add('hidden'); 
 }
 </script>
 
