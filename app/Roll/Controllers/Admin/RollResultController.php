@@ -41,6 +41,7 @@ class RollResultController extends Controller {
                                          WHERE ed.event_id = ?");
             $stmtClasses->execute([$eventId]);
         } catch (\Exception $e) {
+            try { $db->exec("ALTER TABLE roll_event_details ADD COLUMN custom_name VARCHAR(255) NULL"); } catch (\Exception $ex) {}
             try { $db->exec("ALTER TABLE roll_event_details ADD COLUMN advancement_count INT DEFAULT NULL"); } catch (\Exception $ex) {}
             try { $db->exec("ALTER TABLE roll_event_details ADD COLUMN next_round VARCHAR(50) DEFAULT NULL"); } catch (\Exception $ex) {}
             try { $db->exec("ALTER TABLE roll_event_details ADD COLUMN auto_qualify_per_heat INT DEFAULT NULL"); } catch (\Exception $ex) {}
@@ -73,6 +74,14 @@ class RollResultController extends Controller {
         if ($filter_class_id > 0) {
             foreach ($classes as $c) {
                 if ($c['id'] == $filter_class_id) $raceInfo = $c;
+            }
+            
+            // If class not found (e.g. it was a deleted source class from merge), redirect back
+            if (!$raceInfo) {
+                $_SESSION['flash_message'] = "Kelas perlombaan tidak ditemukan (mungkin sudah digabung/dihapus).";
+                $_SESSION['flash_type'] = "error";
+                header("Location: " . getenv('APP_URL') . "/roll/admin/results");
+                exit;
             }
             
             $stmtPrev = $db->prepare("SELECT id FROM roll_event_details WHERE event_id = ? AND id < ? ORDER BY id DESC LIMIT 1");
