@@ -90,11 +90,26 @@
         </div>
     <?php else: ?>
 
-        <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+        <?php
+        $verifiedInvoices = array_filter($invoices, fn($inv) => $inv['status'] === 'Paid');
+        $unverifiedInvoices = array_filter($invoices, fn($inv) => $inv['status'] !== 'Paid');
+        
+        $tables = [
+            'Belum Terverifikasi' => $unverifiedInvoices,
+            'Terverifikasi' => $verifiedInvoices,
+        ];
+        ?>
+
+        <?php foreach($tables as $title => $tableInvoices): ?>
+        <?php if(empty($tableInvoices)) continue; ?>
+        
+        <h3 class="font-black text-slate-800 uppercase text-lg mb-3 mt-6 ml-2"><?= $title ?></h3>
+        <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden mb-8">
             <table class="w-full text-left border-collapse">
                 <thead>
                     <tr class="bg-slate-50 border-b border-slate-200 text-[10px] font-black text-slate-400 uppercase tracking-widest">
                         <th class="py-4 px-6 w-16">#</th>
+                        <th class="py-4 px-4">Nama Club</th>
                         <th class="py-4 px-4">Invoice / Kode Token</th>
                         <th class="py-4 px-4">Tagihan & Entri</th>
                         <th class="py-4 px-4 text-center">Bukti Transfer</th>
@@ -104,15 +119,24 @@
                 </thead>
                 
                 <tbody class="divide-y divide-slate-100">
-                    <?php foreach($invoices as $i => $inv): 
+                    <?php 
+                    $i = 0;
+                    foreach($tableInvoices as $inv): 
+                        $i++;
                         $code = $inv['invoice_code'];
                         $details = $invoiceDetails[$code] ?? [];
                         $status = $inv['status'];
                     ?>
                     <tr class="group hover:bg-slate-50 transition <?= $status == 'Pending' ? 'bg-amber-50/40' : '' ?>">
                         
-                        <td class="py-4 px-6 font-black text-slate-300 italic"><?= $i + 1 ?></td>
+                        <td class="py-4 px-6 font-black text-slate-300 italic"><?= $i ?></td>
                         
+                        <td class="py-4 px-4">
+                            <div class="font-black text-slate-700 text-xs uppercase">
+                                <?= htmlspecialchars($inv['club_name'] ?? 'Independen') ?>
+                            </div>
+                        </td>
+
                         <td class="py-4 px-4">
                             <div class="flex items-center gap-3">
                                 <div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-lg shadow-sm border border-slate-200">
@@ -214,6 +238,7 @@
                 </tbody>
             </table>
         </div>
+        <?php endforeach; ?>
 
     <?php endif; ?>
 </div>
