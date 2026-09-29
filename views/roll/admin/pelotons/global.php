@@ -302,7 +302,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 localStorage.setItem('roll_lanes_' + classIds, this.value);
             });
         }
+    });
 
+    // Intercept formGenerateAuto to save all current states before submitting
+    const formAuto = document.getElementById('formGenerateAuto');
+    if (formAuto) {
+        formAuto.addEventListener('submit', function() {
+            document.querySelectorAll('.form-generate-single').forEach(form => {
+                const classIds = form.getAttribute('data-class-ids');
+                const mechSelect = form.querySelector('.mech-select');
+                const lanesInput = form.querySelector('input[name="max_lanes"]');
+                if (mechSelect) localStorage.setItem('roll_mech_' + classIds, mechSelect.value);
+                if (lanesInput) localStorage.setItem('roll_lanes_' + classIds, lanesInput.value);
+            });
+        });
+    }
+
+    // Handle AJAX form submission for single class generation and State Preservation
+    document.querySelectorAll('.form-generate-single').forEach(form => {
         form.addEventListener('submit', async function(e) {
             e.preventDefault();
             
