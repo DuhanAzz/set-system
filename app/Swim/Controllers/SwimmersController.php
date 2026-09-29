@@ -336,4 +336,88 @@ class SwimmersController extends Controller {
         header("Location: " . getenv('APP_URL') . "/swim/" . $_SESSION['swim_role'] . "/swimmers");
         exit;
     }
+
+    public function exportTemplate() {
+        $this->checkAccess();
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename=template_import_atlet.csv');
+        $output = fopen('php://output', 'w');
+        fputcsv($output, ['nama_atlet', 'jenis_kelamin', 'tanggal_lahir', 'asal_sekolah']);
+        fputcsv($output, ['IGEDE SIMAN', 'L', '1990-09-08', 'SMPN 1 YOGYAKARTA']);
+        fputcsv($output, ['RINI BUDIARTI', 'P', '1995-12-31', '']);
+        fclose($output);
+        exit;
+    }
+
+    public function importCsv() {
+        $this->checkAccess();
+        $uid = $_SESSION['swim_user_id'];
+        
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['csv_file'])) {
+            $file = $_FILES['csv_file']['tmp_name'];
+            if (!$file) {
+                $_SESSION['flash_error'] = "Silakan pilih file CSV terlebih dahulu.";
+                header("Location: " . getenv('APP_URL') . "/swim/" . $_SESSION['swim_role'] . "/swimmers/create");
+                exit;
+            }
+            
+            // Ambil nama klub
+            $stmtClub = $this->db->prepare("SELECT c.nama_klub FROM swim_clubs c JOIN swim_users u ON c.user_id = u.id WHERE u.id = ?");
+            $stmtClub->execute([$uid]);
+            $club = $stmtClub->fetch(\PDO::FETCH_ASSOC);
+            $nama_klub = $club['nama_klub'] ?? '';
+            
+            $handle = fopen($file, "r");
+            if ($handle !== FALSE) {
+                $header = fgetcsv($handle, 1000, ","); 
+                
+                $successCount = 0;
+                $errorCount = 0;
+                
+                $stmtCek = $this->db->prepare("SELECT COUNT(*) FROM swim_swimmers WHERE user_id = ? AND UPPER(nama_atlet) = ? AND tanggal_lahir = ?");
+                $stmtIns = $this->db->prepare("INSERT INTO swim_swimmers (uid, user_id, nama_atlet, jenis_kelamin, tanggal_lahir, klub, asal_sekolah) VALUES (?, ?, ?, ?, ?, ?, ?)");
+                
+                while (($data = fgetcsv($handle, 1000, ",")) !== FALSE) {
+                    if (count($data) < 3) { $errorCount++; continue; }
+                    
+                    $nama = strtoupper(trim($data[0]));
+                    $gender = strtoupper(trim($data[1])); // L atau P
+                    $dob = trim($data[2]); // YYYY-MM-DD
+                    $sekolah = isset($data[3]) ? strtoupper(trim($data[3])) : '';
+                    
+                    if (empty($nama) || empty($gender) || empty($dob)) {
+                        $errorCount++; continue;
+                    }
+                    if ($gender !== 'L' && $gender !== 'P') {
+                        $errorCount++; continue; 
+                    }
+                    if (!preg_match("/^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])$/", $dob)) {
+                        $errorCount++; continue;
+                    }
+                    
+                    $stmtCek->execute([$uid, $nama, $dob]);
+                    if ($stmtCek->fetchColumn() > 0) {
+                        $errorCount++; continue; // duplikat
+                    }
+                    
+                    $uid_baru = $this->generateSwimmerUID($nama, $dob, $gender);
+                    
+                    try {
+                        $stmtIns->execute([$uid_baru, $uid, $nama, $gender, $dob, $nama_klub, $sekolah]);
+                        $successCount++;
+                    } catch (\Exception $e) {
+                        $errorCount++;
+                    }
+                }
+                fclose($handle);
+                
+                $_SESSION['flash_success'] = "Import selesai! $successCount berhasil, $errorCount gagal (duplikat/format salah).";
+            } else {
+                $_SESSION['flash_error'] = "Gagal membaca file CSV.";
+            }
+        }
+        
+        header("Location: " . getenv('APP_URL') . "/swim/" . $_SESSION['swim_role'] . "/swimmers");
+        exit;
+    }
 }
