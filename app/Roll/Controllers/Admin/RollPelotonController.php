@@ -528,46 +528,46 @@ class RollPelotonController extends Controller {
                 } else { // 'distributed'
                     // Kelompokkan per klub (dan per tim untuk relay)
                     $clubGroups = [];
+                    $teamGroups = [];
+
                     foreach ($athletes as $a) {
                         $cId = $a['club_id'] ?? 0;
-                        if (!isset($clubGroups[$cId])) $clubGroups[$cId] = [];
-                        
                         $tName = trim($a['team_name'] ?? '');
+                        
                         if ($teamSize > 1 && !empty($tName)) {
-                            if (!isset($clubGroups[$cId]['teams'])) $clubGroups[$cId]['teams'] = [];
-                            if (!isset($clubGroups[$cId]['teams'][$tName])) $clubGroups[$cId]['teams'][$tName] = [];
-                            $clubGroups[$cId]['teams'][$tName][] = $a['skater_id'];
+                            $tKey = md5(strtolower($tName));
+                            if (!isset($teamGroups[$tKey])) $teamGroups[$tKey] = ['club_id' => $cId, 'members' => []];
+                            $teamGroups[$tKey]['members'][] = $a['skater_id'];
                         } else {
-                            if (!isset($clubGroups[$cId]['no_team'])) $clubGroups[$cId]['no_team'] = [];
-                            $clubGroups[$cId]['no_team'][] = $a['skater_id'];
+                            if (!isset($clubGroups[$cId])) $clubGroups[$cId] = [];
+                            $clubGroups[$cId][] = $a['skater_id'];
                         }
                     }
 
-                    // Bentuk tim di dalam masing-masing klub
-                    foreach ($clubGroups as $cId => $groups) {
-                        $clubTeams[$cId] = [];
-                        if (isset($groups['teams'])) {
-                            foreach ($groups['teams'] as $tName => $tMembers) {
-                                $chunks = array_chunk($tMembers, $teamSize);
-                                foreach ($chunks as $c) {
-                                    if (count($c) == $teamSize) {
-                                        $clubTeams[$cId][] = $c;
-                                    }
-                                }
-                            }
-                        }
-                        if (isset($groups['no_team'])) {
-                            $chunks = array_chunk($groups['no_team'], $teamSize);
+                    if ($teamSize > 1) {
+                        $clubTeams = [];
+                        foreach ($teamGroups as $tKey => $tData) {
+                            $cId = $tData['club_id'];
+                            if (!isset($clubTeams[$cId])) $clubTeams[$cId] = [];
+                            $chunks = array_chunk($tData['members'], $teamSize);
                             foreach ($chunks as $c) {
                                 if (count($c) == $teamSize) {
                                     $clubTeams[$cId][] = $c;
                                 }
                             }
                         }
-                    }
-
-                    if ($teamSize > 1) {
-                        // Jika relay/pair, datanya sudah berbentuk chunk dari atas
+                        
+                        foreach ($clubGroups as $cId => $members) {
+                            if (!isset($clubTeams[$cId])) $clubTeams[$cId] = [];
+                            $chunks = array_chunk($members, $teamSize);
+                            foreach ($chunks as $c) {
+                                if (count($c) == $teamSize) {
+                                    $clubTeams[$cId][] = $c;
+                                }
+                            }
+                        }
+                        
+                        // datanya sudah berbentuk chunk
                         $flatTeams = [];
                         foreach ($clubTeams as $cId => $tms) {
                             foreach ($tms as $t) {
