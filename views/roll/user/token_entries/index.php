@@ -734,7 +734,9 @@ function populateAthleteSelect(targetSelectId, athletesList) {
         const gender = s.gender; // 'M' or 'F'
         const lockedGroup = s.locked_group || '';
         
-        let matchesAge = (age >= minAge && age <= maxAge);
+        // BYPASS: Izinkan lintas umur untuk form Tim / Relay
+        let matchesAge = targetSelectId.startsWith('team_skater') ? true : (age >= minAge && age <= maxAge);
+        
         let matchesGender = ((catGender === 'putra' && gender === 'M') || (catGender === 'putri' && gender === 'F') || catGender === 'campuran');
         
         let validGroup = true;

@@ -940,7 +940,8 @@ function filterRelayAthletes() {
                           (catGender === 'putra' && gender === 'M') || 
                           (catGender === 'putri' && gender === 'F');
 
-        let ageMatch = age >= minAge && age <= maxAge;
+        // BYPASS: Izinkan lintas umur untuk kelas Relay (misal: gabungan Junior & Senior di satu tim)
+        let ageMatch = true;
         
         // Cek existing group (kategori atlet)
         let eGroup = '';
