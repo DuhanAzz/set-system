@@ -38,7 +38,7 @@ class EntriesController extends Controller {
                     $_SESSION['swal_type'] = 'success'; 
                     $_SESSION['swal_msg'] = 'Pembayaran Lunas! Klub dapat mencetak ID Card.';
                 } catch (\Exception $e) {}
-                header("Location: " . getenv('APP_URL') . "/swim/entries/index"); exit;
+                header("Location: " . getenv('APP_URL') . "/swim/admin/entries/index"); exit;
             }
             
             $paymentIdRollback = (int)($_POST["rollback_payment_id"] ?? 0);
@@ -49,7 +49,7 @@ class EntriesController extends Controller {
                     $_SESSION["swal_type"] = "info";
                     $_SESSION["swal_msg"] = "Verifikasi Dibatalkan. Status kembali Pending.";
                 } catch (\Exception $e) {}
-                header("Location: " . getenv("APP_URL") . "/swim/entries/index"); exit;
+                header("Location: " . getenv("APP_URL") . "/swim/admin/entries/index"); exit;
             }
             if ($paymentIdReject > 0) {
                 try {
@@ -58,7 +58,7 @@ class EntriesController extends Controller {
                     $_SESSION['swal_type'] = 'warning'; 
                     $_SESSION['swal_msg'] = 'Pembayaran Ditolak.';
                 } catch (\Exception $e) {}
-                header("Location: " . getenv('APP_URL') . "/swim/entries/index"); exit;
+                header("Location: " . getenv('APP_URL') . "/swim/admin/entries/index"); exit;
             }
         }
         
@@ -132,7 +132,7 @@ class EntriesController extends Controller {
                 }
             }
             
-            header("Location: " . getenv('APP_URL') . "/swim/entries/detail?id=$targetUserId&event_id=$eventId");
+            header("Location: " . getenv('APP_URL') . "/swim/admin/entries/detail?id=$targetUserId&event_id=$eventId");
             exit;
         }
         
