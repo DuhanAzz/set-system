@@ -99,7 +99,7 @@ $sqlAll = "SELECT
            JOIN roll_skaters s ON p.skater_id = s.id
            LEFT JOIN roll_clubs cl ON s.club_id = cl.id
            WHERE c.event_id = ?
-           ORDER BY CAST(c.race_number AS UNSIGNED) ASC, c.gender ASC, a.id ASC, p.round ASC, p.heat_name ASC, p.start_grid ASC";
+           ORDER BY CAST(c.race_number AS UNSIGNED) ASC, c.gender DESC, a.id ASC, p.round ASC, p.heat_name ASC, p.start_grid ASC";
 
 $stmtAll = $db->prepare($sqlAll);
 $stmtAll->execute([$eventId]);
