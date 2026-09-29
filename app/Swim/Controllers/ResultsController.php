@@ -61,7 +61,7 @@ class ResultsController extends Controller {
             ) as total_finished
             FROM swim_event_numbers en 
             WHERE en.event_id = ?
-            ORDER BY en.id ASC
+            ORDER BY CAST(en.event_number AS UNSIGNED) ASC
         ");
         $stmt->execute([$eventId]);
         $events = $stmt->fetchAll(PDO::FETCH_ASSOC);
