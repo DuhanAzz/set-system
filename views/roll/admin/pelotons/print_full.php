@@ -386,11 +386,11 @@ if ($cc['klub']) $activeColumnsCount++;
                                         </tr>
                                         <?php 
                                             // Urutkan ulang berdasarkan race_number dalam array hari tersebut agar teratur
-                                            // dan Putra (PA) terlebih dahulu sebelum Putri (PI) jika race number sama
+                                            // dan Putri (PI) terlebih dahulu sebelum Putra (PA) jika race number sama
                                             usort($dayClasses, function($a, $b) {
                                                 $cmp = strnatcmp($a['race_number'], $b['race_number']);
                                                 if ($cmp === 0) {
-                                                    return strcmp($a['raw_gender'] ?? '', $b['raw_gender'] ?? '');
+                                                    return -strcmp($a['raw_gender'] ?? '', $b['raw_gender'] ?? '');
                                                 }
                                                 return $cmp;
                                             });

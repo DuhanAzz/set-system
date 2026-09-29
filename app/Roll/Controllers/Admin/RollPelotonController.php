@@ -592,6 +592,13 @@ class RollPelotonController extends Controller {
                             if ($heatIndex > $totalHeats) $heatIndex = 1;
                         }
                     } else {
+                        foreach ($clubGroups as $cId => $members) {
+                            $clubTeams[$cId] = [];
+                            foreach ($members as $skaterId) {
+                                $clubTeams[$cId][] = [$skaterId];
+                            }
+                        }
+                        
                         // Untuk individu, urutkan klub berdasarkan jumlah partisipan
                         foreach ($clubTeams as $cId => &$members) {
                             shuffle($members);
