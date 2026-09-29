@@ -225,6 +225,11 @@ class EntriesController extends Controller {
                 $totalTagihan += $data['subtotal'];
             }
             unset($data);
+
+            // Tambah estafet ke totalTagihan
+            foreach($relayEntries as $re) {
+                $totalTagihan += (float)($re['item_price'] ?? 0);
+            }
         } catch (\Exception $e) { 
             die("Error Database: " . $e->getMessage()); 
         }
