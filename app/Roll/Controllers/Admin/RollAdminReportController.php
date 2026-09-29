@@ -45,10 +45,10 @@ class RollAdminReportController extends Controller {
             SELECT 
                 m.id, m.status, m.total_amount as payment_amount, m.created_at,
                 m.invoice_code as identifier,
-                u.nama_lengkap as user_name,
+                c.club_name as user_name,
                 'Token' as type
             FROM roll_manual_payments m
-            LEFT JOIN users u ON m.user_id = u.id
+            LEFT JOIN roll_clubs c ON m.club_id = c.id
             WHERE m.event_id = ?
             ORDER BY m.created_at DESC
         ");
