@@ -16,7 +16,7 @@
 <?php endif; ?>
 
 <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden max-w-4xl">
-    <form action="<?= getenv('APP_URL') ?>/swim/user/club_profile/update" method="POST" enctype="multipart/form-data" class="p-8">
+    <form action="<?= getenv('APP_URL') ?>/swim/user/profile/update" method="POST" enctype="multipart/form-data" class="p-8">
         
         <h3 class="text-lg font-black text-slate-800 uppercase mb-6 pb-2 border-b-2 border-slate-100">Informasi Afiliasi (Klub/Sekolah)</h3>
         

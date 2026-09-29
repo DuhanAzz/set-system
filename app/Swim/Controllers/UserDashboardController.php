@@ -36,8 +36,8 @@ $totalSwimmers = $stmt->fetchColumn();
 
 // 2. STATISTIK: TOTAL EVENT YANG DIIKUTI
 // Menghitung berapa banyak baris di tabel event_entries milik klub ini
-// Asumsi: club_id disimpan di event_entries
-$stmtEntries = $this->db->prepare("SELECT COUNT(*) FROM swim_event_entries WHERE club_id = ?");
+// Asumsi: event_entries sudah memiliki kolom user_id
+$stmtEntries = $this->db->prepare("SELECT COUNT(*) FROM swim_event_entries WHERE user_id = ?");
 $stmtEntries->execute([$uid]);
 $totalEntries = $stmtEntries->fetchColumn();
 

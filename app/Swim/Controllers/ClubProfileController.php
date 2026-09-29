@@ -72,7 +72,7 @@ class ClubProfileController extends Controller {
                     $logo = UploadService::uploadImage($_FILES['logo'], 'logos', 800);
                 } catch (\Exception $e) {
                     $_SESSION['flash_error'] = $e->getMessage();
-                    header("Location: " . getenv('APP_URL') . "/swim/club_profile");
+                    header("Location: " . getenv('APP_URL') . "/swim/user/profile");
                     exit;
                 }
             }
@@ -116,7 +116,7 @@ class ClubProfileController extends Controller {
             }
         }
         
-        header("Location: " . getenv('APP_URL') . "/swim/club_profile");
+        header("Location: " . getenv('APP_URL') . "/swim/user/profile");
         exit;
     }
 }
