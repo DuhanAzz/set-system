@@ -922,7 +922,13 @@ function filterRelayAthletes() {
     let targetGroup = '';
     const catClass = allClasses.find(c => c.id == classId);
     if (catClass) {
-        currentTeamSize = parseInt(catClass.team_size) || 3;
+        const dName = (catClass.distance_name || '').toLowerCase();
+        if (dName.includes('pair')) {
+            currentTeamSize = 2;
+        } else {
+            currentTeamSize = 3;
+        }
+        
         document.getElementById('lbl_pilih_atlet').innerHTML = 'Pilih Atlet (Max ' + currentTeamSize + ') <span class="text-red-500">*</span>';
         const tCatStr = (catClass.class_name || '').toLowerCase();
         if (tCatStr.includes('speed')) targetGroup = 'speed';
