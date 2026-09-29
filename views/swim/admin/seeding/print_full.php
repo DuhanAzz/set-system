@@ -116,7 +116,7 @@ if (!function_exists('getKUName')) {
 if (!function_exists('getTeamName')) {
     function getTeamName($row, $type) {
         $club = $row['club_name'] ?? ''; $school = $row['asal_sekolah'] ?? '';
-        if (stripos($type, 'sekolah') !== false || stripos($type, 'school') !== false) return $school ?: '-';
+        if (stripos($type, 'sekolah') !== false || stripos($type, 'school') !== false) return $school ?: ($club ?: '-');
         return $club ?: '-';
     }
 }

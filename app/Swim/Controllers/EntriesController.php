@@ -185,8 +185,12 @@ class EntriesController extends Controller {
                 WHERE re.club_id = ? AND re.event_id = ?
                 ORDER BY en.distance ASC
             ";
+            $stmtClub = $pdo->prepare("SELECT id FROM swim_clubs WHERE user_id = ? LIMIT 1");
+            $stmtClub->execute([$targetUserId]);
+            $realClubId = $stmtClub->fetchColumn() ?: 0;
+
             $stmtRelay = $pdo->prepare($sqlRelay);
-            $stmtRelay->execute([$targetUserId, $eventId]);
+            $stmtRelay->execute([$realClubId, $eventId]);
             $relayEntries = $stmtRelay->fetchAll(\PDO::FETCH_ASSOC);
             $rawEntries = $stmtEntries->fetchAll(\PDO::FETCH_ASSOC);
         
