@@ -331,7 +331,7 @@ class RollTokenCheckoutController extends Controller {
             // VALIDASI RELAY PORSEROSI V3.0
             $stmtRelayCheck = $db->prepare("
                 SELECT c.id as class_id, c.category_name, a.group_name as class_ag, d.distance_name,
-                       s.birth_date, s.skater_name
+                       s.birth_date, s.skater_name, e.team_name
                 FROM roll_entries e
                 JOIN roll_event_details c ON e.race_class_id = c.id
                 JOIN roll_ref_distances d ON c.distance_id = d.id
@@ -345,7 +345,8 @@ class RollTokenCheckoutController extends Controller {
             
             $relayGroups = [];
             foreach ($relayEntries as $re) {
-                $relayGroups[$re['class_id']][] = $re;
+                $key = $re['class_id'] . '_' . md5($re['team_name']);
+                $relayGroups[$key][] = $re;
             }
 
             // Get Event Date for Age Calc
