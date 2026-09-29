@@ -191,7 +191,8 @@ switch ($module) {
                     'pengumuman' => '\\App\\Swim\\Controllers\\PengumumanController',
                     'live_result' => '\\App\\Swim\\Controllers\\LiveResultController',
                     'athleterecords' => '\\App\\Swim\\Controllers\\AthleteRecordsController',
-                    'relay_registration' => '\\App\\Swim\\Controllers\\RelayRegistrationController'
+                    'relay_registration' => '\\App\\Swim\\Controllers\\RelayRegistrationController',
+                    'recap_starting_list' => '\\App\\Swim\\Controllers\\RecapStartingListController'
                 ],
                 'Master' => [
                     'dashboard' => '\\App\\Swim\\Controllers\\DashboardController',
