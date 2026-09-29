@@ -447,13 +447,13 @@ class RollPelotonController extends Controller {
             $stmtDelete->execute([$eventId, $classId, $roundName]);
 
             // 2. Tentukan maxLanes dan Mekanisme
+            $stmtInfo = $db->prepare("SELECT d.distance_name, ed.max_lanes, sc.class_name as roller_name FROM roll_event_details ed LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id WHERE ed.id = ?");
+            $stmtInfo->execute([$classId]);
+            $info = $stmtInfo->fetch(PDO::FETCH_ASSOC);
+            if (!$info) throw new \Exception("Kelas tidak ditemukan");
+
             $mechanism = $overrideMechanism;
             if (empty($mechanism)) {
-                $stmtInfo = $db->prepare("SELECT d.distance_name, ed.max_lanes, sc.class_name as roller_name FROM roll_event_details ed LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id WHERE ed.id = ?");
-                $stmtInfo->execute([$classId]);
-                $info = $stmtInfo->fetch(PDO::FETCH_ASSOC);
-                if (!$info) throw new \Exception("Kelas tidak ditemukan");
-                
                 $mechResult = self::getMechanism($info['distance_name'] ?? '', $info['roller_name'] ?? '');
                 $mechanism = $mechResult['mechanism'];
                 
@@ -665,6 +665,7 @@ class RollPelotonController extends Controller {
 
         } catch (\Exception $e) {
             $db->rollBack();
+            file_put_contents('process_error.log', date('Y-m-d H:i:s') . " - " . $e->getMessage() . "\n", FILE_APPEND);
             echo json_encode(['success' => false, 'message' => $e->getMessage()]);
         }
     }
