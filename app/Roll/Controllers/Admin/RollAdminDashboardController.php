@@ -334,7 +334,7 @@ class RollAdminDashboardController extends Controller {
         $gender = $_GET['gender'] ?? '';
 
         $sql = "
-            SELECT 
+            SELECT DISTINCT
                 s.skater_name, cl.club_name, sc.class_name
             FROM roll_entries e
             JOIN roll_skaters s ON e.skater_id = s.id
@@ -355,16 +355,16 @@ class RollAdminDashboardController extends Controller {
         }
 
         if ($ku === 'Tanpa KU') {
-            $sql .= " AND a.group_name IS NULL";
+            $sql .= " AND (a.group_name IS NULL OR a.group_name = '')";
         } else {
             $sql .= " AND a.group_name = ?";
             $params[] = $ku;
         }
 
         if ($gender === 'Putra') {
-            $sql .= " AND s.gender IN ('M', 'Male', 'L', 'Man', 'Putra', 'Pa')";
+            $sql .= " AND s.gender = 'M'";
         } else {
-            $sql .= " AND s.gender IN ('F', 'Female', 'P', 'Woman', 'Putri', 'Pi')";
+            $sql .= " AND (s.gender != 'M' OR s.gender IS NULL)";
         }
 
         $stmt = $db->prepare($sql);
