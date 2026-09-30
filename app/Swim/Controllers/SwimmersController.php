@@ -219,7 +219,7 @@ class SwimmersController extends Controller {
             }
 
             // Ambil data klub parent (dari profil)
-            $stmtClub = $this->db->prepare("SELECT c.nama_klub FROM swim_clubs c JOIN swim_users u ON c.user_id = u.id WHERE u.id = ?");
+            $stmtClub = $this->db->prepare("SELECT c.id as club_id FROM swim_clubs c JOIN swim_users u ON c.user_id = u.id WHERE u.id = ?");
             $stmtClub->execute([$uid]);
             $club = $stmtClub->fetch(PDO::FETCH_ASSOC);
 
@@ -227,14 +227,14 @@ class SwimmersController extends Controller {
             $uid_baru = $this->generateSwimmerUID($nama, $dob, $gender);
 
             try {
-                $stmt = $this->db->prepare("INSERT INTO swim_swimmers (uid, user_id, nama_atlet, jenis_kelamin, tanggal_lahir, klub, asal_sekolah) VALUES (?, ?, ?, ?, ?, ?, ?)");
+                $stmt = $this->db->prepare("INSERT INTO swim_swimmers (uid, user_id, nama_atlet, jenis_kelamin, tanggal_lahir, club_id, asal_sekolah) VALUES (?, ?, ?, ?, ?, ?, ?)");
                 $stmt->execute([
                     $uid_baru,
                     $uid,
                     strtoupper($nama),
                     $gender,
                     $dob,
-                    $club['nama_klub'] ?? '',
+                    $club['club_id'] ?? null,
                     strtoupper($sekolah)
                 ]);
                 
@@ -362,10 +362,10 @@ class SwimmersController extends Controller {
             }
             
             // Ambil nama klub
-            $stmtClub = $this->db->prepare("SELECT c.nama_klub FROM swim_clubs c JOIN swim_users u ON c.user_id = u.id WHERE u.id = ?");
+            $stmtClub = $this->db->prepare("SELECT c.id as club_id FROM swim_clubs c JOIN swim_users u ON c.user_id = u.id WHERE u.id = ?");
             $stmtClub->execute([$uid]);
             $club = $stmtClub->fetch(\PDO::FETCH_ASSOC);
-            $nama_klub = $club['nama_klub'] ?? '';
+            $club_id = $club['club_id'] ?? null;
             
             ini_set('auto_detect_line_endings', TRUE);
             $handle = fopen($file, "r");
@@ -379,9 +379,16 @@ class SwimmersController extends Controller {
                 
                 $successCount = 0;
                 $errorCount = 0;
+
+                // Auto-patch schema if asal_sekolah is missing
+                try {
+                    $this->db->query("ALTER TABLE swim_swimmers ADD COLUMN asal_sekolah VARCHAR(255) NULL");
+                } catch (\Exception $e) {
+                    // Column already exists or other error, ignore
+                }
                 
                 $stmtCek = $this->db->prepare("SELECT COUNT(*) FROM swim_swimmers WHERE user_id = ? AND UPPER(nama_atlet) = ? AND tanggal_lahir = ?");
-                $stmtIns = $this->db->prepare("INSERT INTO swim_swimmers (uid, user_id, nama_atlet, jenis_kelamin, tanggal_lahir, klub, asal_sekolah) VALUES (?, ?, ?, ?, ?, ?, ?)");
+                $stmtIns = $this->db->prepare("INSERT INTO swim_swimmers (uid, user_id, nama_atlet, jenis_kelamin, tanggal_lahir, club_id, asal_sekolah) VALUES (?, ?, ?, ?, ?, ?, ?)");
                 
                 while (($data = fgetcsv($handle, 1000, $delimiter)) !== FALSE) {
                     // Jika data 1 kolom tapi isinya koma (kasus Mac Excel aneh)
@@ -441,21 +448,36 @@ class SwimmersController extends Controller {
                     $uid_baru = $this->generateSwimmerUID($nama, $dob, $gender);
                     
                     try {
-                        $stmtIns->execute([$uid_baru, $uid, $nama, $gender, $dob, $nama_klub, $sekolah]);
+                        $stmtIns->execute([$uid_baru, $uid, $nama, $gender, $dob, $club_id, $sekolah]);
                         $successCount++;
                     } catch (\Exception $e) {
                         $errorCount++;
+                        if (!isset($_SESSION['debug_err'])) {
+                            $_SESSION['debug_err'] = $e->getMessage();
+                        }
                     }
                 }
                 fclose($handle);
                 
-                $_SESSION['flash_success'] = "Import selesai! $successCount berhasil, $errorCount gagal (duplikat/format salah).";
+                $errMsg = isset($_SESSION['debug_err']) ? " Error: " . $_SESSION['debug_err'] : "";
+                unset($_SESSION['debug_err']);
+                $_SESSION['flash_success'] = "Import selesai! $successCount berhasil, $errorCount gagal (duplikat/format salah)." . $errMsg;
             } else {
                 $_SESSION['flash_error'] = "Gagal membaca file CSV.";
             }
         }
         
         header("Location: " . getenv('APP_URL') . "/swim/" . $_SESSION['swim_role'] . "/swimmers");
+        exit;
+    }
+
+    public function fixDb() {
+        try {
+            $this->db->query("ALTER TABLE swim_swimmers ADD COLUMN asal_sekolah VARCHAR(255) NULL");
+            echo "SUCCESS: Column asal_sekolah added.";
+        } catch (\Exception $e) {
+            echo "ALREADY EXISTS OR ERROR: " . $e->getMessage();
+        }
         exit;
     }
 
