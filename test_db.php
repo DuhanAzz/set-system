@@ -1,10 +1,16 @@
 <?php
-$env = parse_ini_file('.env');
-$dsn = "mysql:unix_socket=/Applications/XAMPP/xamppfiles/var/mysql/mysql.sock;dbname=" . $env['DB_NAME'];
-$pdo = new PDO($dsn, $env['DB_USER'], $env['DB_PASS']);
-$stmt = $pdo->query("SHOW COLUMNS FROM roll_entries");
-$cols = $stmt->fetchAll(PDO::FETCH_ASSOC);
-foreach($cols as $c) echo $c['Field'] . "\n";
-echo "-----\n";
-$stmt2 = $pdo->query("SELECT * FROM roll_entries LIMIT 1");
-print_r($stmt2->fetchAll(PDO::FETCH_ASSOC));
+try {
+    $db = new PDO("mysql:host=127.0.0.1;port=3306;dbname=setsystem", "root", "");
+    $stmt = $db->query("
+        SELECT e.skater_id, s.skater_name, sc.class_name, e.race_class_id, ed.id as ed_id
+        FROM roll_entries e
+        LEFT JOIN roll_skaters s ON e.skater_id = s.id
+        LEFT JOIN roll_event_details ed ON e.race_class_id = ed.id
+        LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
+        WHERE e.event_id = 1 AND (sc.class_name IS NULL OR (LOWER(sc.class_name) NOT LIKE '%speed%' AND LOWER(sc.class_name) NOT LIKE '%standar%' AND LOWER(sc.class_name) NOT LIKE '%pemula%'))
+    ");
+    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    print_r($rows);
+} catch (Exception $e) {
+    echo "Error: " . $e->getMessage();
+}

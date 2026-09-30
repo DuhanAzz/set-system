@@ -318,4 +318,76 @@ class RollAdminDashboardController extends Controller {
             'unverifiedClubs' => $unverifiedClubs
         ]);
     }
+
+    public function api_breakdown_detail() {
+        if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+            echo json_encode(['error' => 'Unauthorized']);
+            exit;
+        }
+
+        $db = \App\Core\Database::getInstance()->getConnection();
+        $eventId = $_SESSION['roll_admin_active_event_id'] ?? 0;
+        
+        $cat = $_GET['cat'] ?? '';
+        $status = $_GET['status'] ?? '';
+        $ku = $_GET['ku'] ?? '';
+        $gender = $_GET['gender'] ?? '';
+
+        $sql = "
+            SELECT 
+                s.skater_name, cl.club_name, sc.class_name
+            FROM roll_entries e
+            JOIN roll_skaters s ON e.skater_id = s.id
+            LEFT JOIN roll_clubs cl ON s.club_id = cl.id
+            LEFT JOIN roll_event_details ed ON e.race_class_id = ed.id
+            LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
+            LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id
+            LEFT JOIN roll_payments p ON p.club_id = s.club_id AND p.event_id = e.event_id
+            WHERE e.event_id = ?
+        ";
+
+        $params = [$eventId];
+
+        if ($status === 'Terverifikasi') {
+            $sql .= " AND COALESCE(p.status, 'Unpaid') = 'Paid'";
+        } else {
+            $sql .= " AND COALESCE(p.status, 'Unpaid') != 'Paid'";
+        }
+
+        if ($ku === 'Tanpa KU') {
+            $sql .= " AND a.group_name IS NULL";
+        } else {
+            $sql .= " AND a.group_name = ?";
+            $params[] = $ku;
+        }
+
+        if ($gender === 'Putra') {
+            $sql .= " AND s.gender IN ('M', 'Male', 'L', 'Man', 'Putra', 'Pa')";
+        } else {
+            $sql .= " AND s.gender IN ('F', 'Female', 'P', 'Woman', 'Putri', 'Pi')";
+        }
+
+        $stmt = $db->prepare($sql);
+        $stmt->execute($params);
+        $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        $filteredRows = [];
+        foreach ($rows as $r) {
+            $rawClass = strtolower($r['class_name'] ?? '');
+            $rCat = 'Lainnya';
+            if (strpos($rawClass, 'speed') !== false) $rCat = 'Speed';
+            elseif (strpos($rawClass, 'standar') !== false) $rCat = 'Standart';
+            elseif (strpos($rawClass, 'pemula') !== false) $rCat = 'Pemula';
+
+            if ($rCat === $cat) {
+                $r['class_name'] = $r['class_name'] ?: '<i>(Tidak ada / Dihapus)</i>';
+                $r['club_name'] = $r['club_name'] ?: '<i>(Tidak ada klub)</i>';
+                $filteredRows[] = $r;
+            }
+        }
+
+        echo json_encode($filteredRows);
+        exit;
+    }
+
 }

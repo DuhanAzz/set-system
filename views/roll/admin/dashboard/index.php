@@ -143,9 +143,9 @@
                                             <div class="flex items-center justify-between bg-white px-4 py-3 rounded-xl border border-slate-100 shadow-sm">
                                                 <span class="text-xs font-bold text-slate-700"><?= htmlspecialchars($ku) ?></span>
                                                 <div class="flex gap-3 text-xs">
-                                                    <span class="font-black text-blue-600" title="Putra">PA: <?= $genders['Putra'] ?? 0 ?></span>
+                                                    <button onclick="showBreakdownDetail(this, '<?= $cat ?>', 'Terverifikasi', '<?= $ku ?>', 'Putra')" class="font-black text-blue-600 hover:underline flex items-center gap-1 group" title="Lihat Detail Putra"><span>PA:</span> <span class="bg-blue-100 px-1.5 rounded text-blue-700 group-hover:bg-blue-200"><?= $genders['Putra'] ?? 0 ?></span></button>
                                                     <span class="text-slate-200">|</span>
-                                                    <span class="font-black text-pink-500" title="Putri">PI: <?= $genders['Putri'] ?? 0 ?></span>
+                                                    <button onclick="showBreakdownDetail(this, '<?= $cat ?>', 'Terverifikasi', '<?= $ku ?>', 'Putri')" class="font-black text-pink-500 hover:underline flex items-center gap-1 group" title="Lihat Detail Putri"><span>PI:</span> <span class="bg-pink-100 px-1.5 rounded text-pink-700 group-hover:bg-pink-200"><?= $genders['Putri'] ?? 0 ?></span></button>
                                                 </div>
                                             </div>
                                         <?php endforeach; ?>
@@ -164,9 +164,9 @@
                                             <div class="flex items-center justify-between bg-white px-4 py-3 rounded-xl border border-slate-100 shadow-sm">
                                                 <span class="text-xs font-bold text-slate-700"><?= htmlspecialchars($ku) ?></span>
                                                 <div class="flex gap-3 text-xs">
-                                                    <span class="font-black text-blue-600" title="Putra">PA: <?= $genders['Putra'] ?? 0 ?></span>
+                                                    <button onclick="showBreakdownDetail(this, '<?= $cat ?>', 'Belum Terverifikasi', '<?= $ku ?>', 'Putra')" class="font-black text-blue-600 hover:underline flex items-center gap-1 group" title="Lihat Detail Putra"><span>PA:</span> <span class="bg-blue-100 px-1.5 rounded text-blue-700 group-hover:bg-blue-200"><?= $genders['Putra'] ?? 0 ?></span></button>
                                                     <span class="text-slate-200">|</span>
-                                                    <span class="font-black text-pink-500" title="Putri">PI: <?= $genders['Putri'] ?? 0 ?></span>
+                                                    <button onclick="showBreakdownDetail(this, '<?= $cat ?>', 'Belum Terverifikasi', '<?= $ku ?>', 'Putri')" class="font-black text-pink-500 hover:underline flex items-center gap-1 group" title="Lihat Detail Putri"><span>PI:</span> <span class="bg-pink-100 px-1.5 rounded text-pink-700 group-hover:bg-pink-200"><?= $genders['Putri'] ?? 0 ?></span></button>
                                                 </div>
                                             </div>
                                         <?php endforeach; ?>
@@ -223,3 +223,67 @@
     </div>
 
 </div>
+
+<script>
+function showBreakdownDetail(btn, cat, status, ku, gender) {
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '...';
+    btn.classList.add('opacity-50', 'pointer-events-none');
+
+    fetch(`<?= getenv('APP_URL') ?>/roll/admin/dashboard/api_breakdown_detail?cat=${encodeURIComponent(cat)}&status=${encodeURIComponent(status)}&ku=${encodeURIComponent(ku)}&gender=${encodeURIComponent(gender)}`)
+    .then(res => res.json())
+    .then(data => {
+        let html = '<div class="text-left space-y-2 max-h-[60vh] overflow-y-auto pr-2">';
+        if (data.length === 0) {
+            html += '<p class="text-sm text-slate-500 italic text-center py-4">Tidak ada data peserta.</p>';
+        } else {
+            data.forEach((r, idx) => {
+                html += `
+                    <div class="p-3 bg-white border border-slate-200 rounded-xl flex gap-3 shadow-sm hover:border-blue-300 transition-colors mb-2">
+                        <div class="flex flex-col items-center justify-center w-8 h-8 rounded-full bg-slate-100 text-slate-500 font-bold text-xs shrink-0">
+                            ${idx + 1}
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="font-bold text-slate-800 text-sm truncate">${r.skater_name}</div>
+                            <div class="text-[11px] text-slate-500 mt-1 flex flex-col gap-0.5">
+                                <div class="flex items-center gap-1.5">
+                                    <span>🏢</span>
+                                    <span class="truncate">${r.club_name}</span>
+                                </div>
+                                <div class="flex items-center gap-1.5">
+                                    <span>🏷️</span>
+                                    <span class="truncate text-blue-600 font-medium">${r.class_name}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+        html += '</div>';
+
+        Swal.fire({
+            title: `<div class="text-left">
+                        <div class="text-sm font-normal text-slate-500 uppercase tracking-widest mb-1">${cat} - ${status}</div>
+                        <div class="text-lg font-black text-slate-800">Detail Atlet ${gender === 'Putra' ? 'PA' : 'PI'} (${ku})</div>
+                   </div>`,
+            html: html,
+            showCloseButton: true,
+            showConfirmButton: false,
+            width: '32rem',
+            customClass: {
+                popup: 'rounded-3xl shadow-2xl border border-slate-100',
+                header: 'border-b border-slate-100 pb-4 mb-4'
+            }
+        });
+    })
+    .catch(err => {
+        console.error(err);
+        Swal.fire('Error', 'Gagal memuat data.', 'error');
+    })
+    .finally(() => {
+        btn.innerHTML = originalText;
+        btn.classList.remove('opacity-50', 'pointer-events-none');
+    });
+}
+</script>
