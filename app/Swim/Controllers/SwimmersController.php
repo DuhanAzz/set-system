@@ -367,9 +367,15 @@ class SwimmersController extends Controller {
             $club = $stmtClub->fetch(\PDO::FETCH_ASSOC);
             $nama_klub = $club['nama_klub'] ?? '';
             
+            ini_set('auto_detect_line_endings', TRUE);
             $handle = fopen($file, "r");
             if ($handle !== FALSE) {
-                $header = fgetcsv($handle, 1000, ","); 
+                // Deteksi delimiter
+                $firstLine = fgets($handle);
+                $delimiter = (strpos($firstLine, ';') !== false) ? ';' : ',';
+                rewind($handle);
+
+                $header = fgetcsv($handle, 1000, $delimiter); 
                 
                 $successCount = 0;
                 $errorCount = 0;
@@ -377,22 +383,46 @@ class SwimmersController extends Controller {
                 $stmtCek = $this->db->prepare("SELECT COUNT(*) FROM swim_swimmers WHERE user_id = ? AND UPPER(nama_atlet) = ? AND tanggal_lahir = ?");
                 $stmtIns = $this->db->prepare("INSERT INTO swim_swimmers (uid, user_id, nama_atlet, jenis_kelamin, tanggal_lahir, klub, asal_sekolah) VALUES (?, ?, ?, ?, ?, ?, ?)");
                 
-                while (($data = fgetcsv($handle, 1000, ",")) !== FALSE) {
+                while (($data = fgetcsv($handle, 1000, $delimiter)) !== FALSE) {
+                    // Jika data 1 kolom tapi isinya koma (kasus Mac Excel aneh)
+                    if (count($data) == 1 && strpos($data[0], ',') !== false && $delimiter == ';') {
+                        $data = explode(',', $data[0]);
+                    }
+
                     if (count($data) < 3) { $errorCount++; continue; }
                     
                     $nama = strtoupper(trim($data[0]));
                     $gender = strtoupper(trim($data[1])); // L atau P
-                    $dob = trim($data[2]); // YYYY-MM-DD
+                    $dob_raw = trim($data[2]); 
                     $sekolah = isset($data[3]) ? strtoupper(trim($data[3])) : '';
                     
-                    if (empty($nama) || empty($gender) || empty($dob)) {
+                    if (empty($nama) || empty($gender) || empty($dob_raw)) {
                         $errorCount++; continue;
                     }
+
+                    // Normalisasi Gender
                     if ($gender !== 'L' && $gender !== 'P') {
-                        $errorCount++; continue; 
+                        if ($gender == 'PUTRA' || $gender == 'PA' || $gender == 'M') $gender = 'L';
+                        else if ($gender == 'PUTRI' || $gender == 'PI' || $gender == 'F') $gender = 'P';
+                        else { $errorCount++; continue; }
                     }
+
+                    // Normalisasi Tanggal Lahir (Mengatasi ulah Excel)
+                    $dob = $dob_raw;
                     if (!preg_match("/^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])$/", $dob)) {
-                        $errorCount++; continue;
+                        // Coba parse bentuk DD/MM/YYYY atau MM/DD/YYYY
+                        $dob_raw = str_replace('/', '-', $dob_raw);
+                        $time = strtotime($dob_raw);
+                        if ($time) {
+                            $dob = date('Y-m-d', $time);
+                        } else {
+                            // Coba DD-MM-YYYY manual jika strtotime gagal
+                            if (preg_match("/^([0-9]{1,2})-([0-9]{1,2})-([0-9]{4})$/", $dob_raw, $m)) {
+                                $dob = sprintf("%04d-%02d-%02d", $m[3], $m[2], $m[1]);
+                            } else {
+                                $errorCount++; continue;
+                            }
+                        }
                     }
                     
                     $stmtCek->execute([$uid, $nama, $dob]);
