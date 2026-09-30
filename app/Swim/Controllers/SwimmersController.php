@@ -380,12 +380,14 @@ class SwimmersController extends Controller {
                 $successCount = 0;
                 $errorCount = 0;
 
-                // Auto-patch schema if asal_sekolah is missing
+                // Auto-patch schema
                 try {
                     $this->db->query("ALTER TABLE swim_swimmers ADD COLUMN asal_sekolah VARCHAR(255) NULL");
-                } catch (\Exception $e) {
-                    // Column already exists or other error, ignore
-                }
+                } catch (\Exception $e) {}
+                
+                try {
+                    $this->db->query("ALTER TABLE swim_swimmers MODIFY uid VARCHAR(20) NULL");
+                } catch (\Exception $e) {}
                 
                 $stmtCek = $this->db->prepare("SELECT COUNT(*) FROM swim_swimmers WHERE user_id = ? AND UPPER(nama_atlet) = ? AND tanggal_lahir = ?");
                 $stmtIns = $this->db->prepare("INSERT INTO swim_swimmers (uid, user_id, nama_atlet, jenis_kelamin, tanggal_lahir, club_id, asal_sekolah) VALUES (?, ?, ?, ?, ?, ?, ?)");
@@ -474,9 +476,16 @@ class SwimmersController extends Controller {
     public function fixDb() {
         try {
             $this->db->query("ALTER TABLE swim_swimmers ADD COLUMN asal_sekolah VARCHAR(255) NULL");
-            echo "SUCCESS: Column asal_sekolah added.";
+            echo "SUCCESS: Column asal_sekolah added.<br>";
         } catch (\Exception $e) {
-            echo "ALREADY EXISTS OR ERROR: " . $e->getMessage();
+            echo "ASAL_SEKOLAH: " . $e->getMessage() . "<br>";
+        }
+        
+        try {
+            $this->db->query("ALTER TABLE swim_swimmers MODIFY uid VARCHAR(20) NULL");
+            echo "SUCCESS: Column uid modified to VARCHAR(20).<br>";
+        } catch (\Exception $e) {
+            echo "UID: " . $e->getMessage() . "<br>";
         }
         exit;
     }
