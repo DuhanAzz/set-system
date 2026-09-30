@@ -21,7 +21,9 @@
             <div class="bg-red-100 border border-red-200 text-red-700 px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2"><span>🔒</span> Menunggu Verifikasi. Data terkunci sementara.</div>
             <a href="<?= getenv('APP_URL') ?>/swim/user/checkout/detail/<?= $event['id'] ?>" class="bg-slate-900 text-white px-6 py-3 rounded-xl font-bold text-xs shadow-lg">LIHAT STATUS</a>
         <?php else: ?>
-            <button onclick="document.getElementById('modalAdd').classList.remove('hidden')" class="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold text-xs shadow-lg hover:bg-blue-700">+ ATLET</button>
+            <a href="<?= getenv('APP_URL') ?>/swim/user/registration/exportCsv/<?= $event['id'] ?>" class="bg-emerald-600 text-white px-4 py-3 rounded-xl font-bold text-[10px] shadow-lg hover:bg-emerald-700 transition flex items-center gap-2">📥 EXPORT CSV</a>
+            <button onclick="document.getElementById('modalImportCsv').classList.remove('hidden')" class="bg-amber-500 text-white px-4 py-3 rounded-xl font-bold text-[10px] shadow-lg hover:bg-amber-600 transition flex items-center gap-2">📤 IMPORT CSV</button>
+            <button onclick="document.getElementById('modalAdd').classList.remove('hidden')" class="bg-blue-600 text-white px-4 py-3 rounded-xl font-bold text-[10px] shadow-lg hover:bg-blue-700">+ PILIH ATLET</button>
             <a href="<?= getenv('APP_URL') ?>/swim/user/checkout/detail/<?= $event['id'] ?>" class="bg-slate-900 text-white px-6 py-3 rounded-xl font-bold text-xs shadow-lg">SELESAI / BAYAR</a>
         <?php endif; ?>
     </div>
@@ -192,6 +194,35 @@
             <?php endforeach; ?>
         </div>
         <button onclick="document.getElementById('modalAdd').classList.add('hidden')" class="mt-4 text-slate-400 font-bold text-[10px] uppercase">Tutup</button>
+    </div>
+</div>
+
+<div id="modalImportCsv" class="hidden fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col">
+        <div class="bg-amber-500 p-6 text-white flex justify-between items-center">
+            <div>
+                <h2 class="text-xl font-black italic uppercase tracking-tighter">IMPORT MATRIX</h2>
+                <p class="text-[10px] font-bold text-amber-100 uppercase mt-1">Upload File CSV</p>
+            </div>
+            <button onclick="document.getElementById('modalImportCsv').classList.add('hidden')" class="text-3xl hover:text-amber-200 transition">&times;</button>
+        </div>
+        <form method="POST" action="<?= getenv('APP_URL') ?>/swim/user/registration/importCsv/<?= $event['id'] ?>" enctype="multipart/form-data" class="p-6">
+            <div class="mb-4">
+                <label class="block text-slate-700 font-bold mb-2 text-xs uppercase tracking-wide">Pilih File (.csv)</label>
+                <input type="file" name="csv_file" accept=".csv" class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" required>
+            </div>
+            <div class="bg-blue-50 p-4 rounded-xl mb-6">
+                <p class="text-xs text-blue-800 font-medium leading-relaxed">
+                    <strong>Cara Penggunaan:</strong><br>
+                    1. Klik tombol <span class="font-bold text-emerald-600">📥 EXPORT CSV</span> terlebih dahulu untuk mengunduh format (daftar atlet beserta kolom lomba).<br>
+                    2. Buka file CSV tersebut di Excel / Google Sheets.<br>
+                    3. Isi waktu (misal: <code>00.32.10</code>) pada sel yang diizinkan (kosong). <br>
+                    4. Jika ingin mendaftar tanpa catatan waktu, ketik huruf <code>X</code>.<br>
+                    5. Simpan dan unggah kembali di sini.
+                </p>
+            </div>
+            <button type="submit" class="w-full bg-slate-900 text-white font-black py-4 rounded-xl shadow-lg hover:bg-slate-800 transition uppercase tracking-wide text-sm">Upload & Import</button>
+        </form>
     </div>
 </div>
 
