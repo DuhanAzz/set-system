@@ -23,6 +23,7 @@
         <?php else: ?>
             <a href="<?= getenv('APP_URL') ?>/swim/user/registration/exportCsv/<?= $event['id'] ?>" class="bg-emerald-600 text-white px-4 py-3 rounded-xl font-bold text-[10px] shadow-lg hover:bg-emerald-700 transition flex items-center gap-2">📥 EXPORT CSV</a>
             <button onclick="document.getElementById('modalConvertCsv').classList.remove('hidden')" class="bg-indigo-500 text-white px-4 py-3 rounded-xl font-bold text-[10px] shadow-lg hover:bg-indigo-600 transition flex items-center gap-2">🔄 KONVERSI TEKS</button>
+            <button onclick="document.getElementById('modalImportByEvent').classList.remove('hidden')" class="bg-violet-500 text-white px-4 py-3 rounded-xl font-bold text-[10px] shadow-lg hover:bg-violet-600 transition flex items-center gap-2">📥 IMPORT PER NOMOR</button>
             <button onclick="document.getElementById('modalImportCsv').classList.remove('hidden')" class="bg-amber-500 text-white px-4 py-3 rounded-xl font-bold text-[10px] shadow-lg hover:bg-amber-600 transition flex items-center gap-2">📤 IMPORT CSV</button>
             <button onclick="document.getElementById('modalAdd').classList.remove('hidden')" class="bg-blue-600 text-white px-4 py-3 rounded-xl font-bold text-[10px] shadow-lg hover:bg-blue-700">+ PILIH ATLET</button>
             <a href="<?= getenv('APP_URL') ?>/swim/user/checkout/detail/<?= $event['id'] ?>" class="bg-slate-900 text-white px-6 py-3 rounded-xl font-bold text-xs shadow-lg">SELESAI / BAYAR</a>
@@ -223,6 +224,41 @@
                 </p>
             </div>
             <button type="submit" class="w-full bg-slate-900 text-white font-black py-4 rounded-xl shadow-lg hover:bg-slate-800 transition uppercase tracking-wide text-sm">Upload & Import</button>
+        </form>
+    </div>
+</div>
+
+<div id="modalImportByEvent" class="hidden fixed inset-0 z-[65] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col">
+        <div class="bg-violet-500 p-6 text-white flex justify-between items-center">
+            <div>
+                <h2 class="text-xl font-black italic uppercase tracking-tighter">IMPORT PER NOMOR</h2>
+                <p class="text-[10px] font-bold text-violet-100 uppercase mt-1">Upload Data 1 Nomor Saja</p>
+            </div>
+            <button onclick="document.getElementById('modalImportByEvent').classList.add('hidden')" class="text-3xl hover:text-violet-200 transition">&times;</button>
+        </div>
+        <form method="POST" action="<?= getenv('APP_URL') ?>/swim/user/registration/importByEventCsv/<?= $event['id'] ?>" enctype="multipart/form-data" class="p-6">
+            <div class="mb-4">
+                <label class="block text-slate-700 font-bold mb-2 text-xs uppercase tracking-wide">Pilih Nomor Perlombaan</label>
+                <select name="category_id" class="w-full text-sm p-3 border rounded-xl font-bold focus:ring-2 focus:ring-violet-500" required>
+                    <option value="">-- Pilih Nomor --</option>
+                    <?php foreach ($allEvents as $ev): ?>
+                        <option value="<?= $ev['id'] ?>"><?= $ev['distance'] ?>M <?= strtoupper($ev['stroke']) ?> <?= strtoupper($ev['jenis_kelamin']) ?> <?= strtoupper($ev['age_group']) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div class="mb-4">
+                <label class="block text-slate-700 font-bold mb-2 text-xs uppercase tracking-wide">Pilih File (.csv)</label>
+                <input type="file" name="csv_file" accept=".csv" class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-violet-50 file:text-violet-700 hover:file:bg-violet-100" required>
+            </div>
+            <div class="bg-violet-50 p-4 rounded-xl mb-6">
+                <p class="text-xs text-violet-800 font-medium leading-relaxed">
+                    <strong>Format CSV:</strong><br>
+                    <code class="text-[10px]">NAMA PESERTA, GENDER, TGL LAHIR, ASAL SEKOLAH, BEST TIME</code><br><br>
+                    <span class="text-[10px]">*Atlet baru akan otomatis terdaftar.</span>
+                </p>
+            </div>
+            <button type="submit" class="w-full bg-slate-900 text-white font-black py-4 rounded-xl shadow-lg hover:bg-slate-800 transition uppercase tracking-wide text-sm">Proses Import</button>
         </form>
     </div>
 </div>

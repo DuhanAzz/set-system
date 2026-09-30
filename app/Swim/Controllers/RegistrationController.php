@@ -873,4 +873,168 @@ class RegistrationController extends Controller {
         fclose($output);
         exit;
     }
+
+    private function generateSwimmerUID($nama_atlet, $tanggal_lahir, $jenis_kelamin) {
+        $nama_bersih = preg_replace('/[^A-Za-z\s]/', '', strtoupper(trim($nama_atlet)));
+        $kata = explode(' ', $nama_bersih);
+        $huruf1 = isset($kata[0][0]) ? $kata[0][0] : 'A';
+        $kode1 = str_pad(ord($huruf1) - 64, 2, '0', STR_PAD_LEFT); 
+        if (isset($kata[1]) && !empty($kata[1])) { $huruf2 = $kata[1][0]; } 
+        else { $huruf2 = isset($kata[0][1]) ? $kata[0][1] : 'X'; }
+        $kode2 = str_pad(ord($huruf2) - 64, 2, '0', STR_PAD_LEFT);
+        $tgl = date('d', strtotime($tanggal_lahir));
+        $bln = date('m', strtotime($tanggal_lahir));
+        $thn = substr(date('Y', strtotime($tanggal_lahir)), -2);
+        $gender_code = ($jenis_kelamin == 'L') ? '1' : '2';
+        $random = mt_rand(10, 99);
+        return $kode1 . $kode2 . $tgl . $bln . $thn . $gender_code . $random;
+    }
+
+    public function importByEventCsv($event_id = 0) {
+        $this->checkAccess();
+        $uid = $_SESSION['swim_user_id'];
+        
+        if (!$event_id || $_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_FILES['csv_file']) || empty($_POST['category_id'])) {
+            header("Location: " . getenv('APP_URL') . "/swim/user/registration/index/" . $event_id);
+            exit;
+        }
+
+        $event = $this->getEvent($event_id);
+        if ($this->isRegistrationClosed($event) || $this->getPaymentLock($uid, $event_id)) {
+            $_SESSION['flash_error'] = "Pendaftaran terkunci / sudah ditutup.";
+            header("Location: " . getenv('APP_URL') . "/swim/user/registration/index/" . $event_id);
+            exit;
+        }
+
+        $catId = (int)$_POST['category_id'];
+        $file = $_FILES['csv_file']['tmp_name'];
+        if (!$file) {
+            $_SESSION['flash_error'] = "File tidak valid.";
+            header("Location: " . getenv('APP_URL') . "/swim/user/registration/index/" . $event_id);
+            exit;
+        }
+
+        // Schema patch
+        try {
+            $this->db->query("ALTER TABLE swim_swimmers MODIFY uid VARCHAR(20) NULL");
+        } catch (\Exception $e) {}
+
+        $stmtC = $this->db->prepare("SELECT id FROM swim_clubs WHERE user_id = ? LIMIT 1");
+        $stmtC->execute([$uid]);
+        $club_id = $stmtC->fetchColumn();
+        $club_id = $club_id ?: null;
+
+        ini_set('auto_detect_line_endings', TRUE);
+        $handle = fopen($file, "r");
+        if ($handle !== FALSE) {
+            $firstLine = fgets($handle);
+            $delimiter = ',';
+            if (strpos($firstLine, "\t") !== false) $delimiter = "\t";
+            elseif (strpos($firstLine, ';') !== false) $delimiter = ';';
+            rewind($handle);
+
+            // Check if first line is header
+            $headerCheck = fgetcsv($handle, 10000, $delimiter);
+            if ($headerCheck === false || strpos(strtoupper(implode(',', (array)$headerCheck)), 'NAMA') === false) {
+                rewind($handle); // No header, rewind
+            }
+
+            $this->db->beginTransaction();
+            $updated = 0;
+            $newSwimmers = 0;
+            
+            try {
+                $stmtCekSwimmer = $this->db->prepare("SELECT id FROM swim_swimmers WHERE user_id = ? AND UPPER(nama_atlet) = ?");
+                $stmtUpdSwimmer = $this->db->prepare("UPDATE swim_swimmers SET jenis_kelamin=?, tanggal_lahir=?, asal_sekolah=? WHERE id=?");
+                $stmtInsSwimmer = $this->db->prepare("INSERT INTO swim_swimmers (uid, user_id, nama_atlet, jenis_kelamin, tanggal_lahir, club_id, asal_sekolah) VALUES (?, ?, ?, ?, ?, ?, ?)");
+                
+                $stmtCekEntry = $this->db->prepare("SELECT id FROM swim_event_entries WHERE user_id=? AND event_id=? AND swimmer_id=? AND category_id=?");
+                $stmtUpdEntry = $this->db->prepare("UPDATE swim_event_entries SET entry_time=?, club_id=? WHERE id=?");
+                $stmtInsEntry = $this->db->prepare("INSERT INTO swim_event_entries (user_id, event_id, club_id, swimmer_id, category_id, entry_time, status, created_at) VALUES (?, ?, ?, ?, ?, ?, 'Pending', NOW())");
+
+                while (($data = fgetcsv($handle, 10000, $delimiter)) !== FALSE) {
+                    if (count($data) == 1 && strpos($data[0], ',') !== false && $delimiter == ';') {
+                        $data = explode(',', $data[0]);
+                    }
+                    if (count($data) < 3) continue;
+
+                    $nama = strtoupper(trim($data[0]));
+                    $gender = strtoupper(trim($data[1]));
+                    $dob_raw = trim($data[2]);
+                    $sekolah = isset($data[3]) ? trim($data[3]) : '';
+                    
+                    if (empty($nama) || empty($gender) || empty($dob_raw)) continue;
+
+                    if ($gender == 'PUTRA' || $gender == 'PA' || $gender == 'M') $gender = 'L';
+                    else if ($gender == 'PUTRI' || $gender == 'PI' || $gender == 'F') $gender = 'P';
+
+                    $dob = $dob_raw;
+                    if (!preg_match("/^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])$/", $dob)) {
+                        $dob_raw = str_replace('/', '-', $dob_raw);
+                        if (preg_match("/^([0-9]{1,2})-([0-9]{1,2})-([0-9]{4})$/", $dob_raw, $m)) {
+                            $dob = sprintf("%04d-%02d-%02d", $m[3], $m[2], $m[1]);
+                        } else if (preg_match("/^([0-9]{1,2})-([0-9]{1,2})-([0-9]{2})$/", $dob_raw, $m)) {
+                            $year = (int)$m[3];
+                            $year += ($year > 50) ? 1900 : 2000;
+                            $dob = sprintf("%04d-%02d-%02d", $year, $m[2], $m[1]);
+                        } else {
+                            $timeObj = strtotime($dob_raw);
+                            if ($timeObj) $dob = date('Y-m-d', $timeObj);
+                        }
+                    }
+
+                    $stmtCekSwimmer->execute([$uid, $nama]);
+                    $swimmerId = $stmtCekSwimmer->fetchColumn();
+
+                    if ($swimmerId) {
+                        $stmtUpdSwimmer->execute([$gender, $dob, $sekolah, $swimmerId]);
+                    } else {
+                        $uid_baru = $this->generateSwimmerUID($nama, $dob, $gender);
+                        $stmtInsSwimmer->execute([$uid_baru, $uid, $nama, $gender, $dob, $club_id, $sekolah]);
+                        $swimmerId = $this->db->lastInsertId();
+                        $newSwimmers++;
+                    }
+
+                    if (!isset($_SESSION['matrix_list'][$event_id])) $_SESSION['matrix_list'][$event_id] = [];
+                    if (!in_array($swimmerId, $_SESSION['matrix_list'][$event_id])) {
+                        $_SESSION['matrix_list'][$event_id][] = (int)$swimmerId;
+                    }
+
+                    $time = isset($data[4]) ? trim($data[4]) : '';
+                    if ($time !== '' && strtoupper($time) !== 'X' && $time !== '99.99.99') {
+                        $time = preg_replace('/[^\d\.\:]/', '', $time);
+                        $time = str_replace(':', '.', $time);
+                        // Make sure time format is valid
+                        if (!preg_match('/^\d{2}\.\d{2}\.\d{2}$/', $time)) {
+                            $time = '00.00.00';
+                        }
+                    } else {
+                        $time = '00.00.00';
+                    }
+
+                    $stmtCekEntry->execute([$uid, $event_id, $swimmerId, $catId]);
+                    $exist = $stmtCekEntry->fetch(PDO::FETCH_ASSOC);
+
+                    if ($exist) {
+                        $stmtUpdEntry->execute([$time, $club_id, $exist['id']]);
+                        $updated++;
+                    } else {
+                        $stmtInsEntry->execute([$uid, $event_id, $club_id, $swimmerId, $catId, $time]);
+                        $updated++;
+                    }
+                }
+                $this->db->commit();
+                $_SESSION['flash_success'] = "Import By Event sukses! $updated entri disimpan ($newSwimmers atlet baru otomatis dibuat).";
+            } catch (\Exception $e) {
+                if ($this->db->inTransaction()) $this->db->rollBack();
+                $_SESSION['flash_error'] = "Terjadi kesalahan saat import: " . $e->getMessage();
+            }
+            fclose($handle);
+        } else {
+            $_SESSION['flash_error'] = "Gagal membaca file.";
+        }
+
+        header("Location: " . getenv('APP_URL') . "/swim/user/registration/index/" . $event_id);
+        exit;
+    }
 }
