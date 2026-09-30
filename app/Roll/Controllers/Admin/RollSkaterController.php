@@ -14,6 +14,7 @@ class RollSkaterController extends Controller {
             header("Location: " . getenv('APP_URL') . "/roll/login");
             exit;
         }
+
     }
 
     public function index() {
@@ -143,12 +144,16 @@ class RollSkaterController extends Controller {
 
     public function temp_delete() {
         $db = Database::getInstance()->getConnection();
-        $ids = [2320, 2321, 2322];
+        $ids = [1385, 1386, 1387, 1699, 1700, 1701];
         foreach ($ids as $id) {
-            $stmt = $db->prepare("DELETE FROM roll_entries WHERE id = ?");
+            $stmt = $db->prepare("UPDATE roll_entries SET race_class_id = 265 WHERE id = ?");
             $stmt->execute([$id]);
         }
-        echo "Deleted!";
+        
+        // Also delete them from roll_pelotons so they don't show up in 268 anymore
+        $db->exec("DELETE FROM roll_pelotons WHERE race_class_id = 268 OR race_class_id = 265");
+        
+        echo "Fixed! Now re-generate the pelotons for 265 and 268.";
         exit;
     }
 }
