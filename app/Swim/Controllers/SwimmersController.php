@@ -440,56 +440,106 @@ class SwimmersController extends Controller {
         $lines = explode("\n", $rawText);
         
         header('Content-Type: text/csv; charset=utf-8');
-        header('Content-Disposition: attachment; filename=master_atlet_sepatu_roda_fixed.csv');
+        header('Content-Disposition: attachment; filename=master_atlet_extracted.csv');
         $output = fopen('php://output', 'w');
         fputcsv($output, ['nama_atlet', 'jenis_kelamin', 'tanggal_lahir', 'asal_sekolah']);
         
-        $isFirst = true;
+        $currentGender = 'L'; // default
+        $currentDob = '2012-01-01'; // default SD
+
         foreach ($lines as $line) {
             $line = trim($line);
             if (empty($line)) continue;
-            
-            $data = str_getcsv($line);
-            
-            if ($isFirst) {
-                // Skip baris pertama jika itu header asli
-                if (strtolower(trim($data[0] ?? '')) === 'no' || strtolower(trim($data[1] ?? '')) === 'bib') {
-                    $isFirst = false;
+
+            // Detect Header Grouping (Swim Starting List format)
+            $upperLine = strtoupper($line);
+            if (strpos($upperLine, 'GAYA') !== false || strpos($upperLine, 'PUTRA') !== false || strpos($upperLine, 'PUTRI') !== false) {
+                if (strpos($upperLine, 'PUTRI') !== false || strpos($upperLine, ' PI ') !== false) {
+                    $currentGender = 'P';
+                } else if (strpos($upperLine, 'PUTRA') !== false || strpos($upperLine, ' PA ') !== false) {
+                    $currentGender = 'L';
+                }
+
+                if (strpos($upperLine, 'SMP') !== false || strpos($upperLine, 'MTS') !== false) {
+                    $currentDob = '2009-01-01'; // 15 thn
+                } else if (strpos($upperLine, 'SMA') !== false || strpos($upperLine, 'SMK') !== false || strpos($upperLine, 'MAN') !== false) {
+                    $currentDob = '2006-01-01'; // 18 thn
+                } else if (strpos($upperLine, 'TK') !== false) {
+                    $currentDob = '2018-01-01'; // 6 thn
+                } else {
+                    $currentDob = '2012-01-01'; // default SD
+                }
+                continue;
+            }
+
+            // Detect Skip lines
+            if (strpos($upperLine, 'NO') === 0 && strpos($upperLine, 'NAMA') !== false) continue;
+            if (strpos($upperLine, 'PEKAN OLAHRAGA') !== false || strpos($upperLine, 'KOLAM RENANG') !== false || strpos($upperLine, 'OKTOBER') !== false) continue;
+
+            // CSV Roll Format Detection (Comma separated)
+            if (substr_count($line, ',') >= 5) {
+                $data = str_getcsv($line);
+                if (strtolower(trim($data[0] ?? '')) === 'no' || strtolower(trim($data[1] ?? '')) === 'bib') continue;
+                if (count($data) < 7) continue;
+
+                $ku = trim(str_replace('"', '', $data[3]));
+                $gender_str = strtolower(trim(str_replace('"', '', $data[4])));
+                $nama = trim(str_replace('"', '', $data[5]));
+                $klub = trim(str_replace('"', '', $data[6]));
+
+                $gender = ($gender_str === 'putra') ? 'L' : 'P';
+                $ku_lower = strtolower($ku);
+                $dob = '1999-01-01'; 
+
+                if (strpos($ku_lower, 'u 6') !== false) { $dob = '2019-01-01'; } 
+                else if (strpos($ku_lower, 'u7') !== false || strpos($ku_lower, 'u 7') !== false) { $dob = '2018-01-01'; } 
+                else if (strpos($ku_lower, 'u 9') !== false || strpos($ku_lower, 'u9') !== false) { $dob = '2016-01-01'; } 
+                else if (strpos($ku_lower, 'u 11') !== false || strpos($ku_lower, 'ku i') !== false) { $dob = '2014-01-01'; } 
+                else if (strpos($ku_lower, 'ku ii') !== false) { $dob = '2012-01-01'; } 
+                else if (strpos($ku_lower, 'u 14') !== false || strpos($ku_lower, 'ku iii') !== false) { $dob = '2009-01-01'; } 
+                else if (strpos($ku_lower, 'junior') !== false) { $dob = '2008-01-01'; } 
+                else if (strpos($ku_lower, 'senior') !== false) { $dob = '2004-01-01'; }
+                
+                fputcsv($output, [$nama, $gender, $dob, $klub]);
+                continue;
+            }
+
+            // TEXT Swim Starting List Format Parsing
+            // Clean trailing times
+            $cleanLine = preg_replace('/\s+\d{1,2}[:.]\d{2}\.\d{2}$/', '', $line);
+            $cleanLine = preg_replace('/\s+\d{2}\.\d{2}$/', '', $cleanLine); 
+            $cleanLine = preg_replace('/\s+\d{2}:\d{2}\.\d{2}$/', '', $cleanLine); 
+
+            // Try Tab-Separated first
+            $tabs = explode("\t", $cleanLine);
+            if (count($tabs) >= 3 && is_numeric(trim($tabs[0]))) {
+                $nama = trim($tabs[1]);
+                $sekolah = trim($tabs[2]);
+                if (!empty($nama)) {
+                    fputcsv($output, [$nama, $currentGender, $currentDob, $sekolah]);
                     continue;
                 }
-                $isFirst = false;
             }
 
-            if (count($data) < 7) continue;
-
-            $ku = trim(str_replace('"', '', $data[3]));
-            $gender_str = strtolower(trim(str_replace('"', '', $data[4])));
-            $nama = trim(str_replace('"', '', $data[5]));
-            $klub = trim(str_replace('"', '', $data[6]));
-
-            $gender = ($gender_str === 'putra') ? 'L' : 'P';
-            $ku_lower = strtolower($ku);
-            $dob = '1999-01-01'; // Default: Tanpa KU
-
-            if (strpos($ku_lower, 'u 6') !== false) {
-                $dob = '2019-01-01'; // 5 yo
-            } else if (strpos($ku_lower, 'u7') !== false || strpos($ku_lower, 'u 7') !== false) {
-                $dob = '2018-01-01'; // 6 yo
-            } else if (strpos($ku_lower, 'u 9') !== false || strpos($ku_lower, 'u9') !== false) {
-                $dob = '2016-01-01'; // 8 yo
-            } else if (strpos($ku_lower, 'u 11') !== false || strpos($ku_lower, 'ku i ') !== false || strpos($ku_lower, 'ku i') !== false) {
-                $dob = '2014-01-01'; // 10 yo
-            } else if (strpos($ku_lower, 'ku ii') !== false) {
-                $dob = '2012-01-01'; // SD 12 yo
-            } else if (strpos($ku_lower, 'u 14') !== false || strpos($ku_lower, 'ku iii') !== false) {
-                $dob = '2009-01-01'; // SMP 15 yo
-            } else if (strpos($ku_lower, 'junior') !== false) {
-                $dob = '2008-01-01';
-            } else if (strpos($ku_lower, 'senior') !== false) {
-                $dob = '2004-01-01';
+            // Regex parsing for space-separated list
+            // Matches: Number, Name, School Indicator (SD/SMP/SMA...), Rest of School
+            if (preg_match('/^(\d+)\s+(.+?)\s+\b(SD|SMP|SMA|SMK|MTsN?|MIN?|MAN?|TK|MTS)\b(.*?)$/i', $cleanLine, $matches)) {
+                $nama = trim($matches[2]);
+                $sekolah = trim($matches[3] . $matches[4]);
+                fputcsv($output, [$nama, $currentGender, $currentDob, $sekolah]);
+            } else {
+                // If regex fails but starts with a number, fallback
+                if (preg_match('/^(\d+)\s+(.+)$/', $cleanLine, $matches)) {
+                    $parts = preg_split('/\s{2,}/', trim($matches[2]));
+                    if (count($parts) >= 2) {
+                        $nama = trim($parts[0]);
+                        $sekolah = trim($parts[1]);
+                        fputcsv($output, [$nama, $currentGender, $currentDob, $sekolah]);
+                    } else {
+                        fputcsv($output, [trim($matches[2]), $currentGender, $currentDob, '']);
+                    }
+                }
             }
-            
-            fputcsv($output, [$nama, $gender, $dob, $klub]);
         }
         
         fclose($output);
