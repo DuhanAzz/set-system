@@ -420,4 +420,79 @@ class SwimmersController extends Controller {
         header("Location: " . getenv('APP_URL') . "/swim/" . $_SESSION['swim_role'] . "/swimmers");
         exit;
     }
+
+    public function csv_extractor() {
+        $this->checkAccess();
+        $this->view('swim/user/swimmers/csv_extractor');
+    }
+
+    public function process_csv_extractor() {
+        $this->checkAccess();
+        
+        $rawText = $_POST['raw_csv_text'] ?? '';
+        
+        if (empty(trim($rawText))) {
+            $_SESSION['flash_error'] = "Data mentah tidak boleh kosong.";
+            header("Location: " . getenv('APP_URL') . "/swim/" . $_SESSION['swim_role'] . "/swimmers/csv_extractor");
+            exit;
+        }
+
+        $lines = explode("\n", $rawText);
+        
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename=master_atlet_sepatu_roda_fixed.csv');
+        $output = fopen('php://output', 'w');
+        fputcsv($output, ['nama_atlet', 'jenis_kelamin', 'tanggal_lahir', 'asal_sekolah']);
+        
+        $isFirst = true;
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if (empty($line)) continue;
+            
+            $data = str_getcsv($line);
+            
+            if ($isFirst) {
+                // Skip baris pertama jika itu header asli
+                if (strtolower(trim($data[0] ?? '')) === 'no' || strtolower(trim($data[1] ?? '')) === 'bib') {
+                    $isFirst = false;
+                    continue;
+                }
+                $isFirst = false;
+            }
+
+            if (count($data) < 7) continue;
+
+            $ku = trim(str_replace('"', '', $data[3]));
+            $gender_str = strtolower(trim(str_replace('"', '', $data[4])));
+            $nama = trim(str_replace('"', '', $data[5]));
+            $klub = trim(str_replace('"', '', $data[6]));
+
+            $gender = ($gender_str === 'putra') ? 'L' : 'P';
+            $ku_lower = strtolower($ku);
+            $dob = '1999-01-01'; // Default: Tanpa KU
+
+            if (strpos($ku_lower, 'u 6') !== false) {
+                $dob = '2019-01-01'; // 5 yo
+            } else if (strpos($ku_lower, 'u7') !== false || strpos($ku_lower, 'u 7') !== false) {
+                $dob = '2018-01-01'; // 6 yo
+            } else if (strpos($ku_lower, 'u 9') !== false || strpos($ku_lower, 'u9') !== false) {
+                $dob = '2016-01-01'; // 8 yo
+            } else if (strpos($ku_lower, 'u 11') !== false || strpos($ku_lower, 'ku i ') !== false || strpos($ku_lower, 'ku i') !== false) {
+                $dob = '2014-01-01'; // 10 yo
+            } else if (strpos($ku_lower, 'ku ii') !== false) {
+                $dob = '2012-01-01'; // SD 12 yo
+            } else if (strpos($ku_lower, 'u 14') !== false || strpos($ku_lower, 'ku iii') !== false) {
+                $dob = '2009-01-01'; // SMP 15 yo
+            } else if (strpos($ku_lower, 'junior') !== false) {
+                $dob = '2008-01-01';
+            } else if (strpos($ku_lower, 'senior') !== false) {
+                $dob = '2004-01-01';
+            }
+            
+            fputcsv($output, [$nama, $gender, $dob, $klub]);
+        }
+        
+        fclose($output);
+        exit;
+    }
 }

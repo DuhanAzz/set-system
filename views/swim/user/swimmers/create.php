@@ -57,12 +57,17 @@
 
                 <div class="bg-slate-700/50 border border-slate-600 rounded-xl p-5 mb-6">
                     <h3 class="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-2 flex items-center gap-2">
-                        <span>1</span> Unduh Template Format
+                        <span>1</span> Siapkan Data CSV
                     </h3>
-                    <p class="text-xs text-slate-300 mb-3">Unduh template CSV yang sudah disediakan, isi data sesuai format kolom yang ada tanpa mengubah judul kolom.</p>
-                    <a href="<?= getenv('APP_URL') ?>/swim/user/swimmers/exportTemplate" class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest transition shadow-md">
-                        📥 Download Template CSV
-                    </a>
+                    <p class="text-xs text-slate-300 mb-3">Unduh template CSV yang sudah disediakan, atau gunakan <strong>CSV Data Extractor</strong> jika Anda punya data mentah.</p>
+                    <div class="flex flex-col gap-2">
+                        <a href="<?= getenv('APP_URL') ?>/swim/user/swimmers/exportTemplate" class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest transition shadow-md w-full justify-center">
+                            📥 Download Template CSV
+                        </a>
+                        <a href="<?= getenv('APP_URL') ?>/swim/<?= $_SESSION['swim_role'] ?>/swimmers/csv_extractor" class="inline-flex items-center gap-2 bg-slate-600 hover:bg-slate-500 text-white px-5 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest transition shadow-md w-full justify-center border border-slate-500">
+                            🛠️ Alat Ekstrak Data Mentah
+                        </a>
+                    </div>
                 </div>
 
                 <form method="POST" action="<?= getenv('APP_URL') ?>/swim/user/swimmers/importCsv" enctype="multipart/form-data">
