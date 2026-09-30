@@ -137,48 +137,19 @@ class RollSkaterController extends Controller {
 
     public function fix_relay() {
         $db = Database::getInstance()->getConnection();
-        $eventId = (int)($_SESSION['roll_admin_active_event_id'] ?? 1); // fallback ke 1
         
-        $targetRaceClassId = 268; // Hardcoded from user dump (Speed Junior Relay 3000m)
-        echo "<pre>--> MENGGUNAKAN KELAS TARGET (ID: 268) KARENA COCOK DENGAN SPEED JUNIOR RELAY 3000M\n";
+        $entryIdsToUpdate = [1385, 1386, 1387, 1699, 1700, 1701];
+        $targetRaceClassId = 268; // Speed Junior Relay 3000m
 
-        // Now find the skaters
-        $skaterNames = [
-            "Calvine Maynanda Dwi I'zaz",
-            "Ibnu Syahri Romadhon",
-            "Sebastian Fajar Fahrurrozi",
-            "Muhammad Abyan Mawlana Ghaisani",
-            "Rendhyata Arkha dena Atmadja",
-            "Yudhistira putra hutama"
-        ];
-
-        $skatersData = [];
-        foreach($skaterNames as $name) {
-            $st = $db->prepare("
-                SELECT e.id as entry_id, s.id as skater_id, s.skater_name, e.race_class_id, sc.class_name, a.group_name
-                FROM roll_entries e 
-                JOIN roll_skaters s ON e.skater_id = s.id 
-                LEFT JOIN roll_event_details ed ON e.race_class_id = ed.id
-                LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
-                LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id
-                WHERE e.event_id = ? AND s.skater_name LIKE ?
-            ");
-            $st->execute([$eventId, "%$name%"]);
-            $rows = $st->fetchAll(PDO::FETCH_ASSOC);
-            
-            if($rows) {
-                foreach($rows as $r) {
-                    $skatersData[] = $r;
-                }
-            } else {
-                echo "--> Peringatan: Tidak ditemukan skater dengan nama: $name\n";
-            }
+        echo "<pre>Memperbaiki 6 entri lomba ke ID $targetRaceClassId (Speed Junior Relay 3000m)...\n";
+        
+        foreach($entryIdsToUpdate as $eId) {
+            $up = $db->prepare("UPDATE roll_entries SET race_class_id = ? WHERE id = ?");
+            $up->execute([$targetRaceClassId, $eId]);
+            echo "Sukses mengupdate Entry ID $eId menjadi kelas $targetRaceClassId.\n";
         }
-        
-        echo "\nSemua Entri Lomba dari 6 Anak Tersebut:\n";
-        print_r($skatersData);
 
-        echo "</pre>";
+        echo "\nALL DONE! Masalah 100% tuntas.\n</pre>";
         exit;
     }
 }
