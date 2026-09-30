@@ -570,7 +570,7 @@ class RegistrationController extends Controller {
                         $row[] = ""; 
                     }
                 } else {
-                    $row[] = "[TIDAK SESUAI UMUR/GENDER]";
+                    $row[] = "-";
                 }
             }
             fputcsv($output, $row);
@@ -670,7 +670,7 @@ class RegistrationController extends Controller {
 
                         $time = isset($data[$index]) ? trim($data[$index]) : '';
                         
-                        if (strpos(strtoupper($time), 'TIDAK SESUAI') !== false) continue;
+                        if (strpos(strtoupper($time), 'TIDAK SESUAI') !== false || $time === '-') continue;
                         
                         if ($time !== '' && strtoupper($time) !== 'DELETE' && $time !== '00.00.00' && strtoupper($time) !== 'X') {
                             $time = preg_replace('/[^\d\.\:]/', '', $time);
