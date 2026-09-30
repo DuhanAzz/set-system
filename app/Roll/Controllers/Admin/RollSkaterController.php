@@ -134,22 +134,4 @@ class RollSkaterController extends Controller {
         fclose($output);
         exit;
     }
-
-    public function fix_relay() {
-        $db = Database::getInstance()->getConnection();
-        
-        $entryIdsToUpdate = [1385, 1386, 1387, 1699, 1700, 1701];
-        $targetRaceClassId = 268; // Speed Junior Relay 3000m
-
-        echo "<pre>Memperbaiki 6 entri lomba ke ID $targetRaceClassId (Speed Junior Relay 3000m)...\n";
-        
-        foreach($entryIdsToUpdate as $eId) {
-            $up = $db->prepare("UPDATE roll_entries SET race_class_id = ? WHERE id = ?");
-            $up->execute([$targetRaceClassId, $eId]);
-            echo "Sukses mengupdate Entry ID $eId menjadi kelas $targetRaceClassId.\n";
-        }
-
-        echo "\nALL DONE! Masalah 100% tuntas.\n</pre>";
-        exit;
-    }
 }
