@@ -139,32 +139,8 @@ class RollSkaterController extends Controller {
         $db = Database::getInstance()->getConnection();
         $eventId = (int)($_SESSION['roll_admin_active_event_id'] ?? 1); // fallback ke 1
         
-        $sql = "
-            SELECT ed.id as race_class_id, sc.class_name, a.group_name, d.distance_name 
-            FROM roll_event_details ed 
-            JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id 
-            LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id 
-            LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
-            WHERE ed.event_id = ? 
-        ";
-        $stmt = $db->prepare($sql);
-        $stmt->execute([$eventId]);
-        $classes = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        echo "<pre>Available Relay Classes (Mencari ID Kelas...):\n";
-        print_r($classes);
-
-        // Pilih kelas yang mengandung kata 'Junior' atau '3000m' 
-        $targetRaceClassId = null;
-        foreach ($classes as $c) {
-            $fullText = strtolower($c['class_name'] . ' ' . $c['group_name'] . ' ' . $c['distance_name']);
-            if (strpos($fullText, 'relay') !== false && (strpos($fullText, 'junior') !== false || strpos($fullText, '3000') !== false)) {
-                // Ambil kelas pertama yang dirasa cocok (biasanya gabungan)
-                $targetRaceClassId = $c['race_class_id'];
-                echo "\n--> KELAS DITEMUKAN: " . $c['class_name'] . " - " . $c['distance_name'] . " - " . $c['group_name'] . " (ID: " . $targetRaceClassId . ")\n";
-                break;
-            }
-        }
+        $targetRaceClassId = 268; // Hardcoded from user dump (Speed Junior Relay 3000m)
+        echo "<pre>--> MENGGUNAKAN KELAS TARGET (ID: 268) KARENA COCOK DENGAN SPEED JUNIOR RELAY 3000M\n";
 
         // Now find the skaters
         $skaterNames = [
@@ -182,20 +158,21 @@ class RollSkaterController extends Controller {
             $st->execute([$eventId, "%$name%"]);
             $rows = $st->fetchAll(PDO::FETCH_ASSOC);
             if($rows) {
+                // Cari entri dari atlet ini yang race_class_id-nya nyangkut (tidak ada di roll_event_details aktif)
                 $stOrphan = $db->prepare("
-                    SELECT e.id as entry_id 
+                    SELECT e.id as entry_id, e.race_class_id 
                     FROM roll_entries e 
                     LEFT JOIN roll_event_details ed ON e.race_class_id = ed.id 
-                    LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
-                    WHERE e.event_id = ? AND e.skater_id = ? AND sc.class_name IS NULL
+                    WHERE e.event_id = ? AND e.skater_id = ? AND ed.id IS NULL
                 ");
                 $stOrphan->execute([$eventId, $rows[0]['skater_id']]);
-                $orphan = $stOrphan->fetch(PDO::FETCH_ASSOC);
+                $orphans = $stOrphan->fetchAll(PDO::FETCH_ASSOC);
 
-                if ($orphan) {
+                foreach($orphans as $orphan) {
                     $skatersData[] = [
                         'entry_id' => $orphan['entry_id'],
-                        'skater_name' => $rows[0]['skater_name']
+                        'skater_name' => $rows[0]['skater_name'],
+                        'old_race_class_id' => $orphan['race_class_id']
                     ];
                 }
             }
