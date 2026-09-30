@@ -134,11 +134,9 @@ class CheckoutController extends Controller {
                 }
             }
         } else {
-            if ($totalTagihan > 0) {
-                $stmtInsPay = $this->db->prepare("INSERT INTO swim_payments (user_id, event_id, amount, status, created_at) VALUES (?, ?, ?, 'Unpaid', NOW())");
-                $stmtInsPay->execute([$uid, $event['id'], $totalTagihan]);
-                $paymentId = $this->db->lastInsertId();
-            }
+            $stmtInsPay = $this->db->prepare("INSERT INTO swim_payments (user_id, event_id, amount, status, created_at) VALUES (?, ?, ?, 'Unpaid', NOW())");
+            $stmtInsPay->execute([$uid, $event['id'], $totalTagihan]);
+            $paymentId = $this->db->lastInsertId();
         }
 
         // Rincian Individu
