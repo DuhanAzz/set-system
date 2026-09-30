@@ -154,42 +154,30 @@ class RollSkaterController extends Controller {
 
         $skatersData = [];
         foreach($skaterNames as $name) {
-            $st = $db->prepare("SELECT e.id as entry_id, s.id as skater_id, s.skater_name FROM roll_entries e JOIN roll_skaters s ON e.skater_id = s.id WHERE e.event_id = ? AND s.skater_name LIKE ?");
+            $st = $db->prepare("
+                SELECT e.id as entry_id, s.id as skater_id, s.skater_name, e.race_class_id, sc.class_name, a.group_name
+                FROM roll_entries e 
+                JOIN roll_skaters s ON e.skater_id = s.id 
+                LEFT JOIN roll_event_details ed ON e.race_class_id = ed.id
+                LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
+                LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id
+                WHERE e.event_id = ? AND s.skater_name LIKE ?
+            ");
             $st->execute([$eventId, "%$name%"]);
             $rows = $st->fetchAll(PDO::FETCH_ASSOC);
+            
             if($rows) {
-                // Cari entri dari atlet ini yang race_class_id-nya nyangkut (tidak ada di roll_event_details aktif)
-                $stOrphan = $db->prepare("
-                    SELECT e.id as entry_id, e.race_class_id 
-                    FROM roll_entries e 
-                    LEFT JOIN roll_event_details ed ON e.race_class_id = ed.id 
-                    WHERE e.event_id = ? AND e.skater_id = ? AND ed.id IS NULL
-                ");
-                $stOrphan->execute([$eventId, $rows[0]['skater_id']]);
-                $orphans = $stOrphan->fetchAll(PDO::FETCH_ASSOC);
-
-                foreach($orphans as $orphan) {
-                    $skatersData[] = [
-                        'entry_id' => $orphan['entry_id'],
-                        'skater_name' => $rows[0]['skater_name'],
-                        'old_race_class_id' => $orphan['race_class_id']
-                    ];
+                foreach($rows as $r) {
+                    $skatersData[] = $r;
                 }
+            } else {
+                echo "--> Peringatan: Tidak ditemukan skater dengan nama: $name\n";
             }
         }
-        echo "\nFound Orphaned Skater Entries:\n";
+        
+        echo "\nSemua Entri Lomba dari 6 Anak Tersebut:\n";
         print_r($skatersData);
 
-        if ($targetRaceClassId && !empty($skatersData)) {
-            foreach($skatersData as $sd) {
-                $up = $db->prepare("UPDATE roll_entries SET race_class_id = ? WHERE id = ?");
-                $up->execute([$targetRaceClassId, $sd['entry_id']]);
-                echo "Updated entry ID {$sd['entry_id']} for {$sd['skater_name']} to race_class_id {$targetRaceClassId}\n";
-            }
-            echo "\nALL DONE!";
-        } else {
-            echo "Could not find target class or skaters.\n";
-        }
         echo "</pre>";
         exit;
     }
