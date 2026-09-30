@@ -33,16 +33,19 @@ class RollSkaterController extends Controller {
         $eventName = $stmtEvt->fetchColumn();
 
         $sql = "
-            SELECT DISTINCT
+            SELECT 
                 s.id as skater_id, s.skater_name, s.gender, c.club_name, e.bib_number,
-                sc.class_name, a.group_name
+                sc.class_name, a.group_name,
+                GROUP_CONCAT(DISTINCT d.distance_name ORDER BY ed.race_number ASC SEPARATOR ', ') as distances
             FROM roll_entries e
             JOIN roll_skaters s ON e.skater_id = s.id
             LEFT JOIN roll_clubs c ON s.club_id = c.id
             LEFT JOIN roll_event_details ed ON e.race_class_id = ed.id
+            LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
             LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
             LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id
             WHERE e.event_id = ?
+            GROUP BY s.id, s.skater_name, s.gender, c.club_name, e.bib_number, sc.class_name, a.group_name
             ORDER BY sc.class_name ASC, a.group_name ASC, s.gender ASC, e.bib_number ASC
         ";
         
@@ -87,16 +90,19 @@ class RollSkaterController extends Controller {
         $eventName = $stmtEvt->fetchColumn();
 
         $sql = "
-            SELECT DISTINCT
+            SELECT 
                 s.id as skater_id, s.skater_name, s.gender, c.club_name, e.bib_number,
-                sc.class_name, a.group_name
+                sc.class_name, a.group_name,
+                GROUP_CONCAT(DISTINCT d.distance_name ORDER BY ed.race_number ASC SEPARATOR ', ') as distances
             FROM roll_entries e
             JOIN roll_skaters s ON e.skater_id = s.id
             LEFT JOIN roll_clubs c ON s.club_id = c.id
             LEFT JOIN roll_event_details ed ON e.race_class_id = ed.id
+            LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
             LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
             LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id
             WHERE e.event_id = ?
+            GROUP BY s.id, s.skater_name, s.gender, c.club_name, e.bib_number, sc.class_name, a.group_name
             ORDER BY sc.class_name ASC, a.group_name ASC, s.gender ASC, e.bib_number ASC
         ";
         
@@ -128,7 +134,7 @@ class RollSkaterController extends Controller {
                 $gender,
                 $r['skater_name'],
                 $r['club_name'] ?? '',
-                $r['class_name'] ?? ''
+                $r['distances'] ?: ($r['class_name'] ?? '')
             ]);
         }
         fclose($output);

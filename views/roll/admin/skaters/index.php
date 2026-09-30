@@ -77,7 +77,7 @@
                                                     <span class="text-slate-400">🏢</span> <?= htmlspecialchars($s['club_name'] ?? '-') ?>
                                                 </td>
                                                 <td class="py-3 px-4 text-xs font-semibold text-blue-600 flex items-center gap-2">
-                                                    <span class="text-blue-300">🏷️</span> <?= htmlspecialchars($s['class_name'] ?? '-') ?>
+                                                    <span class="text-blue-300">🏷️</span> <?= htmlspecialchars($s['distances'] ?: ($s['class_name'] ?? '-')) ?>
                                                 </td>
                                             </tr>
                                             <?php endforeach; ?>
