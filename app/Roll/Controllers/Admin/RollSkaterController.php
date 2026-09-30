@@ -134,4 +134,16 @@ class RollSkaterController extends Controller {
         fclose($output);
         exit;
     }
+
+    public function debug_skater_team() {
+        $db = Database::getInstance()->getConnection();
+        $name = $_GET['name'] ?? 'MUHAMMAD RAFFA ARDIANSYAH MAHENDRA';
+        
+        $st = $db->prepare("SELECT e.id, e.event_id, e.team_name, ed.race_number, sc.class_name FROM roll_entries e JOIN roll_skaters s ON e.skater_id = s.id JOIN roll_event_details ed ON e.race_class_id = ed.id JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id WHERE s.skater_name LIKE ?");
+        $st->execute(['%' . $name . '%']);
+        echo "<pre>";
+        print_r($st->fetchAll(PDO::FETCH_ASSOC));
+        echo "</pre>";
+        exit;
+    }
 }
