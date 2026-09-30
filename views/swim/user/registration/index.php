@@ -22,6 +22,7 @@
             <a href="<?= getenv('APP_URL') ?>/swim/user/checkout/detail/<?= $event['id'] ?>" class="bg-slate-900 text-white px-6 py-3 rounded-xl font-bold text-xs shadow-lg">LIHAT STATUS</a>
         <?php else: ?>
             <a href="<?= getenv('APP_URL') ?>/swim/user/registration/exportCsv/<?= $event['id'] ?>" class="bg-emerald-600 text-white px-4 py-3 rounded-xl font-bold text-[10px] shadow-lg hover:bg-emerald-700 transition flex items-center gap-2">📥 EXPORT CSV</a>
+            <button onclick="document.getElementById('modalConvertCsv').classList.remove('hidden')" class="bg-indigo-500 text-white px-4 py-3 rounded-xl font-bold text-[10px] shadow-lg hover:bg-indigo-600 transition flex items-center gap-2">🔄 KONVERSI TEKS</button>
             <button onclick="document.getElementById('modalImportCsv').classList.remove('hidden')" class="bg-amber-500 text-white px-4 py-3 rounded-xl font-bold text-[10px] shadow-lg hover:bg-amber-600 transition flex items-center gap-2">📤 IMPORT CSV</button>
             <button onclick="document.getElementById('modalAdd').classList.remove('hidden')" class="bg-blue-600 text-white px-4 py-3 rounded-xl font-bold text-[10px] shadow-lg hover:bg-blue-700">+ PILIH ATLET</button>
             <a href="<?= getenv('APP_URL') ?>/swim/user/checkout/detail/<?= $event['id'] ?>" class="bg-slate-900 text-white px-6 py-3 rounded-xl font-bold text-xs shadow-lg">SELESAI / BAYAR</a>
@@ -222,6 +223,31 @@
                 </p>
             </div>
             <button type="submit" class="w-full bg-slate-900 text-white font-black py-4 rounded-xl shadow-lg hover:bg-slate-800 transition uppercase tracking-wide text-sm">Upload & Import</button>
+        </form>
+    </div>
+</div>
+
+<div id="modalConvertCsv" class="hidden fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col">
+        <div class="bg-indigo-500 p-6 text-white flex justify-between items-center">
+            <div>
+                <h2 class="text-xl font-black italic uppercase tracking-tighter">KONVERSI DARI TEKS MENTAH</h2>
+                <p class="text-[10px] font-bold text-indigo-100 uppercase mt-1">Otomatis buat file Matrix CSV dari pendaftaran per-nomor</p>
+            </div>
+            <button onclick="document.getElementById('modalConvertCsv').classList.add('hidden')" class="text-3xl hover:text-indigo-200 transition">&times;</button>
+        </div>
+        <form method="POST" action="<?= getenv('APP_URL') ?>/swim/user/registration/convertCsv/<?= $event['id'] ?>" class="p-6">
+            <div class="mb-4">
+                <label class="block text-slate-700 font-bold mb-2 text-xs uppercase tracking-wide">Paste Teks Data Pendaftaran Di Sini</label>
+                <textarea name="raw_text" rows="12" class="w-full text-[10px] text-slate-600 p-3 border rounded-xl font-mono focus:ring-2 focus:ring-indigo-500" placeholder="100 M GAYA BEBAS PUTRA SMP,,,&#10;NO,NAMA PESERTA,ASAL SEKOLAH,BEST TIME&#10;21,Akbar Risqi Rahmanto,SMP Negeri 12 Yogyakarta,01.02.58" required></textarea>
+            </div>
+            <div class="bg-indigo-50 p-4 rounded-xl mb-6">
+                <p class="text-[11px] text-indigo-800 font-medium leading-relaxed">
+                    Sistem akan mengekstrak otomatis siapa saja yang didaftarkan pada gaya apa saja, lalu <strong>menghasilkan file Matrix CSV yang sudah otomatis terisi waktu renangnya</strong>.<br><br>
+                    <strong>PENTING:</strong> Setelah file CSV hasil konversi berhasil terdownload, Anda harus mengunggahnya kembali ke menu <strong>📤 IMPORT CSV</strong> agar data tersimpan ke database!
+                </p>
+            </div>
+            <button type="submit" class="w-full bg-slate-900 text-white font-black py-4 rounded-xl shadow-lg hover:bg-slate-800 transition uppercase tracking-wide text-sm">Download Matrix Terisi</button>
         </form>
     </div>
 </div>

@@ -709,7 +709,165 @@ class RegistrationController extends Controller {
             $_SESSION['flash_error'] = "Gagal membaca file.";
         }
 
-        header("Location: " . getenv('APP_URL') . "/swim/user/registration/index/" . $event_id);
+    public function convertCsv($event_id = 0) {
+        $this->checkAccess();
+        $uid = $_SESSION['swim_user_id'];
+        
+        if (!$event_id || $_SERVER['REQUEST_METHOD'] !== 'POST' || empty($_POST['raw_text'])) {
+            header("Location: " . getenv('APP_URL') . "/swim/user/registration/index/" . $event_id);
+            exit;
+        }
+
+        $event = $this->getEvent($event_id);
+        if (!$event) {
+            header("Location: " . getenv('APP_URL') . "/swim/user/explore");
+            exit;
+        }
+
+        $rawText = $_POST['raw_text'];
+        $lines = explode("\n", $rawText);
+
+        $extractedData = [];
+        $currentDist = '';
+        $currentStroke = '';
+        $currentGender = '';
+        $currentAge = '';
+
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if (empty($line)) continue;
+            
+            $upperLine = strtoupper($line);
+            
+            // Detect Event Header: 100 M GAYA BEBAS PUTRA SMP
+            if (preg_match('/(\d+)\s*M\s*GAYA\s+([A-Za-z\- ]+?)\s+(PUTRA|PUTRI)\s+(SD|SMP|SMA|TK|MI|MTS|MA)/i', $upperLine, $m)) {
+                $currentDist = $m[1];
+                $currentStroke = trim(str_replace('-', '', $m[2]));
+                $currentGender = $m[3];
+                $currentAge = $m[4];
+                
+                // Normalization
+                if ($currentStroke == 'KUPU KUPU') $currentStroke = 'KUPU-KUPU';
+                if ($currentGender == 'PUTRA') $currentGender = 'L';
+                if ($currentGender == 'PUTRI') $currentGender = 'P';
+                
+                continue;
+            }
+
+            // Detect Data Row
+            // NO,NAMA PESERTA,ASAL SEKOLAH,BEST TIME -> 21,Akbar Risqi Rahmanto,SMP Negeri 12 Yogyakarta,01.02.58
+            if ($currentDist != '') {
+                $parts = str_getcsv($line);
+                if (count($parts) >= 3) {
+                    // Check if first col is number
+                    if (is_numeric(trim($parts[0]))) {
+                        $nama = strtoupper(trim($parts[1]));
+                        // Sometimes there are 4 columns (Best time at index 3)
+                        $time = '';
+                        if (isset($parts[3])) {
+                            $time = trim($parts[3]);
+                        } else if (isset($parts[2]) && preg_match('/^\d{2}[\.\:]\d{2}[\.\:]\d{2}$/', trim($parts[2]))) {
+                            $time = trim($parts[2]);
+                        }
+                        
+                        if ($time === '' || strtoupper($time) === '99.99.99') {
+                            $time = 'X';
+                        }
+                        
+                        // Create a matching key to find the DB event later
+                        $eventKey = $currentDist . "M " . $currentStroke . " " . $currentGender . " " . $currentAge;
+                        $extractedData[$nama][$eventKey] = $time;
+                    }
+                }
+            }
+        }
+
+        // Now, we generate the CSV Matrix, filled with the extracted data
+        $rule = $this->getActiveEventAgeRule($event['id']);
+        $calcType = $event['age_calculation_type'] ?? 'Dec 31'; 
+        $compYear = (int)date('Y', strtotime($event['event_date_start']));
+        $compDateObj = new DateTime($event['event_date_start']);
+
+        $stmtGroups = $this->db->prepare("SELECT id, min_age, max_age, group_name FROM swim_event_age_groups WHERE event_id = ?");
+        $stmtGroups->execute([$event_id]);
+        $ageRules = $stmtGroups->fetchAll(PDO::FETCH_UNIQUE|PDO::FETCH_ASSOC);
+
+        $stmtEn = $this->db->prepare("SELECT * FROM swim_event_numbers WHERE event_id = ? AND is_relay = 0 ORDER BY distance ASC, stroke ASC");
+        $stmtEn->execute([$event_id]);
+        $allEvents = $stmtEn->fetchAll(PDO::FETCH_ASSOC);
+
+        $stmtSw = $this->db->prepare("SELECT * FROM swim_swimmers WHERE user_id = ? ORDER BY nama_atlet ASC");
+        $stmtSw->execute([$uid]);
+        $allSwimmers = $stmtSw->fetchAll(PDO::FETCH_ASSOC);
+
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename=matrix_registrasi_converted_'.$event_id.'.csv');
+        $output = fopen('php://output', 'w');
+
+        // Headers
+        $headers = ['UID', 'NAMA ATLET', 'GENDER', 'TGL LAHIR'];
+        foreach ($allEvents as $ev) {
+            $headers[] = "[ID:" . $ev['id'] . "] " . $ev['distance'] . "M " . strtoupper($ev['stroke']) . " " . strtoupper($ev['jenis_kelamin']) . " " . strtoupper($ev['age_group']);
+        }
+        fputcsv($output, $headers);
+
+        foreach ($allSwimmers as $sw) {
+            $sid = $sw['id'];
+            $dobObj = new DateTime($sw['tanggal_lahir']);
+            $birthYear = (int)$dobObj->format('Y');
+            $age = ($calcType === 'Meet Start') ? $dobObj->diff($compDateObj)->y : ($compYear - $birthYear);
+            
+            $gender = ($sw['jenis_kelamin'] == 'L') ? 'L' : 'P';
+            $swName = strtoupper($sw['nama_atlet']);
+            
+            $row = [
+                $sw['uid'],
+                $sw['nama_atlet'],
+                $sw['jenis_kelamin'],
+                $sw['tanggal_lahir']
+            ];
+
+            foreach ($allEvents as $ev) {
+                $eGen = (in_array($ev['jenis_kelamin'], ['Putra', 'L'])) ? 'L' : ((in_array($ev['jenis_kelamin'], ['Putri', 'P'])) ? 'P' : 'MIX');
+                
+                $isAgeFit = false;
+                if ($eGen === 'MIX' || $eGen === $gender) {
+                    $groupName = strtoupper($ev['age_group'] ?? '');
+                    if (preg_match_all('/\b(20\d{2})\b/', $groupName, $matches)) {
+                        $allowedYears = array_map('intval', $matches[1]); 
+                        if (in_array($birthYear, $allowedYears)) $isAgeFit = true;
+                    } else {
+                        $min = (int)($ev['age_min'] ?? 0); 
+                        $max = (int)($ev['age_max'] ?? 99);
+                        $passMinMax = ($age >= $min && ($max == 0 || $age <= $max));
+
+                        $kuIds = !empty($ev['selected_ku_ids']) ? explode(',', $ev['selected_ku_ids']) : [];
+                        if (!empty($kuIds)) {
+                            $passKu = false;
+                            foreach ($kuIds as $kid) { 
+                                if (isset($ageRules[$kid]) && $age >= (int)$ageRules[$kid]['min_age'] && $age <= (int)$ageRules[$kid]['max_age']) { $passKu = true; break; } 
+                            }
+                            if ($passKu && $passMinMax) { $isAgeFit = true; }
+                        } else {
+                            if ($passMinMax) { $isAgeFit = true; }
+                        }
+                    }
+                }
+
+                if ($isAgeFit) {
+                    $matchKey = $ev['distance'] . "M " . strtoupper(str_replace('-', '', $ev['stroke'])) . " " . $gender . " " . strtoupper($ev['age_group']);
+                    if (isset($extractedData[$swName][$matchKey])) {
+                        $row[] = $extractedData[$swName][$matchKey];
+                    } else {
+                        $row[] = ""; 
+                    }
+                } else {
+                    $row[] = "-";
+                }
+            }
+            fputcsv($output, $row);
+        }
+        fclose($output);
         exit;
     }
 }
