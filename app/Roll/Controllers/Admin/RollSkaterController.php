@@ -134,4 +134,24 @@ class RollSkaterController extends Controller {
         fclose($output);
         exit;
     }
+
+    public function debug_relay_mix() {
+        $db = Database::getInstance()->getConnection();
+        $eventId = (int)($_SESSION['roll_admin_active_event_id'] ?? 1);
+
+        echo "<pre>";
+        echo "=== KELAS RELAY MIX ===\n";
+        $stClass = $db->prepare("SELECT ed.id as class_id, sc.class_name, a.group_name, d.distance_name, ed.gender FROM roll_event_details ed JOIN roll_ref_distances d ON ed.distance_id = d.id JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id WHERE ed.event_id = ? AND LOWER(d.distance_name) LIKE '%relay%'");
+        $stClass->execute([$eventId]);
+        $classes = $stClass->fetchAll(PDO::FETCH_ASSOC);
+        print_r($classes);
+
+        echo "\n\n=== ENTRI MANUAL RELAY MIX ===\n";
+        $stManual = $db->prepare("SELECT e.id, e.race_class_id, e.team_name, e.manual_invoice_code, e.is_manual, s.skater_name, s.gender FROM roll_entries e JOIN roll_skaters s ON e.skater_id = s.id WHERE e.event_id = ? AND e.is_manual = 1 AND LOWER(e.team_name) LIKE '%mix%' OR LOWER(s.skater_name) LIKE '%mix%' OR e.race_class_id IN (SELECT id FROM roll_event_details WHERE distance_id IN (SELECT id FROM roll_ref_distances WHERE LOWER(distance_name) LIKE '%relay mix%'))");
+        $stManual->execute([$eventId]);
+        $manuals = $stManual->fetchAll(PDO::FETCH_ASSOC);
+        print_r($manuals);
+        echo "</pre>";
+        exit;
+    }
 }

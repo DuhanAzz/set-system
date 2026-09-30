@@ -1,28 +1,10 @@
 <?php
-$host = '127.0.0.1';
-$db = 'set_system';
-$user = 'root';
-$pass = ''; // Try empty
-$charset = 'utf8mb4';
-$dsn = "mysql:unix_socket=/Applications/XAMPP/xamppfiles/var/mysql/mysql.sock;dbname=$db;charset=$charset";
-$pdo = new PDO($dsn, $user, $pass);
+require 'vendor/autoload.php';
+require 'app/Core/Database.php';
 
-$sql = "
-    SELECT 
-        e.id as entry_id,
-        s.skater_name,
-        e.race_class_id,
-        ed.id as ed_id,
-        ed.skate_class_id,
-        sc.class_name,
-        ed.age_group_id,
-        a.group_name
-    FROM roll_entries e
-    JOIN roll_skaters s ON e.skater_id = s.id
-    LEFT JOIN roll_event_details ed ON e.race_class_id = ed.id
-    LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
-    LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id
-    WHERE e.event_id = 1 AND sc.class_name IS NULL
-";
-$stmt = $pdo->query($sql);
-print_r($stmt->fetchAll(\PDO::FETCH_ASSOC));
+$db = App\Core\Database::getInstance()->getConnection();
+$st = $db->query("SELECT * FROM roll_ref_distances WHERE distance_name LIKE '%relay%'");
+print_r($st->fetchAll(PDO::FETCH_ASSOC));
+
+$st2 = $db->query("SELECT ed.id as class_id, ed.category_name, d.distance_name, sc.class_name as roller_name FROM roll_event_details ed JOIN roll_ref_distances d ON ed.distance_id = d.id JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id WHERE d.distance_name LIKE '%relay mix%'");
+print_r($st2->fetchAll(PDO::FETCH_ASSOC));
