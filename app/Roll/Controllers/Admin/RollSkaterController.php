@@ -139,75 +139,20 @@ class RollSkaterController extends Controller {
         $db = Database::getInstance()->getConnection();
         $eventId = (int)($_SESSION['roll_admin_active_event_id'] ?? 1); // fallback ke 1
         
-        // 1. Cari race_class_id untuk SPEED - RELAY 3000M - JUNIOR
+        // 1. Cari SEMUA race_class_id
         $sql = "
             SELECT ed.id as race_class_id, sc.class_name, a.group_name 
             FROM roll_event_details ed 
             JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id 
-            JOIN roll_ref_age_groups a ON ed.age_group_id = a.id 
-            WHERE ed.event_id = ? 
-            AND LOWER(sc.class_name) LIKE '%relay%' 
-            AND LOWER(a.group_name) LIKE '%junior%'
+            LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id 
+            WHERE ed.event_id = ?
         ";
         $stmt = $db->prepare($sql);
         $stmt->execute([$eventId]);
         $classes = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        echo "<pre>Available Relay Junior Classes:\n";
+        echo "<pre>ALL Available Classes in Event:\n";
         print_r($classes);
-
-        // Now find the skaters
-        $skaterNames = [
-            "Calvine Maynanda Dwi I'zaz",
-            "Ibnu Syahri Romadhon",
-            "Sebastian Fajar Fahrurrozi",
-            "Muhammad Abyan Mawlana Ghaisani",
-            "Rendhyata Arkha dena Atmadja",
-            "Yudhistira putra hutama"
-        ];
-
-        $skatersData = [];
-        foreach($skaterNames as $name) {
-            $st = $db->prepare("SELECT e.id as entry_id, s.id as skater_id, s.skater_name FROM roll_entries e JOIN roll_skaters s ON e.skater_id = s.id WHERE e.event_id = ? AND s.skater_name LIKE ?");
-            $st->execute([$eventId, "%$name%"]);
-            $rows = $st->fetchAll(PDO::FETCH_ASSOC);
-            if($rows) {
-                // we might get multiple entries for the same skater if they participate in multiple classes, 
-                // but we only want to update the one where race_class_id is NULL or orphaned.
-                // Or just find the entry that is currently orphaned (class_name is null)
-                $stOrphan = $db->prepare("
-                    SELECT e.id as entry_id 
-                    FROM roll_entries e 
-                    LEFT JOIN roll_event_details ed ON e.race_class_id = ed.id 
-                    LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
-                    WHERE e.event_id = ? AND e.skater_id = ? AND sc.class_name IS NULL
-                ");
-                $stOrphan->execute([$eventId, $rows[0]['skater_id']]);
-                $orphan = $stOrphan->fetch(PDO::FETCH_ASSOC);
-
-                if ($orphan) {
-                    $skatersData[] = [
-                        'entry_id' => $orphan['entry_id'],
-                        'skater_name' => $rows[0]['skater_name']
-                    ];
-                }
-            }
-        }
-        echo "\nFound Orphaned Skater Entries:\n";
-        print_r($skatersData);
-
-        // Set them to the first found class (assuming it's SPEED - RELAY 3000M - JUNIOR)
-        if (!empty($classes) && !empty($skatersData)) {
-            $targetRaceClassId = $classes[0]['race_class_id'];
-            foreach($skatersData as $sd) {
-                $up = $db->prepare("UPDATE roll_entries SET race_class_id = ? WHERE id = ?");
-                $up->execute([$targetRaceClassId, $sd['entry_id']]);
-                echo "Updated entry ID {$sd['entry_id']} for {$sd['skater_name']} to race_class_id {$targetRaceClassId}\n";
-            }
-            echo "\nALL DONE!";
-        } else {
-            echo "Could not find target class or skaters.\n";
-        }
         echo "</pre>";
         exit;
     }
