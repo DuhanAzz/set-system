@@ -18,58 +18,55 @@ class RollSkaterController extends Controller {
 
     public function index() {
         $db = Database::getInstance()->getConnection();
+        $eventId = (int)($_SESSION['roll_admin_active_event_id'] ?? 0);
         
-        $sql = "SELECT s.*, c.club_name 
-                FROM roll_skaters s 
-                LEFT JOIN roll_clubs c ON s.club_id = c.id 
-                ORDER BY s.id DESC";
-        $skaters = $db->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+        if ($eventId == 0) {
+            $_SESSION['flash_message'] = "Pilih Event terlebih dahulu!";
+            $_SESSION['flash_type'] = "warning";
+            header("Location: " . getenv('APP_URL') . "/roll/admin/dashboard");
+            exit;
+        }
+        
+        // Ambil event name
+        $stmtEvt = $db->prepare("SELECT event_name FROM roll_events WHERE id = ?");
+        $stmtEvt->execute([$eventId]);
+        $eventName = $stmtEvt->fetchColumn();
 
-        $clubs = $db->query("SELECT id, club_name FROM roll_clubs ORDER BY club_name ASC")->fetchAll(PDO::FETCH_ASSOC);
+        $sql = "
+            SELECT DISTINCT
+                s.id as skater_id, s.skater_name, s.gender, c.club_name, e.bib_number,
+                sc.class_name, a.group_name
+            FROM roll_entries e
+            JOIN roll_skaters s ON e.skater_id = s.id
+            LEFT JOIN roll_clubs c ON s.club_id = c.id
+            LEFT JOIN roll_event_details ed ON e.race_class_id = ed.id
+            LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
+            LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id
+            WHERE e.event_id = ?
+            ORDER BY sc.class_name ASC, a.group_name ASC, s.gender ASC, e.bib_number ASC
+        ";
+        
+        $stmt = $db->prepare($sql);
+        $stmt->execute([$eventId]);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $grouped = [];
+        foreach ($rows as $r) {
+            $rawClass = strtolower($r['class_name'] ?? '');
+            $cat = 'Lainnya';
+            if (strpos($rawClass, 'speed') !== false) $cat = 'Speed';
+            elseif (strpos($rawClass, 'standar') !== false) $cat = 'Standart';
+            elseif (strpos($rawClass, 'pemula') !== false) $cat = 'Pemula';
+            
+            $ku = $r['group_name'] ?: 'Tanpa KU';
+            $gender = in_array($r['gender'], ['M', 'Male', 'L', 'Putra', 'Pa']) ? 'Putra' : 'Putri';
+
+            $grouped[$cat][$ku][$gender][] = $r;
+        }
 
         return $this->view('roll/admin/skaters/index', [
-            'skaters' => $skaters,
-            'clubs' => $clubs
+            'grouped' => $grouped,
+            'eventName' => $eventName
         ]);
-    }
-
-    public function store() {
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $db = Database::getInstance()->getConnection();
-            
-            $skaterName = $_POST['skater_name'] ?? '';
-            $clubId = $_POST['club_id'] ?? null;
-            $gender = $_POST['gender'] ?? '';
-            $birthDate = $_POST['birth_date'] ?? '';
-            $ageGroup = $_POST['age_group'] ?? '';
-
-            $stmt = $db->prepare("INSERT INTO roll_skaters (skater_name, club_id, gender, birth_date, age_group) VALUES (?, ?, ?, ?, ?)");
-            $stmt->execute([$skaterName, $clubId, $gender, $birthDate, $ageGroup]);
-
-            $_SESSION['flash_message'] = "Skater berhasil ditambahkan!";
-            $_SESSION['flash_type'] = "success";
-            header("Location: " . getenv('APP_URL') . "/roll/admin/skaters");
-            exit;
-        }
-    }
-
-    public function update($id) {
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $db = Database::getInstance()->getConnection();
-            
-            $skaterName = $_POST['skater_name'] ?? '';
-            $clubId = $_POST['club_id'] ?? null;
-            $gender = $_POST['gender'] ?? '';
-            $birthDate = $_POST['birth_date'] ?? '';
-            $ageGroup = $_POST['age_group'] ?? '';
-
-            $stmt = $db->prepare("UPDATE roll_skaters SET skater_name = ?, club_id = ?, gender = ?, birth_date = ?, age_group = ? WHERE id = ?");
-            $stmt->execute([$skaterName, $clubId, $gender, $birthDate, $ageGroup, $id]);
-
-            $_SESSION['flash_message'] = "Data skater berhasil diperbarui!";
-            $_SESSION['flash_type'] = "success";
-            header("Location: " . getenv('APP_URL') . "/roll/admin/skaters");
-            exit;
-        }
     }
 }
