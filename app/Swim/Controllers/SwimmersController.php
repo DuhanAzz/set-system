@@ -389,11 +389,11 @@ class SwimmersController extends Controller {
                     $this->db->query("ALTER TABLE swim_swimmers MODIFY uid VARCHAR(20) NULL");
                 } catch (\Exception $e) {}
                 
-                $stmtCek = $this->db->prepare("SELECT COUNT(*) FROM swim_swimmers WHERE user_id = ? AND UPPER(nama_atlet) = ? AND tanggal_lahir = ?");
+                $stmtCek = $this->db->prepare("SELECT id FROM swim_swimmers WHERE user_id = ? AND UPPER(nama_atlet) = ?");
+                $stmtUpd = $this->db->prepare("UPDATE swim_swimmers SET jenis_kelamin=?, tanggal_lahir=?, asal_sekolah=? WHERE id=?");
                 $stmtIns = $this->db->prepare("INSERT INTO swim_swimmers (uid, user_id, nama_atlet, jenis_kelamin, tanggal_lahir, club_id, asal_sekolah) VALUES (?, ?, ?, ?, ?, ?, ?)");
                 
                 while (($data = fgetcsv($handle, 1000, $delimiter)) !== FALSE) {
-                    // Jika data 1 kolom tapi isinya koma (kasus Mac Excel aneh)
                     if (count($data) == 1 && strpos($data[0], ',') !== false && $delimiter == ';') {
                         $data = explode(',', $data[0]);
                     }
@@ -401,9 +401,9 @@ class SwimmersController extends Controller {
                     if (count($data) < 3) { $errorCount++; continue; }
                     
                     $nama = strtoupper(trim($data[0]));
-                    $gender = strtoupper(trim($data[1])); // L atau P
+                    $gender = strtoupper(trim($data[1])); 
                     $dob_raw = trim($data[2]); 
-                    $sekolah = isset($data[3]) ? strtoupper(trim($data[3])) : '';
+                    $sekolah = isset($data[3]) ? trim($data[3]) : '';
                     
                     if (empty($nama) || empty($gender) || empty($dob_raw)) {
                         $errorCount++; continue;
@@ -416,23 +416,19 @@ class SwimmersController extends Controller {
                         else { $errorCount++; continue; }
                     }
 
-                    // Normalisasi Tanggal Lahir (Mengatasi ulah Excel)
+                    // Normalisasi Tanggal Lahir
                     $dob = $dob_raw;
                     if (!preg_match("/^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])$/", $dob)) {
                         $dob_raw = str_replace('/', '-', $dob_raw);
-                        
-                        // Cek manual DD-MM-YYYY
                         if (preg_match("/^([0-9]{1,2})-([0-9]{1,2})-([0-9]{4})$/", $dob_raw, $m)) {
                             $dob = sprintf("%04d-%02d-%02d", $m[3], $m[2], $m[1]);
                         } 
-                        // Cek manual DD-MM-YY (Excel suka memotong tahun menjadi 2 digit)
                         else if (preg_match("/^([0-9]{1,2})-([0-9]{1,2})-([0-9]{2})$/", $dob_raw, $m)) {
                             $year = (int)$m[3];
                             $year += ($year > 50) ? 1900 : 2000;
                             $dob = sprintf("%04d-%02d-%02d", $year, $m[2], $m[1]);
                         } 
                         else {
-                            // Fallback terakhir ke strtotime
                             $time = strtotime($dob_raw);
                             if ($time) {
                                 $dob = date('Y-m-d', $time);
@@ -442,16 +438,18 @@ class SwimmersController extends Controller {
                         }
                     }
                     
-                    $stmtCek->execute([$uid, $nama, $dob]);
-                    if ($stmtCek->fetchColumn() > 0) {
-                        $errorCount++; continue; // duplikat
-                    }
-                    
-                    $uid_baru = $this->generateSwimmerUID($nama, $dob, $gender);
+                    $stmtCek->execute([$uid, $nama]);
+                    $existingId = $stmtCek->fetchColumn();
                     
                     try {
-                        $stmtIns->execute([$uid_baru, $uid, $nama, $gender, $dob, $club_id, $sekolah]);
-                        $successCount++;
+                        if ($existingId) {
+                            $stmtUpd->execute([$gender, $dob, $sekolah, $existingId]);
+                            $successCount++;
+                        } else {
+                            $uid_baru = $this->generateSwimmerUID($nama, $dob, $gender);
+                            $stmtIns->execute([$uid_baru, $uid, $nama, $gender, $dob, $club_id, $sekolah]);
+                            $successCount++;
+                        }
                     } catch (\Exception $e) {
                         $errorCount++;
                         if (!isset($_SESSION['debug_err'])) {
