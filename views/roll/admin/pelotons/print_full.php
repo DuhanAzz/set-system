@@ -23,19 +23,35 @@ $cc = [
     'klub'  => $isSubmitted ? isset($_REQUEST['col_klub']) : true,
 ];
 
+if ($usePost && empty($_POST) && isset($_SERVER['CONTENT_LENGTH']) && $_SERVER['CONTENT_LENGTH'] > 0) {
+    die("<div style='text-align:center; padding:50px; font-family:sans-serif;'><h2>Oopss... Gagal Memuat Halaman</h2><p>Ukuran file gambar yang Anda upload terlalu besar (melebihi batas server maksimal 2MB).<br>Silakan kompres gambar terlebih dahulu agar ukurannya di bawah 2MB, lalu coba lagi.</p><button onclick='window.close()'>Tutup</button></div>");
+}
+
 // Handle Image Uploads
 $scheduleImage = null;
-if ($usePost && !empty($_FILES['schedule_image']['tmp_name'])) {
-    $imgData = file_get_contents($_FILES['schedule_image']['tmp_name']);
-    $scheduleImage = 'data:' . $_FILES['schedule_image']['type'] . ';base64,' . base64_encode($imgData);
+if ($usePost && !empty($_FILES['schedule_image']['tmp_name']) && $_FILES['schedule_image']['error'] === UPLOAD_ERR_OK) {
+    $ext = pathinfo($_FILES['schedule_image']['name'], PATHINFO_EXTENSION);
+    $filename = 'sched_' . time() . '.' . $ext;
+    $targetPath = __DIR__ . '/../../../../public/uploads/temp/' . $filename;
+    if (!is_dir(dirname($targetPath))) mkdir(dirname($targetPath), 0777, true);
+    move_uploaded_file($_FILES['schedule_image']['tmp_name'], $targetPath);
+    $scheduleImage = getenv('APP_URL') . '/public/uploads/temp/' . $filename;
+} elseif ($usePost && isset($_FILES['schedule_image']['error']) && $_FILES['schedule_image']['error'] == UPLOAD_ERR_INI_SIZE) {
+    die("<div style='text-align:center; padding:50px; font-family:sans-serif;'><h2>Ukuran File Terlalu Besar</h2><p>Gambar Jadwal melebihi batas 2MB. Silakan perkecil ukuran file gambar.</p><button onclick='window.close()'>Tutup</button></div>");
 }
 
 $showScheduleAuto = ($isSubmitted ? isset($_REQUEST['show_schedule_auto']) : false) && empty($scheduleImage);
 
 $coverImage = null;
-if ($usePost && !empty($_FILES['cover_image']['tmp_name'])) {
-    $imgData = file_get_contents($_FILES['cover_image']['tmp_name']);
-    $coverImage = 'data:' . $_FILES['cover_image']['type'] . ';base64,' . base64_encode($imgData);
+if ($usePost && !empty($_FILES['cover_image']['tmp_name']) && $_FILES['cover_image']['error'] === UPLOAD_ERR_OK) {
+    $ext = pathinfo($_FILES['cover_image']['name'], PATHINFO_EXTENSION);
+    $filename = 'cover_' . time() . '.' . $ext;
+    $targetPath = __DIR__ . '/../../../../public/uploads/temp/' . $filename;
+    if (!is_dir(dirname($targetPath))) mkdir(dirname($targetPath), 0777, true);
+    move_uploaded_file($_FILES['cover_image']['tmp_name'], $targetPath);
+    $coverImage = getenv('APP_URL') . '/public/uploads/temp/' . $filename;
+} elseif ($usePost && isset($_FILES['cover_image']['error']) && $_FILES['cover_image']['error'] == UPLOAD_ERR_INI_SIZE) {
+    die("<div style='text-align:center; padding:50px; font-family:sans-serif;'><h2>Ukuran File Terlalu Besar</h2><p>Gambar Cover melebihi batas 2MB. Silakan perkecil ukuran file gambar.</p><button onclick='window.close()'>Tutup</button></div>");
 }
 
 // === AMBIL DATA ===
