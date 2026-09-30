@@ -410,15 +410,23 @@ class SwimmersController extends Controller {
                     // Normalisasi Tanggal Lahir (Mengatasi ulah Excel)
                     $dob = $dob_raw;
                     if (!preg_match("/^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])$/", $dob)) {
-                        // Coba parse bentuk DD/MM/YYYY atau MM/DD/YYYY
                         $dob_raw = str_replace('/', '-', $dob_raw);
-                        $time = strtotime($dob_raw);
-                        if ($time) {
-                            $dob = date('Y-m-d', $time);
-                        } else {
-                            // Coba DD-MM-YYYY manual jika strtotime gagal
-                            if (preg_match("/^([0-9]{1,2})-([0-9]{1,2})-([0-9]{4})$/", $dob_raw, $m)) {
-                                $dob = sprintf("%04d-%02d-%02d", $m[3], $m[2], $m[1]);
+                        
+                        // Cek manual DD-MM-YYYY
+                        if (preg_match("/^([0-9]{1,2})-([0-9]{1,2})-([0-9]{4})$/", $dob_raw, $m)) {
+                            $dob = sprintf("%04d-%02d-%02d", $m[3], $m[2], $m[1]);
+                        } 
+                        // Cek manual DD-MM-YY (Excel suka memotong tahun menjadi 2 digit)
+                        else if (preg_match("/^([0-9]{1,2})-([0-9]{1,2})-([0-9]{2})$/", $dob_raw, $m)) {
+                            $year = (int)$m[3];
+                            $year += ($year > 50) ? 1900 : 2000;
+                            $dob = sprintf("%04d-%02d-%02d", $year, $m[2], $m[1]);
+                        } 
+                        else {
+                            // Fallback terakhir ke strtotime
+                            $time = strtotime($dob_raw);
+                            if ($time) {
+                                $dob = date('Y-m-d', $time);
                             } else {
                                 $errorCount++; continue;
                             }
