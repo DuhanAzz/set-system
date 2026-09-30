@@ -146,7 +146,6 @@ class RollSkaterController extends Controller {
             LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id 
             LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
             WHERE ed.event_id = ? 
-            AND (LOWER(d.distance_name) LIKE '%relay%' OR LOWER(sc.class_name) LIKE '%relay%')
         ";
         $stmt = $db->prepare($sql);
         $stmt->execute([$eventId]);
@@ -159,7 +158,7 @@ class RollSkaterController extends Controller {
         $targetRaceClassId = null;
         foreach ($classes as $c) {
             $fullText = strtolower($c['class_name'] . ' ' . $c['group_name'] . ' ' . $c['distance_name']);
-            if (strpos($fullText, 'junior') !== false || strpos($fullText, '3000') !== false) {
+            if (strpos($fullText, 'relay') !== false && (strpos($fullText, 'junior') !== false || strpos($fullText, '3000') !== false)) {
                 // Ambil kelas pertama yang dirasa cocok (biasanya gabungan)
                 $targetRaceClassId = $c['race_class_id'];
                 echo "\n--> KELAS DITEMUKAN: " . $c['class_name'] . " - " . $c['distance_name'] . " - " . $c['group_name'] . " (ID: " . $targetRaceClassId . ")\n";
