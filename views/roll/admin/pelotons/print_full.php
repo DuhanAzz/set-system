@@ -56,7 +56,7 @@ if ($usePost && !empty($_FILES['cover_image']['tmp_name']) && $_FILES['cover_ima
 
 // === AMBIL DATA ===
 if (!isset($db)) {
-    $db = \Database::getInstance()->getConnection();
+    $db = \App\Core\Database::getInstance()->getConnection();
 }
 $eventId = $_SESSION['roll_admin_active_event_id'] ?? 0;
 

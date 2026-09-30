@@ -93,7 +93,7 @@
                             <input type="file" name="bukti_transfer" required accept="image/jpeg,image/png,application/pdf" class="w-full text-xs font-bold text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-[10px] file:uppercase file:tracking-widest file:font-black file:bg-slate-900 file:text-white hover:file:bg-blue-600 file:transition border border-slate-200 rounded-xl p-1 bg-slate-50 cursor-pointer outline-none focus:border-blue-500 transition">
                         </div>
 
-                        <button type="submit" class="<?= $displayStatus == 'Rejected' ? 'bg-red-600 shadow-red-200 hover:bg-red-700' : 'bg-blue-600 shadow-blue-200 hover:bg-blue-700' ?> text-white font-black py-4 w-full rounded-2xl shadow-lg transition-all uppercase text-[10px] tracking-widest active:scale-95 outline-none <?= $totalTagihan == 0 ? 'opacity-50 cursor-not-allowed' : '' ?>" <?= $totalTagihan == 0 ? 'disabled' : '' ?>>
+                        <button type="submit" class="<?= $displayStatus == 'Rejected' ? 'bg-red-600 shadow-red-200 hover:bg-red-700' : 'bg-blue-600 shadow-blue-200 hover:bg-blue-700' ?> text-white font-black py-4 w-full rounded-2xl shadow-lg transition-all uppercase text-[10px] tracking-widest active:scale-95 outline-none">
                             <?= $displayStatus == 'Rejected' ? 'Upload Ulang Bukti' : 'Kirim Bukti Bayar ➜' ?>
                         </button>
                     </form>
