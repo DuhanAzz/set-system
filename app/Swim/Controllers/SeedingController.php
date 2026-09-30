@@ -359,18 +359,26 @@ class SeedingController extends Controller {
     }
 
     private function timeToMs($timeStr) {
-        if (empty($timeStr) || strtoupper($timeStr) === 'NT' || strtoupper($timeStr) === '00:00.00' || $timeStr === '0') {
+        if (empty($timeStr) || strtoupper($timeStr) === 'NT' || strtoupper($timeStr) === '00:00.00' || strtoupper($timeStr) === '00.00.00' || strtoupper($timeStr) === '99.99.99' || strtoupper($timeStr) === '99:99.99' || $timeStr === '0') {
             return 999999999;
         }
         
-        $parts = explode(':', $timeStr);
-        if (count($parts) == 2) {
-            $m = (int)$parts[0];
-            $s_parts = explode('.', $parts[1]);
-            $s = (int)$s_parts[0];
-            $ms = isset($s_parts[1]) ? (int)$s_parts[1] : 0;
-            if (strlen($s_parts[1] ?? '') == 1) $ms *= 10;
-            elseif (strlen($s_parts[1] ?? '') == 3) $ms = round($ms / 10);
+        $cleanTime = str_replace(':', '.', $timeStr);
+        $parts = explode('.', $cleanTime);
+        if (count($parts) >= 2) {
+            $m = 0; $s = 0; $ms = 0;
+            if (count($parts) >= 3) {
+                $m = (int)$parts[0];
+                $s = (int)$parts[1];
+                $ms_part = $parts[2];
+            } else {
+                $s = (int)$parts[0];
+                $ms_part = $parts[1];
+            }
+            
+            $ms = (int)$ms_part;
+            if (strlen($ms_part) == 1) $ms *= 10;
+            elseif (strlen($ms_part) == 3) $ms = round($ms / 10);
             
             return ($m * 60000) + ($s * 1000) + ($ms * 10);
         }
