@@ -1,12 +1,6 @@
 <?php
-$host = '127.0.0.1';
-$db = 'set_system';
-$user = 'root';
-$pass = ''; // Try empty
-$charset = 'utf8mb4';
-$dsn = "mysql:unix_socket=/Applications/XAMPP/xamppfiles/var/mysql/mysql.sock;dbname=$db;charset=$charset";
-$pdo = new PDO($dsn, $user, $pass);
-
+require_once __DIR__ . '/app/Core/Database.php';
+$db = \App\Core\Database::getInstance()->getConnection();
 $sql = "
     SELECT 
         e.id as entry_id,
@@ -24,5 +18,5 @@ $sql = "
     LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id
     WHERE e.event_id = 1 AND sc.class_name IS NULL
 ";
-$stmt = $pdo->query($sql);
-print_r($stmt->fetchAll(\PDO::FETCH_ASSOC));
+$stmt = $db->query($sql);
+echo json_encode($stmt->fetchAll(\PDO::FETCH_ASSOC), JSON_PRETTY_PRINT);
