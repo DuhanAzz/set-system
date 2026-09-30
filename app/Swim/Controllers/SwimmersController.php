@@ -521,13 +521,13 @@ class SwimmersController extends Controller {
                 }
 
                 if (strpos($upperLine, 'SMP') !== false || strpos($upperLine, 'MTS') !== false) {
-                    $currentDob = '2009-01-01'; // 15 thn
+                    $currentDob = '2012-01-01'; 
                 } else if (strpos($upperLine, 'SMA') !== false || strpos($upperLine, 'SMK') !== false || strpos($upperLine, 'MAN') !== false) {
-                    $currentDob = '2006-01-01'; // 18 thn
+                    $currentDob = '2009-01-01'; 
                 } else if (strpos($upperLine, 'TK') !== false) {
-                    $currentDob = '2018-01-01'; // 6 thn
+                    $currentDob = '2019-01-01'; 
                 } else {
-                    $currentDob = '2012-01-01'; // default SD
+                    $currentDob = '2014-01-01'; // default SD
                 }
                 continue;
             }
@@ -582,19 +582,33 @@ class SwimmersController extends Controller {
             }
 
             // Regex parsing for space-separated list
-            // Matches: Number, Name, School Indicator (SD/SMP/SMA...), Rest of School
+            // Regex parsing for space-separated list
             if (preg_match('/^(\d+)\s+(.+?)\s+\b(SD|SMP|SMA|SMK|MTsN?|MIN?|MAN?|TK|MTS)\b(.*?)$/i', $cleanLine, $matches)) {
                 $nama = trim($matches[2]);
+                $schoolLvl = strtoupper(trim($matches[3]));
                 $sekolah = trim($matches[3] . $matches[4]);
-                fputcsv($output, [$nama, $currentGender, $currentDob, $sekolah]);
+                
+                $dynamicDob = $currentDob;
+                if (in_array($schoolLvl, ['SD', 'MI', 'MIN'])) $dynamicDob = '2014-01-01';
+                else if (in_array($schoolLvl, ['SMP', 'MTS', 'MTSN'])) $dynamicDob = '2012-01-01';
+                else if (in_array($schoolLvl, ['SMA', 'SMK', 'MAN'])) $dynamicDob = '2009-01-01';
+                else if (in_array($schoolLvl, ['TK'])) $dynamicDob = '2019-01-01';
+
+                fputcsv($output, [$nama, $currentGender, $dynamicDob, $sekolah]);
             } else {
-                // If regex fails but starts with a number, fallback
                 if (preg_match('/^(\d+)\s+(.+)$/', $cleanLine, $matches)) {
                     $parts = preg_split('/\s{2,}/', trim($matches[2]));
                     if (count($parts) >= 2) {
                         $nama = trim($parts[0]);
                         $sekolah = trim($parts[1]);
-                        fputcsv($output, [$nama, $currentGender, $currentDob, $sekolah]);
+                        
+                        $dynamicDob = $currentDob;
+                        $schoolUpper = strtoupper($sekolah);
+                        if (strpos($schoolUpper, 'SD ') === 0 || strpos($schoolUpper, 'MIN ') === 0 || strpos($schoolUpper, 'MI ') === 0) $dynamicDob = '2014-01-01';
+                        else if (strpos($schoolUpper, 'SMP ') === 0 || strpos($schoolUpper, 'MTS ') === 0) $dynamicDob = '2012-01-01';
+                        else if (strpos($schoolUpper, 'SMA ') === 0 || strpos($schoolUpper, 'SMK ') === 0 || strpos($schoolUpper, 'MAN ') === 0) $dynamicDob = '2009-01-01';
+
+                        fputcsv($output, [$nama, $currentGender, $dynamicDob, $sekolah]);
                     } else {
                         fputcsv($output, [trim($matches[2]), $currentGender, $currentDob, '']);
                     }
