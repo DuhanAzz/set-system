@@ -708,6 +708,9 @@ class RegistrationController extends Controller {
         } else {
             $_SESSION['flash_error'] = "Gagal membaca file.";
         }
+        header("Location: " . getenv('APP_URL') . "/swim/user/registration/index/" . $event_id);
+        exit;
+    }
 
     public function convertCsv($event_id = 0) {
         $this->checkAccess();
