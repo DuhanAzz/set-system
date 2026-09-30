@@ -275,6 +275,7 @@ class RegistrationController extends Controller {
         $this->view('swim/user/registration/index', [
             'event' => $event,
             'isLocked' => $isLocked,
+            'allEvents' => $allEvents,
             'allSwimmers' => $allSwimmers,
             'visibleSwimmers' => $visibleSwimmers,
             'tableStructure' => $tableStructure,
