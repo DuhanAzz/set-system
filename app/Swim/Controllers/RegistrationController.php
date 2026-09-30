@@ -673,11 +673,11 @@ class RegistrationController extends Controller {
                         
                         if (strpos(strtoupper($time), 'TIDAK SESUAI') !== false || $time === '-') continue;
                         
-                        if ($time !== '' && strtoupper($time) !== 'DELETE' && $time !== '00.00.00' && strtoupper($time) !== 'X') {
+                        if ($time !== '' && strtoupper($time) !== 'DELETE' && $time !== '99.99.99' && strtoupper($time) !== 'X') {
                             $time = preg_replace('/[^\d\.\:]/', '', $time);
                             $time = str_replace(':', '.', $time);
-                        } else if (strtoupper($time) === 'X') {
-                            $time = '00.00.00';
+                        } else if (strtoupper($time) === 'X' || $time === '00.00.00') {
+                            $time = '99.99.99';
                         }
 
                         $stmtCek->execute([$uid, $event_id, $swimmerId, $catId]);
@@ -774,8 +774,8 @@ class RegistrationController extends Controller {
                             $time = trim($parts[2]);
                         }
                         
-                        if ($time === '' || strtoupper($time) === '99.99.99') {
-                            $time = 'X';
+                        if ($time === '' || strtoupper($time) === 'X' || $time === '00.00.00') {
+                            $time = '99.99.99';
                         }
                         
                         // Create a matching key to find the DB event later
@@ -1002,15 +1002,15 @@ class RegistrationController extends Controller {
                     }
 
                     $time = isset($data[4]) ? trim($data[4]) : '';
-                    if ($time !== '' && strtoupper($time) !== 'X' && $time !== '99.99.99') {
+                    if ($time !== '' && strtoupper($time) !== 'X' && $time !== '00.00.00') {
                         $time = preg_replace('/[^\d\.\:]/', '', $time);
                         $time = str_replace(':', '.', $time);
                         // Make sure time format is valid
                         if (!preg_match('/^\d{2}\.\d{2}\.\d{2}$/', $time)) {
-                            $time = '00.00.00';
+                            $time = '99.99.99';
                         }
                     } else {
-                        $time = '00.00.00';
+                        $time = '99.99.99';
                     }
 
                     $stmtCekEntry->execute([$uid, $event_id, $swimmerId, $catId]);
