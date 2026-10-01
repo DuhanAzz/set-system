@@ -54,11 +54,55 @@ class RollExportController extends Controller {
 
         $stmtRounds = $db->prepare("SELECT DISTINCT round FROM roll_pelotons WHERE event_id = ? AND race_class_id = ? ORDER BY CASE round WHEN 'Kualifikasi' THEN 1 WHEN 'Perempat Final' THEN 2 WHEN 'Semi Final' THEN 3 WHEN 'Final' THEN 4 ELSE 5 END");
 
-        header('Content-Type: text/csv; charset=utf-8');
-        header('Content-Disposition: attachment; filename="Event_' . $eventId . '_Master_Reference_Lynx.csv"');
-        $output = fopen('php://output', 'w');
-        
-        fputcsv($output, ['NO LOMBA', 'KATEGORI', 'GENDER', 'KELOMPOK UMUR', 'JARAK', 'BABAK', 'EKSEBISI', 'EXPECTED LYNX FILENAME (CSV)']);
+        header('Content-Type: application/vnd.ms-excel; charset=utf-8');
+        header('Content-Disposition: attachment; filename="Event_' . $eventId . '_Master_Reference_Lynx.xls"');
+
+        echo '<?xml version="1.0"?>' . "\n";
+        echo '<?mso-application progid="Excel.Sheet"?>' . "\n";
+        echo '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet" xmlns:html="http://www.w3.org/TR/REC-html40">' . "\n";
+        echo ' <Styles>' . "\n";
+        echo '  <Style ss:ID="Default" ss:Name="Normal"><Alignment ss:Vertical="Bottom"/><Borders/><Font ss:FontName="Calibri" x:Family="Swiss" ss:Size="11" ss:Color="#000000"/><Interior/><NumberFormat/><Protection/></Style>' . "\n";
+        echo '  <Style ss:ID="sHeader"><Alignment ss:Horizontal="Center" ss:Vertical="Center"/><Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/><Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1"/><Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1"/><Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1"/></Borders><Font ss:FontName="Calibri" x:Family="Swiss" ss:Size="11" ss:Color="#FFFFFF" ss:Bold="1"/><Interior ss:Color="#1E3A8A" ss:Pattern="Solid"/></Style>' . "\n";
+        echo ' </Styles>' . "\n";
+
+        // SHEET 1: Jadwal & Racebook
+        echo ' <Worksheet ss:Name="Jadwal Racebook">' . "\n";
+        echo '  <Table>' . "\n";
+        echo '   <Column ss:Width="80"/>' . "\n";
+        echo '   <Column ss:Width="150"/>' . "\n";
+        echo '   <Column ss:Width="100"/>' . "\n";
+        echo '   <Column ss:Width="150"/>' . "\n";
+        echo '   <Column ss:Width="150"/>' . "\n";
+        echo '   <Row>' . "\n";
+        echo '    <Cell ss:StyleID="sHeader"><Data ss:Type="String">NO LOMBA</Data></Cell>' . "\n";
+        echo '    <Cell ss:StyleID="sHeader"><Data ss:Type="String">KATEGORI</Data></Cell>' . "\n";
+        echo '    <Cell ss:StyleID="sHeader"><Data ss:Type="String">GENDER</Data></Cell>' . "\n";
+        echo '    <Cell ss:StyleID="sHeader"><Data ss:Type="String">KELOMPOK UMUR</Data></Cell>' . "\n";
+        echo '    <Cell ss:StyleID="sHeader"><Data ss:Type="String">JARAK</Data></Cell>' . "\n";
+        echo '   </Row>' . "\n";
+        foreach ($classes as $raceInfo) {
+            echo '   <Row>' . "\n";
+            echo '    <Cell><Data ss:Type="String">' . htmlspecialchars($raceInfo['race_number']) . '</Data></Cell>' . "\n";
+            echo '    <Cell><Data ss:Type="String">' . htmlspecialchars($raceInfo['class_name']) . '</Data></Cell>' . "\n";
+            echo '    <Cell><Data ss:Type="String">' . htmlspecialchars($raceInfo['gender'] ?: 'CAMPURAN') . '</Data></Cell>' . "\n";
+            echo '    <Cell><Data ss:Type="String">' . htmlspecialchars($raceInfo['group_name']) . '</Data></Cell>' . "\n";
+            echo '    <Cell><Data ss:Type="String">' . htmlspecialchars($raceInfo['distance_name']) . '</Data></Cell>' . "\n";
+            echo '   </Row>' . "\n";
+        }
+        echo '  </Table>' . "\n";
+        echo ' </Worksheet>' . "\n";
+
+        // SHEET 2: Referensi File CSV Lynx
+        echo ' <Worksheet ss:Name="Referensi CSV Lynx">' . "\n";
+        echo '  <Table>' . "\n";
+        echo '   <Column ss:Width="80"/>' . "\n";
+        echo '   <Column ss:Width="120"/>' . "\n";
+        echo '   <Column ss:Width="450"/>' . "\n";
+        echo '   <Row>' . "\n";
+        echo '    <Cell ss:StyleID="sHeader"><Data ss:Type="String">NO LOMBA</Data></Cell>' . "\n";
+        echo '    <Cell ss:StyleID="sHeader"><Data ss:Type="String">BABAK</Data></Cell>' . "\n";
+        echo '    <Cell ss:StyleID="sHeader"><Data ss:Type="String">EKSPEKTASI NAMA FILE (LYNX)</Data></Cell>' . "\n";
+        echo '   </Row>' . "\n";
 
         foreach ($classes as $raceInfo) {
             $classId = $raceInfo['id'];
@@ -79,20 +123,17 @@ class RollExportController extends Controller {
                 $filenameLabel = $raceLabel . "_" . $round;
                 $safeFilename = preg_replace('/[^A-Za-z0-9_]/', '_', str_replace(' ', '_', $filenameLabel)) . '.csv';
 
-                fputcsv($output, [
-                    $raceInfo['race_number'],
-                    $raceInfo['class_name'],
-                    $raceInfo['gender'] ?: 'CAMPURAN',
-                    $raceInfo['group_name'],
-                    $raceInfo['distance_name'],
-                    $round,
-                    $isEksebisi ? 'YA' : 'TIDAK',
-                    $safeFilename
-                ]);
+                echo '   <Row>' . "\n";
+                echo '    <Cell><Data ss:Type="String">' . htmlspecialchars($raceInfo['race_number']) . '</Data></Cell>' . "\n";
+                echo '    <Cell><Data ss:Type="String">' . htmlspecialchars($round) . '</Data></Cell>' . "\n";
+                echo '    <Cell><Data ss:Type="String">' . htmlspecialchars($safeFilename) . '</Data></Cell>' . "\n";
+                echo '   </Row>' . "\n";
             }
         }
         
-        fclose($output);
+        echo '  </Table>' . "\n";
+        echo ' </Worksheet>' . "\n";
+        echo '</Workbook>';
         exit;
     }
 
