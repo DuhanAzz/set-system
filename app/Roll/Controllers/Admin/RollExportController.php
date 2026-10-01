@@ -125,7 +125,8 @@ class RollExportController extends Controller {
         echo '   <Column ss:Width="80"/>' . "\n";
         echo '   <Column ss:Width="80"/>' . "\n";
         echo '   <Column ss:Width="80"/>' . "\n";
-        echo '   <Column ss:Width="300"/>' . "\n";
+        echo '   <Column ss:Width="250"/>' . "\n";
+        echo '   <Column ss:Width="200"/>' . "\n";
 
         foreach ($classes as $raceInfo) {
             $classId = $raceInfo['id'];
@@ -147,7 +148,7 @@ class RollExportController extends Controller {
                 // Print INFO header
                 echo '   <Row>' . "\n";
                 echo '    <Cell ss:StyleID="sInfoTitle"><Data ss:Type="String">INFO</Data></Cell>' . "\n";
-                echo '    <Cell ss:StyleID="sInfoTitle" ss:MergeAcross="2"><Data ss:Type="String">' . htmlspecialchars($roundTitle) . '</Data></Cell>' . "\n";
+                echo '    <Cell ss:StyleID="sInfoTitle" ss:MergeAcross="3"><Data ss:Type="String">' . htmlspecialchars($roundTitle) . '</Data></Cell>' . "\n";
                 echo '   </Row>' . "\n";
 
                 // Print Headers
@@ -156,6 +157,7 @@ class RollExportController extends Controller {
                 echo '    <Cell ss:StyleID="sHeader"><Data ss:Type="String">TIME</Data></Cell>' . "\n";
                 echo '    <Cell ss:StyleID="sHeader"><Data ss:Type="String">HEAT</Data></Cell>' . "\n";
                 echo '    <Cell ss:StyleID="sHeader"><Data ss:Type="String">NAME</Data></Cell>' . "\n";
+                echo '    <Cell ss:StyleID="sHeader"><Data ss:Type="String">CLUB</Data></Cell>' . "\n";
                 echo '   </Row>' . "\n";
 
                 // Print Athletes
@@ -166,6 +168,7 @@ class RollExportController extends Controller {
                     echo '    <Cell><Data ss:Type="String">' . htmlspecialchars($timeFmt) . '</Data></Cell>' . "\n";
                     echo '    <Cell><Data ss:Type="String">' . htmlspecialchars($r['heat_name'] ?? '') . '</Data></Cell>' . "\n";
                     echo '    <Cell><Data ss:Type="String">' . htmlspecialchars($r['skater_name'] ?? '') . '</Data></Cell>' . "\n";
+                    echo '    <Cell><Data ss:Type="String">' . htmlspecialchars($r['club_name'] ?? '-') . '</Data></Cell>' . "\n";
                     echo '   </Row>' . "\n";
                 }
                 
@@ -267,14 +270,15 @@ class RollExportController extends Controller {
 
                 $tempCsv = fopen('php://temp', 'r+');
                 fputcsv($tempCsv, ['INFO', $fullRaceTitle]);
-                fputcsv($tempCsv, ['BIB', 'TIME', 'HEAT', 'NAME']);
+                fputcsv($tempCsv, ['BIB', 'TIME', 'HEAT', 'NAME', 'CLUB']);
                 foreach ($rows as $r) {
                     $timeFmt = $r['time'] ? str_replace(':', '.', $r['time']) : '';
                     fputcsv($tempCsv, [
                         str_pad($r['bib_number'] ?? '', 3, '0', STR_PAD_LEFT),
                         $timeFmt,
                         $r['heat_name'] ?? '',
-                        $r['skater_name'] ?? ''
+                        $r['skater_name'] ?? '',
+                        $r['club_name'] ?? '-'
                     ]);
                 }
                 rewind($tempCsv);
