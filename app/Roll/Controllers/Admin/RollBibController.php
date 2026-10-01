@@ -85,15 +85,23 @@ class RollBibController extends Controller {
             exit;
         }
 
-        // Fetch distinct skaters with Paid status
+        // Get current max bib
+        $stmtMax = $db->prepare("SELECT MAX(CAST(bib_number AS UNSIGNED)) FROM roll_entries WHERE event_id = ?");
+        $stmtMax->execute([$eventId]);
+        $maxBib = (int)$stmtMax->fetchColumn();
+        $counter = $maxBib + 1;
+
+        // Fetch distinct skaters with Paid status (Include both normal and manual payments)
         $stmt = $db->prepare("
-            SELECT DISTINCT e.skater_id, c.club_name, s.gender, s.skater_name
+            SELECT DISTINCT e.skater_id, c.club_name, s.gender, s.skater_name,
+                   (SELECT bib_number FROM roll_entries WHERE skater_id = e.skater_id AND event_id = e.event_id AND bib_number IS NOT NULL AND bib_number != '' LIMIT 1) as existing_bib
             FROM roll_entries e
             JOIN roll_skaters s ON e.skater_id = s.id
-            JOIN roll_clubs c ON s.club_id = c.id
-            JOIN roll_payments p ON c.id = p.club_id AND p.event_id = e.event_id
-            WHERE e.event_id = ? AND p.status = 'Paid'
-            ORDER BY p.created_at ASC, c.club_name ASC, s.gender ASC, s.skater_name ASC
+            LEFT JOIN roll_clubs c ON s.club_id = c.id
+            LEFT JOIN roll_payments p ON c.id = p.club_id AND p.event_id = e.event_id AND (e.is_manual = 0 OR e.is_manual IS NULL)
+            LEFT JOIN roll_manual_payments mpay ON mpay.invoice_code = e.manual_invoice_code AND e.is_manual = 1
+            WHERE e.event_id = ? AND (p.status = 'Paid' OR mpay.status = 'Paid')
+            ORDER BY COALESCE(p.created_at, mpay.created_at) ASC, c.club_name ASC, s.gender ASC, s.skater_name ASC
         ");
         $stmt->execute([$eventId]);
         $skaters = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -105,16 +113,22 @@ class RollBibController extends Controller {
             exit;
         }
 
-        $counter = 1;
-        $stmtUpdate = $db->prepare("UPDATE roll_entries SET bib_number = ? WHERE event_id = ? AND skater_id = ?");
+        $stmtUpdate = $db->prepare("UPDATE roll_entries SET bib_number = ? WHERE event_id = ? AND skater_id = ? AND (bib_number IS NULL OR bib_number = '')");
 
+        $assignedCount = 0;
         foreach ($skaters as $skater) {
-            $bibNumber = str_pad($counter, 3, '0', STR_PAD_LEFT);
+            if (!empty($skater['existing_bib'])) {
+                $bibNumber = $skater['existing_bib'];
+            } else {
+                $bibNumber = str_pad($counter, 3, '0', STR_PAD_LEFT);
+                $counter++;
+                $assignedCount++;
+            }
+            // Ini hanya akan mengupdate entry yang bib-nya kosong
             $stmtUpdate->execute([$bibNumber, $eventId, $skater['skater_id']]);
-            $counter++;
         }
 
-        $_SESSION['flash_message'] = "Berhasil membuat " . ($counter - 1) . " Nomor BIB secara otomatis!";
+        $_SESSION['flash_message'] = "Berhasil membuat " . $assignedCount . " Nomor BIB baru dan mempertahankan BIB lama!";
         $_SESSION['flash_type'] = "success";
         header("Location: " . getenv('APP_URL') . "/roll/admin/bibs");
         exit;
