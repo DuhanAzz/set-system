@@ -83,11 +83,11 @@ class RollExportController extends Controller {
             }
 
             if ($raceFormat === 'ELIMINASI') {
-                $orderBy = "ORDER BY CASE WHEN COALESCE(r.status, 'OK') = 'OK' THEN 0 ELSE 1 END ASC, CASE WHEN r.rank IS NULL OR CAST(r.rank AS CHAR) = '0' OR CAST(r.rank AS CHAR) = '' THEN 1 ELSE 0 END ASC, r.rank ASC, r.time ASC, CAST(REPLACE(p.heat_name, 'Heat ', '') AS UNSIGNED) ASC, p.start_grid ASC";
+                $orderBy = "ORDER BY CASE WHEN COALESCE(r.status, 'OK') = 'OK' THEN 0 ELSE 1 END ASC, CASE WHEN r.rank IS NULL OR CAST(r.rank AS CHAR) = '0' OR CAST(r.rank AS CHAR) = '' THEN 1 ELSE 0 END ASC, r.rank ASC, CASE WHEN r.time IS NULL OR r.time = '' OR r.time = '00.00.000' OR r.time = '00:00.000' THEN '99:99.999' ELSE r.time END ASC, CAST(REPLACE(p.heat_name, 'Heat ', '') AS UNSIGNED) ASC, p.start_grid ASC";
             } else if ($raceFormat === 'DTT') {
-                $orderBy = "ORDER BY CASE WHEN COALESCE(r.status, 'OK') = 'OK' THEN 0 ELSE 1 END ASC, CASE WHEN r.time IS NULL OR r.time = '' OR r.time = '00.00.000' THEN 1 ELSE 0 END ASC, REPLACE(r.time, ':', '.') ASC, CAST(REPLACE(p.heat_name, 'Heat ', '') AS UNSIGNED) ASC, p.start_grid ASC";
+                $orderBy = "ORDER BY CASE WHEN COALESCE(r.status, 'OK') = 'OK' THEN 0 ELSE 1 END ASC, CASE WHEN r.rank IS NULL OR CAST(r.rank AS CHAR) = '0' OR CAST(r.rank AS CHAR) = '' THEN 1 ELSE 0 END ASC, r.rank ASC, CASE WHEN r.time IS NULL OR r.time = '' OR r.time = '00.00.000' OR r.time = '00:00.000' THEN 1 ELSE 0 END ASC, REPLACE(r.time, ':', '.') ASC, CAST(REPLACE(p.heat_name, 'Heat ', '') AS UNSIGNED) ASC, p.start_grid ASC";
             } else {
-                $orderBy = "ORDER BY CASE WHEN COALESCE(r.status, 'OK') = 'OK' THEN 0 ELSE 1 END ASC, r.point DESC, CASE WHEN r.time IS NULL OR r.time = '' OR r.time = '00.00.000' THEN 1 ELSE 0 END ASC, REPLACE(r.time, ':', '.') ASC, CAST(REPLACE(p.heat_name, 'Heat ', '') AS UNSIGNED) ASC, p.start_grid ASC";
+                $orderBy = "ORDER BY CASE WHEN COALESCE(r.status, 'OK') = 'OK' THEN 0 ELSE 1 END ASC, CASE WHEN r.rank IS NULL OR CAST(r.rank AS CHAR) = '0' OR CAST(r.rank AS CHAR) = '' THEN 1 ELSE 0 END ASC, r.rank ASC, r.point DESC, CASE WHEN r.time IS NULL OR r.time = '' OR r.time = '00.00.000' OR r.time = '00:00.000' THEN 1 ELSE 0 END ASC, REPLACE(r.time, ':', '.') ASC, CAST(REPLACE(p.heat_name, 'Heat ', '') AS UNSIGNED) ASC, p.start_grid ASC";
             }
 
             $stmtData = $db->prepare("
@@ -259,11 +259,11 @@ class RollExportController extends Controller {
             foreach ($rounds as $round) {
                 // Logic urutan sama persis dengan print_result
                 if ($raceFormat === 'ELIMINASI') {
-                    $orderBy = "ORDER BY CASE WHEN COALESCE(r.status, 'OK') = 'OK' THEN 0 ELSE 1 END ASC, CASE WHEN r.rank IS NULL OR CAST(r.rank AS CHAR) = '0' OR CAST(r.rank AS CHAR) = '' THEN 1 ELSE 0 END ASC, r.rank ASC, r.time ASC, CAST(REPLACE(p.heat_name, 'Heat ', '') AS UNSIGNED) ASC, p.start_grid ASC";
+                    $orderBy = "ORDER BY CASE WHEN COALESCE(r.status, 'OK') = 'OK' THEN 0 ELSE 1 END ASC, CASE WHEN r.rank IS NULL OR CAST(r.rank AS CHAR) = '0' OR CAST(r.rank AS CHAR) = '' THEN 1 ELSE 0 END ASC, r.rank ASC, CASE WHEN r.time IS NULL OR r.time = '' OR r.time = '00.00.000' OR r.time = '00:00.000' THEN '99:99.999' ELSE r.time END ASC, CAST(REPLACE(p.heat_name, 'Heat ', '') AS UNSIGNED) ASC, p.start_grid ASC";
                 } else if ($raceFormat === 'DTT') {
-                    $orderBy = "ORDER BY CASE WHEN COALESCE(r.status, 'OK') = 'OK' THEN 0 ELSE 1 END ASC, CASE WHEN r.time IS NULL OR r.time = '' OR r.time = '00.00.000' THEN 1 ELSE 0 END ASC, REPLACE(r.time, ':', '.') ASC, CAST(REPLACE(p.heat_name, 'Heat ', '') AS UNSIGNED) ASC, p.start_grid ASC";
+                    $orderBy = "ORDER BY CASE WHEN COALESCE(r.status, 'OK') = 'OK' THEN 0 ELSE 1 END ASC, CASE WHEN r.rank IS NULL OR CAST(r.rank AS CHAR) = '0' OR CAST(r.rank AS CHAR) = '' THEN 1 ELSE 0 END ASC, r.rank ASC, CASE WHEN r.time IS NULL OR r.time = '' OR r.time = '00.00.000' OR r.time = '00:00.000' THEN 1 ELSE 0 END ASC, REPLACE(r.time, ':', '.') ASC, CAST(REPLACE(p.heat_name, 'Heat ', '') AS UNSIGNED) ASC, p.start_grid ASC";
                 } else {
-                    $orderBy = "ORDER BY CASE WHEN COALESCE(r.status, 'OK') = 'OK' THEN 0 ELSE 1 END ASC, r.point DESC, CASE WHEN r.time IS NULL OR r.time = '' OR r.time = '00.00.000' THEN 1 ELSE 0 END ASC, REPLACE(r.time, ':', '.') ASC, CAST(REPLACE(p.heat_name, 'Heat ', '') AS UNSIGNED) ASC, p.start_grid ASC";
+                    $orderBy = "ORDER BY CASE WHEN COALESCE(r.status, 'OK') = 'OK' THEN 0 ELSE 1 END ASC, CASE WHEN r.rank IS NULL OR CAST(r.rank AS CHAR) = '0' OR CAST(r.rank AS CHAR) = '' THEN 1 ELSE 0 END ASC, r.rank ASC, r.point DESC, CASE WHEN r.time IS NULL OR r.time = '' OR r.time = '00.00.000' OR r.time = '00:00.000' THEN 1 ELSE 0 END ASC, REPLACE(r.time, ':', '.') ASC, CAST(REPLACE(p.heat_name, 'Heat ', '') AS UNSIGNED) ASC, p.start_grid ASC";
                 }
 
                 $stmtResults = $db->prepare("
