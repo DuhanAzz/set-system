@@ -430,7 +430,16 @@ if ($cc['klub']) $activeColumnsCount++;
                                                     $dist = $g['distance_name'] ?? $g['distance'] ?? '-';
                                                     if ($dist !== '-') $dists[] = $dist;
                                                     if ($g['group_name']) {
-                                                        $kusData[$g['group_name']] = $g['age_group_id'] ?? 0;
+                                                        $gnm = $g['group_name'];
+                                                        $str = strtoupper(trim($gnm));
+                                                        $rank = 999;
+                                                        if (preg_match('/^U\s*[-]?\s*(\d+)/', $str, $matches)) {
+                                                            $rank = floatval($matches[1]);
+                                                        } elseif (preg_match('/KU\s+([A-Z]+)/', $str, $matches)) {
+                                                            $map = ['I'=>10, 'II'=>20, 'III'=>30, 'IV'=>40, 'V'=>50, 'VI'=>60, 'VII'=>70, 'VIII'=>80, 'IX'=>90, 'X'=>100];
+                                                            if (isset($map[$matches[1]])) $rank = $map[$matches[1]];
+                                                        }
+                                                        $kusData[$gnm] = $rank;
                                                     }
                                                     // In print_full, raw_gender is sometimes used, but 'gender' holds the text (e.g. 'Putra', 'Putri')
                                                     // Sometimes $g['gender'] is 'Putra', sometimes 'Pa'. Let's normalize it to Putra / Putri.
