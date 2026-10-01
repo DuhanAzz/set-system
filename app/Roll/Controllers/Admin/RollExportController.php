@@ -263,16 +263,18 @@ class RollExportController extends Controller {
                 $filenameLabel = $raceLabel . "_" . $round;
                 $safeFilename = preg_replace('/[^A-Za-z0-9_]/', '_', str_replace(' ', '_', $filenameLabel)) . '.csv';
 
+                $fullRaceTitle = "R" . str_pad($raceInfo['race_number'], 3, '0', STR_PAD_LEFT) . " - " . ($raceInfo['distance_name'] ?? '') . " - " . ($raceInfo['group_name'] ?? '') . " - " . ($raceInfo['gender'] ?? 'CAMPURAN') . " | Kategori: " . ($raceInfo['class_name'] ?? 'Umum');
+
                 $tempCsv = fopen('php://temp', 'r+');
-                fputcsv($tempCsv, ['BIB', 'HEAT', 'ATHLETE', 'TIME', 'TEAM']);
+                fputcsv($tempCsv, ['INFO', $fullRaceTitle]);
+                fputcsv($tempCsv, ['BIB', 'TIME', 'HEAT', 'NAME']);
                 foreach ($rows as $r) {
                     $timeFmt = $r['time'] ? str_replace(':', '.', $r['time']) : '';
                     fputcsv($tempCsv, [
-                        $r['bib_number'] ?? '',
-                        $r['heat_name'] ?? '',
-                        $r['skater_name'] ?? '',
+                        str_pad($r['bib_number'] ?? '', 3, '0', STR_PAD_LEFT),
                         $timeFmt,
-                        $r['team_name'] ?: ($r['club_name'] ?? '')
+                        $r['heat_name'] ?? '',
+                        $r['skater_name'] ?? ''
                     ]);
                 }
                 rewind($tempCsv);

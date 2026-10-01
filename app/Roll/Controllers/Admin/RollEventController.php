@@ -204,7 +204,7 @@ class RollEventController extends Controller {
                 usort($dayClasses, function($a, $b) {
                     $cmp = strnatcmp($a['race_number'], $b['race_number']);
                     if ($cmp === 0) {
-                        return strcmp($a['gender'] ?? '', $b['gender'] ?? '');
+                        return -strcmp($a['gender'] ?? '', $b['gender'] ?? '');
                     }
                     return $cmp;
                 });
