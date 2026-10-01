@@ -74,8 +74,12 @@ class RollResultController extends Controller {
         $raw_results = [];
         
         if ($filter_class_id > 0) {
-            foreach ($classes as $c) {
-                if ($c['id'] == $filter_class_id) $raceInfo = $c;
+            $currentIndex = -1;
+            foreach ($classes as $idx => $c) {
+                if ($c['id'] == $filter_class_id) {
+                    $raceInfo = $c;
+                    $currentIndex = $idx;
+                }
             }
             
             // If class not found (e.g. it was a deleted source class from merge), redirect back
@@ -86,19 +90,13 @@ class RollResultController extends Controller {
                 exit;
             }
             
-            $stmtPrev = $db->prepare("SELECT id FROM roll_event_details WHERE event_id = ? AND id < ? ORDER BY id DESC LIMIT 1");
-            $stmtPrev->execute([$eventId, $filter_class_id]);
-            $rowPrev = $stmtPrev->fetch(PDO::FETCH_ASSOC);
-            if ($rowPrev) {
-                $prevUrl = getenv('APP_URL') . "/roll/admin/results?race_class_id=" . $rowPrev['id'];
+            if ($currentIndex > 0) {
+                $prevUrl = getenv('APP_URL') . "/roll/admin/results?race_class_id=" . $classes[$currentIndex - 1]['id'];
                 $prevClass = "bg-slate-700 hover:bg-slate-800 text-white";
             }
 
-            $stmtNext = $db->prepare("SELECT id FROM roll_event_details WHERE event_id = ? AND id > ? ORDER BY id ASC LIMIT 1");
-            $stmtNext->execute([$eventId, $filter_class_id]);
-            $rowNext = $stmtNext->fetch(PDO::FETCH_ASSOC);
-            if ($rowNext) {
-                $nextUrl = getenv('APP_URL') . "/roll/admin/results?race_class_id=" . $rowNext['id'];
+            if ($currentIndex >= 0 && $currentIndex < count($classes) - 1) {
+                $nextUrl = getenv('APP_URL') . "/roll/admin/results?race_class_id=" . $classes[$currentIndex + 1]['id'];
                 $nextClass = "bg-slate-700 hover:bg-slate-800 text-white";
             }
 
