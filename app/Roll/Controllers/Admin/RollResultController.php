@@ -831,6 +831,148 @@ class RollResultController extends Controller {
         }
     }
 
+    public function import_lynx() {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['lynx_csv'])) {
+            $db = Database::getInstance()->getConnection();
+            $eventId = $_SESSION['roll_admin_active_event_id'] ?? 0;
+            $classId = $_POST['race_class_id'] ?? 0;
+            $round = $_POST['round'] ?? 'Kualifikasi';
+
+            if ($eventId > 0 && $classId > 0 && $_FILES['lynx_csv']['error'] == UPLOAD_ERR_OK) {
+                // Cek apakah relay
+                $stmtC = $db->prepare("SELECT d.distance_name FROM roll_event_details ed LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id WHERE ed.id = ?");
+                $stmtC->execute([$classId]);
+                $distName = $stmtC->fetchColumn() ?: '';
+                $isRelay = stripos($distName, 'Relay') !== false || stripos($distName, 'Pair') !== false;
+
+                $file = fopen($_FILES['lynx_csv']['tmp_name'], 'r');
+                $db->beginTransaction();
+                try {
+                    $headerFound = false;
+                    
+                    while (($lineStr = fgets($file)) !== false) {
+                        // Bersihkan spasi/newline
+                        $lineStr = trim($lineStr);
+                        if (empty($lineStr)) continue;
+
+                        // Deteksi Header Lynx: Place;Id;First Name;Last Name;Affiliation;Time;
+                        if (!$headerFound) {
+                            if (strpos(strtolower($lineStr), 'place;id;') !== false || strpos(strtolower($lineStr), 'place,id,') !== false) {
+                                $headerFound = true;
+                            }
+                            continue;
+                        }
+
+                        // Parse isi setelah header ditemukan
+                        $delimiter = (strpos($lineStr, ';') !== false && strpos($lineStr, ',') === false) ? ';' : ',';
+                        $data = str_getcsv($lineStr, $delimiter);
+                        
+                        // Kolom Lynx: [0] Place, [1] Id(BIB), [2] First Name, [3] Last Name, [4] Affiliation(Heat), [5] Time
+                        if (count($data) < 2) continue;
+                        
+                        $bib = trim($data[1] ?? '');
+                        if (empty($bib)) continue;
+                        $bib = str_pad($bib, 3, '0', STR_PAD_LEFT);
+                        
+                        $rawTime = trim($data[5] ?? '');
+                        $rawTimeLower = strtolower($rawTime);
+                        $status = 'OK';
+                        
+                        if (empty($rawTime) || $rawTimeLower === 'dns' || $rawTimeLower === 'dnf' || $rawTimeLower === 'dsq') {
+                            $time = '00.00.000';
+                            $status = empty($rawTime) ? 'DNF' : strtoupper($rawTime);
+                        } else {
+                            // Format Lynx seringkali: 1:37.675 atau 9.456 atau 12:34.567
+                            // Ubah titik dua (:) menjadi titik (.) agar sama
+                            $timeStr = str_replace(':', '.', $rawTime);
+                            $parts = explode('.', $timeStr);
+                            
+                            if (count($parts) === 3) {
+                                // mm.ss.ms (e.g. 1.37.675 -> 01.37.675)
+                                $mm = str_pad($parts[0], 2, '0', STR_PAD_LEFT);
+                                $ss = str_pad($parts[1], 2, '0', STR_PAD_LEFT);
+                                $ms = str_pad(substr($parts[2], 0, 3), 3, '0', STR_PAD_RIGHT);
+                                $time = "$mm.$ss.$ms";
+                            } elseif (count($parts) === 2) {
+                                // ss.ms (e.g. 45.123 -> 00.45.123)
+                                $ss = str_pad($parts[0], 2, '0', STR_PAD_LEFT);
+                                $ms = str_pad(substr($parts[1], 0, 3), 3, '0', STR_PAD_RIGHT);
+                                $time = "00.$ss.$ms";
+                            } else {
+                                // Default/Fallback (hanya deteksi angka)
+                                $time = '00.00.000';
+                            }
+                        }
+
+                        $heatNo = trim($data[4] ?? '');
+                        $heat = !empty($heatNo) ? "Heat " . ltrim($heatNo, 'Heat ') : '';
+
+                        // Find skater by bib
+                        $stmtS = $db->prepare("SELECT skater_id FROM roll_entries WHERE event_id = ? AND race_class_id = ? AND bib_number = ?");
+                        $stmtS->execute([$eventId, $classId, $bib]);
+                        $skater = $stmtS->fetch(PDO::FETCH_ASSOC);
+                        
+                        if ($skater) {
+                            $skaterId = $skater['skater_id'];
+                            
+                            if (empty($heat)) {
+                                $stmtP = $db->prepare("SELECT heat_name FROM roll_pelotons WHERE event_id = ? AND race_class_id = ? AND skater_id = ? AND round = ?");
+                                $stmtP->execute([$eventId, $classId, $skaterId, $round]);
+                                $heat = $stmtP->fetchColumn() ?: 'Heat 1';
+                            }
+                            
+                            $membersToProcess = [];
+                            if ($isRelay) {
+                                $stmtTeam = $db->prepare("
+                                    SELECT p.skater_id, r.id as result_id
+                                    FROM roll_pelotons p
+                                    JOIN roll_entries e ON p.skater_id = e.skater_id AND p.race_class_id = e.race_class_id AND p.event_id = e.event_id
+                                    LEFT JOIN roll_event_results r ON p.skater_id = r.skater_id AND p.race_class_id = r.race_class_id AND p.event_id = r.event_id AND p.heat_name = r.heat_name AND p.round = r.round
+                                    WHERE p.event_id = ? AND p.race_class_id = ? AND p.heat_name = ? AND p.round = ?
+                                      AND (e.team_name = (SELECT team_name FROM roll_entries WHERE skater_id = ? AND race_class_id = ?) 
+                                           OR e.bib_number = (SELECT bib_number FROM roll_entries WHERE skater_id = ? AND race_class_id = ?))
+                                ");
+                                $stmtTeam->execute([$eventId, $classId, $heat, $round, $skaterId, $classId, $skaterId, $classId]);
+                                $membersToProcess = $stmtTeam->fetchAll(PDO::FETCH_ASSOC);
+                            } else {
+                                $stmtR = $db->prepare("SELECT id FROM roll_event_results WHERE event_id = ? AND race_class_id = ? AND skater_id = ? AND round = ?");
+                                $stmtR->execute([$eventId, $classId, $skaterId, $round]);
+                                $resRow = $stmtR->fetch(PDO::FETCH_ASSOC);
+                                $membersToProcess = [['skater_id' => $skaterId, 'result_id' => $resRow['id'] ?? null]];
+                            }
+                            
+                            foreach ($membersToProcess as $mem) {
+                                if (!empty($mem['result_id'])) {
+                                    $stmtUpd = $db->prepare("UPDATE roll_event_results SET time = ?, status = ? WHERE id = ?");
+                                    $stmtUpd->execute([$time, $status, $mem['result_id']]);
+                                } else {
+                                    $stmtIns = $db->prepare("INSERT INTO roll_event_results (event_id, race_class_id, round, skater_id, heat_name, time, status, is_official) VALUES (?, ?, ?, ?, ?, ?, ?, 0)");
+                                    $stmtIns->execute([$eventId, $classId, $round, $mem['skater_id'], $heat, $time, $status]);
+                                }
+                            }
+                        }
+                    }
+                    
+                    if (!$headerFound) {
+                        throw new \Exception("File yang diunggah tidak memiliki header format FinishLynx (Place;Id;...). Pastikan Anda mengekspor file yang benar dari kamera.");
+                    }
+
+                    fclose($file);
+                    $db->commit();
+                    $_SESSION['flash_message'] = "Data Lynx berhasil disinkronkan dengan sempurna!";
+                    $_SESSION['flash_type'] = "success";
+                } catch (\Exception $e) {
+                    if (isset($file) && is_resource($file)) fclose($file);
+                    $db->rollBack();
+                    $_SESSION['flash_message'] = "Gagal memproses file Lynx: " . $e->getMessage();
+                    $_SESSION['flash_type'] = "error";
+                }
+            }
+            header("Location: " . getenv('APP_URL') . "/roll/admin/results?race_class_id=" . $classId . "&round=" . urlencode($round));
+            exit;
+        }
+    }
+
     public function print_result() {
         $db = Database::getInstance()->getConnection();
         $eventId = $_SESSION['roll_admin_active_event_id'] ?? 0;

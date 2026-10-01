@@ -32,6 +32,70 @@ class RollExportController extends Controller {
         ]);
     }
 
+    public function generate_master_reference() {
+        $db = Database::getInstance()->getConnection();
+        $eventId = $_SESSION['roll_admin_active_event_id'] ?? 0;
+
+        if ($eventId == 0) {
+            die("Event not selected.");
+        }
+
+        $stmtClasses = $db->prepare("
+            SELECT ed.id, ed.race_number, d.distance_name, a.group_name, ed.gender, sc.class_name, ed.category_name 
+            FROM roll_event_details ed
+            LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
+            LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id
+            LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
+            WHERE ed.event_id = ?
+            ORDER BY CAST(ed.race_number AS UNSIGNED) ASC, ed.race_number ASC, ed.gender DESC, a.id ASC
+        ");
+        $stmtClasses->execute([$eventId]);
+        $classes = $stmtClasses->fetchAll(PDO::FETCH_ASSOC);
+
+        $stmtRounds = $db->prepare("SELECT DISTINCT round FROM roll_pelotons WHERE event_id = ? AND race_class_id = ? ORDER BY CASE round WHEN 'Kualifikasi' THEN 1 WHEN 'Perempat Final' THEN 2 WHEN 'Semi Final' THEN 3 WHEN 'Final' THEN 4 ELSE 5 END");
+
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="Event_' . $eventId . '_Master_Reference_Lynx.csv"');
+        $output = fopen('php://output', 'w');
+        
+        fputcsv($output, ['NO LOMBA', 'KATEGORI', 'GENDER', 'KELOMPOK UMUR', 'JARAK', 'BABAK', 'EKSEBISI', 'EXPECTED LYNX FILENAME (CSV)']);
+
+        foreach ($classes as $raceInfo) {
+            $classId = $raceInfo['id'];
+            $stmtRounds->execute([$eventId, $classId]);
+            $rounds = $stmtRounds->fetchAll(PDO::FETCH_COLUMN);
+
+            if (empty($rounds)) {
+                $rounds = ['Kualifikasi']; // Minimal 1 baris meski belum digenerate pelotonnya
+            }
+
+            foreach ($rounds as $round) {
+                $isEksebisi = (($raceInfo['category_name'] ?? '') === 'EKSEBISI');
+                
+                $raceLabel = "R" . str_pad($raceInfo['race_number'], 3, '0', STR_PAD_LEFT) . "_" . ($raceInfo['class_name'] ?? 'Umum') . "_" . ($raceInfo['distance_name'] ?? '') . "_" . ($raceInfo['group_name'] ?? '') . "_" . ($raceInfo['gender'] ?? '');
+                if ($isEksebisi) {
+                    $raceLabel .= "_Eksebisi";
+                }
+                $filenameLabel = $raceLabel . "_" . $round;
+                $safeFilename = preg_replace('/[^A-Za-z0-9_]/', '_', str_replace(' ', '_', $filenameLabel)) . '.csv';
+
+                fputcsv($output, [
+                    $raceInfo['race_number'],
+                    $raceInfo['class_name'],
+                    $raceInfo['gender'] ?: 'CAMPURAN',
+                    $raceInfo['group_name'],
+                    $raceInfo['distance_name'],
+                    $round,
+                    $isEksebisi ? 'YA' : 'TIDAK',
+                    $safeFilename
+                ]);
+            }
+        }
+        
+        fclose($output);
+        exit;
+    }
+
     public function generate_start_list() {
         $db = Database::getInstance()->getConnection();
         $eventId = $_SESSION['roll_admin_active_event_id'] ?? 0;

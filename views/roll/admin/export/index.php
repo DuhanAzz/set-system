@@ -11,10 +11,15 @@
         <div class="relative z-10">
             <h3 class="text-2xl font-black mb-2 flex items-center gap-2">📊 Kumpulan CSV (ZIP)</h3>
             <p class="text-blue-100 text-sm font-medium mb-6">Unduh bundel file `.zip` berisi seluruh file CSV siap pakai yang sudah dipisah-pisah berdasarkan nomor kelas lomba dan babaknya (Kualifikasi, Final, dsb) untuk sistem hardware.</p>
-            
-            <a href="<?= getenv('APP_URL') ?>/roll/admin/export/generate_start_list" class="block text-center w-full bg-white text-indigo-700 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-indigo-50 transition shadow-md">
-                📥 UNDUH ZIP CSV
-            </a>
+            <div class="flex flex-col gap-3">
+                <a href="<?= getenv('APP_URL') ?>/roll/admin/export/generate_start_list" class="block text-center w-full bg-white text-indigo-700 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-indigo-50 transition shadow-md">
+                    📥 UNDUH ZIP CSV
+                </a>
+                
+                <a href="<?= getenv('APP_URL') ?>/roll/admin/export/generate_master_reference" class="block text-center w-full bg-indigo-800 text-indigo-100 border border-indigo-500 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-indigo-900 transition shadow-md">
+                    📑 MASTER REFERENCE
+                </a>
+            </div>
         </div>
         <div class="absolute right-[-20px] bottom-[-20px] opacity-10 group-hover:scale-110 transition text-8xl">🗂️</div>
     </div>

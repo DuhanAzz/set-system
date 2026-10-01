@@ -155,6 +155,7 @@
                         <button type="button" onclick="window.showCustomConfirm('Apakah Anda yakin ingin MERESET SELURUH DATA untuk babak dan kelas ini? Semua waktu, status, dan babak lanjutan akan terhapus secara permanen!', function() { window.location.href = '<?= getenv('APP_URL') ?>/roll/admin/results/reset_results?race_class_id=<?= $filter_class_id ?>'; });" class="whitespace-nowrap flex-shrink-0 h-7 px-2 flex items-center bg-transparent text-slate-400 rounded-lg hover:bg-red-500/20 hover:text-red-400 font-bold text-[9px] uppercase transition" title="Reset semua data dan babak">🗑️ RESET</button>
                         <a href="<?= getenv('APP_URL') ?>/roll/admin/results/export_csv?race_class_id=<?= $filter_class_id ?>&round=<?= urlencode($structural_round_name) ?>" class="whitespace-nowrap flex-shrink-0 h-7 px-2 flex items-center bg-transparent text-slate-400 rounded-lg hover:bg-slate-700 hover:text-white font-bold text-[9px] uppercase transition" title="Download Data ke CSV">📤 CSV</a>
                         <button type="button" onclick="document.getElementById('csvUploadForm').classList.toggle('hidden')" class="whitespace-nowrap flex-shrink-0 h-7 px-2 flex items-center bg-transparent text-slate-400 rounded-lg hover:bg-slate-700 hover:text-white font-bold text-[9px] uppercase transition" title="Import CSV Backup">📝 IMPORT</button>
+                        <button type="button" onclick="document.getElementById('lynxUploadForm').classList.toggle('hidden')" class="whitespace-nowrap flex-shrink-0 h-7 px-2 flex items-center bg-emerald-500/20 text-emerald-400 rounded-lg hover:bg-emerald-500 hover:text-white font-bold text-[9px] uppercase transition border border-emerald-500/30" title="Import File Hardware FinishLynx">⚡ LYNX</button>
                     </div>
 
                     <!-- Print Actions -->
@@ -193,6 +194,22 @@
                 <input type="file" name="csv_backup" accept=".csv" required class="text-sm w-full p-2 bg-slate-900 border border-slate-600 rounded-lg text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-emerald-500 file:text-white hover:file:bg-emerald-600 cursor-pointer">
                 <button type="submit" class="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2.5 rounded-lg font-bold text-xs uppercase tracking-widest whitespace-nowrap shadow-md transition">Upload & Sinkron</button>
             </form>
+        </div>
+
+        <div id="lynxUploadForm" class="hidden w-full bg-slate-900 p-5 rounded-2xl border-2 border-emerald-500/50 mb-6 shadow-[0_0_20px_rgba(16,185,129,0.15)] relative overflow-hidden">
+            <div class="absolute top-0 right-0 p-4 opacity-10 text-6xl">⚡</div>
+            <div class="relative z-10">
+                <h4 class="text-sm font-black text-emerald-400 mb-1 uppercase tracking-widest flex items-center gap-2">
+                    <span class="bg-emerald-500 text-white w-6 h-6 rounded flex items-center justify-center">L</span> Import CSV FinishLynx
+                </h4>
+                <p class="text-xs text-slate-400 mb-4">Upload raw CSV file keluaran dari hardware FinishLynx untuk race ini. Sistem akan mencocokkan otomatis berdasarkan BIB Number.</p>
+                <form method="POST" action="<?= getenv('APP_URL') ?>/roll/admin/results/import_lynx" enctype="multipart/form-data" class="flex flex-col sm:flex-row gap-3 items-center">
+                    <input type="hidden" name="race_class_id" value="<?= $filter_class_id ?>">
+                    <input type="hidden" name="round" value="<?= htmlspecialchars($structural_round_name) ?>">
+                    <input type="file" name="lynx_csv" accept=".csv" required class="text-sm w-full p-2 bg-slate-800 border border-slate-600 rounded-lg text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-emerald-500 file:text-white hover:file:bg-emerald-600 cursor-pointer">
+                    <button type="submit" class="w-full sm:w-auto bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white px-8 py-2.5 rounded-lg font-black text-xs uppercase tracking-widest whitespace-nowrap shadow-lg transition">🚀 PROSES LYNX</button>
+                </form>
+            </div>
         </div>
 
         <?php if (!empty($heatsData)): ?>
