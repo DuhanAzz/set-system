@@ -143,6 +143,7 @@ foreach ($rawData as $row) {
         if (!$isPemula && $pc['show_group'])    $judulParts[] = $groupNameDisplay;
         if ($pc['show_gender'])   $judulParts[] = strtoupper($row['gender'] === 'pa' ? 'Putra' : ($row['gender'] === 'pi' ? 'Putri' : $row['gender']));
         if ($pc['show_distance']) $judulParts[] = $row['distance_name'];
+        if (!empty($row['roller_name'])) $judulParts[] = strtoupper($row['roller_name']);
         
         $fullBook[$cid] = [
             'meta' => [
