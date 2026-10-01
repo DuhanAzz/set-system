@@ -126,7 +126,7 @@ class RollEventController extends Controller {
                                        LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id 
                                        LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
                                        WHERE ed.event_id = ?
-                                       ORDER BY CAST(ed.race_number AS UNSIGNED) ASC, ed.gender DESC, a.id ASC");
+                                       ORDER BY CAST(ed.race_number AS UNSIGNED) ASC, ed.race_number ASC, ed.gender DESC, a.id ASC");
             $stmtClass->execute([$eventId]);
             $classes = $stmtClass->fetchAll(PDO::FETCH_ASSOC);
         }
@@ -844,7 +844,7 @@ class RollEventController extends Controller {
                                    LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id 
                                    LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
                                    WHERE ed.event_id = ?
-                                   ORDER BY CAST(ed.race_number AS UNSIGNED) ASC, ed.race_number ASC");
+                                   ORDER BY CAST(ed.race_number AS UNSIGNED) ASC, ed.race_number ASC, ed.gender DESC, a.id ASC");
         $stmtClass->execute([$eventId]);
         $classes = $stmtClass->fetchAll(PDO::FETCH_ASSOC);
 
