@@ -39,7 +39,7 @@ class RollResultController extends Controller {
                                          LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id 
                                          LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
                                          WHERE ed.event_id = ?
-                                         ORDER BY CAST(ed.race_number AS UNSIGNED) ASC, ed.gender DESC, a.id ASC");
+                                         ORDER BY CAST(ed.race_number AS UNSIGNED) ASC, ed.race_number ASC, ed.gender DESC, a.id ASC");
             $stmtClasses->execute([$eventId]);
         } catch (\Exception $e) {
             try { $db->exec("ALTER TABLE roll_event_details ADD COLUMN custom_name VARCHAR(255) NULL"); } catch (\Exception $ex) {}
@@ -55,7 +55,7 @@ class RollResultController extends Controller {
                                          LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id 
                                          LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
                                          WHERE ed.event_id = ?
-                                         ORDER BY CAST(ed.race_number AS UNSIGNED) ASC, ed.gender DESC, a.id ASC");
+                                         ORDER BY CAST(ed.race_number AS UNSIGNED) ASC, ed.race_number ASC, ed.gender DESC, a.id ASC");
             $stmtClasses->execute([$eventId]);
         }
         $classes = $stmtClasses->fetchAll(PDO::FETCH_ASSOC);
@@ -587,7 +587,7 @@ class RollResultController extends Controller {
                                          LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id 
                                          LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
                                          WHERE ed.event_id = ? 
-                                         ORDER BY CAST(ed.race_number AS UNSIGNED) ASC, ed.gender DESC, a.id ASC");
+                                         ORDER BY CAST(ed.race_number AS UNSIGNED) ASC, ed.race_number ASC, ed.gender DESC, a.id ASC");
             $stmtClasses->execute([$eventId]);
         } catch (\Exception $e) {
             try { $db->exec("ALTER TABLE roll_event_details ADD COLUMN result_status ENUM('Draft', 'Published') NOT NULL DEFAULT 'Draft'"); } catch (\Exception $ex) {}
@@ -599,7 +599,7 @@ class RollResultController extends Controller {
                                          LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id 
                                          LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
                                          WHERE ed.event_id = ? 
-                                         ORDER BY CAST(ed.race_number AS UNSIGNED) ASC, ed.gender DESC, a.id ASC");
+                                         ORDER BY CAST(ed.race_number AS UNSIGNED) ASC, ed.race_number ASC, ed.gender DESC, a.id ASC");
             $stmtClasses->execute([$eventId]);
         }
         $classes = $stmtClasses->fetchAll(PDO::FETCH_ASSOC);
