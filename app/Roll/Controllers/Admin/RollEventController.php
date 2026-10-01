@@ -200,11 +200,17 @@ class RollEventController extends Controller {
                 $breakStartTs = !empty($breakStartTimes[$day]) ? strtotime($breakStartTimes[$day]) : 0;
                 $breakEndTs = !empty($breakEndTimes[$day]) ? strtotime($breakEndTimes[$day]) : 0;
                 
-                // Sort classes by numeric race number first, then string to properly sequence
+                // Sort classes by numeric race number first, then Putri before Putra
                 usort($dayClasses, function($a, $b) {
                     $cmp = strnatcmp($a['race_number'], $b['race_number']);
                     if ($cmp === 0) {
-                        return -strcmp($a['gender'] ?? '', $b['gender'] ?? '');
+                        $gA = strtolower($a['gender'] ?? '');
+                        $gB = strtolower($b['gender'] ?? '');
+                        $isPutriA = (strpos($gA, 'pi') !== false || strpos($gA, 'putri') !== false);
+                        $isPutriB = (strpos($gB, 'pi') !== false || strpos($gB, 'putri') !== false);
+                        if ($isPutriA && !$isPutriB) return -1;
+                        if (!$isPutriA && $isPutriB) return 1;
+                        return 0;
                     }
                     return $cmp;
                 });

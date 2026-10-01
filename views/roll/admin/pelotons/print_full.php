@@ -103,7 +103,7 @@ $sponsors = !empty($eventInfo['sponsor_logos']) ? json_decode($eventInfo['sponso
 
 // Ambil seluruh data perlombaan & peloton yang berpartisipasi
 $sqlAll = "SELECT 
-            c.id as class_id, a.group_name, c.custom_name, sc.class_name as roller_name, d.distance_name, c.gender, c.race_number, c.race_time,
+            c.id as class_id, a.group_name, a.id as age_group_id, c.custom_name, sc.class_name as roller_name, d.distance_name, c.gender, c.race_number, c.race_time,
             p.round, p.heat_name, p.start_grid, 
             e.bib_number, s.skater_name, cl.club_name, e.team_name
            FROM roll_event_details c
@@ -181,6 +181,7 @@ foreach ($rawData as $row) {
             'race_time'   => $row['race_time'] ?? '00:00',
             'distance_name' => $row['distance_name'],
             'group_name'  => $row['group_name'],
+            'age_group_id'=> $row['age_group_id'] ?? 0,
             'roller_name' => $row['roller_name'],
             'raw_gender'  => $row['gender'],
             'gender'      => strtoupper($row['gender'] === 'pa' ? 'Putra' : ($row['gender'] === 'pi' ? 'Putri' : $row['gender']))
@@ -261,8 +262,8 @@ if ($cc['klub']) $activeColumnsCount++;
         
         /* FOOTER (SPONSOR) */
         .footer-wrapper { padding: 0 10mm 5mm 10mm; }
-        .sponsor-footer { text-align: center; border-top: 2px double #000; padding-top: 10px; width: 100%; margin-top: 20px; }
-        .sponsor-footer img { height: 45px; width: auto; object-fit: contain; margin: 0 10px; }
+        .sponsor-footer { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 8px; border-top: 2px double #000; padding-top: 8px; width: 100%; margin-top: 10px; }
+        .sponsor-footer img { height: 35px; max-height: 35px; max-width: 120px; object-fit: contain; }
         
         /* TABEL JADWAL STYLE */
         .schedule-title { text-align:center; font-size:14pt; font-weight:900; margin-bottom:15px; text-transform:uppercase; font-family: 'Arial Narrow', sans-serif; text-decoration: underline; }
@@ -406,7 +407,13 @@ if ($cc['klub']) $activeColumnsCount++;
                                             usort($dayClasses, function($a, $b) {
                                                 $cmp = strnatcmp($a['race_number'], $b['race_number']);
                                                 if ($cmp === 0) {
-                                                    return -strcmp($a['raw_gender'] ?? '', $b['raw_gender'] ?? '');
+                                                    $gA = strtolower($a['raw_gender'] ?? '');
+                                                    $gB = strtolower($b['raw_gender'] ?? '');
+                                                    $isPutriA = (strpos($gA, 'pi') !== false || strpos($gA, 'putri') !== false);
+                                                    $isPutriB = (strpos($gB, 'pi') !== false || strpos($gB, 'putri') !== false);
+                                                    if ($isPutriA && !$isPutriB) return -1;
+                                                    if (!$isPutriA && $isPutriB) return 1;
+                                                    return 0;
                                                 }
                                                 return $cmp;
                                             });
@@ -416,12 +423,14 @@ if ($cc['klub']) $activeColumnsCount++;
                                                 if (empty($group)) return;
                                                 $time = $group[0]['race_time'] ?? '00:00';
                                                 $timeStr = (strpos($time, '-') !== false) ? $time : date('H:i', strtotime($time));
-                                                $races = []; $dists = []; $kus = []; $genders = [];
+                                                $races = []; $dists = []; $kusData = []; $genders = [];
                                                 foreach ($group as $g) {
                                                     $races[] = $g['race_number'];
                                                     $dist = $g['distance_name'] ?? $g['distance'] ?? '-';
                                                     if ($dist !== '-') $dists[] = $dist;
-                                                    if ($g['group_name']) $kus[] = $g['group_name'];
+                                                    if ($g['group_name']) {
+                                                        $kusData[$g['group_name']] = $g['age_group_id'] ?? 0;
+                                                    }
                                                     // In print_full, raw_gender is sometimes used, but 'gender' holds the text (e.g. 'Putra', 'Putri')
                                                     // Sometimes $g['gender'] is 'Putra', sometimes 'Pa'. Let's normalize it to Putra / Putri.
                                                     $gnStr = $g['gender'] ?? '';
@@ -436,7 +445,8 @@ if ($cc['klub']) $activeColumnsCount++;
                                                 }
                                                 $racesStr = implode(' & ', array_unique($races));
                                                 $distStr = implode(' & ', array_unique($dists));
-                                                $kuStr = implode(', ', array_unique($kus));
+                                                asort($kusData); // Sort by age_group_id ASC
+                                                $kuStr = implode(', ', array_keys($kusData));
                                                 $genderStr = implode(' & ', array_unique($genders));
                                                 ?>
                                                 <tr style="background-color: #f1f5f9;">
