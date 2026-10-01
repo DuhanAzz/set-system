@@ -54,6 +54,17 @@ class RollExportController extends Controller {
 
         $stmtRounds = $db->prepare("SELECT DISTINCT round FROM roll_pelotons WHERE event_id = ? AND race_class_id = ? ORDER BY CASE round WHEN 'Kualifikasi' THEN 1 WHEN 'Perempat Final' THEN 2 WHEN 'Semi Final' THEN 3 WHEN 'Final' THEN 4 ELSE 5 END");
 
+        $stmtData = $db->prepare("
+            SELECT e.bib_number, p.heat_name, s.skater_name, r.time, e.team_name, c.club_name
+            FROM roll_pelotons p
+            JOIN roll_entries e ON p.skater_id = e.skater_id AND p.race_class_id = e.race_class_id AND p.event_id = e.event_id
+            JOIN roll_skaters s ON p.skater_id = s.id
+            LEFT JOIN roll_clubs c ON s.club_id = c.id
+            LEFT JOIN roll_event_results r ON p.event_id = r.event_id AND p.race_class_id = r.race_class_id AND p.skater_id = r.skater_id AND p.heat_name = r.heat_name AND p.round = r.round
+            WHERE p.event_id = ? AND p.race_class_id = ? AND p.round = ?
+            ORDER BY CAST(REPLACE(p.heat_name, 'Heat ', '') AS UNSIGNED) ASC, p.start_grid ASC
+        ");
+
         header('Content-Type: application/vnd.ms-excel; charset=utf-8');
         header('Content-Disposition: attachment; filename="Event_' . $eventId . '_Master_Reference_Lynx.xls"');
 
@@ -63,36 +74,10 @@ class RollExportController extends Controller {
         echo ' <Styles>' . "\n";
         echo '  <Style ss:ID="Default" ss:Name="Normal"><Alignment ss:Vertical="Bottom"/><Borders/><Font ss:FontName="Calibri" x:Family="Swiss" ss:Size="11" ss:Color="#000000"/><Interior/><NumberFormat/><Protection/></Style>' . "\n";
         echo '  <Style ss:ID="sHeader"><Alignment ss:Horizontal="Center" ss:Vertical="Center"/><Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/><Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1"/><Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1"/><Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1"/></Borders><Font ss:FontName="Calibri" x:Family="Swiss" ss:Size="11" ss:Color="#FFFFFF" ss:Bold="1"/><Interior ss:Color="#1E3A8A" ss:Pattern="Solid"/></Style>' . "\n";
+        echo '  <Style ss:ID="sInfoTitle"><Alignment ss:Vertical="Center"/><Font ss:FontName="Calibri" x:Family="Swiss" ss:Size="12" ss:Color="#000000" ss:Bold="1"/><Interior ss:Color="#E2E8F0" ss:Pattern="Solid"/></Style>' . "\n";
         echo ' </Styles>' . "\n";
 
-        // SHEET 1: Jadwal & Racebook
-        echo ' <Worksheet ss:Name="Jadwal Racebook">' . "\n";
-        echo '  <Table>' . "\n";
-        echo '   <Column ss:Width="80"/>' . "\n";
-        echo '   <Column ss:Width="150"/>' . "\n";
-        echo '   <Column ss:Width="100"/>' . "\n";
-        echo '   <Column ss:Width="150"/>' . "\n";
-        echo '   <Column ss:Width="150"/>' . "\n";
-        echo '   <Row>' . "\n";
-        echo '    <Cell ss:StyleID="sHeader"><Data ss:Type="String">NO LOMBA</Data></Cell>' . "\n";
-        echo '    <Cell ss:StyleID="sHeader"><Data ss:Type="String">KATEGORI</Data></Cell>' . "\n";
-        echo '    <Cell ss:StyleID="sHeader"><Data ss:Type="String">GENDER</Data></Cell>' . "\n";
-        echo '    <Cell ss:StyleID="sHeader"><Data ss:Type="String">KELOMPOK UMUR</Data></Cell>' . "\n";
-        echo '    <Cell ss:StyleID="sHeader"><Data ss:Type="String">JARAK</Data></Cell>' . "\n";
-        echo '   </Row>' . "\n";
-        foreach ($classes as $raceInfo) {
-            echo '   <Row>' . "\n";
-            echo '    <Cell><Data ss:Type="String">' . htmlspecialchars($raceInfo['race_number']) . '</Data></Cell>' . "\n";
-            echo '    <Cell><Data ss:Type="String">' . htmlspecialchars($raceInfo['class_name']) . '</Data></Cell>' . "\n";
-            echo '    <Cell><Data ss:Type="String">' . htmlspecialchars($raceInfo['gender'] ?: 'CAMPURAN') . '</Data></Cell>' . "\n";
-            echo '    <Cell><Data ss:Type="String">' . htmlspecialchars($raceInfo['group_name']) . '</Data></Cell>' . "\n";
-            echo '    <Cell><Data ss:Type="String">' . htmlspecialchars($raceInfo['distance_name']) . '</Data></Cell>' . "\n";
-            echo '   </Row>' . "\n";
-        }
-        echo '  </Table>' . "\n";
-        echo ' </Worksheet>' . "\n";
-
-        // SHEET 2: Referensi File CSV Lynx
+        // SHEET 1: Referensi File CSV Lynx
         echo ' <Worksheet ss:Name="Referensi CSV Lynx">' . "\n";
         echo '  <Table>' . "\n";
         echo '   <Column ss:Width="80"/>' . "\n";
@@ -128,6 +113,64 @@ class RollExportController extends Controller {
                 echo '    <Cell><Data ss:Type="String">' . htmlspecialchars($round) . '</Data></Cell>' . "\n";
                 echo '    <Cell><Data ss:Type="String">' . htmlspecialchars($safeFilename) . '</Data></Cell>' . "\n";
                 echo '   </Row>' . "\n";
+            }
+        }
+        
+        echo '  </Table>' . "\n";
+        echo ' </Worksheet>' . "\n";
+
+        // SHEET 2: Kumpulan Start List
+        echo ' <Worksheet ss:Name="Kumpulan Start List">' . "\n";
+        echo '  <Table>' . "\n";
+        echo '   <Column ss:Width="80"/>' . "\n";
+        echo '   <Column ss:Width="80"/>' . "\n";
+        echo '   <Column ss:Width="80"/>' . "\n";
+        echo '   <Column ss:Width="300"/>' . "\n";
+
+        foreach ($classes as $raceInfo) {
+            $classId = $raceInfo['id'];
+            $stmtRounds->execute([$eventId, $classId]);
+            $rounds = $stmtRounds->fetchAll(PDO::FETCH_COLUMN);
+
+            if (empty($rounds)) continue;
+
+            $fullRaceTitle = "R" . str_pad($raceInfo['race_number'], 3, '0', STR_PAD_LEFT) . " - " . ($raceInfo['distance_name'] ?? '') . " - " . ($raceInfo['group_name'] ?? '') . " - " . ($raceInfo['gender'] ?? 'CAMPURAN') . " | Kategori: " . ($raceInfo['class_name'] ?? 'Umum');
+
+            foreach ($rounds as $round) {
+                $stmtData->execute([$eventId, $classId, $round]);
+                $rows = $stmtData->fetchAll(PDO::FETCH_ASSOC);
+
+                if (empty($rows)) continue;
+
+                $roundTitle = $fullRaceTitle . " (" . strtoupper($round) . ")";
+
+                // Print INFO header
+                echo '   <Row>' . "\n";
+                echo '    <Cell ss:StyleID="sInfoTitle"><Data ss:Type="String">INFO</Data></Cell>' . "\n";
+                echo '    <Cell ss:StyleID="sInfoTitle" ss:MergeAcross="2"><Data ss:Type="String">' . htmlspecialchars($roundTitle) . '</Data></Cell>' . "\n";
+                echo '   </Row>' . "\n";
+
+                // Print Headers
+                echo '   <Row>' . "\n";
+                echo '    <Cell ss:StyleID="sHeader"><Data ss:Type="String">BIB</Data></Cell>' . "\n";
+                echo '    <Cell ss:StyleID="sHeader"><Data ss:Type="String">TIME</Data></Cell>' . "\n";
+                echo '    <Cell ss:StyleID="sHeader"><Data ss:Type="String">HEAT</Data></Cell>' . "\n";
+                echo '    <Cell ss:StyleID="sHeader"><Data ss:Type="String">NAME</Data></Cell>' . "\n";
+                echo '   </Row>' . "\n";
+
+                // Print Athletes
+                foreach ($rows as $r) {
+                    $timeFmt = $r['time'] ? str_replace(':', '.', $r['time']) : '';
+                    echo '   <Row>' . "\n";
+                    echo '    <Cell><Data ss:Type="String">' . htmlspecialchars(str_pad($r['bib_number'] ?? '', 3, '0', STR_PAD_LEFT)) . '</Data></Cell>' . "\n";
+                    echo '    <Cell><Data ss:Type="String">' . htmlspecialchars($timeFmt) . '</Data></Cell>' . "\n";
+                    echo '    <Cell><Data ss:Type="String">' . htmlspecialchars($r['heat_name'] ?? '') . '</Data></Cell>' . "\n";
+                    echo '    <Cell><Data ss:Type="String">' . htmlspecialchars($r['skater_name'] ?? '') . '</Data></Cell>' . "\n";
+                    echo '   </Row>' . "\n";
+                }
+                
+                // Print Empty Row to separate races
+                echo '   <Row><Cell><Data ss:Type="String"></Data></Cell></Row>' . "\n";
             }
         }
         
