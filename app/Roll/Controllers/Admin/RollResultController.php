@@ -923,6 +923,8 @@ class RollResultController extends Controller {
                         } else {
                             // Format Lynx seringkali: 1:37.675 atau 9.456 atau 12:34.567
                             // Ubah titik dua (:) menjadi titik (.) agar sama
+                            // Hapus asterisk (*) jika ada
+                            $rawTime = str_replace('*', '', $rawTime);
                             $timeStr = str_replace(':', '.', $rawTime);
                             $parts = explode('.', $timeStr);
                             
@@ -960,10 +962,21 @@ class RollResultController extends Controller {
                             $matchedCount++;
                             $skaterId = $skater['skater_id'];
                             
-                            if (empty($heat)) {
-                                $stmtP = $db->prepare("SELECT heat_name FROM roll_pelotons WHERE event_id = ? AND race_class_id = ? AND skater_id = ? AND round = ?");
-                                $stmtP->execute([$eventId, $classId, $skaterId, $round]);
-                                $heat = $stmtP->fetchColumn() ?: 'Heat 1';
+                            // 1. Get heat from peloton as source of truth
+                            $stmtP = $db->prepare("SELECT heat_name FROM roll_pelotons WHERE event_id = ? AND race_class_id = ? AND skater_id = ? AND round = ?");
+                            $stmtP->execute([$eventId, $classId, $skaterId, $round]);
+                            $dbHeat = $stmtP->fetchColumn();
+                            
+                            if ($dbHeat) {
+                                $heat = $dbHeat;
+                            } else {
+                                // 2. Fallback to Lynx data if it looks like a heat name
+                                $heatNo = trim($data[4] ?? '');
+                                if (stripos($heatNo, 'heat') !== false) {
+                                    $heat = "Heat " . trim(str_ireplace('heat', '', $heatNo));
+                                } else {
+                                    $heat = 'Heat 1';
+                                }
                             }
                             
                             $membersToProcess = [];
