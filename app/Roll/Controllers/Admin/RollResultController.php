@@ -846,7 +846,8 @@ class RollResultController extends Controller {
                 $isRelay = stripos($distName, 'Relay') !== false || stripos($distName, 'Pair') !== false;
 
                 $filename = strtolower($_FILES['lynx_csv']['name']);
-                $isExcel = (str_ends_with($filename, '.xlsx') || str_ends_with($filename, '.xls'));
+                $ext = pathinfo($filename, PATHINFO_EXTENSION);
+                $isExcel = ($ext === 'xlsx' || $ext === 'xls');
                 
                 $rowsToProcess = [];
                 if ($isExcel) {
