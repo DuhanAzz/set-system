@@ -368,7 +368,7 @@
                                     <?php if($isFirstMember): ?>
                                     <td class="p-4 text-center align-middle" rowspan="<?= $rowspan ?>">
                                         <button type="button" class="btn-elim" onclick="eliminateSkater('<?= $r['skater_id'] ?>', '<?= htmlspecialchars($heatName, ENT_QUOTES) ?>')" title="Tarik keluar lintasan (Eliminasi)">
-                                            <i class="fas fa-flag"></i>
+                                            <span style="font-size: 8pt; font-weight: 900;">ELIM</span>
                                         </button>
                                     </td>
                                     <?php endif; ?>
@@ -389,18 +389,18 @@
 
                                 <!-- WAKTU -->
                                 <td class="p-4 align-middle" <?= !$isTeamRace || $isFirstMember ? '' : 'style="display:none;"' ?> style="<?= $isTeamRace ? 'border-left: 2px dashed #cbd5e1;' : '' ?>">
-                                    <input type="text" name="time[]" value="<?= htmlspecialchars($r['time'] ?? '00.00.000') ?>" class="input-time <?= ($raceFormat === 'ELIMINASI' && $r['status'] === 'DNF') ? 'opacity-40 bg-slate-100' : '' ?>" placeholder="00.00.000" id="time_<?= $r['skater_id'] ?>" tabindex="<?= $raceFormat === 'PTP' ? '2' : '1' ?>" <?= ($raceFormat === 'ELIMINASI' && $r['status'] === 'DNF') ? 'readonly tabindex="-1"' : '' ?> autocomplete="off" onfocus="if(this.value==='00.00.000')this.value='';" onblur="if(this.value==='')this.value='00.00.000';">
+                                    <input type="text" name="time[]" value="<?= htmlspecialchars($r['time'] ?? '00.00.000') ?>" class="input-time <?= ($raceFormat === 'ELIMINASI' && in_array($r['status'], ['DNF', 'ELIM'])) ? 'opacity-40 bg-slate-100' : '' ?>" placeholder="00.00.000" id="time_<?= $r['skater_id'] ?>" tabindex="<?= $raceFormat === 'PTP' ? '2' : '1' ?>" <?= ($raceFormat === 'ELIMINASI' && in_array($r['status'], ['DNF', 'ELIM'])) ? 'readonly tabindex="-1"' : '' ?> autocomplete="off" onfocus="if(this.value==='00.00.000')this.value='';" onblur="if(this.value==='')this.value='00.00.000';">
                                 </td>
 
                                 <!-- RANK -->
                                 <td class="p-4 align-middle" <?= !$isTeamRace || $isFirstMember ? '' : 'style="display:none;"' ?>>
-                                    <input type="number" step="1" name="rank[]" value="<?= $r['rank'] ?>" class="input-rank <?= $raceFormat === 'PTP' ? 'bg-slate-50 text-slate-400 border-slate-200' : '' ?> <?= ($raceFormat === 'ELIMINASI' && $r['status'] === 'DNF') ? 'bg-red-50 text-red-500' : '' ?>" id="rank_<?= $r['skater_id'] ?>" tabindex="<?= $raceFormat === 'PTP' ? '3' : '2' ?>">
+                                    <input type="number" step="1" name="rank[]" value="<?= $r['rank'] ?>" class="input-rank <?= $raceFormat === 'PTP' ? 'bg-slate-50 text-slate-400 border-slate-200' : '' ?> <?= ($raceFormat === 'ELIMINASI' && in_array($r['status'], ['DNF', 'ELIM'])) ? 'bg-red-50 text-red-500' : '' ?>" id="rank_<?= $r['skater_id'] ?>" tabindex="<?= $raceFormat === 'PTP' ? '3' : '2' ?>">
                                 </td>
 
                                 <!-- STATUS -->
                                 <td class="p-4 text-center relative align-middle" <?= !$isTeamRace || $isFirstMember ? '' : 'style="display:none;"' ?>>
                                     <select name="status[]" class="input-status <?= $r['status']!=='OK' ? 'text-red-600 bg-red-100 border-red-200' : 'text-slate-500 bg-slate-100 hover:bg-slate-200' ?>" onchange="handleStatusChange(this, '<?= $r['skater_id'] ?>')">
-                                        <?php foreach(['OK', 'DNS', 'DNF', 'DQ', 'FS'] as $s): ?>
+                                        <?php foreach(['OK', 'DNS', 'DNF', 'DQ', 'FS', 'ELIM'] as $s): ?>
                                             <option value="<?= $s ?>" <?= $r['status'] === $s ? 'selected' : '' ?> <?= $s !== 'OK' ? 'class="text-red-600"' : '' ?>><?= $s ?></option>
                                         <?php endforeach; ?>
                                     </select>
@@ -485,8 +485,8 @@
             let rankInput = document.getElementById('rank_' + skaterId);
             let timeInput = document.getElementById('time_' + skaterId);
             
-            // Set status to DNF
-            select.value = 'DNF';
+            // Set status to ELIM
+            select.value = 'ELIM';
             
             // Calculate currentElimRank specifically for THIS heat table
             let tbody = document.querySelector(`.heat-table[data-heat="${heatName}"] tbody`);
