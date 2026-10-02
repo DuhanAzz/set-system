@@ -583,16 +583,19 @@
         </table>
 
         <!-- ACTUAL FIXED FOOTER -->
-        <?php if(!empty($sponsors)): ?>
-        <div class="sponsor-footer">
+        <div class="sponsor-footer" style="position: relative;">
+            <?php if(!empty($sponsors)): ?>
             <p style="font-size: 8pt; color: #888; margin: 0 0 5px 0; text-transform: uppercase; font-weight: bold; letter-spacing: 2px;">Supported By</p>
             <div style="display: flex; flex-wrap: wrap; justify-content: center; align-items: center;">
                 <?php foreach($sponsors as $sponsor): ?>
                     <img src="<?= getenv('APP_URL') ?>/<?= ltrim(str_replace('public/', '', $sponsor), '/') ?>" alt="Sponsor">
                 <?php endforeach; ?>
             </div>
+            <?php endif; ?>
+            <div style="position: absolute; bottom: 0; right: 0; font-size: 7.5pt; color: #555; font-style: italic;">
+                Dicetak pada: <?= date('d/m/Y H:i:s') ?>
+            </div>
         </div>
-        <?php endif; ?>
     </div>
 </body>
 </html>
