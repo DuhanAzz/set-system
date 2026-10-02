@@ -593,7 +593,11 @@
             </div>
             <?php endif; ?>
             <div style="position: absolute; bottom: 0; right: 0; font-size: 7.5pt; color: #555; font-style: italic;">
-                Dicetak pada: <?= date('d/m/Y H:i:s') ?>
+                Dicetak pada: <?php 
+                    $tz = new DateTimeZone('Asia/Jakarta');
+                    $dt = new DateTime('now', $tz);
+                    echo $dt->format('d/m/Y H:i:s') . ' WIB';
+                ?>
             </div>
         </div>
     </div>
