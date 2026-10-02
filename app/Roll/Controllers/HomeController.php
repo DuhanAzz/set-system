@@ -200,7 +200,7 @@ class HomeController extends Controller {
             LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id
             LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
             WHERE ed.event_id = ? AND ed.result_status = 'Published' AND ed.result_pdf IS NOT NULL AND ed.result_pdf != '' AND ed.result_pdf != '{}'
-            ORDER BY CAST(ed.race_number AS UNSIGNED) ASC, a.min_year ASC, d.distance_name ASC
+            ORDER BY CAST(ed.race_number AS UNSIGNED) ASC, ed.race_number ASC, ed.gender DESC, a.min_year ASC, d.distance_name ASC
         ");
         $stmtClasses->execute([$event_id]);
         $rawClasses = $stmtClasses->fetchAll(PDO::FETCH_ASSOC);
