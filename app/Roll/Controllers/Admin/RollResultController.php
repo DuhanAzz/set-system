@@ -875,6 +875,7 @@ class RollResultController extends Controller {
                 $db->beginTransaction();
                 try {
                     $headerFound = false;
+                    $matchedCount = 0;
                     
                     foreach ($rowsToProcess as $data) {
                         if (!$headerFound) {
@@ -940,6 +941,7 @@ class RollResultController extends Controller {
                         $skater = $stmtS->fetch(PDO::FETCH_ASSOC);
                         
                         if ($skater) {
+                            $matchedCount++;
                             $skaterId = $skater['skater_id'];
                             
                             if (empty($heat)) {
@@ -988,8 +990,14 @@ class RollResultController extends Controller {
                         fclose($file);
                     }
                     $db->commit();
-                    $_SESSION['flash_message'] = "Data Lynx berhasil disinkronkan dengan sempurna!";
-                    $_SESSION['flash_type'] = "success";
+                    
+                    if ($matchedCount === 0) {
+                        $_SESSION['flash_message'] = "File berhasil dibaca, tetapi TIDAK ADA BIB yang cocok di kelas ini. Apakah Anda yakin ini file untuk kelas yang benar?";
+                        $_SESSION['flash_type'] = "warning";
+                    } else {
+                        $_SESSION['flash_message'] = "Data Lynx berhasil disinkronkan dengan sempurna! ($matchedCount data cocok)";
+                        $_SESSION['flash_type'] = "success";
+                    }
                 } catch (\Exception $e) {
                     if (isset($file) && is_resource($file)) fclose($file);
                     $db->rollBack();
