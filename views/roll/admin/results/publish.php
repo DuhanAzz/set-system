@@ -148,25 +148,57 @@
                         </td>
                         <td class="px-6 py-4">
                             <div class="flex flex-col gap-2">
-                                <?php foreach ($c['available_rounds'] as $roundName): ?>
+                                <?php 
+                                $displayedPdfs = [];
+                                foreach ($c['available_rounds'] as $roundName): 
+                                    $actualPdfKey = null;
+                                    foreach ($c['pdfs'] as $k => $v) {
+                                        if (strtolower($k) === strtolower($roundName)) {
+                                            $actualPdfKey = $k;
+                                            $displayedPdfs[] = $k;
+                                            break;
+                                        }
+                                    }
+                                ?>
                                     <div class="bg-slate-50 p-2 rounded-lg border border-slate-200 flex items-center justify-between gap-3">
                                         <div class="text-[10px] font-black text-slate-600 uppercase tracking-widest w-24 whitespace-nowrap">
                                             <?= htmlspecialchars($roundName) ?>
                                         </div>
                                         <div class="flex flex-col gap-1.5 w-32 ml-auto">
-                                            <?php if (isset($c['pdfs'][$roundName])): ?>
+                                            <?php if ($actualPdfKey !== null): ?>
                                                 <div class="flex gap-1.5 w-full">
-                                                    <button type="button" onclick="deletePdf(<?= $c['id'] ?>, '<?= htmlspecialchars($roundName) ?>')" class="flex-1 px-2 py-1.5 bg-red-50 text-red-600 border border-red-200 text-[10px] font-bold rounded-lg hover:bg-red-100 transition-colors text-center" title="Hapus PDF">🗑️</button>
-                                                    <a href="<?= getenv('APP_URL') ?>/uploads/results/<?= htmlspecialchars($c['pdfs'][$roundName]) ?>" target="_blank" class="flex-[3] px-2 py-1.5 bg-blue-50 text-blue-600 border border-blue-200 text-[10px] font-bold rounded-lg hover:bg-blue-100 transition-colors text-center">Lihat PDF</a>
+                                                    <button type="button" onclick="deletePdf(<?= $c['id'] ?>, '<?= htmlspecialchars($actualPdfKey) ?>')" class="flex-1 px-2 py-1.5 bg-red-50 text-red-600 border border-red-200 text-[10px] font-bold rounded-lg hover:bg-red-100 transition-colors text-center" title="Hapus PDF">🗑️</button>
+                                                    <a href="<?= getenv('APP_URL') ?>/uploads/results/<?= htmlspecialchars($c['pdfs'][$actualPdfKey]) ?>" target="_blank" class="flex-[3] px-2 py-1.5 bg-blue-50 text-blue-600 border border-blue-200 text-[10px] font-bold rounded-lg hover:bg-blue-100 transition-colors text-center">Lihat PDF</a>
                                                 </div>
                                             <?php endif; ?>
                                             <input type="file" id="pdf_<?= $c['id'] ?>_<?= md5($roundName) ?>" class="hidden" accept=".pdf" onchange="uploadPdf(this, <?= $c['id'] ?>, '<?= htmlspecialchars($roundName) ?>')">
                                             <button type="button" onclick="document.getElementById('pdf_<?= $c['id'] ?>_<?= md5($roundName) ?>').click()" class="w-full px-3 py-1.5 bg-slate-800 hover:bg-slate-900 text-white text-[10px] font-bold rounded-lg transition-colors shadow-sm">
-                                                <?= isset($c['pdfs'][$roundName]) ? 'Ganti PDF' : 'Unggah PDF' ?>
+                                                <?= ($actualPdfKey !== null) ? 'Ganti PDF' : 'Unggah PDF' ?>
                                             </button>
                                         </div>
                                     </div>
                                 <?php endforeach; ?>
+                                
+                                <?php 
+                                // Tampilkan sisa PDF yang namanya tidak terdeteksi di available_rounds agar bisa dihapus (misal karena perbedaan huruf kapital)
+                                foreach ($c['pdfs'] as $k => $v): 
+                                    if (!in_array($k, $displayedPdfs)):
+                                ?>
+                                    <div class="bg-red-50 p-2 rounded-lg border border-red-200 flex items-center justify-between gap-3 mt-2">
+                                        <div class="text-[10px] font-black text-red-600 uppercase tracking-widest w-24 whitespace-nowrap">
+                                            <?= htmlspecialchars($k) ?> (SISA)
+                                        </div>
+                                        <div class="flex flex-col gap-1.5 w-32 ml-auto">
+                                            <div class="flex gap-1.5 w-full">
+                                                <button type="button" onclick="deletePdf(<?= $c['id'] ?>, '<?= htmlspecialchars($k) ?>')" class="flex-[2] px-2 py-1.5 bg-red-500 text-white border border-red-600 text-[10px] font-bold rounded-lg hover:bg-red-600 transition-colors text-center" title="Hapus PDF">🗑️ Hapus</button>
+                                                <a href="<?= getenv('APP_URL') ?>/uploads/results/<?= htmlspecialchars($v) ?>" target="_blank" class="flex-1 px-2 py-1.5 bg-red-100 text-red-700 border border-red-200 text-[10px] font-bold rounded-lg hover:bg-red-200 transition-colors text-center">Lihat</a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                <?php 
+                                    endif;
+                                endforeach; 
+                                ?>
                             </div>
                         </td>
                     </tr>
