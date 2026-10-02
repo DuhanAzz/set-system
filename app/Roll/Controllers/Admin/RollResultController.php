@@ -900,8 +900,11 @@ class RollResultController extends Controller {
                         
                         $bib = trim($data[1] ?? '');
                         if (empty($bib)) continue;
-                        $bib = str_pad($bib, 3, '0', STR_PAD_LEFT);
                         
+                        $bibOriginal = $bib;
+                        $bibPadded = str_pad($bib, 3, '0', STR_PAD_LEFT);
+                        $bibLtrim = ltrim($bib, '0');
+                        if ($bibLtrim === '') $bibLtrim = '0'; // Handle '000' case
                         $rawTime = trim($data[5] ?? '');
                         $rawTimeLower = strtolower($rawTime);
                         $status = 'OK';
@@ -935,9 +938,14 @@ class RollResultController extends Controller {
                         $heatNo = trim($data[4] ?? '');
                         $heat = !empty($heatNo) ? "Heat " . ltrim($heatNo, 'Heat ') : '';
 
-                        // Find skater by bib
-                        $stmtS = $db->prepare("SELECT skater_id FROM roll_entries WHERE event_id = ? AND race_class_id = ? AND bib_number = ?");
-                        $stmtS->execute([$eventId, $classId, $bib]);
+                        // Find skater by bib (checking all padding variations)
+                        $stmtS = $db->prepare("
+                            SELECT skater_id 
+                            FROM roll_entries 
+                            WHERE event_id = ? AND race_class_id = ? 
+                              AND (bib_number = ? OR bib_number = ? OR bib_number = ?)
+                        ");
+                        $stmtS->execute([$eventId, $classId, $bibOriginal, $bibPadded, $bibLtrim]);
                         $skater = $stmtS->fetch(PDO::FETCH_ASSOC);
                         
                         if ($skater) {
