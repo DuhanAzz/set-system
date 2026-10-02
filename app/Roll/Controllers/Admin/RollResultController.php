@@ -880,9 +880,12 @@ class RollResultController extends Controller {
                         if (!$headerFound) {
                             $col0 = strtolower(trim($data[0] ?? ''));
                             $col1 = strtolower(trim($data[1] ?? ''));
+                            
+                            // Check for Place and Id/Bib in the first two columns
                             if (strpos($col0, 'place') !== false && (strpos($col1, 'id') !== false || strpos($col1, 'bib') !== false)) {
                                 $headerFound = true;
-                            } else if (!$isExcel) {
+                            } else {
+                                // Fallback: sometimes columns get shifted or joined
                                 $lineRaw = strtolower(implode(',', $data));
                                 if (strpos($lineRaw, 'place') !== false && (strpos($lineRaw, 'id') !== false || strpos($lineRaw, 'bib') !== false)) {
                                     $headerFound = true;
@@ -981,7 +984,9 @@ class RollResultController extends Controller {
                         throw new \Exception("File yang diunggah tidak memiliki header format FinishLynx (Place;Id;...). Pastikan Anda mengekspor file yang benar dari kamera.");
                     }
 
-                    fclose($file);
+                    if (isset($file) && is_resource($file)) {
+                        fclose($file);
+                    }
                     $db->commit();
                     $_SESSION['flash_message'] = "Data Lynx berhasil disinkronkan dengan sempurna!";
                     $_SESSION['flash_type'] = "success";
