@@ -878,6 +878,14 @@ class RollResultController extends Controller {
                     $matchedCount = 0;
                     
                     foreach ($rowsToProcess as $data) {
+                        // Normalize poorly formatted files where everything is in column A separated by spaces
+                        if (is_array($data) && count($data) === 1 && !empty($data[0])) {
+                            $split = preg_split('/\s{2,}/', trim($data[0]));
+                            if (count($split) >= 2) {
+                                $data = $split;
+                            }
+                        }
+
                         if (!$headerFound) {
                             $col0 = strtolower(trim($data[0] ?? ''));
                             $col1 = strtolower(trim($data[1] ?? ''));
