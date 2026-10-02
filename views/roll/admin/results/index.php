@@ -200,13 +200,13 @@
             <div class="absolute top-0 right-0 p-4 opacity-10 text-6xl">⚡</div>
             <div class="relative z-10">
                 <h4 class="text-sm font-black text-emerald-400 mb-1 uppercase tracking-widest flex items-center gap-2">
-                    <span class="bg-emerald-500 text-white w-6 h-6 rounded flex items-center justify-center">L</span> Import CSV FinishLynx
+                    <span class="bg-emerald-500 text-white w-6 h-6 rounded flex items-center justify-center">L</span> Import FinishLynx
                 </h4>
-                <p class="text-xs text-slate-400 mb-4">Upload raw CSV file keluaran dari hardware FinishLynx untuk race ini. Sistem akan mencocokkan otomatis berdasarkan BIB Number.</p>
+                <p class="text-xs text-slate-400 mb-4">Upload raw CSV atau Excel (.xlsx/.xls) keluaran dari hardware FinishLynx untuk race ini. Sistem akan mencocokkan otomatis berdasarkan BIB Number.</p>
                 <form method="POST" action="<?= getenv('APP_URL') ?>/roll/admin/results/import_lynx" enctype="multipart/form-data" class="flex flex-col sm:flex-row gap-3 items-center">
                     <input type="hidden" name="race_class_id" value="<?= $filter_class_id ?>">
                     <input type="hidden" name="round" value="<?= htmlspecialchars($structural_round_name) ?>">
-                    <input type="file" name="lynx_csv" accept=".csv" required class="text-sm w-full p-2 bg-slate-800 border border-slate-600 rounded-lg text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-emerald-500 file:text-white hover:file:bg-emerald-600 cursor-pointer">
+                    <input type="file" name="lynx_csv" accept=".csv,.xlsx,.xls" required class="text-sm w-full p-2 bg-slate-800 border border-slate-600 rounded-lg text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-emerald-500 file:text-white hover:file:bg-emerald-600 cursor-pointer">
                     <button type="submit" class="w-full sm:w-auto bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white px-8 py-2.5 rounded-lg font-black text-xs uppercase tracking-widest whitespace-nowrap shadow-lg transition">🚀 PROSES LYNX</button>
                 </form>
             </div>

@@ -845,27 +845,50 @@ class RollResultController extends Controller {
                 $distName = $stmtC->fetchColumn() ?: '';
                 $isRelay = stripos($distName, 'Relay') !== false || stripos($distName, 'Pair') !== false;
 
-                $file = fopen($_FILES['lynx_csv']['tmp_name'], 'r');
+                $filename = strtolower($_FILES['lynx_csv']['name']);
+                $isExcel = (str_ends_with($filename, '.xlsx') || str_ends_with($filename, '.xls'));
+                
+                $rowsToProcess = [];
+                if ($isExcel) {
+                    require_once __DIR__ . '/../../../Core/SimpleXLSX.php';
+                    if ( $xlsx = \Shuchkin\SimpleXLSX::parse($_FILES['lynx_csv']['tmp_name']) ) {
+                        $rowsToProcess = $xlsx->rows();
+                    } else {
+                        $_SESSION['flash_message'] = "Gagal membaca file Excel: " . \Shuchkin\SimpleXLSX::parseError();
+                        $_SESSION['flash_type'] = "error";
+                        header("Location: " . getenv('APP_URL') . "/roll/admin/results?race_class_id={$classId}&round=" . urlencode($round));
+                        exit;
+                    }
+                } else {
+                    $file = fopen($_FILES['lynx_csv']['tmp_name'], 'r');
+                    while (($lineStr = fgets($file)) !== false) {
+                        $lineStr = trim($lineStr);
+                        if (empty($lineStr)) continue;
+                        
+                        $delimiter = (strpos($lineStr, ';') !== false && strpos($lineStr, ',') === false) ? ';' : ',';
+                        $rowsToProcess[] = str_getcsv($lineStr, $delimiter);
+                    }
+                    fclose($file);
+                }
+
                 $db->beginTransaction();
                 try {
                     $headerFound = false;
                     
-                    while (($lineStr = fgets($file)) !== false) {
-                        // Bersihkan spasi/newline
-                        $lineStr = trim($lineStr);
-                        if (empty($lineStr)) continue;
-
-                        // Deteksi Header Lynx: Place;Id;First Name;Last Name;Affiliation;Time;
+                    foreach ($rowsToProcess as $data) {
                         if (!$headerFound) {
-                            if (strpos(strtolower($lineStr), 'place;id;') !== false || strpos(strtolower($lineStr), 'place,id,') !== false) {
+                            $col0 = strtolower(trim($data[0] ?? ''));
+                            $col1 = strtolower(trim($data[1] ?? ''));
+                            if (strpos($col0, 'place') !== false && (strpos($col1, 'id') !== false || strpos($col1, 'bib') !== false)) {
                                 $headerFound = true;
+                            } else if (!$isExcel) {
+                                $lineRaw = strtolower(implode(',', $data));
+                                if (strpos($lineRaw, 'place') !== false && (strpos($lineRaw, 'id') !== false || strpos($lineRaw, 'bib') !== false)) {
+                                    $headerFound = true;
+                                }
                             }
                             continue;
                         }
-
-                        // Parse isi setelah header ditemukan
-                        $delimiter = (strpos($lineStr, ';') !== false && strpos($lineStr, ',') === false) ? ';' : ',';
-                        $data = str_getcsv($lineStr, $delimiter);
                         
                         // Kolom Lynx: [0] Place, [1] Id(BIB), [2] First Name, [3] Last Name, [4] Affiliation(Heat), [5] Time
                         if (count($data) < 2) continue;
