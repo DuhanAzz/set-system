@@ -876,6 +876,9 @@ class RollResultController extends Controller {
                 try {
                     $headerFound = false;
                     $matchedCount = 0;
+                    $idxBib = 1;
+                    $idxTime = 5;
+                    $idxAffiliation = 4;
                     
                     foreach ($rowsToProcess as $data) {
                         // Normalize poorly formatted files where everything is in column A separated by spaces
@@ -890,30 +893,46 @@ class RollResultController extends Controller {
                             $col0 = strtolower(trim($data[0] ?? ''));
                             $col1 = strtolower(trim($data[1] ?? ''));
                             
+                            $isHeader = false;
                             // Check for Place and Id/Bib in the first two columns
                             if (strpos($col0, 'place') !== false && (strpos($col1, 'id') !== false || strpos($col1, 'bib') !== false)) {
-                                $headerFound = true;
+                                $isHeader = true;
                             } else {
                                 // Fallback: sometimes columns get shifted or joined
                                 $lineRaw = strtolower(implode(',', $data));
                                 if (strpos($lineRaw, 'place') !== false && (strpos($lineRaw, 'id') !== false || strpos($lineRaw, 'bib') !== false)) {
-                                    $headerFound = true;
+                                    $isHeader = true;
+                                }
+                            }
+                            
+                            if ($isHeader) {
+                                $headerFound = true;
+                                foreach ($data as $idx => $val) {
+                                    $valLower = strtolower(trim($val));
+                                    if ($valLower === 'id' || strpos($valLower, 'bib') !== false) {
+                                        $idxBib = $idx;
+                                    } elseif (strpos($valLower, 'time') !== false) {
+                                        $idxTime = $idx;
+                                    } elseif (strpos($valLower, 'affiliation') !== false || strpos($valLower, 'heat') !== false) {
+                                        $idxAffiliation = $idx;
+                                    }
                                 }
                             }
                             continue;
                         }
                         
-                        // Kolom Lynx: [0] Place, [1] Id(BIB), [2] First Name, [3] Last Name, [4] Affiliation(Heat), [5] Time
+                        // Kolom Lynx: Place, Id(BIB), First Name, Last Name, Affiliation(Heat), Time (index dinamis)
                         if (count($data) < 2) continue;
                         
-                        $bib = trim($data[1] ?? '');
+                        $bib = trim($data[$idxBib] ?? '');
                         if (empty($bib)) continue;
                         
                         $bibOriginal = $bib;
                         $bibPadded = str_pad($bib, 3, '0', STR_PAD_LEFT);
                         $bibLtrim = ltrim($bib, '0');
                         if ($bibLtrim === '') $bibLtrim = '0'; // Handle '000' case
-                        $rawTime = trim($data[5] ?? '');
+                        
+                        $rawTime = trim($data[$idxTime] ?? '');
                         $rawTimeLower = strtolower($rawTime);
                         $status = 'OK';
                         
@@ -971,7 +990,7 @@ class RollResultController extends Controller {
                                 $heat = $dbHeat;
                             } else {
                                 // 2. Fallback to Lynx data if it looks like a heat name
-                                $heatNo = trim($data[4] ?? '');
+                                $heatNo = trim($data[$idxAffiliation] ?? '');
                                 if (stripos($heatNo, 'heat') !== false) {
                                     $heat = "Heat " . trim(str_ireplace('heat', '', $heatNo));
                                 } else {
