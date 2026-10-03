@@ -358,13 +358,7 @@ class RollMasterSettingsController extends Controller {
               AND LOWER(d.distance_name) NOT LIKE '%team%'
               AND LOWER(d.distance_name) NOT LIKE '%ts%'
               AND LOWER(d.distance_name) NOT LIKE '%beregu%'
-              AND r.round = (
-                  SELECT round 
-                  FROM roll_event_results 
-                  WHERE event_id = r.event_id AND race_class_id = r.race_class_id 
-                  ORDER BY CASE round WHEN 'Kualifikasi' THEN 1 WHEN 'Perempat Final' THEN 2 WHEN 'Semi Final' THEN 3 WHEN 'Final' THEN 4 ELSE 5 END DESC 
-                  LIMIT 1
-              )
+              AND r.round = 'Final'
             ORDER BY ev.event_date_start ASC
         ");
         $stmtRaw->execute($eventIds);

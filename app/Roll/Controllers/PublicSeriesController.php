@@ -62,13 +62,7 @@ class PublicSeriesController extends Controller {
                 WHERE r.event_id IN ($inClause)
                   AND r.rank IN (1, 2, 3) 
                   AND r.status = 'OK'
-                  AND r.round = (
-                      SELECT round 
-                      FROM roll_event_results 
-                      WHERE event_id = r.event_id AND race_class_id = r.race_class_id 
-                      ORDER BY CASE round WHEN 'Kualifikasi' THEN 1 WHEN 'Perempat Final' THEN 2 WHEN 'Semi Final' THEN 3 WHEN 'Final' THEN 4 ELSE 5 END DESC 
-                      LIMIT 1
-                  )
+                  AND r.round = 'Final'
                   AND (ent.status = 'Finished' OR ent.status = 'Qualified')
                 GROUP BY c.id, c.club_name
                 ORDER BY gold DESC, silver DESC, bronze DESC, c.club_name ASC
@@ -106,13 +100,7 @@ class PublicSeriesController extends Controller {
                 WHERE r.event_id IN ($inClause)
                   AND r.rank IN (1, 2, 3)
                   AND r.status = 'OK'
-                  AND r.round = (
-                      SELECT round 
-                      FROM roll_event_results 
-                      WHERE event_id = r.event_id AND race_class_id = r.race_class_id 
-                      ORDER BY CASE round WHEN 'Kualifikasi' THEN 1 WHEN 'Perempat Final' THEN 2 WHEN 'Semi Final' THEN 3 WHEN 'Final' THEN 4 ELSE 5 END DESC 
-                      LIMIT 1
-                  )
+                  AND r.round = 'Final'
                   AND (ent.status = 'Finished' OR ent.status = 'Qualified')
                 GROUP BY r.event_id, s.id, s.skater_name, c.club_name, s.birth_date, ag.group_name, sc.class_name, s.gender
                 HAVING gold > 0 OR silver > 0 OR bronze > 0

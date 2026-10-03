@@ -42,13 +42,7 @@ class RollMedalTallyController extends Controller {
               AND (ed.category_name != 'EKSEBISI' OR ed.category_name IS NULL)
               AND r.rank IN (1, 2, 3) 
               AND r.status = 'OK'
-              AND r.round = (
-                  SELECT round 
-                  FROM roll_event_results 
-                  WHERE event_id = r.event_id AND race_class_id = r.race_class_id 
-                  ORDER BY CASE round WHEN 'Kualifikasi' THEN 1 WHEN 'Perempat Final' THEN 2 WHEN 'Semi Final' THEN 3 WHEN 'Final' THEN 4 ELSE 5 END DESC 
-                  LIMIT 1
-              )
+              AND r.round = 'Final'
             GROUP BY c.id, c.club_name
             ORDER BY gold DESC, silver DESC, bronze DESC, c.club_name ASC
         ");
@@ -85,13 +79,10 @@ class RollMedalTallyController extends Controller {
         $params = [$eventId];
         $whereClause = "r.event_id = ? AND r.rank IN (1, 2, 3) AND r.status = 'OK' 
                         AND (ed.category_name != 'EKSEBISI' OR ed.category_name IS NULL)
-                        AND r.round = (
-                            SELECT round 
-                            FROM roll_event_results 
-                            WHERE event_id = r.event_id AND race_class_id = r.race_class_id 
-                            ORDER BY CASE round WHEN 'Kualifikasi' THEN 1 WHEN 'Perempat Final' THEN 2 WHEN 'Semi Final' THEN 3 WHEN 'Final' THEN 4 ELSE 5 END DESC 
-                            LIMIT 1
-                        )";
+                        AND LOWER(d.distance_name) NOT LIKE '%relay%'
+                        AND LOWER(d.distance_name) NOT LIKE '%team%'
+                        AND LOWER(d.distance_name) NOT LIKE '%pair%'
+                        AND r.round = 'Final'";
         
         if (!empty($category)) {
             $whereClause .= " AND sc.class_name = ?";
@@ -119,6 +110,7 @@ class RollMedalTallyController extends Controller {
             JOIN roll_skaters s ON r.skater_id = s.id
             LEFT JOIN roll_clubs c ON s.club_id = c.id
             JOIN roll_event_details ed ON r.race_class_id = ed.id
+            LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
             LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
             JOIN roll_ref_age_groups ag ON ed.age_group_id = ag.id
             JOIN roll_entries e ON r.skater_id = e.skater_id AND r.race_class_id = e.race_class_id
