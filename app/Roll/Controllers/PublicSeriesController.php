@@ -51,23 +51,56 @@ class PublicSeriesController extends Controller {
             
             // Rekap Medali Klub Gabungan
             $stmtTally = $db->prepare("
-                SELECT c.id, c.club_name,
-                    SUM(CASE WHEN r.rank = 1 THEN 1 ELSE 0 END) as gold,
-                    SUM(CASE WHEN r.rank = 2 THEN 1 ELSE 0 END) as silver,
-                    SUM(CASE WHEN r.rank = 3 THEN 1 ELSE 0 END) as bronze
-                FROM roll_event_results r
-                JOIN roll_skaters s ON r.skater_id = s.id
-                JOIN roll_clubs c ON s.club_id = c.id
-                JOIN roll_entries ent ON r.skater_id = ent.skater_id AND r.race_class_id = ent.race_class_id
-                WHERE r.event_id IN ($inClause)
-                  AND r.rank IN (1, 2, 3) 
-                  AND r.status = 'OK'
-                  AND r.round = 'Final'
-                  AND (ent.status = 'Finished' OR ent.status = 'Qualified')
-                GROUP BY c.id, c.club_name
-                ORDER BY gold DESC, silver DESC, bronze DESC, c.club_name ASC
+                SELECT club_id as id, club_name,
+                    SUM(gold) as gold,
+                    SUM(silver) as silver,
+                    SUM(bronze) as bronze
+                FROM (
+                    SELECT c.id as club_id, c.club_name,
+                        CASE WHEN r.rank = 1 THEN 1 ELSE 0 END as gold,
+                        CASE WHEN r.rank = 2 THEN 1 ELSE 0 END as silver,
+                        CASE WHEN r.rank = 3 THEN 1 ELSE 0 END as bronze
+                    FROM roll_event_results r
+                    JOIN roll_skaters s ON r.skater_id = s.id
+                    JOIN roll_clubs c ON s.club_id = c.id
+                    JOIN roll_entries ent ON r.skater_id = ent.skater_id AND r.race_class_id = ent.race_class_id
+                    JOIN roll_event_details ed ON r.race_class_id = ed.id
+                    LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
+                    WHERE r.event_id IN ($inClause)
+                      AND r.rank IN (1, 2, 3) 
+                      AND r.status = 'OK'
+                      AND r.round = 'Final'
+                      AND (ent.status = 'Finished' OR ent.status = 'Qualified')
+                      AND LOWER(d.distance_name) NOT LIKE '%relay%'
+                      AND LOWER(d.distance_name) NOT LIKE '%team%'
+                      AND LOWER(d.distance_name) NOT LIKE '%pair%'
+
+                    UNION ALL
+
+                    SELECT c.id as club_id, c.club_name,
+                        CASE WHEN r.rank = 1 THEN 1 ELSE 0 END as gold,
+                        CASE WHEN r.rank = 2 THEN 1 ELSE 0 END as silver,
+                        CASE WHEN r.rank = 3 THEN 1 ELSE 0 END as bronze
+                    FROM roll_event_results r
+                    JOIN roll_skaters s ON r.skater_id = s.id
+                    JOIN roll_clubs c ON s.club_id = c.id
+                    JOIN roll_entries ent ON r.skater_id = ent.skater_id AND r.race_class_id = ent.race_class_id
+                    JOIN roll_event_details ed ON r.race_class_id = ed.id
+                    LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
+                    WHERE r.event_id IN ($inClause)
+                      AND r.rank IN (1, 2, 3) 
+                      AND r.status = 'OK'
+                      AND r.round = 'Final'
+                      AND (ent.status = 'Finished' OR ent.status = 'Qualified')
+                      AND (LOWER(d.distance_name) LIKE '%relay%' 
+                           OR LOWER(d.distance_name) LIKE '%team%' 
+                           OR LOWER(d.distance_name) LIKE '%pair%')
+                    GROUP BY c.id, c.club_name, r.race_class_id, r.rank
+                ) as combined
+                GROUP BY club_id, club_name
+                ORDER BY gold DESC, silver DESC, bronze DESC, club_name ASC
             ");
-            $stmtTally->execute($eventIds);
+            $stmtTally->execute(array_merge($eventIds, $eventIds));
             $standings = $stmtTally->fetchAll(PDO::FETCH_ASSOC) ?: [];
             
             $point_rules = json_decode($series['point_rules'] ?? '{}', true) ?: [
