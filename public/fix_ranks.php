@@ -1,4 +1,21 @@
 <?php
+// ============================================================
+// 🛡️ BULLETPROOF ENV PARSER
+// ============================================================
+$envFile = __DIR__ . '/../.env';
+if (file_exists($envFile)) {
+    $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    foreach ($lines as $line) {
+        if (strpos(trim($line), '#') === 0) continue;
+        list($name, $value) = explode('=', $line, 2);
+        $name  = trim($name);
+        $value = trim($value, '"\' ');
+        putenv("{$name}={$value}");
+        $_ENV[$name] = $value;
+        $_SERVER[$name] = $value;
+    }
+}
+
 require_once __DIR__ . '/../app/Core/Database.php';
 
 try {
@@ -48,8 +65,10 @@ try {
             $updateStmt = $db->prepare("UPDATE roll_event_results SET rank = ? WHERE id = ?");
             $updateStmt->execute([5, $jazzieId]);
             $updateStmt->execute([4, $sekarId]);
-            echo "<h1>BERHASIL!</h1><p>Rank untuk Jazzie dan Sekar Ayu pada Race 111 sudah berhasil ditukar (Jazzie juara 5, Sekar juara 4).</p>";
+            echo "<div style='font-family: sans-serif; text-align: center; margin-top: 50px;'>";
+            echo "<h1 style='color: green;'>BERHASIL!</h1><p>Rank untuk Jazzie dan Sekar Ayu pada Race 111 sudah berhasil ditukar (Jazzie juara 5, Sekar juara 4).</p>";
             echo "<p>Silakan tutup halaman ini dan cek kembali halaman Klasemen MVP dan Cetak PDF-nya.</p>";
+            echo "</div>";
         } else {
             echo "<h1>Gagal</h1><p>Data Jazzie atau Sekar tidak ditemukan di Race 111.</p>";
         }
