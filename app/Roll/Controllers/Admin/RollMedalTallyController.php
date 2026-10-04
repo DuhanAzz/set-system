@@ -59,7 +59,6 @@ class RollMedalTallyController extends Controller {
             ) as ranked_r
             JOIN roll_skaters s ON ranked_r.skater_id = s.id
             JOIN roll_clubs c ON s.club_id = c.id
-            JOIN roll_entries e ON ranked_r.skater_id = e.skater_id AND ranked_r.race_class_id = e.race_class_id
             WHERE ranked_r.global_rank IN (1, 2, 3)
             GROUP BY c.id, c.club_name
             ORDER BY gold DESC, silver DESC, bronze DESC, c.club_name ASC
@@ -154,7 +153,6 @@ class RollMedalTallyController extends Controller {
             LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
             LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
             JOIN roll_ref_age_groups ag ON ed.age_group_id = ag.id
-            JOIN roll_entries e ON ranked_r.skater_id = e.skater_id AND ranked_r.race_class_id = e.race_class_id
             WHERE $whereClause
             GROUP BY s.id, s.skater_name, s.gender, s.birth_date, sc.class_name, ag.group_name, ag.min_year, c.club_name
             ORDER BY sc.class_name ASC, ag.min_year DESC, ag.group_name ASC, s.gender DESC, 
