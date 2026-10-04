@@ -148,7 +148,7 @@ class RollMedalTallyController extends Controller {
                         SELECT COUNT(*) 
                         FROM roll_event_results r2 
                         WHERE r2.event_id = r.event_id AND r2.race_class_id = r.race_class_id 
-                          AND r2.round = 'Final' AND r2.status = 'OK'
+                          AND r2.round = 'Final' AND COALESCE(r2.status, 'OK') = 'OK'
                           AND (
                               (COALESCE(LOWER(d.distance_name), '') LIKE '%eliminasi%' AND r2.rank > 0 AND (r.rank IS NULL OR r.rank = 0 OR r2.rank < r.rank OR (r2.rank = r.rank AND CAST(REPLACE(r2.heat_name, 'Heat ', '') AS UNSIGNED) < CAST(REPLACE(r.heat_name, 'Heat ', '') AS UNSIGNED))))
                               OR (COALESCE(LOWER(d.distance_name), '') LIKE '%dtt%' AND (
@@ -179,12 +179,12 @@ class RollMedalTallyController extends Controller {
                 FROM roll_event_results r
                 JOIN roll_event_details ed ON r.race_class_id = ed.id
                 LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
-                WHERE r.event_id = ? AND r.round = 'Final' AND r.status = 'OK'
+                WHERE r.event_id = ? AND r.round = 'Final' AND COALESCE(r.status, 'OK') = 'OK'
                   AND (ed.category_name != 'EKSEBISI' OR ed.category_name IS NULL)
                   AND LOWER(d.distance_name) NOT LIKE '%relay%'
                   AND LOWER(d.distance_name) NOT LIKE '%team%'
                   AND LOWER(d.distance_name) NOT LIKE '%pair%'
-            ) as ranked_r
+            ) ranked_r
             JOIN roll_skaters s ON ranked_r.skater_id = s.id
             LEFT JOIN roll_clubs c ON s.club_id = c.id
             JOIN roll_event_details ed ON ranked_r.race_class_id = ed.id
