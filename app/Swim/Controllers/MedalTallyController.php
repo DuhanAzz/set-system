@@ -23,7 +23,7 @@ class MedalTallyController extends Controller {
 
     private function timeToMs($time) {
         $time = trim($time);
-        if (empty($time) || $time == 'NT' || $time == '99:99.99' || $time == '-') return 9999999999; 
+        if (empty($time) || strtoupper($time) == 'NT' || $time == '99:99.99' || $time == '99.99.99' || $time == '-') return 9999999999; 
         $parts = preg_split('/[:.]/', $time);
         $menit = 0; $detik = 0; $ms = 0;
         if (count($parts) == 3) { $menit = (int)$parts[0]; $detik = (int)$parts[1]; $ms = (int)$parts[2]; } 
@@ -148,7 +148,7 @@ class MedalTallyController extends Controller {
         $eventsGrouped = [];
         foreach($allEntries as $r) {
             $r['ms_sort'] = 9999999999;
-            if (!empty($r['time_final']) && $r['time_final'] != 'NT') { $r['ms_sort'] = $this->timeToMs($r['time_final']); }
+            if (!empty($r['time_final']) && strtoupper($r['time_final']) != 'NT' && $r['time_final'] != '99:99.99' && $r['time_final'] != '99.99.99') { $r['ms_sort'] = $this->timeToMs($r['time_final']); }
             
             $isSplit = ($r['rank_mode'] === 'split');
             
@@ -166,7 +166,7 @@ class MedalTallyController extends Controller {
                 
                 $rank = 1; $real_rank = 1; $prev_time = null;
                 foreach($swimmers as &$s) {
-                    $isValid = ($s['is_dq_final'] == 0 && !empty($s['time_final']) && $s['time_final'] != 'NT');
+                    $isValid = ($s['is_dq_final'] == 0 && !empty($s['time_final']) && strtoupper($s['time_final']) != 'NT' && $s['time_final'] != '99:99.99' && $s['time_final'] != '99.99.99');
                     if ($isValid) {
                         if ($s['ms_sort'] !== $prev_time) { $real_rank = $rank; }
                         if ($real_rank <= 3) {

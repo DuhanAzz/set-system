@@ -24,7 +24,7 @@ class ResultsController extends Controller {
 
     private function timeToMs($time) {
         $time = trim($time);
-        if (empty($time) || $time == 'NT' || $time == '99:99.99' || $time == '-') return 9999999999; 
+        if (empty($time) || strtoupper($time) == 'NT' || $time == '99:99.99' || $time == '99.99.99' || $time == '-') return 9999999999; 
         $parts = preg_split('/[:.]/', $time);
         $menit = 0; $detik = 0; $ms = 0;
         if (count($parts) == 3) { $menit = (int)$parts[0]; $detik = (int)$parts[1]; $ms = (int)$parts[2]; } 
@@ -307,7 +307,7 @@ class ResultsController extends Controller {
             if ($rankModePost === 'overall') {
                 $valid = []; $invalid = [];
                 foreach ($allSwimmers as $s) {
-                    if ($s['is_dq'] == 0 && !empty($s['final_time']) && $s['final_time'] != 'NT') {
+                    if ($s['is_dq'] == 0 && !empty($s['final_time']) && strtoupper($s['final_time']) != 'NT' && $s['final_time'] != '99:99.99' && $s['final_time'] != '99.99.99') {
                         $s['ms'] = $this->timeToMs($s['final_time']); $valid[] = $s;
                     } else { $invalid[] = $s; }
                 }
@@ -327,7 +327,7 @@ class ResultsController extends Controller {
                 foreach ($groupedSwimmers as $groupName => $swimmersInGroup) {
                     $valid = []; $invalid = [];
                     foreach ($swimmersInGroup as $s) {
-                        if ($s['is_dq'] == 0 && !empty($s['final_time']) && $s['final_time'] != 'NT') {
+                        if ($s['is_dq'] == 0 && !empty($s['final_time']) && strtoupper($s['final_time']) != 'NT' && $s['final_time'] != '99:99.99' && $s['final_time'] != '99.99.99') {
                             $s['ms'] = $this->timeToMs($s['final_time']); $valid[] = $s;
                         } else { $invalid[] = $s; }
                     }

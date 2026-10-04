@@ -105,7 +105,7 @@ class LiveResultController extends Controller {
         if (!function_exists('timeToMs')) {
             function timeToMs($time) {
                 $time = trim($time);
-                if (empty($time) || $time == 'NT' || $time == '99:99.99' || $time == '-') return 9999999999; 
+                if (empty($time) || strtoupper($time) == 'NT' || $time == '99:99.99' || $time == '99.99.99' || $time == '-') return 9999999999; 
                 $parts = preg_split('/[:.]/', $time);
                 $menit = 0; $detik = 0; $ms = 0;
                 if (count($parts) == 3) { $menit = (int)$parts[0]; $detik = (int)$parts[1]; $ms = (int)$parts[2]; } 
@@ -121,7 +121,7 @@ class LiveResultController extends Controller {
         foreach ($results as $r) {
             $r['ms_sort'] = 9999999999;
             if ($r['is_dq_final'] == 1) { $r['ms_sort'] = 9999999999 + 100; }
-            elseif (!empty($r['time_final']) && $r['time_final'] != 'NT') { $r['ms_sort'] = timeToMs($r['time_final']); }
+            elseif (!empty($r['time_final']) && strtoupper($r['time_final']) != 'NT' && $r['time_final'] != '99:99.99' && $r['time_final'] != '99.99.99') { $r['ms_sort'] = timeToMs($r['time_final']); }
             
             $isSplit = ($r['rank_mode'] === 'split');
             $is_gabungan = (stripos($r['age_group'], 'GABUNG') !== false || strpos($r['age_group'], ',') !== false || strpos($r['age_group'], '/') !== false);
@@ -146,7 +146,7 @@ class LiveResultController extends Controller {
             $rank = 1; $real_rank = 1; $prev_time = null;
             foreach ($rows as &$atlet) {
                 $isDQ = ($atlet['is_dq_final'] == 1);
-                $isValid = (!$isDQ && !empty($atlet['time_final']) && $atlet['time_final'] != 'NT');
+                $isValid = (!$isDQ && !empty($atlet['time_final']) && strtoupper($atlet['time_final']) != 'NT' && $atlet['time_final'] != '99:99.99' && $atlet['time_final'] != '99.99.99');
                 $atlet['dynamic_rank'] = null;
                 if ($isValid) {
                     if ($atlet['ms_sort'] !== $prev_time) { $real_rank = $rank; }

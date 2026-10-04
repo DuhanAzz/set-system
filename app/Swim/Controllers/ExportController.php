@@ -133,7 +133,7 @@ if (!function_exists('getAgeGroupLabel')) {
 if (!function_exists('timeToMs')) {
     function timeToMs($time) {
         $time = trim($time);
-        if (empty($time) || $time == 'NT' || $time == '99:99.99' || $time == '-') return 9999999999; 
+        if (empty($time) || strtoupper($time) == 'NT' || $time == '99:99.99' || $time == '99.99.99' || $time == '-') return 9999999999; 
         $parts = preg_split('/[:.]/', $time);
         $menit = 0; $detik = 0; $ms = 0;
         if (count($parts) == 3) { $menit = (int)$parts[0]; $detik = (int)$parts[1]; $ms = (int)$parts[2]; } 
@@ -146,7 +146,7 @@ if (!function_exists('timeToMs')) {
 if (!function_exists('formatTimeDisplay')) {
     function formatTimeDisplay($time) {
         $time = trim($time);
-        if (empty($time) || $time == 'NT' || $time == '99:99.99' || $time == '-') return $time;
+        if (empty($time) || strtoupper($time) == 'NT' || $time == '99:99.99' || $time == '99.99.99' || $time == '-') return $time;
         $parts = preg_split('/[:.]/', $time);
         $menit = 0; $detik = 0; $ms = 0;
         if (count($parts) == 3) { $menit = (int)$parts[0]; $detik = (int)$parts[1]; $ms = (int)$parts[2]; } 
@@ -194,7 +194,7 @@ $groupedResults = [];
 foreach ($results as $r) {
     $r['ms_sort'] = 9999999999;
     if ($r['is_dq_final'] == 1) { $r['ms_sort'] = 9999999999 + 100; }
-    elseif (!empty($r['time_final']) && $r['time_final'] != 'NT') { $r['ms_sort'] = timeToMs($r['time_final']); }
+    elseif (!empty($r['time_final']) && strtoupper($r['time_final']) != 'NT' && $r['time_final'] != '99:99.99' && $r['time_final'] != '99.99.99') { $r['ms_sort'] = timeToMs($r['time_final']); }
     
     $is_gabungan = (stripos($r['event_age_group'], 'GABUNG') !== false || strpos($r['event_age_group'], ',') !== false || strpos($r['event_age_group'], '/') !== false);
     
@@ -376,7 +376,7 @@ if (!function_exists('getAgeGroupLabel')) {
 if (!function_exists('timeToMs')) {
     function timeToMs($time) {
         $time = trim($time);
-        if (empty($time) || $time == 'NT' || $time == '99:99.99' || $time == '-') return 9999999999; 
+        if (empty($time) || strtoupper($time) == 'NT' || $time == '99:99.99' || $time == '99.99.99' || $time == '-') return 9999999999; 
         $parts = preg_split('/[:.]/', $time);
         $menit = 0; $detik = 0; $ms = 0;
         if (count($parts) == 3) { $menit = (int)$parts[0]; $detik = (int)$parts[1]; $ms = (int)$parts[2]; } 
@@ -389,7 +389,7 @@ if (!function_exists('timeToMs')) {
 if (!function_exists('formatTimeDisplay')) {
     function formatTimeDisplay($time) {
         $time = trim($time);
-        if (empty($time) || $time == 'NT' || $time == '99:99.99' || $time == '-') return $time;
+        if (empty($time) || strtoupper($time) == 'NT' || $time == '99:99.99' || $time == '99.99.99' || $time == '-') return $time;
         $parts = preg_split('/[:.]/', $time);
         $menit = 0; $detik = 0; $ms = 0;
         if (count($parts) == 3) { $menit = (int)$parts[0]; $detik = (int)$parts[1]; $ms = (int)$parts[2]; } 
@@ -438,7 +438,7 @@ $groupedResults = [];
 foreach ($results as $r) {
     $r['ms_sort'] = 9999999999;
     if ($r['is_dq_final'] == 1) { $r['ms_sort'] = 9999999999 + 100; }
-    elseif (!empty($r['time_final']) && $r['time_final'] != 'NT') { $r['ms_sort'] = timeToMs($r['time_final']); }
+    elseif (!empty($r['time_final']) && strtoupper($r['time_final']) != 'NT' && $r['time_final'] != '99:99.99' && $r['time_final'] != '99.99.99') { $r['ms_sort'] = timeToMs($r['time_final']); }
     
     $is_gabungan = (stripos($r['event_age_group'], 'GABUNG') !== false || strpos($r['event_age_group'], ',') !== false || strpos($r['event_age_group'], '/') !== false);
     
