@@ -337,20 +337,58 @@ class RollExportController extends Controller {
         // MVP Tally
         $stmtMVP = $db->prepare("
             SELECT s.id, s.skater_name, s.gender, s.birth_date, sc.class_name as category_name, ag.group_name, c.club_name,
-                SUM(CASE WHEN r.rank = 1 THEN 1 ELSE 0 END) as gold,
-                SUM(CASE WHEN r.rank = 2 THEN 1 ELSE 0 END) as silver,
-                SUM(CASE WHEN r.rank = 3 THEN 1 ELSE 0 END) as bronze
-            FROM roll_event_results r
-            JOIN roll_skaters s ON r.skater_id = s.id
+                SUM(CASE WHEN ranked_r.global_rank = 1 THEN 1 ELSE 0 END) as gold,
+                SUM(CASE WHEN ranked_r.global_rank = 2 THEN 1 ELSE 0 END) as silver,
+                SUM(CASE WHEN ranked_r.global_rank = 3 THEN 1 ELSE 0 END) as bronze
+            FROM (
+                SELECT r.event_id, r.race_class_id, r.skater_id, r.status, r.round,
+                    (
+                        SELECT COUNT(*) 
+                        FROM roll_event_results r2 
+                        WHERE r2.event_id = r.event_id AND r2.race_class_id = r.race_class_id 
+                          AND r2.round = 'Final' AND r2.status = 'OK'
+                          AND (
+                              (COALESCE(LOWER(d.distance_name), '') LIKE '%eliminasi%' AND r2.rank > 0 AND (r.rank IS NULL OR r.rank = 0 OR r2.rank < r.rank OR (r2.rank = r.rank AND CAST(REPLACE(r2.heat_name, 'Heat ', '') AS UNSIGNED) < CAST(REPLACE(r.heat_name, 'Heat ', '') AS UNSIGNED))))
+                              OR (COALESCE(LOWER(d.distance_name), '') LIKE '%dtt%' AND (
+                                  (r2.time != '00.00.000' AND r2.time != '' AND (r.time IS NULL OR r.time = '' OR r.time = '00.00.000' OR CAST(REPLACE(REPLACE(r2.time, ':', ''), '.', '') AS UNSIGNED) < CAST(REPLACE(REPLACE(r.time, ':', ''), '.', '') AS UNSIGNED)))
+                                  OR ((r2.time = r.time OR ((r2.time IS NULL OR r2.time = '' OR r2.time = '00.00.000') AND (r.time IS NULL OR r.time = '' OR r.time = '00.00.000'))) AND CAST(REPLACE(r2.heat_name, 'Heat ', '') AS UNSIGNED) < CAST(REPLACE(r.heat_name, 'Heat ', '') AS UNSIGNED))
+                              ))
+                              OR (
+                                  COALESCE(LOWER(d.distance_name), '') NOT LIKE '%eliminasi%' AND COALESCE(LOWER(d.distance_name), '') NOT LIKE '%dtt%' AND (
+                                      (COALESCE(r2.point, 0) > COALESCE(r.point, 0))
+                                      OR (
+                                          COALESCE(r2.point, 0) = COALESCE(r.point, 0) AND (
+                                              (r2.rank > 0 AND (r.rank IS NULL OR r.rank = 0 OR r2.rank < r.rank))
+                                              OR (
+                                                  (COALESCE(r2.rank, 0) = COALESCE(r.rank, 0)) AND (
+                                                      (r2.time != '00.00.000' AND r2.time != '' AND (r.time IS NULL OR r.time = '' OR r.time = '00.00.000' OR CAST(REPLACE(REPLACE(r2.time, ':', ''), '.', '') AS UNSIGNED) < CAST(REPLACE(REPLACE(r.time, ':', ''), '.', '') AS UNSIGNED)))
+                                                      OR (
+                                                          (r2.time = r.time OR ((r2.time IS NULL OR r2.time = '' OR r2.time = '00.00.000') AND (r.time IS NULL OR r.time = '' OR r.time = '00.00.000')))
+                                                          AND CAST(REPLACE(r2.heat_name, 'Heat ', '') AS UNSIGNED) < CAST(REPLACE(r.heat_name, 'Heat ', '') AS UNSIGNED)
+                                                      )
+                                                  )
+                                              )
+                                          )
+                                      )
+                                  )
+                              )
+                          )
+                    ) + 1 as global_rank
+                FROM roll_event_results r
+                JOIN roll_event_details ed ON r.race_class_id = ed.id
+                LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
+                WHERE r.event_id = ? AND r.round = 'Final' AND r.status = 'OK'
+                  AND (ed.category_name != 'EKSEBISI' OR ed.category_name IS NULL)
+                  AND LOWER(d.distance_name) NOT LIKE '%relay%'
+                  AND LOWER(d.distance_name) NOT LIKE '%team%'
+                  AND LOWER(d.distance_name) NOT LIKE '%pair%'
+            ) ranked_r
+            JOIN roll_skaters s ON ranked_r.skater_id = s.id
             LEFT JOIN roll_clubs c ON s.club_id = c.id
-            JOIN roll_event_details ed ON r.race_class_id = ed.id
+            JOIN roll_event_details ed ON ranked_r.race_class_id = ed.id
             LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
             JOIN roll_ref_age_groups ag ON ed.age_group_id = ag.id
-            JOIN roll_entries e ON r.skater_id = e.skater_id AND r.race_class_id = e.race_class_id
-            WHERE r.event_id = ? 
-              AND (ed.category_name != 'EKSEBISI' OR ed.category_name IS NULL)
-              AND r.rank IN (1, 2, 3) 
-              AND r.status = 'OK'
+            WHERE ranked_r.global_rank IN (1, 2, 3)
             GROUP BY s.id, s.skater_name, s.gender, s.birth_date, sc.class_name, ag.group_name, c.club_name
             ORDER BY sc.class_name ASC, ag.group_name ASC, s.gender ASC, 
                      gold DESC, silver DESC, bronze DESC, s.birth_date DESC, s.skater_name ASC
