@@ -140,7 +140,26 @@ class PublicSeriesController extends Controller {
                 }
             }
             
-            ksort($bestSkaters);
+            uksort($bestSkaters, function($a, $b) {
+                $getSortValue = function($str) {
+                    $str = strtolower($str);
+                    if (strpos($str, 'senior') !== false) return 99;
+                    if (strpos($str, 'junior') !== false) return 18;
+                    if (preg_match('/u\s*(\d+)/', $str, $matches)) {
+                        return (int)$matches[1];
+                    }
+                    return 0; 
+                };
+                
+                $valA = $getSortValue($a);
+                $valB = $getSortValue($b);
+                
+                if ($valA != $valB) {
+                    return $valB <=> $valA; // Tertua (nilai terbesar) di kiri
+                }
+                
+                return $a <=> $b;
+            });
             
             // Filter KU yang diizinkan untuk dipublish
             if (isset($series['published_ku_standings']) && $series['published_ku_standings'] !== null && $series['published_ku_standings'] !== '') {
