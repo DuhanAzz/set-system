@@ -240,7 +240,7 @@ foreach ($groupedResults as $groupName => &$rows) {
         $timeFinal = isset($atlet['time_final']) ? $atlet['time_final'] : '';
         $msSort = isset($atlet['ms_sort']) ? $atlet['ms_sort'] : 9999999999;
         
-        $isValid = (!$isDQ && !empty($timeFinal) && $timeFinal != 'NT');
+        $isValid = (!$isDQ && !empty($timeFinal) && strtoupper($timeFinal) != 'NT' && $timeFinal != '99:99.99' && $timeFinal != '99.99.99');
         $atlet['dynamic_rank'] = null;
         if ($isValid) {
             if ($msSort !== $prev_time) { $real_rank = $rank; }
@@ -536,7 +536,7 @@ foreach ($groupedResults as $groupKey => &$groupData) {
         $timeFinal = isset($atlet['time_final']) ? $atlet['time_final'] : '';
         $msSort = isset($atlet['ms_sort']) ? $atlet['ms_sort'] : 9999999999;
         
-        $isValid = (!$isDQ && !empty($timeFinal) && $timeFinal != 'NT');
+        $isValid = (!$isDQ && !empty($timeFinal) && strtoupper($timeFinal) != 'NT' && $timeFinal != '99:99.99' && $timeFinal != '99.99.99');
         $atlet['dynamic_rank'] = null;
         if ($isValid) {
             if ($msSort !== $prev_time) { $real_rank = $rank; }
