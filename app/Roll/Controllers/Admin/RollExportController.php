@@ -392,16 +392,9 @@ class RollExportController extends Controller {
                 $pdfs = ['Kualifikasi' => $classInfo['result_pdf']];
             }
             
-            // Loop melalui setiap babak yang sudah di-publish untuk kelas ini
-            $rounds = array_keys($pdfs);
-            
-            // Urutkan babak (misal Kualifikasi lalu Final) secara sederhana
-            usort($rounds, function($a, $b) {
-                if ($a === 'Final') return 1;
-                if ($b === 'Final') return -1;
-                return strcmp($a, $b);
-            });
-            
+            // Hanya ambil babak Final
+            $rounds = ['Final'];
+
             $dn = strtolower($classInfo['distance_name'] ?? '');
             $raceFormat = 'DTT';
             if (strpos($dn, 'eliminasi') !== false) {

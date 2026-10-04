@@ -79,13 +79,8 @@ $sponsors = !empty($event['sponsor_logos']) ? json_decode($event['sponsor_logos'
         .data-table th { border: 1px solid #000; background-color: #eee; padding: 4px 6px; text-align: left; font-size: 9pt; font-weight: bold; text-transform: uppercase; }
         .data-table td { border: 1px solid #000; padding: 4px 6px; font-size: 9.5pt; vertical-align: middle; }
 
-        .event-header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #000; padding-bottom: 2px; margin-bottom: 4px; margin-top: 20px; page-break-inside: avoid; }
-        .eh-left-group { display: flex; flex-direction: column; gap: 2px; min-width: 120px; }
-        .eh-number { font-size: 9pt; font-weight: 900; background: #000; color: #fff; display: inline-block; padding: 2px 6px; border-radius: 4px 4px 0 0; align-self: flex-start; }
-        .eh-date { font-size: 7.5pt; font-weight: bold; color: #555; }
-        .eh-center { flex-grow: 1; text-align: center; }
+        .race-header { font-size: 12pt; font-weight: bold; margin: 20px 0 10px 0; border-bottom: 1px solid #000; padding-bottom: 5px; display: flex; justify-content: space-between; page-break-inside: avoid;}
         .eh-title { font-size: 13pt; font-weight: 900; text-transform: uppercase; color: #000; font-style: italic; }
-        .eh-right { min-width: 120px; text-align: right; font-size: 9pt; font-weight: 900; color: #000; text-transform: uppercase; }
         
         .text-center { text-align: center; }
         .font-bold { font-weight: bold; }
@@ -296,18 +291,10 @@ $sponsors = !empty($event['sponsor_logos']) ? json_decode($event['sponsor_logos'
                             <?php if($classPdfFile): ?>
                                 <div class="pdf-container class-pdf" data-url="<?= getenv('APP_URL') ?>/uploads/results/<?= htmlspecialchars($classPdfFile) ?>"></div>
                             <?php else: ?>
-                                <div class="event-header">
-                                <div class="eh-left-group">
-                                    <div class="eh-number">RACE <?= htmlspecialchars(str_pad($classInfo['race_number'], 3, '0', STR_PAD_LEFT)) ?></div>
-                                    <?php if($dateStr): ?><div class="eh-date"><?= $dateStr ?></div><?php endif; ?>
+                                <div class="race-header">
+                                    <div>RACE <?= htmlspecialchars(str_pad($classInfo['race_number'], 3, '0', STR_PAD_LEFT)) ?>: <?= htmlspecialchars($classInfo['group_name'] ?? '') ?> - <?= htmlspecialchars($classInfo['gender'] ?? '') ?> - <?= htmlspecialchars($classInfo['distance_name'] ?? $classInfo['distance'] ?? '') ?></div>
+                                    <div>HASIL <?= htmlspecialchars(strtoupper($round)) ?></div>
                                 </div>
-                                <div class="eh-center">
-                                    <div class="eh-title">
-                                        <?= htmlspecialchars($classInfo['group_name'] ?? '') ?> - <?= htmlspecialchars($classInfo['gender'] ?? '') ?> - <?= htmlspecialchars($classInfo['distance_name'] ?? $classInfo['distance'] ?? '') ?>
-                                    </div>
-                                </div>
-                                <div class="eh-right"><?= htmlspecialchars($round) ?></div>
-                            </div>
 
                             <table class="data-table">
                                 <thead>
