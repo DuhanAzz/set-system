@@ -325,20 +325,24 @@ class RollResultController extends Controller {
                             
                             $membersToProcess = [];
                             if ($isRelay) {
-                                // Cari anggota tim lainnya berdasarkan team_name atau bib_number di heat yang sama
+                                // Cari anggota tim lainnya berdasarkan logika yang sama dengan UI (team_name -> club_name -> bib_number)
                                 $stmtTeam = $db->prepare("
                                     SELECT p.skater_id, r.id as result_id
                                     FROM roll_pelotons p
                                     JOIN roll_entries e ON p.skater_id = e.skater_id AND p.race_class_id = e.race_class_id AND p.event_id = e.event_id
-                                    LEFT JOIN roll_event_results r ON p.skater_id = r.skater_id AND p.race_class_id = r.race_class_id AND p.event_id = r.event_id AND p.heat_name = r.heat_name
-                                    WHERE p.event_id = ? AND p.race_class_id = ? AND p.heat_name = ?
-                                      AND (
-                                            (e.team_name != '' AND e.team_name IS NOT NULL AND e.team_name = (SELECT team_name FROM roll_entries WHERE skater_id = ? AND race_class_id = ?)) 
-                                            OR 
-                                            (e.bib_number = (SELECT bib_number FROM roll_entries WHERE skater_id = ? AND race_class_id = ?))
-                                          )
+                                    JOIN roll_skaters s ON p.skater_id = s.id
+                                    LEFT JOIN roll_clubs c ON s.club_id = c.id
+                                    LEFT JOIN roll_event_results r ON p.skater_id = r.skater_id AND p.race_class_id = r.race_class_id AND p.event_id = r.event_id AND p.heat_name = r.heat_name AND p.round = r.round
+                                    WHERE p.event_id = ? AND p.race_class_id = ? AND p.heat_name = ? AND p.round = ?
+                                      AND COALESCE(NULLIF(e.team_name, ''), c.club_name, e.bib_number) = (
+                                          SELECT COALESCE(NULLIF(e2.team_name, ''), c2.club_name, e2.bib_number)
+                                          FROM roll_entries e2
+                                          JOIN roll_skaters s2 ON e2.skater_id = s2.id
+                                          LEFT JOIN roll_clubs c2 ON s2.club_id = c2.id
+                                          WHERE e2.skater_id = ? AND e2.race_class_id = ?
+                                      )
                                 ");
-                                $stmtTeam->execute([$eventId, $row['race_class_id'], $row['heat_name'], $row['skater_id'], $row['race_class_id'], $row['skater_id'], $row['race_class_id']]);
+                                $stmtTeam->execute([$eventId, $row['race_class_id'], $row['heat_name'], $structural_round, $row['skater_id'], $row['race_class_id']]);
                                 $membersToProcess = $stmtTeam->fetchAll(PDO::FETCH_ASSOC);
                             } else {
                                 $membersToProcess = [['skater_id' => $row['skater_id'], 'result_id' => $row['result_id']]];
@@ -1004,12 +1008,19 @@ class RollResultController extends Controller {
                                     SELECT p.skater_id, r.id as result_id
                                     FROM roll_pelotons p
                                     JOIN roll_entries e ON p.skater_id = e.skater_id AND p.race_class_id = e.race_class_id AND p.event_id = e.event_id
+                                    JOIN roll_skaters s ON p.skater_id = s.id
+                                    LEFT JOIN roll_clubs c ON s.club_id = c.id
                                     LEFT JOIN roll_event_results r ON p.skater_id = r.skater_id AND p.race_class_id = r.race_class_id AND p.event_id = r.event_id AND p.heat_name = r.heat_name AND p.round = r.round
                                     WHERE p.event_id = ? AND p.race_class_id = ? AND p.heat_name = ? AND p.round = ?
-                                      AND (e.team_name = (SELECT team_name FROM roll_entries WHERE skater_id = ? AND race_class_id = ?) 
-                                           OR e.bib_number = (SELECT bib_number FROM roll_entries WHERE skater_id = ? AND race_class_id = ?))
+                                      AND COALESCE(NULLIF(e.team_name, ''), c.club_name, e.bib_number) = (
+                                          SELECT COALESCE(NULLIF(e2.team_name, ''), c2.club_name, e2.bib_number)
+                                          FROM roll_entries e2
+                                          JOIN roll_skaters s2 ON e2.skater_id = s2.id
+                                          LEFT JOIN roll_clubs c2 ON s2.club_id = c2.id
+                                          WHERE e2.skater_id = ? AND e2.race_class_id = ?
+                                      )
                                 ");
-                                $stmtTeam->execute([$eventId, $classId, $heat, $round, $skaterId, $classId, $skaterId, $classId]);
+                                $stmtTeam->execute([$eventId, $classId, $heat, $round, $skaterId, $classId]);
                                 $membersToProcess = $stmtTeam->fetchAll(PDO::FETCH_ASSOC);
                             } else {
                                 $stmtR = $db->prepare("SELECT id FROM roll_event_results WHERE event_id = ? AND race_class_id = ? AND skater_id = ? AND round = ?");

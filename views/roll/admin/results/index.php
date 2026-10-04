@@ -274,7 +274,7 @@
                                     <th class="p-4 font-black w-28 text-center bg-amber-50 text-amber-700 border-l border-r border-amber-200 shadow-inner">Poin ⭐</th>
                                 <?php endif; ?>
                                 
-                                <th class="p-4 font-black w-32 text-center">Waktu</th>
+                                <th class="p-4 font-black w-40 text-center">Waktu</th>
                                 <th class="p-4 font-black w-24 text-center">Rank</th>
                                 <th class="p-4 font-black w-28 text-center">Status</th>
                             </tr>
