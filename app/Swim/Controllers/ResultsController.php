@@ -110,13 +110,13 @@ class ResultsController extends Controller {
             
             $isRelay = isset($raceInfo['is_relay']) && $raceInfo['is_relay'] == 1;
             if ($isRelay) {
-                $sql = "SELECT re.id, es.heat_prelim as heat, es.lane_prelim as lane, es.time_final as final_time, c.nama_klub as nama_atlet
+                $sql = "SELECT es.id, es.heat_prelim as heat, es.lane_prelim as lane, es.time_final as final_time, c.nama_klub as nama_atlet
                         FROM swim_relay_entries re 
                         JOIN swim_event_seeding es ON re.id = es.entry_id 
                         LEFT JOIN swim_clubs c ON re.club_id = c.id 
                         WHERE re.category_id = ? AND es.heat_prelim IS NOT NULL";
             } else {
-                $sql = "SELECT ee.id, es.heat_prelim as heat, es.lane_prelim as lane, es.time_final as final_time, s.nama_atlet
+                $sql = "SELECT es.id, es.heat_prelim as heat, es.lane_prelim as lane, es.time_final as final_time, s.nama_atlet
                         FROM swim_event_entries ee 
                         JOIN swim_event_seeding es ON ee.id = es.entry_id 
                         JOIN swim_swimmers s ON ee.swimmer_id = s.id 
@@ -158,14 +158,14 @@ class ResultsController extends Controller {
         // Fetch Seeding Data
         try {
             if ($isRelay) {
-                $sql = "SELECT re.id, es.heat_prelim as heat, es.lane_prelim as lane, es.time_final as final_time, es.is_dq_final as is_dq, es.dq_reason_final as dq_reason, es.time_prelim as entry_time,
+                $sql = "SELECT es.id, es.heat_prelim as heat, es.lane_prelim as lane, es.time_final as final_time, es.is_dq_final as is_dq, es.dq_reason_final as dq_reason, es.time_prelim as entry_time,
                         NULL as uid, c.nama_klub as nama_atlet, '0000-00-00' as tanggal_lahir, NULL as asal_sekolah, c.nama_klub as club_name
                         FROM swim_relay_entries re 
                         JOIN swim_event_seeding es ON re.id = es.entry_id 
                         LEFT JOIN swim_clubs c ON re.club_id = c.id 
                         WHERE re.category_id = ? AND es.heat_prelim IS NOT NULL ORDER BY es.heat_prelim ASC, es.lane_prelim ASC";
             } else {
-                $sql = "SELECT ee.id, es.heat_prelim as heat, es.lane_prelim as lane, es.time_final as final_time, es.is_dq_final as is_dq, es.dq_reason_final as dq_reason, es.time_prelim as entry_time,
+                $sql = "SELECT es.id, es.heat_prelim as heat, es.lane_prelim as lane, es.time_final as final_time, es.is_dq_final as is_dq, es.dq_reason_final as dq_reason, es.time_prelim as entry_time,
                         s.uid, s.nama_atlet, s.tanggal_lahir, s.asal_sekolah, c.nama_klub as club_name
                         FROM swim_event_entries ee JOIN swim_event_seeding es ON ee.id = es.entry_id JOIN swim_swimmers s ON ee.swimmer_id = s.id LEFT JOIN swim_clubs c ON ee.club_id = c.id 
                         WHERE ee.category_id = ? AND es.heat_prelim IS NOT NULL ORDER BY es.heat_prelim ASC, es.lane_prelim ASC";
@@ -233,7 +233,7 @@ class ResultsController extends Controller {
                 $fileContent = file_get_contents($fileTmp);
                 $lines = explode("\n", $fileContent);
                 
-                $stmtUpdTxt = $pdo->prepare("UPDATE swim_event_seeding SET time_final = ? WHERE entry_id = ?");
+                $stmtUpdTxt = $pdo->prepare("UPDATE swim_event_seeding SET time_final = ? WHERE id = ?");
                 $updateCount = 0;
                 
                 foreach ($lines as $line) {
@@ -251,7 +251,7 @@ class ResultsController extends Controller {
 
             $pdo->prepare("UPDATE swim_event_numbers SET rank_mode = ? WHERE id = ?")->execute([$rankModePost, $cat_id]);
 
-            $stmtUpd = $pdo->prepare("UPDATE swim_event_seeding SET time_final = ?, is_dq_final = ?, dq_reason_final = ? WHERE entry_id = ?");
+            $stmtUpd = $pdo->prepare("UPDATE swim_event_seeding SET time_final = ?, is_dq_final = ?, dq_reason_final = ? WHERE id = ?");
             foreach ($entries as $id => $data) {
                 $time = trim($data['time'] ?? '');
                 $status = $data['status'] ?? ''; // "", "DQ", "DNF", "DNS"
@@ -289,13 +289,13 @@ class ResultsController extends Controller {
             $isRelay = isset($raceInfo['is_relay']) && $raceInfo['is_relay'] == 1;
             if ($isRelay) {
                 $stmtAll = $pdo->prepare("
-                    SELECT re.id, es.time_final as final_time, es.is_dq_final as is_dq, '0000-00-00' as tanggal_lahir
+                    SELECT es.id, es.time_final as final_time, es.is_dq_final as is_dq, '0000-00-00' as tanggal_lahir
                     FROM swim_relay_entries re JOIN swim_event_seeding es ON re.id = es.entry_id 
                     WHERE re.category_id = ?
                 ");
             } else {
                 $stmtAll = $pdo->prepare("
-                    SELECT ee.id, es.time_final as final_time, es.is_dq_final as is_dq, s.tanggal_lahir
+                    SELECT es.id, es.time_final as final_time, es.is_dq_final as is_dq, s.tanggal_lahir
                     FROM swim_event_entries ee JOIN swim_event_seeding es ON ee.id = es.entry_id JOIN swim_swimmers s ON ee.swimmer_id = s.id 
                     WHERE ee.category_id = ?
                 ");
@@ -303,7 +303,7 @@ class ResultsController extends Controller {
             $stmtAll->execute([$cat_id]);
             $allSwimmers = $stmtAll->fetchAll(PDO::FETCH_ASSOC);
 
-            $stmtRank = $pdo->prepare("UPDATE swim_event_seeding SET rank_final = ? WHERE entry_id = ?");
+            $stmtRank = $pdo->prepare("UPDATE swim_event_seeding SET rank_final = ? WHERE id = ?");
             if ($rankModePost === 'overall') {
                 $valid = []; $invalid = [];
                 foreach ($allSwimmers as $s) {
