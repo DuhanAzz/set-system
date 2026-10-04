@@ -227,6 +227,11 @@ $sponsors = !empty($eventInfo['sponsor_logos']) ? json_decode($eventInfo['sponso
                                             <td class="col-rank"><?= $rank++ ?></td>
                                             <td class="col-nama">
                                                 <?= htmlspecialchars($row['skater_name']) ?>
+                                                <?php if(!empty($row['birth_date'])): ?>
+                                                    <span style="font-size: 8px; color: #9ca3af; font-weight: normal; margin-left: 4px;">
+                                                        (<?= date('d M Y', strtotime($row['birth_date'])) ?>)
+                                                    </span>
+                                                <?php endif; ?>
                                             </td>
                                             <td class="col-tim"><?= htmlspecialchars($row['club_name']) ?></td>
                                             <td class="col-med bg-gold"><?= $row['gold'] ?></td>
