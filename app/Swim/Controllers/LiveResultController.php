@@ -36,6 +36,11 @@ class LiveResultController extends Controller {
             echo "<script>alert('Event tidak ditemukan.'); window.location.href='".getenv('APP_URL')."/swim/results';</script>";
             exit;
         }
+        
+        if (!isset($event['is_result_published']) || $event['is_result_published'] != 1) {
+            echo "<script>alert('Hasil lomba untuk event ini belum dipublikasikan oleh Panitia.'); window.location.href='".getenv('APP_URL')."/swim';</script>";
+            exit;
+        }
 
         $partType = strtolower($event['participation_type'] ?? 'club');
         $isSchoolEvent = (strpos($partType, 'school') !== false || strpos($partType, 'sekolah') !== false);
@@ -69,13 +74,25 @@ class LiveResultController extends Controller {
                 WHERE en.event_id = ? 
                   AND en.is_published = 1  
                   AND (es.time_final IS NOT NULL OR es.is_dq_final = 1)
+                UNION
+                SELECT en.event_number, en.distance, en.stroke, en.jenis_kelamin, en.age_group, en.rank_mode,
+                       c.nama_klub as nama_atlet, c.nama_klub, NULL as asal_sekolah, 0 as swimmer_owner_id, '0000-00-00' as tanggal_lahir,
+                       re.seed_time as entry_time, 
+                       es.time_final, es.rank_final, es.is_dq_final, es.dq_reason_final
+                FROM swim_event_numbers en
+                JOIN swim_relay_entries re ON en.id = re.category_id
+                JOIN swim_event_seeding es ON re.id = es.entry_id
+                LEFT JOIN swim_clubs c ON re.club_id = c.id
+                WHERE en.event_id = ? 
+                  AND en.is_published = 1  
+                  AND (es.time_final IS NOT NULL OR es.is_dq_final = 1)
                 ORDER BY 
-                    CAST(en.event_number AS UNSIGNED) ASC,
-                    es.is_dq_final ASC,
-                    es.rank_final ASC";
+                    CAST(event_number AS UNSIGNED) ASC,
+                    is_dq_final ASC,
+                    rank_final ASC";
 
         $stmtRes = $db->prepare($sql);
-        $stmtRes->execute([$event_id]);
+        $stmtRes->execute([$event_id, $event_id]);
         $results = $stmtRes->fetchAll(PDO::FETCH_ASSOC);
 
         $stmtDqRules = $db->query("SELECT pasal, deskripsi FROM swim_dq_rules");
