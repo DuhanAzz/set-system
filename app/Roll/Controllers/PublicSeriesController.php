@@ -48,182 +48,89 @@ class PublicSeriesController extends Controller {
         
         if ($series['show_standings'] && !empty($eventIds)) {
             $inClause = implode(',', array_fill(0, count($eventIds), '?'));
-            
-            // Rekap Medali Klub Gabungan
-            $stmtTally = $db->prepare("
-                SELECT c.id, c.club_name,
-                    SUM(CASE WHEN ranked_r.global_rank = 1 THEN 1 ELSE 0 END) as gold,
-                    SUM(CASE WHEN ranked_r.global_rank = 2 THEN 1 ELSE 0 END) as silver,
-                    SUM(CASE WHEN ranked_r.global_rank = 3 THEN 1 ELSE 0 END) as bronze
-                FROM (
-                    SELECT r.event_id, r.race_class_id, r.skater_id, r.status, r.round,
-                        (
-                            SELECT COUNT(*) 
-                            FROM roll_event_results r2 
-                            WHERE r2.event_id = r.event_id AND r2.race_class_id = r.race_class_id 
-                              AND r2.round = 'Final' AND r2.status = 'OK'
-                              AND (
-                                  (COALESCE(LOWER(d.distance_name), '') LIKE '%eliminasi%' AND r2.rank > 0 AND (r.rank IS NULL OR r.rank = 0 OR r2.rank < r.rank))
-                                  OR (COALESCE(LOWER(d.distance_name), '') LIKE '%dtt%' AND r2.time != '00.00.000' AND r2.time != '' AND (r.time IS NULL OR r.time = '' OR r.time = '00.00.000' OR CAST(REPLACE(REPLACE(r2.time, ':', ''), '.', '') AS UNSIGNED) < CAST(REPLACE(REPLACE(r.time, ':', ''), '.', '') AS UNSIGNED)))
-                                  OR (COALESCE(LOWER(d.distance_name), '') NOT LIKE '%eliminasi%' AND COALESCE(LOWER(d.distance_name), '') NOT LIKE '%dtt%' AND COALESCE(r2.point, 0) > COALESCE(r.point, 0))
-                                  OR (COALESCE(LOWER(d.distance_name), '') NOT LIKE '%eliminasi%' AND COALESCE(LOWER(d.distance_name), '') NOT LIKE '%dtt%' AND COALESCE(r2.point, 0) = COALESCE(r.point, 0) AND r2.time != '00.00.000' AND r2.time != '' AND (r.time IS NULL OR r.time = '' OR r.time = '00.00.000' OR CAST(REPLACE(REPLACE(r2.time, ':', ''), '.', '') AS UNSIGNED) < CAST(REPLACE(REPLACE(r.time, ':', ''), '.', '') AS UNSIGNED)))
-                                  OR (COALESCE(LOWER(d.distance_name), '') NOT LIKE '%eliminasi%' AND COALESCE(LOWER(d.distance_name), '') NOT LIKE '%dtt%' AND COALESCE(r2.point, 0) = COALESCE(r.point, 0) AND (r2.time = r.time OR ((r2.time IS NULL OR r2.time = '' OR r2.time = '00.00.000') AND (r.time IS NULL OR r.time = '' OR r.time = '00.00.000'))) AND r2.rank > 0 AND (r.rank IS NULL OR r.rank = 0 OR r2.rank < r.rank))
-                              )
-                        ) + 1 as global_rank
-                    FROM roll_event_results r
-                    JOIN roll_event_details ed ON r.race_class_id = ed.id
-                    LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
-                    WHERE r.event_id IN ($inClause) AND r.round = 'Final' AND r.status = 'OK'
-                      AND LOWER(d.distance_name) NOT LIKE '%relay%'
-                      AND LOWER(d.distance_name) NOT LIKE '%team%'
-                      AND LOWER(d.distance_name) NOT LIKE '%pair%'
-                ) as ranked_r
-                JOIN roll_skaters s ON ranked_r.skater_id = s.id
-                JOIN roll_clubs c ON s.club_id = c.id
-                JOIN roll_entries ent ON ranked_r.skater_id = ent.skater_id AND ranked_r.race_class_id = ent.race_class_id
-                WHERE ranked_r.global_rank IN (1, 2, 3)
-                  AND (ent.status = 'Finished' OR ent.status = 'Qualified')
-                GROUP BY c.id, c.club_name
-                ORDER BY gold DESC, silver DESC, bronze DESC, c.club_name ASC
-            ");
-            $stmtTally->execute($eventIds);
-            $standings = $stmtTally->fetchAll(PDO::FETCH_ASSOC) ?: [];
-            
             $point_rules = json_decode($series['point_rules'] ?? '{}', true) ?: [
                 "1" => 12, "2" => 9, "3" => 7, "4" => 5, "5" => 4, "6" => 3, "7" => 2, "8" => 1
             ];
             
-            $bestSkaters = [];
-            $inClause = implode(',', array_fill(0, count($eventIds), '?'));
-            
+            // Ambil seluruh hasil balapan perorangan
             $stmtRaw = $db->prepare("
                 SELECT 
-                    ranked_r.event_id,
+                    r.event_id,
+                    ev.event_name,
+                    ev.event_date_start,
                     s.id as skater_id, 
                     s.skater_name, 
                     c.club_name, 
                     s.birth_date,
                     ag.group_name as age_group,
-                    ag.min_year,
                     sc.class_name as category_name,
                     s.gender,
-                    SUM(CASE WHEN ranked_r.global_rank = 1 THEN 1 ELSE 0 END) as gold,
-                    SUM(CASE WHEN ranked_r.global_rank = 2 THEN 1 ELSE 0 END) as silver,
-                    SUM(CASE WHEN ranked_r.global_rank = 3 THEN 1 ELSE 0 END) as bronze
-                FROM (
-                    SELECT r.event_id, r.race_class_id, r.skater_id, r.status, r.round,
-                        (
-                            SELECT COUNT(*) 
-                            FROM roll_event_results r2 
-                            WHERE r2.event_id = r.event_id AND r2.race_class_id = r.race_class_id 
-                              AND r2.round = 'Final' AND r2.status = 'OK'
-                              AND (
-                                  (COALESCE(LOWER(d.distance_name), '') LIKE '%eliminasi%' AND r2.rank > 0 AND (r.rank IS NULL OR r.rank = 0 OR r2.rank < r.rank))
-                                  OR (COALESCE(LOWER(d.distance_name), '') LIKE '%dtt%' AND r2.time != '00.00.000' AND r2.time != '' AND (r.time IS NULL OR r.time = '' OR r.time = '00.00.000' OR CAST(REPLACE(REPLACE(r2.time, ':', ''), '.', '') AS UNSIGNED) < CAST(REPLACE(REPLACE(r.time, ':', ''), '.', '') AS UNSIGNED)))
-                                  OR (COALESCE(LOWER(d.distance_name), '') NOT LIKE '%eliminasi%' AND COALESCE(LOWER(d.distance_name), '') NOT LIKE '%dtt%' AND COALESCE(r2.point, 0) > COALESCE(r.point, 0))
-                                  OR (COALESCE(LOWER(d.distance_name), '') NOT LIKE '%eliminasi%' AND COALESCE(LOWER(d.distance_name), '') NOT LIKE '%dtt%' AND COALESCE(r2.point, 0) = COALESCE(r.point, 0) AND r2.time != '00.00.000' AND r2.time != '' AND (r.time IS NULL OR r.time = '' OR r.time = '00.00.000' OR CAST(REPLACE(REPLACE(r2.time, ':', ''), '.', '') AS UNSIGNED) < CAST(REPLACE(REPLACE(r.time, ':', ''), '.', '') AS UNSIGNED)))
-                                  OR (COALESCE(LOWER(d.distance_name), '') NOT LIKE '%eliminasi%' AND COALESCE(LOWER(d.distance_name), '') NOT LIKE '%dtt%' AND COALESCE(r2.point, 0) = COALESCE(r.point, 0) AND (r2.time = r.time OR ((r2.time IS NULL OR r2.time = '' OR r2.time = '00.00.000') AND (r.time IS NULL OR r.time = '' OR r.time = '00.00.000'))) AND r2.rank > 0 AND (r.rank IS NULL OR r.rank = 0 OR r2.rank < r.rank))
-                              )
-                        ) + 1 as global_rank
-                    FROM roll_event_results r
-                    JOIN roll_event_details ed ON r.race_class_id = ed.id
-                    LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
-                    WHERE r.event_id IN ($inClause) AND r.round = 'Final' AND r.status = 'OK'
-                      AND (ed.category_name != 'EKSEBISI' OR ed.category_name IS NULL)
-                      AND LOWER(d.distance_name) NOT LIKE '%relay%'
-                      AND LOWER(d.distance_name) NOT LIKE '%team%'
-                      AND LOWER(d.distance_name) NOT LIKE '%pair%'
-                ) as ranked_r
-                JOIN roll_skaters s ON ranked_r.skater_id = s.id
+                    r.rank,
+                    d.distance_name
+                FROM roll_event_results r
+                JOIN roll_events ev ON r.event_id = ev.id
+                JOIN roll_skaters s ON r.skater_id = s.id
                 LEFT JOIN roll_clubs c ON s.club_id = c.id
-                JOIN roll_event_details ed ON ranked_r.race_class_id = ed.id
+                JOIN roll_event_details ed ON r.race_class_id = ed.id
+                LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
                 LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
                 JOIN roll_ref_age_groups ag ON ed.age_group_id = ag.id
-                JOIN roll_entries ent ON ranked_r.skater_id = ent.skater_id AND ranked_r.race_class_id = ent.race_class_id
-                WHERE ranked_r.global_rank IN (1, 2, 3)
-                  AND (ent.status = 'Finished' OR ent.status = 'Qualified')
-                GROUP BY ranked_r.event_id, s.id, s.skater_name, c.club_name, s.birth_date, ag.group_name, ag.min_year, sc.class_name, s.gender
-                HAVING gold > 0 OR silver > 0 OR bronze > 0
+                WHERE r.event_id IN ($inClause)
+                  AND r.rank IS NOT NULL AND r.rank > 0
+                  AND COALESCE(r.status, 'OK') = 'OK'
+                  AND (ed.category_name != 'EKSEBISI' OR ed.category_name IS NULL)
+                  AND LOWER(d.distance_name) NOT LIKE '%relay%'
+                  AND LOWER(d.distance_name) NOT LIKE '%team%'
+                  AND LOWER(d.distance_name) NOT LIKE '%ts%'
+                  AND LOWER(d.distance_name) NOT LIKE '%beregu%'
+                  AND r.round = 'Final'
+                ORDER BY ev.event_date_start ASC
             ");
             $stmtRaw->execute($eventIds);
-            $rawMedals = $stmtRaw->fetchAll(PDO::FETCH_ASSOC) ?: [];
-
-            $eventsData = [];
-            $kuSortMap = [];
-            foreach ($rawMedals as $row) {
+            $rawResults = $stmtRaw->fetchAll(PDO::FETCH_ASSOC) ?: [];
+            
+            $overallData = [];
+            
+            foreach ($rawResults as $row) {
+                $rank = (int)$row['rank'];
+                $points = isset($point_rules[(string)$rank]) ? (int)$point_rules[(string)$rank] : 0;
+                
+                if ($points <= 0) continue;
+                
                 $eId = $row['event_id'];
                 $cat = $row['category_name'] ?: 'Unknown';
                 $ag = $row['age_group'] ?: 'Unknown KU';
                 $ku = "$cat - $ag";
                 
-                $minYear = isset($row['min_year']) ? (int)$row['min_year'] : 9999;
-                if (!isset($kuSortMap[$ku]) || $minYear < $kuSortMap[$ku]) {
-                    $kuSortMap[$ku] = $minYear;
-                }
-                
                 $gender = ($row['gender'] === 'M' || $row['gender'] === 'L') ? 'Putra' : 'Putri';
+                $sId = $row['skater_id'];
                 
-                if (!isset($eventsData[$eId])) {
-                    $eventsData[$eId] = [];
+                $overallKey = $sId . '_' . md5($ku);
+                
+                if (!isset($overallData[$overallKey])) {
+                    $overallData[$overallKey] = [
+                        'skater_name' => $row['skater_name'],
+                        'club_name' => $row['club_name'],
+                        'category_name' => $cat,
+                        'age_group' => $ag,
+                        'group_key' => $ku,
+                        'gender' => $gender,
+                        'total_points' => 0
+                    ];
                 }
-                if (!isset($eventsData[$eId][$ku])) {
-                    $eventsData[$eId][$ku] = ['Putra' => [], 'Putri' => []];
-                }
-                $eventsData[$eId][$ku][$gender][] = $row;
+                $overallData[$overallKey]['total_points'] += $points;
             }
-
-            $overallData = [];
-            foreach ($eventsData as $eventId => $kuGroups) {
-                foreach ($kuGroups as $ku => $genders) {
-                    foreach ($genders as $gender => $skaters) {
-                        usort($skaters, function($a, $b) {
-                            if ($a['gold'] != $b['gold']) return $b['gold'] <=> $a['gold'];
-                            if ($a['silver'] != $b['silver']) return $b['silver'] <=> $a['silver'];
-                            if ($a['bronze'] != $b['bronze']) return $b['bronze'] <=> $a['bronze'];
-                            
-                            $bdA = strtotime($a['birth_date'] ?: '1970-01-01');
-                            $bdB = strtotime($b['birth_date'] ?: '1970-01-01');
-                            if ($bdA != $bdB) return $bdB <=> $bdA;
-                            
-                            return $a['skater_name'] <=> $b['skater_name'];
-                        });
-                        
-                        $rank = 1;
-                        foreach ($skaters as $skater) {
-                            $points = isset($point_rules[(string)$rank]) ? (int)$point_rules[(string)$rank] : 0;
-                            if ($points > 0) {
-                                $sId = $skater['skater_id'];
-                                $overallKey = $sId . '_' . md5($ku); 
-                                
-                                if (!isset($overallData[$overallKey])) {
-                                    $overallData[$overallKey] = [
-                                        'skater_name' => $skater['skater_name'],
-                                        'club_name' => $skater['club_name'],
-                                        'category_name' => $skater['category_name'],
-                                        'age_group' => $skater['age_group'],
-                                        'group_key' => $ku,
-                                        'gender' => $skater['gender'],
-                                        'total_points' => 0
-                                    ];
-                                }
-                                $overallData[$overallKey]['total_points'] += $points;
-                            }
-                            $rank++;
-                        }
-                    }
-                }
-            }
-
+            
             foreach ($overallData as $key => $skater) {
                 $ku = $skater['group_key'];
-                $gender = ($skater['gender'] === 'M' || $skater['gender'] === 'L') ? 'Putra' : 'Putri';
+                $gender = $skater['gender'];
                 
                 if (!isset($bestSkaters[$ku])) {
                     $bestSkaters[$ku] = ['Putra' => [], 'Putri' => []];
                 }
                 $bestSkaters[$ku][$gender][] = $skater;
             }
-
+            
             foreach ($bestSkaters as $ku => &$genders) {
                 foreach ($genders as $gender => &$skaters) {
                     usort($skaters, function($a, $b) {
@@ -232,14 +139,8 @@ class PublicSeriesController extends Controller {
                     });
                 }
             }
-            uksort($bestSkaters, function($a, $b) use ($kuSortMap) {
-                $minA = $kuSortMap[$a] ?? 9999;
-                $minB = $kuSortMap[$b] ?? 9999;
-                if ($minA != $minB) {
-                    return $minB <=> $minA; // Descending birth year means younger first
-                }
-                return $a <=> $b;
-            });
+            
+            ksort($bestSkaters);
             
             // Filter KU yang diizinkan untuk dipublish
             if (isset($series['published_ku_standings']) && $series['published_ku_standings'] !== null && $series['published_ku_standings'] !== '') {
@@ -256,8 +157,6 @@ class PublicSeriesController extends Controller {
             }
         }
 
-        // Tampilkan view
-        // Memakai layout standar landing yang sama namun dengan view yang berbeda
         return $this->view('roll/public/series/index', [
             'series' => $series,
             'child_events' => $child_events,
