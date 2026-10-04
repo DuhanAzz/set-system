@@ -156,8 +156,8 @@ class RollMedalTallyController extends Controller {
             JOIN roll_ref_age_groups ag ON ed.age_group_id = ag.id
             JOIN roll_entries e ON ranked_r.skater_id = e.skater_id AND ranked_r.race_class_id = e.race_class_id
             WHERE $whereClause
-            GROUP BY s.id, s.skater_name, s.gender, s.birth_date, sc.class_name, ag.group_name, c.club_name
-            ORDER BY sc.class_name ASC, ag.group_name ASC, s.gender ASC, 
+            GROUP BY s.id, s.skater_name, s.gender, s.birth_date, sc.class_name, ag.group_name, ag.min_year, c.club_name
+            ORDER BY sc.class_name ASC, ag.min_year DESC, ag.group_name ASC, s.gender DESC, 
                      gold DESC, silver DESC, bronze DESC, s.birth_date DESC, s.skater_name ASC
         ");
         $params_best = array_merge([$eventId], $params);

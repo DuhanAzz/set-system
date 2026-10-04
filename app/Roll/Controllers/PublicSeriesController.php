@@ -104,6 +104,7 @@ class PublicSeriesController extends Controller {
                     c.club_name, 
                     s.birth_date,
                     ag.group_name as age_group,
+                    ag.min_year,
                     sc.class_name as category_name,
                     s.gender,
                     SUM(CASE WHEN ranked_r.global_rank = 1 THEN 1 ELSE 0 END) as gold,
@@ -141,18 +142,24 @@ class PublicSeriesController extends Controller {
                 JOIN roll_entries ent ON ranked_r.skater_id = ent.skater_id AND ranked_r.race_class_id = ent.race_class_id
                 WHERE ranked_r.global_rank IN (1, 2, 3)
                   AND (ent.status = 'Finished' OR ent.status = 'Qualified')
-                GROUP BY ranked_r.event_id, s.id, s.skater_name, c.club_name, s.birth_date, ag.group_name, sc.class_name, s.gender
+                GROUP BY ranked_r.event_id, s.id, s.skater_name, c.club_name, s.birth_date, ag.group_name, ag.min_year, sc.class_name, s.gender
                 HAVING gold > 0 OR silver > 0 OR bronze > 0
             ");
             $stmtRaw->execute($eventIds);
             $rawMedals = $stmtRaw->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
             $eventsData = [];
+            $kuSortMap = [];
             foreach ($rawMedals as $row) {
                 $eId = $row['event_id'];
                 $cat = $row['category_name'] ?: 'Unknown';
                 $ag = $row['age_group'] ?: 'Unknown KU';
                 $ku = "$cat - $ag";
+                
+                $minYear = isset($row['min_year']) ? (int)$row['min_year'] : 9999;
+                if (!isset($kuSortMap[$ku]) || $minYear < $kuSortMap[$ku]) {
+                    $kuSortMap[$ku] = $minYear;
+                }
                 
                 $gender = ($row['gender'] === 'M' || $row['gender'] === 'L') ? 'Putra' : 'Putri';
                 
@@ -225,7 +232,14 @@ class PublicSeriesController extends Controller {
                     });
                 }
             }
-            ksort($bestSkaters);
+            uksort($bestSkaters, function($a, $b) use ($kuSortMap) {
+                $minA = $kuSortMap[$a] ?? 9999;
+                $minB = $kuSortMap[$b] ?? 9999;
+                if ($minA != $minB) {
+                    return $minB <=> $minA; // Descending birth year means younger first
+                }
+                return $a <=> $b;
+            });
             
             // Filter KU yang diizinkan untuk dipublish
             if (isset($series['published_ku_standings']) && $series['published_ku_standings'] !== null && $series['published_ku_standings'] !== '') {
