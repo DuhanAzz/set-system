@@ -128,24 +128,37 @@ if (!empty($heats)) {
         }
     }
     
-    // Urutkan berdasarkan waktu
+    // Urutkan berdasarkan waktu dan status
     usort($allSwimmers, function($a, $b) {
-        $a_is_dq_or_dns = (!empty($a['dq_reason']) || $a['is_dq'] == 1);
-        $b_is_dq_or_dns = (!empty($b['dq_reason']) || $b['is_dq'] == 1);
+        $getStatusOrder = function($s) {
+            $is_real_dq = (($s['is_dq'] ?? 0) == 1 && !in_array($s['dq_reason'], ['DNF', 'DNS', '']));
+            $reason = $is_real_dq ? 'DQ' : ($s['dq_reason'] ?? '');
+            
+            if ($reason === 'DQ' || $is_real_dq) return 2;
+            if ($reason === 'DNF') return 3;
+            if ($reason === 'DNS') return 4;
+            
+            $empty = empty($s['final_time']) || $s['final_time'] == '00:00.00' || strpos($s['final_time'], '99') !== false;
+            if ($empty) return 1;
+            
+            return 0; // Waktu Valid
+        };
         
-        // Prioritaskan yang valid
-        if ($a_is_dq_or_dns && !$b_is_dq_or_dns) return 1;
-        if (!$a_is_dq_or_dns && $b_is_dq_or_dns) return -1;
+        $orderA = $getStatusOrder($a);
+        $orderB = $getStatusOrder($b);
         
-        // Cek waktu kosong
-        $a_empty = empty($a['final_time']) || $a['final_time'] == '00:00.00' || strpos($a['final_time'], '99') !== false;
-        $b_empty = empty($b['final_time']) || $b['final_time'] == '00:00.00' || strpos($b['final_time'], '99') !== false;
+        // Jika status berbeda, yang orderya lebih kecil di atas
+        if ($orderA !== $orderB) {
+            return $orderA - $orderB;
+        }
         
-        if ($a_empty && !$b_empty) return 1;
-        if (!$a_empty && $b_empty) return -1;
+        // Jika keduanya waktu valid, bandingkan waktunya
+        if ($orderA === 0) {
+            return strcmp($a['final_time'], $b['final_time']);
+        }
         
-        // Urutkan berdasarkan string waktu (format standar mm:ss.ms)
-        return strcmp($a['final_time'], $b['final_time']);
+        // Jika status sama, urutkan nama abjad
+        return strcmp($a['nama_atlet'] ?? '', $b['nama_atlet'] ?? '');
     });
 }
 ?>
