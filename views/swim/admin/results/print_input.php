@@ -109,7 +109,6 @@ $dateRange = strtoupper($dateRange);
 $jadwalKiri = $displayDate . " | " . (empty($raceInfo['schedule_time']) ? '08:00 WIB' : date('H:i', strtotime($raceInfo['schedule_time'])) . ' WIB');
 
 // Ambil Data Sponsor
-global $pdo;
 $sponsors = [];
 if (isset($pdo)) {
     $stmtSpon = $pdo->prepare("SELECT image_path FROM event_sponsors WHERE event_id = ?");
