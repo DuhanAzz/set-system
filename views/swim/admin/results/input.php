@@ -9,23 +9,47 @@
     
     .input-time { width: 100%; border: 1px solid #ccc; background: #f9f9f9; padding: 2px; font-family: 'Courier Prime', monospace; font-weight: bold; text-align: right; font-size: 10pt; color: blue; outline: none; border-radius: 4px; }
     .input-status { width: 100%; border: none; background: transparent; font-size: 8pt; font-weight: bold; text-align: center; cursor: pointer; }
+    
+    @media print {
+        body { background: white !important; }
+        .input-time { border: none !important; background: transparent !important; color: black !important; }
+        .input-status { appearance: none !important; -webkit-appearance: none !important; color: black !important; }
+        * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    }
 </style>
 
+<?php 
+$partType = strtolower($eventProfile['participation_type'] ?? 'club');
+$isSchoolEvent = (strpos($partType, 'school') !== false || strpos($partType, 'sekolah') !== false);
+$eventYear = date('Y', strtotime($eventProfile['event_date_start'] ?? date('Y')));
+
+if (!function_exists('getKULabelInput')) {
+    function getKULabelInput($dob, $evtYear, $groups) {
+        if(!$dob || $dob == '0000-00-00') return '-';
+        $age = $evtYear - (int)date('Y', strtotime($dob));
+        foreach($groups as $g) {
+            if ($age >= $g['min_age'] && $age <= $g['max_age']) return $g['group_name'];
+        }
+        return "DILUAR KATEGORI ($age TH)";
+    }
+}
+?>
+
 <?php if(isset($_SESSION['success'])): ?>
-    <div class="alert-box max-w-3xl mx-auto mb-4 bg-emerald-100 border border-emerald-400 text-emerald-800 px-4 py-3 rounded-lg flex items-center gap-2 shadow-sm sticky top-20 z-50">
+    <div class="alert-box max-w-3xl mx-auto mb-4 bg-emerald-100 border border-emerald-400 text-emerald-800 px-4 py-3 rounded-lg flex items-center gap-2 shadow-sm sticky top-20 z-50 print:hidden">
         <span>✅</span> <strong><?= $_SESSION['success'] ?></strong>
         <?php unset($_SESSION['success']); ?>
     </div>
 <?php endif; ?>
 
 <?php if(isset($_SESSION['error'])): ?>
-    <div class="alert-box max-w-3xl mx-auto mb-4 bg-red-100 border border-red-400 text-red-800 px-4 py-3 rounded-lg flex items-center gap-2 shadow-sm sticky top-20 z-50">
+    <div class="alert-box max-w-3xl mx-auto mb-4 bg-red-100 border border-red-400 text-red-800 px-4 py-3 rounded-lg flex items-center gap-2 shadow-sm sticky top-20 z-50 print:hidden">
         <span>❌</span> <strong><?= $_SESSION['error'] ?></strong>
         <?php unset($_SESSION['error']); ?>
     </div>
 <?php endif; ?>
 
-<div class="max-w-4xl mx-auto mb-6 flex flex-col items-center bg-white p-4 rounded-xl border border-slate-200 shadow-sm sticky top-20 z-40 gap-4">
+<div class="max-w-4xl mx-auto mb-6 flex flex-col items-center bg-white p-4 rounded-xl border border-slate-200 shadow-sm sticky top-20 z-40 gap-4 print:hidden">
     <div class="flex flex-col md:flex-row justify-between w-full items-center gap-4">
         <div>
             <h2 class="text-lg font-black text-slate-800 italic">INPUT HASIL LOMBA</h2>
@@ -59,7 +83,7 @@
         </form>
     </div>
 
-    <div class="mt-4 border-t pt-4 text-center w-full">
+    <div class="mt-4 border-t pt-4 text-center w-full print:hidden">
         <label class="text-sm font-semibold text-blue-600">🔗 Link GDrive / Web (Untuk QR Code di PDF):</label>
         <input type="text" name="gdrive_link" class="w-full mt-2 p-2 border border-blue-200 rounded text-center text-sm bg-blue-50/30 border-dashed" placeholder="Tempel link file hasil di sini... (Auto Save)">
     </div>
@@ -68,7 +92,7 @@
 <form id="formResult" method="POST" action="<?= getenv('APP_URL') ?>/swim/admin/results/input?category_id=<?= $cat_id ?>">
     <input type="hidden" name="rank_mode_input" value="<?= $raceInfo['rank_mode'] ?? 'split' ?>">
 
-    <div class="max-w-4xl mx-auto bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+    <div class="max-w-4xl mx-auto bg-white p-6 rounded-xl shadow-sm border border-slate-200 print:shadow-none print:border-none print:p-0">
         <div class="text-center mb-6 pb-4 border-b">
             <h1 class="text-2xl font-black text-slate-800 uppercase italic">ACARA #<?= htmlspecialchars($raceInfo['event_number'] ?? '') ?></h1>
             <p class="font-bold text-slate-600"><?= htmlspecialchars($raceInfo['event_name'] ?? '') ?></p>
@@ -105,10 +129,17 @@
                             <?php if($s): 
                                 $is_real_dq = (($s['is_dq']??0) == 1 && !in_array($s['dq_reason'], ['DNF', 'DNS', '']));
                                 $dq_text = $is_real_dq ? ($s['dq_reason'] ?? '') : '';
+                                
+                                $kuLabel = getKULabelInput($s['tanggal_lahir'] ?? '0000-00-00', $eventYear, $ageGroups ?? []);
+                                if (isset($raceInfo['is_relay']) && $raceInfo['is_relay'] == 1) {
+                                    $teamName = $s['club_name'] ?? '';
+                                } else {
+                                    $teamName = $isSchoolEvent ? (!empty($s['asal_sekolah']) ? $s['asal_sekolah'] : ($s['club_name'] ?? '')) : ($s['club_name'] ?? '');
+                                }
                             ?>
                                 <td class="px-4 py-3 font-bold"><?= htmlspecialchars($s['nama_atlet'] ?? '') ?></td>
-                                <td class="px-4 py-3 text-center text-xs text-slate-500">-</td>
-                                <td class="px-4 py-3 text-xs"><?= htmlspecialchars($s['club_name'] ?? $s['asal_sekolah'] ?? '') ?></td>
+                                <td class="px-4 py-3 text-center text-[10px] text-slate-700 font-bold"><?= htmlspecialchars($kuLabel) ?></td>
+                                <td class="px-4 py-3 text-xs"><?= htmlspecialchars($teamName) ?></td>
                                 <td class="px-4 py-3 text-right">
                                     <input type="text" name="entries[<?= $s['id'] ?>][time]" value="<?= htmlspecialchars($s['final_time'] ?? '') ?>" class="input-time" autocomplete="off" <?= (($s['is_dq']??0) == 1) ? 'disabled style="background:#eee;color:#ccc;"' : '' ?>>
                                 </td>

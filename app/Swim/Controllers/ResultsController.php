@@ -207,6 +207,10 @@ class ResultsController extends Controller {
             }
         }
 
+        $stmtAge = $pdo->prepare("SELECT group_name, min_age, max_age FROM swim_event_age_groups WHERE event_id = ?");
+        $stmtAge->execute([$currentEventId]);
+        $ageGroups = $stmtAge->fetchAll(PDO::FETCH_ASSOC);
+
         $this->view('swim/admin/results/input', [
             'raceInfo' => $raceInfo,
             'heats' => $heats,
@@ -216,7 +220,9 @@ class ResultsController extends Controller {
             'prevUrl' => $prevUrl,
             'prevClass' => $prevClass,
             'nextUrl' => $nextUrl,
-            'nextClass' => $nextClass
+            'nextClass' => $nextClass,
+            'eventProfile' => $eventProfile,
+            'ageGroups' => $ageGroups
         ]);
     }
 
