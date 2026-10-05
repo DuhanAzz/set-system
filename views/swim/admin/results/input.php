@@ -213,9 +213,12 @@ if (!function_exists('getKULabelInput')) {
         <div class="px-6 py-4 border-b flex justify-between items-center bg-slate-50">
             <div>
                 <h3 class="font-black text-slate-800 text-lg uppercase italic">Pilih Regulasi DQ</h3>
-                <p class="text-xs font-bold text-slate-500">Pilih pasal pelanggaran dari federasi.</p>
+                <p class="text-xs font-bold text-slate-500">Pilih pasal atau tekan tombol "Lewati".</p>
             </div>
-            <button type="button" onclick="closeDqModal()" class="text-slate-400 hover:text-red-500 transition"><span class="text-2xl">&times;</span></button>
+            <div class="flex items-center gap-3">
+                <button type="button" onclick="selectDqRule('DQ')" class="text-xs font-bold text-blue-700 hover:text-blue-800 bg-blue-100 hover:bg-blue-200 px-3 py-1.5 rounded-lg border border-blue-300 transition">Lewati (Tanpa Pasal)</button>
+                <button type="button" onclick="closeDqModal()" class="text-slate-400 hover:text-red-500 transition"><span class="text-2xl">&times;</span></button>
+            </div>
         </div>
         
         <div class="p-4 border-b bg-white">
@@ -253,6 +256,13 @@ function handleStatusChange(selectObj, id) {
         timeInput.disabled = true;
         timeInput.style.background = '#eee';
         timeInput.style.color = '#ccc';
+        
+        // Tetapkan default 'DQ' jika user langsung menutup modal
+        if(dqReasonHidden.value === '') {
+            dqReasonHidden.value = 'DQ';
+            dqDisplay.innerText = 'DQ';
+        }
+        
         currentDqTarget = id;
         document.getElementById('dqModal').classList.remove('hidden');
         document.getElementById('dqModal').classList.add('flex');
