@@ -54,6 +54,14 @@ class MedalTallyController extends Controller {
 
         if (!$raceInfo) die("Data Event tidak ditemukan.");
         $eventYear = date('Y', strtotime($raceInfo['event_date_start'])); 
+        $eventLoc = strtoupper($raceInfo['event_location'] ?? 'LOKASI');
+        
+        $logoLeft = !empty($raceInfo['logo_left']) ? getenv('APP_URL') . '/public/' . ltrim($raceInfo['logo_left'], '/') : null;
+        $logoRight = !empty($raceInfo['logo_right']) ? getenv('APP_URL') . '/public/' . ltrim($raceInfo['logo_right'], '/') : null;
+
+        $stmtSpon = $pdo->prepare("SELECT image_path FROM event_sponsors WHERE event_id = ?");
+        $stmtSpon->execute([$eventId]); 
+        $sponsors = $stmtSpon->fetchAll(PDO::FETCH_COLUMN);
 
         $stmtKU = $pdo->prepare("SELECT * FROM swim_event_age_groups WHERE event_id = ? ORDER BY min_age ASC");
         $stmtKU->execute([$eventId]);
@@ -233,7 +241,11 @@ class MedalTallyController extends Controller {
             'raceInfo' => $raceInfo,
             'available_kus' => $available_kus,
             'team_source' => $team_source,
-            'eventYear' => $eventYear
+            'eventYear' => $eventYear,
+            'eventLoc' => $eventLoc,
+            'logoLeft' => $logoLeft,
+            'logoRight' => $logoRight,
+            'sponsors' => $sponsors
         ];
     }
 

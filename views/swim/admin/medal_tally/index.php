@@ -111,15 +111,21 @@
 </div>
 
 <div class="header-fixed">
-    <div style="text-align: left;"></div>
+    <div style="text-align: left;"><?php if($logoLeft): ?><img src="<?= $logoLeft ?>" class="logo-img"><?php endif; ?></div>
     <div class="header-center">
         <div class="header-line-1"><?= htmlspecialchars($raceInfo['event_name'] ?? '') ?></div>
-        <div class="header-line-2"></div>
-        <div class="header-line-3"><?= htmlspecialchars($raceInfo['event_date_start'] ?? '') ?></div>
+        <div class="header-line-2"><?= htmlspecialchars($eventLoc) ?></div>
+        <div class="header-line-3"><?= htmlspecialchars(date('d F Y', strtotime($raceInfo['event_date_start'] ?? ''))) ?></div>
         <div class="header-line-4"></div>
-        <div class="header-line-5">KLASEMEN AKHIR</div>
+        <div class="header-line-5">KLASEMEN JUARA UMUM</div>
     </div>
-    <div style="text-align: right;"></div>
+    <div style="text-align: right;"><?php if($logoRight): ?><img src="<?= $logoRight ?>" class="logo-img"><?php endif; ?></div>
+</div>
+
+<div class="footer-fixed">
+    <?php foreach($sponsors as $spon): ?>
+        <img src="<?= getenv('APP_URL') ?>/public/<?= $spon ?>" alt="Sponsor">
+    <?php endforeach; ?>
 </div>
 
 <div class="page-wrapper">
