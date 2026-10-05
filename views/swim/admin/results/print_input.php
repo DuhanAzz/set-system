@@ -73,6 +73,38 @@ if (!function_exists('getKULabelInput')) {
         return "DILUAR KATEGORI ($age TH)";
     }
 }
+
+// Merekap seluruh perenang dari semua seri
+$allSwimmers = [];
+if (!empty($heats)) {
+    foreach($heats as $heatNo => $lanesData) {
+        foreach($lanesData as $ln => $s) {
+            if ($s) {
+                $allSwimmers[] = $s;
+            }
+        }
+    }
+    
+    // Urutkan berdasarkan waktu
+    usort($allSwimmers, function($a, $b) {
+        $a_is_dq_or_dns = (!empty($a['dq_reason']) || $a['is_dq'] == 1);
+        $b_is_dq_or_dns = (!empty($b['dq_reason']) || $b['is_dq'] == 1);
+        
+        // Prioritaskan yang valid
+        if ($a_is_dq_or_dns && !$b_is_dq_or_dns) return 1;
+        if (!$a_is_dq_or_dns && $b_is_dq_or_dns) return -1;
+        
+        // Cek waktu kosong
+        $a_empty = empty($a['final_time']) || $a['final_time'] == '00:00.00' || strpos($a['final_time'], '99') !== false;
+        $b_empty = empty($b['final_time']) || $b['final_time'] == '00:00.00' || strpos($b['final_time'], '99') !== false;
+        
+        if ($a_empty && !$b_empty) return 1;
+        if (!$a_empty && $b_empty) return -1;
+        
+        // Urutkan berdasarkan string waktu (format standar mm:ss.ms)
+        return strcmp($a['final_time'], $b['final_time']);
+    });
+}
 ?>
 
     <div class="no-print">
@@ -94,15 +126,14 @@ if (!function_exists('getKULabelInput')) {
             </div>
         </div>
 
-        <?php if(empty($heats)): ?>
-            <div style="text-align:center; padding: 40px; font-style: italic; color: #666;">Belum ada peserta di nomor acara ini.</div>
+        <?php if(empty($allSwimmers)): ?>
+            <div style="text-align:center; padding: 40px; font-style: italic; color: #666;">Belum ada data peserta.</div>
         <?php else: ?>
-            <?php foreach($heats as $heatNo => $lanesData): ?>
-            <div class="heat-title">SERI <?= str_pad($heatNo, 2, '0', STR_PAD_LEFT) ?></div>
+            <div class="heat-title">HASIL KESELURUHAN (REKAP)</div>
             <table class="data-table">
                 <thead>
                     <tr>
-                        <th class="col-ln">LN</th>
+                        <th class="col-ln">RANK</th>
                         <th class="col-nama">NAMA ATLET</th>
                         <th class="col-ku">KU</th>
                         <th class="col-tim">TIM</th>
@@ -112,35 +143,32 @@ if (!function_exists('getKULabelInput')) {
                 </thead>
                 <tbody>
                     <?php 
-                    for($ln = 0; $ln <= 9; $ln++): 
-                        $s = $lanesData[$ln] ?? null; 
-                        if (!$s && isset($usedLanes) && !in_array($ln, $usedLanes)) continue;
+                    $rank = 1;
+                    foreach($allSwimmers as $s): 
+                        $kuLabel = getKULabelInput($s['tanggal_lahir'] ?? '0000-00-00', $eventYear, $ageGroups ?? []);
+                        if (isset($raceInfo['is_relay']) && $raceInfo['is_relay'] == 1) {
+                            $teamName = $s['club_name'] ?? '';
+                        } else {
+                            $teamName = $isSchoolEvent ? (!empty($s['asal_sekolah']) ? $s['asal_sekolah'] : ($s['club_name'] ?? '')) : ($s['club_name'] ?? '');
+                        }
+                        
+                        $is_real_dq = (($s['is_dq']??0) == 1 && !in_array($s['dq_reason'], ['DNF', 'DNS', '']));
+                        $status_val = $is_real_dq ? 'DQ' : ($s['dq_reason'] ?? '');
+                        
+                        // Sembunyikan rank jika kosong atau DQ
+                        $is_valid_time = (!empty($s['final_time']) && $s['final_time'] !== '00:00.00' && strpos($s['final_time'], '99') === false && !$is_real_dq && empty($status_val));
                     ?>
                     <tr>
-                        <td class="col-ln"><?= $ln ?></td>
-                        <?php if($s): 
-                            $kuLabel = getKULabelInput($s['tanggal_lahir'] ?? '0000-00-00', $eventYear, $ageGroups ?? []);
-                            if (isset($raceInfo['is_relay']) && $raceInfo['is_relay'] == 1) {
-                                $teamName = $s['club_name'] ?? '';
-                            } else {
-                                $teamName = $isSchoolEvent ? (!empty($s['asal_sekolah']) ? $s['asal_sekolah'] : ($s['club_name'] ?? '')) : ($s['club_name'] ?? '');
-                            }
-                            $is_real_dq = (($s['is_dq']??0) == 1 && !in_array($s['dq_reason'], ['DNF', 'DNS', '']));
-                            $status_val = $is_real_dq ? 'DQ' : ($s['dq_reason'] ?? '');
-                        ?>
-                            <td class="col-nama"><?= htmlspecialchars($s['nama_atlet'] ?? '') ?></td>
-                            <td class="col-ku"><?= htmlspecialchars($kuLabel) ?></td>
-                            <td class="col-tim"><?= htmlspecialchars($teamName) ?></td>
-                            <td class="col-waktu"><?= htmlspecialchars($s['final_time'] ?? '') ?></td>
-                            <td class="col-hasil"><?= htmlspecialchars($status_val) ?></td>
-                        <?php else: ?>
-                            <td colspan="5" style="color: #ccc; font-style: italic;">&lt; KOSONG &gt;</td>
-                        <?php endif; ?>
+                        <td class="col-ln"><?= $is_valid_time ? $rank++ : '-' ?></td>
+                        <td class="col-nama"><?= htmlspecialchars($s['nama_atlet'] ?? '') ?></td>
+                        <td class="col-ku"><?= htmlspecialchars($kuLabel) ?></td>
+                        <td class="col-tim"><?= htmlspecialchars($teamName) ?></td>
+                        <td class="col-waktu"><?= htmlspecialchars($s['final_time'] ?? '') ?></td>
+                        <td class="col-hasil"><?= htmlspecialchars($status_val) ?></td>
                     </tr>
-                    <?php endfor; ?>
+                    <?php endforeach; ?>
                 </tbody>
             </table>
-            <?php endforeach; ?>
         <?php endif; ?>
     </div>
 
