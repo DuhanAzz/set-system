@@ -85,7 +85,7 @@ if (!function_exists('getKULabelInput')) {
 
     <div class="mt-4 border-t pt-4 text-center w-full print:hidden">
         <label class="text-sm font-semibold text-blue-600">🔗 Link GDrive / Web (Untuk QR Code di PDF):</label>
-        <input type="text" name="gdrive_link" class="w-full mt-2 p-2 border border-blue-200 rounded text-center text-sm bg-blue-50/30 border-dashed" placeholder="Tempel link file hasil di sini... (Auto Save)">
+        <input type="text" name="gdrive_link" id="qrLinkInput" class="w-full mt-2 p-2 border border-blue-200 rounded text-center text-sm bg-blue-50/30 border-dashed" placeholder="Tempel link file hasil di sini... (Auto Save)">
     </div>
 </div>
 
@@ -93,9 +93,16 @@ if (!function_exists('getKULabelInput')) {
     <input type="hidden" name="rank_mode_input" value="<?= $raceInfo['rank_mode'] ?? 'split' ?>">
 
     <div class="max-w-4xl mx-auto bg-white p-6 rounded-xl shadow-sm border border-slate-200 print:shadow-none print:border-none print:p-0">
-        <div class="text-center mb-6 pb-4 border-b">
-            <h1 class="text-2xl font-black text-slate-800 uppercase italic">ACARA #<?= htmlspecialchars($raceInfo['event_number'] ?? '') ?></h1>
-            <p class="font-bold text-slate-600"><?= htmlspecialchars($raceInfo['event_name'] ?? '') ?></p>
+        <div class="flex justify-between items-start mb-6 pb-4 border-b border-slate-300">
+            <div class="text-left">
+                <h1 class="text-2xl font-black text-slate-800 uppercase italic">ACARA #<?= htmlspecialchars($raceInfo['event_number'] ?? '') ?></h1>
+                <p class="font-bold text-slate-600"><?= htmlspecialchars($raceInfo['event_name'] ?? '') ?></p>
+            </div>
+            
+            <div class="hidden print:flex flex-col items-center justify-center">
+                <img id="printQrCode" src="" alt="QR" class="w-20 h-20 object-contain">
+                <span class="text-[9px] font-bold mt-1 text-slate-600 uppercase tracking-widest">LIVE RESULT</span>
+            </div>
         </div>
         
         <?php if(empty($heats)): ?>
@@ -255,17 +262,29 @@ function filterDq() {
 }
 
 document.addEventListener("DOMContentLoaded", function() {
-    const inputLink = document.querySelector('input[name="gdrive_link"]');
+    const inputLink = document.getElementById('qrLinkInput');
+    const qrImage = document.getElementById('printQrCode');
     const storageKey = "qr_link_cat_<?= $cat_id ?>"; 
+    const defaultUrl = "<?= getenv('APP_URL') ?>/swim/results";
+    
+    function updateQrCode(url) {
+        if (qrImage) {
+            qrImage.src = "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=" + encodeURIComponent(url);
+        }
+    }
     
     if (inputLink) {
         const savedLink = localStorage.getItem(storageKey);
         if (savedLink) { 
-            inputLink.value = savedLink; 
+            inputLink.value = savedLink;
+        } else {
+            inputLink.value = defaultUrl;
         }
+        updateQrCode(inputLink.value);
         
         inputLink.addEventListener("input", function() { 
-            localStorage.setItem(storageKey, this.value); 
+            localStorage.setItem(storageKey, this.value);
+            updateQrCode(this.value);
         });
     }
 });
