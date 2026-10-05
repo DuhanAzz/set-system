@@ -11,14 +11,25 @@
     .input-status { width: 100%; border: none; background: transparent; font-size: 8pt; font-weight: bold; text-align: center; cursor: pointer; }
     
     @media print {
-        body { background: white !important; }
-        .input-time { border: none !important; background: transparent !important; color: black !important; padding: 0 !important; margin: 0 !important; box-shadow: none !important; }
-        .input-status { border: none !important; appearance: none !important; -webkit-appearance: none !important; -moz-appearance: none !important; color: black !important; background: transparent !important; box-shadow: none !important; padding: 0 !important; }
+        body { background: white !important; font-family: 'Arial Narrow', sans-serif !important; }
+        .input-time { border: none !important; background: transparent !important; color: black !important; padding: 0 !important; margin: 0 !important; box-shadow: none !important; text-align: right !important; font-size: 9pt !important; font-family: 'Courier New', monospace !important; }
+        .input-status { border: none !important; appearance: none !important; -webkit-appearance: none !important; -moz-appearance: none !important; color: black !important; background: transparent !important; box-shadow: none !important; padding: 0 !important; font-size: 9pt !important; text-align: center !important; }
         * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
         
         /* Sembunyikan Elemen Master Layout */
         nav, aside, #logo-sidebar { display: none !important; }
-        #main-wrapper { margin-left: 0 !important; padding-top: 0 !important; padding: 0 !important; background: white !important; }
+        #main-wrapper { margin-left: 0 !important; padding-top: 0 !important; padding: 0 !important; background: white !important; min-height: 0 !important; }
+        
+        /* Format Legacy (Rapat & Hitam Putih) */
+        table { font-size: 9pt !important; margin-bottom: 2px !important; width: 100% !important; border-collapse: collapse !important; }
+        th { background-color: #e5e7eb !important; padding: 2px 4px !important; border-top: 1px solid #000 !important; border-bottom: 2px solid #000 !important; font-size: 8pt !important; color: #000 !important; }
+        td { padding: 4px 4px !important; border-bottom: 1px solid #ccc !important; font-size: 9pt !important; color: #000 !important; }
+        .mb-8 { margin-bottom: 15px !important; }
+        .text-2xl { font-size: 16pt !important; margin-bottom: 2px !important; }
+        .text-right.font-bold.text-sm.border-b-2 { font-size: 10pt !important; padding-bottom: 2px !important; border-bottom: 1px solid #000 !important; margin-bottom: 5px !important; }
+        .mb-6 { margin-bottom: 15px !important; }
+        .pb-4 { padding-bottom: 5px !important; }
+        .w-20 { width: 50px !important; height: 50px !important; }
     }
 </style>
 
