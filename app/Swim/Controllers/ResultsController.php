@@ -211,7 +211,7 @@ class ResultsController extends Controller {
         $stmtAge->execute([$currentEventId]);
         $ageGroups = $stmtAge->fetchAll(PDO::FETCH_ASSOC);
 
-        $this->view('swim/admin/results/input', [
+        $viewData = [
             'raceInfo' => $raceInfo,
             'heats' => $heats,
             'dq_rules_list' => $dq_rules_list,
@@ -223,7 +223,15 @@ class ResultsController extends Controller {
             'nextClass' => $nextClass,
             'eventProfile' => $eventProfile,
             'ageGroups' => $ageGroups
-        ]);
+        ];
+
+        if (isset($_GET['print'])) {
+            extract($viewData);
+            require_once __DIR__ . '/../../../views/swim/admin/results/print_input.php';
+            exit;
+        }
+
+        $this->view('swim/admin/results/input', $viewData);
     }
 
     private function store($pdo, $cat_id, $eventId) {

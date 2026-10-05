@@ -10,37 +10,6 @@
     .input-time { width: 100%; border: 1px solid #ccc; background: #f9f9f9; padding: 2px; font-family: 'Courier Prime', monospace; font-weight: bold; text-align: right; font-size: 10pt; color: blue; outline: none; border-radius: 4px; }
     .input-status { width: 100%; border: none; background: transparent; font-size: 8pt; font-weight: bold; text-align: center; cursor: pointer; }
     
-    @media print {
-        body { background: white !important; font-family: 'Arial Narrow', sans-serif !important; margin: 0 !important; padding: 0 !important; }
-        .input-time { border: none !important; background: transparent !important; color: black !important; padding: 0 !important; margin: 0 !important; box-shadow: none !important; text-align: right !important; font-size: 9pt !important; font-family: 'Courier New', monospace !important; }
-        .input-status { border: none !important; appearance: none !important; -webkit-appearance: none !important; -moz-appearance: none !important; color: black !important; background: transparent !important; box-shadow: none !important; padding: 0 !important; font-size: 9pt !important; text-align: center !important; }
-        * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-        
-        /* Sembunyikan Elemen Master Layout */
-        nav, aside, #logo-sidebar, .no-print, .alert-box { display: none !important; }
-        #main-wrapper { margin-left: 0 !important; padding-top: 0 !important; padding: 0 !important; background: white !important; min-height: 0 !important; }
-        
-        /* Format Legacy (Sama dengan view_startlist.php) */
-        .print-header { position: relative !important; display: flex !important; justify-content: space-between !important; align-items: flex-end !important; border-bottom: 2px solid #000 !important; padding: 2px 0 !important; margin-top: 10px !important; margin-bottom: 0px !important; background: #fff !important; min-height: 35px !important; border-top: none !important; }
-        .print-header-left { display: flex !important; flex-direction: column !important; justify-content: center !important; width: 180px !important; line-height: 1.1 !important; z-index: 2 !important; position: relative !important; background: white !important; }
-        .print-header-left h1 { font-size: 14pt !important; font-weight: 900 !important; margin-bottom: 2px !important; color: #000 !important; text-transform: uppercase !important; font-style: normal !important; }
-        .print-header-center { position: absolute !important; left: 50% !important; bottom: 3px !important; transform: translateX(-50%) !important; text-align: center !important; width: 60% !important; z-index: 1 !important; }
-        .print-header-center p { font-size: 11pt !important; font-weight: 800 !important; text-transform: uppercase !important; color: #000 !important; }
-        .print-header-right { width: 80px !important; text-align: right !important; z-index: 2 !important; position: relative !important; background: white !important; color: #000 !important; }
-        
-        .print-heat-title { text-align: right !important; font-size: 9pt !important; font-weight: bold !important; text-transform: uppercase !important; margin-top: 12px !important; margin-bottom: 2px !important; color: #000 !important; border: none !important; padding: 0 !important; }
-        
-        .print-table { width: 100% !important; border-collapse: collapse !important; table-layout: fixed !important; margin-bottom: 2px !important; font-size: 8pt !important; border: none !important; }
-        .print-table th { background-color: #e5e7eb !important; color: #000 !important; font-weight: bold !important; font-size: 8pt !important; text-transform: uppercase !important; padding: 2px 2px !important; border-top: 1px solid #000 !important; border-bottom: 2px solid #000 !important; border-left: none !important; border-right: none !important; text-align: center !important; }
-        .print-table td { padding: 4px 4px !important; border-bottom: 1px solid #ccc !important; border-top: none !important; border-left: none !important; border-right: none !important; vertical-align: middle !important; font-weight: bold !important; color: #000 !important; } 
-        
-        .print-table th:first-child, .print-table td:first-child { width: 5% !important; text-align: center !important; } /* LN */
-        .print-table th:nth-child(2), .print-table td:nth-child(2) { text-align: left !important; padding-left: 5px !important; } /* NAMA */
-        .print-table th:nth-child(3), .print-table td:nth-child(3) { width: 10% !important; text-align: center !important; } /* KU */
-        .print-table th:nth-child(4), .print-table td:nth-child(4) { width: 22% !important; text-align: left !important; padding-left: 5px !important; } /* TIM */
-        .print-table th:nth-child(5), .print-table td:nth-child(5) { width: 12% !important; text-align: right !important; padding-right: 5px !important; } /* WAKTU */
-        .print-table th:nth-child(6), .print-table td:nth-child(6) { width: 12% !important; text-align: center !important; } /* STATUS */
-    }
 </style>
 
 <?php 
@@ -92,7 +61,7 @@ if (!function_exists('getKULabelInput')) {
                 <a href="<?= getenv('APP_URL') ?>/swim/admin/results" class="h-8 px-3 flex items-center bg-white border border-slate-300 rounded text-slate-600 font-bold text-[10px] uppercase hover:bg-slate-50">Menu</a>
                 <a href="<?= getenv('APP_URL') ?>/swim/admin/results/input?category_id=<?= $cat_id ?>&export_txt=1" class="h-8 px-3 flex items-center bg-teal-500 text-white rounded font-bold text-[10px] uppercase hover:bg-teal-600 gap-1" title="Download Data ke TXT Format Stopwatch">📤 EXPORT</a>
                 <button type="button" onclick="document.getElementById('txtUploadForm').classList.toggle('hidden')" class="h-8 px-3 flex items-center bg-emerald-500 text-white rounded font-bold text-[10px] uppercase hover:bg-emerald-600 gap-1" title="Import TXT Backup dari Stopwatch">📝 IMPORT</button>
-                <button type="button" onclick="window.print()" class="h-8 px-3 flex items-center bg-orange-500 text-white rounded font-bold text-[10px] uppercase hover:bg-orange-600 gap-1">🖨️ PDF</button>
+                <a href="?category_id=<?= $cat_id ?>&print=1" target="_blank" class="h-8 px-3 flex items-center bg-orange-500 text-white rounded font-bold text-[10px] uppercase hover:bg-orange-600 gap-1">🖨️ PDF</a>
                 <button type="submit" form="formResult" class="h-8 px-4 flex items-center bg-blue-600 text-white rounded font-bold text-[10px] uppercase hover:bg-blue-700 gap-1 shadow-sm">💾 SIMPAN</button>
             </div>
             <a href="<?= $nextUrl ?? '#' ?>" class="h-10 px-4 flex items-center justify-center rounded-r-lg font-bold text-xs uppercase transition border-l border-slate-600 <?= $nextClass ?? '' ?>">NEXT &raquo;</a>
@@ -108,7 +77,7 @@ if (!function_exists('getKULabelInput')) {
         </form>
     </div>
 
-    <div class="mt-4 border-t pt-4 text-center w-full print:hidden">
+    <div class="mt-4 border-t pt-4 text-center w-full">
         <label class="text-sm font-semibold text-blue-600">🔗 Link GDrive / Web (Untuk QR Code di PDF):</label>
         <input type="text" name="gdrive_link" id="qrLinkInput" class="w-full mt-2 p-2 border border-blue-200 rounded text-center text-sm bg-blue-50/30 border-dashed" placeholder="Tempel link file hasil di sini... (Auto Save)">
     </div>
@@ -117,22 +86,10 @@ if (!function_exists('getKULabelInput')) {
 <form id="formResult" method="POST" action="<?= getenv('APP_URL') ?>/swim/admin/results/input?category_id=<?= $cat_id ?>">
     <input type="hidden" name="rank_mode_input" value="<?= $raceInfo['rank_mode'] ?? 'split' ?>">
 
-    <div class="max-w-4xl mx-auto bg-white p-6 rounded-xl shadow-sm border border-slate-200 print:shadow-none print:border-none print:p-0 print:max-w-full">
-        <div class="flex justify-between items-start mb-6 pb-4 border-b border-slate-300 print-header">
-            <div class="text-left print-header-left">
+    <div class="max-w-4xl mx-auto bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+        <div class="flex justify-between items-start mb-6 pb-4 border-b border-slate-300">
+            <div class="text-left">
                 <h1 class="text-2xl font-black text-slate-800 uppercase italic">ACARA #<?= htmlspecialchars($raceInfo['event_number'] ?? '') ?></h1>
-            </div>
-            
-            <div class="print-header-center hidden print:block">
-                <p class="font-bold text-slate-600"><?= htmlspecialchars($raceInfo['event_name'] ?? '') ?></p>
-            </div>
-            
-            <div class="hidden print:flex flex-col items-center justify-center print-header-right">
-                <img id="printQrCode" src="" alt="QR" class="w-16 h-16 object-contain mb-0.5">
-                <span class="text-[7px] font-bold mt-0 text-slate-600 uppercase tracking-widest text-center leading-none">LIVE<br>RESULT</span>
-            </div>
-            
-            <div class="text-left print:hidden">
                 <p class="font-bold text-slate-600"><?= htmlspecialchars($raceInfo['event_name'] ?? '') ?></p>
             </div>
         </div>
@@ -141,9 +98,9 @@ if (!function_exists('getKULabelInput')) {
             <div class="text-center py-12"><p class="italic text-slate-400">Belum ada peserta di nomor acara ini.</p></div>
         <?php else: ?>
             <?php foreach($heats as $heatNo => $lanesData): ?>
-            <div class="mb-8 print:mb-2">
-                <div class="text-right font-bold text-sm border-b-2 border-slate-800 mb-2 print-heat-title">SERI <?= str_pad($heatNo, 2, '0', STR_PAD_LEFT) ?></div>
-                <table class="w-full text-sm text-left print-table">
+            <div class="mb-8">
+                <div class="text-right font-bold text-sm border-b-2 border-slate-800 mb-2">SERI <?= str_pad($heatNo, 2, '0', STR_PAD_LEFT) ?></div>
+                <table class="w-full text-sm text-left">
                     <thead class="text-xs text-slate-700 uppercase bg-slate-100">
                         <tr>
                             <th class="px-4 py-3 text-center w-12">LN</th>
@@ -177,8 +134,8 @@ if (!function_exists('getKULabelInput')) {
                                 }
                             ?>
                                 <td class="px-4 py-3 font-bold"><?= htmlspecialchars($s['nama_atlet'] ?? '') ?></td>
-                                <td class="px-4 py-3 text-center text-xs text-slate-700 font-bold print:text-[9pt] print:text-black"><?= htmlspecialchars($kuLabel) ?></td>
-                                <td class="px-4 py-3 text-xs print:text-[9pt] print:font-normal"><?= htmlspecialchars($teamName) ?></td>
+                                <td class="px-4 py-3 text-center text-[10px] text-slate-700 font-bold"><?= htmlspecialchars($kuLabel) ?></td>
+                                <td class="px-4 py-3 text-xs"><?= htmlspecialchars($teamName) ?></td>
                                 <td class="px-4 py-3 text-right">
                                     <input type="text" name="entries[<?= $s['id'] ?>][time]" value="<?= htmlspecialchars($s['final_time'] ?? '') ?>" class="input-time" autocomplete="off" <?= (($s['is_dq']??0) == 1) ? 'disabled style="background:#eee;color:#ccc;"' : '' ?>>
                                 </td>
@@ -321,25 +278,6 @@ document.addEventListener("DOMContentLoaded", function() {
     const storageKey = "qr_link_cat_<?= $cat_id ?>"; 
     const defaultUrl = "<?= getenv('APP_URL') ?>/swim/results";
     
-    function updateQrCode(url) {
-        if (qrImage) {
-            qrImage.src = "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=" + encodeURIComponent(url);
-        }
-    }
-    
-    if (inputLink) {
-        const savedLink = localStorage.getItem(storageKey);
-        if (savedLink) { 
-            inputLink.value = savedLink;
-        } else {
-            inputLink.value = defaultUrl;
-        }
-        updateQrCode(inputLink.value);
-        
-        inputLink.addEventListener("input", function() { 
-            localStorage.setItem(storageKey, this.value);
-            updateQrCode(this.value);
-        });
-    }
+    // (QR Logic removed from here since it's not rendered on this page anymore)
 });
 </script>
