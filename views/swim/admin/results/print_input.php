@@ -20,10 +20,10 @@
         .btn:hover { opacity: 0.9; transform: translateY(-1px); }
 
         /* KERTAS A4 */
-        .page-wrapper { background: white; width: 210mm; margin: 0 auto; padding: 0 10mm; min-height: 297mm; position: relative; box-shadow: 0 0 15px rgba(0,0,0,0.5); display: flex; flex-direction: column; }
+        .page-wrapper { background: white; width: 210mm; margin: 0 auto; padding: 0 10mm; min-height: 297mm; position: relative; box-shadow: 0 0 15px rgba(0,0,0,0.5); }
         
         /* HEADER FIXED STYLE */
-        .header-fixed { border-bottom: 3px double #000; padding: 10mm 0 5px 0; margin-bottom: 10px; display: grid; grid-template-columns: 110px 1fr 110px; align-items: flex-end; }
+        .header-fixed { position: fixed; top: 0; left: 0; right: 0; height: 35mm; background: white; border-bottom: 3px double #000; display: grid; grid-template-columns: 110px 1fr 110px; align-items: flex-end; padding: 5px 10mm 3px 10mm; z-index: 999; display: none; }
         .header-center { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; text-align: center; line-height: 1.2; color: #000; }
         .header-line-1 { font-size: 14pt; font-weight: 900; text-transform: uppercase; margin-bottom: 2px; }
         .header-line-2 { font-size: 9pt; font-weight: bold; text-transform: uppercase; }
@@ -33,11 +33,16 @@
         .logo-img { max-height: 80px; max-width: 100%; object-fit: contain; margin-bottom: 2px; }
         
         /* FOOTER SPONSOR */
-        .footer-fixed { margin-top: auto; border-top: 2px double #000; padding: 5mm 0; display: flex; justify-content: center; align-items: center; }
+        .footer-fixed { position: fixed; bottom: 0; left: 0; right: 0; height: 20mm; background: white; border-top: 2px double #000; display: flex; justify-content: center; align-items: center; padding: 0 10mm; z-index: 999; display: none; }
         .footer-fixed img { height: 40px; margin: 0 10px; object-fit: contain; }
 
+        /* SPACER TABEL CETAK */
+        .layout-table { width: 100%; border-collapse: collapse; border: none; }
+        .layout-header-space { height: 42mm; } 
+        .layout-footer-space { height: 25mm; }
+
         /* HEADER (KOP Acara) */
-        .event-header { position: relative; display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #000; padding: 2px 0; margin-top: 10mm; margin-bottom: 0px; background: #fff; min-height: 35px; }
+        .event-header { position: relative; display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #000; padding: 2px 0; margin-top: 5mm; margin-bottom: 0px; background: #fff; min-height: 35px; }
         .eh-left-group { display: flex; flex-direction: column; justify-content: center; width: 180px; line-height: 1.1; z-index: 2; position: relative; background: white; }
         .eh-number { font-size: 14pt; font-weight: 900; margin-bottom: 2px; color: #000; }
         .eh-date { font-size: 8pt; font-weight: bold; font-style: normal; color: #000; }
@@ -65,8 +70,13 @@
             @page { size: A4; margin: 0; }
             body { background: white; margin: 0; padding: 0; }
             .no-print { display: none !important; }
-            .page-wrapper { margin: 0; width: 100%; box-shadow: none; padding: 0 10mm; min-height: 100vh; page-break-after: always; }
-            .event-header { margin-top: 5mm; }
+            .page-wrapper { margin: 0; width: 100%; box-shadow: none; padding: 0 10mm; min-height: auto; position: relative; }
+            .header-fixed { display: grid !important; }
+            .footer-fixed { display: flex !important; justify-content: center !important; }
+            .layout-table > thead { display: table-header-group !important; }
+            .data-table > thead { display: table-row-group !important; }
+            tfoot { display: table-footer-group; }
+            .event-header { margin-top: 0; }
         }
     </style>
 </head>
@@ -167,19 +177,31 @@ if (!empty($heats)) {
         <button onclick="window.print()" class="btn btn-print">🖨️ CETAK HALAMAN INI</button>
     </div>
 
-    <div class="page-wrapper">
-        
-        <div class="header-fixed">
-            <div style="text-align: left;"><?php if($logoLeft): ?><img src="<?= $logoLeft ?>" class="logo-img"><?php endif; ?></div>
-            <div class="header-center">
-                <div class="header-line-1"><?= htmlspecialchars($eventName) ?></div>
-                <div class="header-line-2"><?= htmlspecialchars($venueName) ?></div>
-                <div class="header-line-3"><?= htmlspecialchars($dateRange) ?></div>
-                <div class="header-line-4"></div>
-                <div class="header-line-5">REKAP HASIL</div>
-            </div>
-            <div style="text-align: right;"><?php if($logoRight): ?><img src="<?= $logoRight ?>" class="logo-img"><?php endif; ?></div>
-        </div>
+<div class="header-fixed">
+    <div style="text-align: left;"><?php if($logoLeft): ?><img src="<?= $logoLeft ?>" class="logo-img"><?php endif; ?></div>
+    <div class="header-center">
+        <div class="header-line-1"><?= htmlspecialchars($eventName) ?></div>
+        <div class="header-line-2"><?= htmlspecialchars($venueName) ?></div>
+        <div class="header-line-3"><?= htmlspecialchars($dateRange) ?></div>
+        <div class="header-line-4"></div>
+        <div class="header-line-5">REKAP HASIL</div>
+    </div>
+    <div style="text-align: right;"><?php if($logoRight): ?><img src="<?= $logoRight ?>" class="logo-img"><?php endif; ?></div>
+</div>
+
+<div class="footer-fixed">
+    <?php foreach($sponsors as $spon): ?>
+        <img src="../../../public/<?= $spon ?>" alt="Sponsor">
+    <?php endforeach; ?>
+</div>
+
+<div class="page-wrapper">
+    <table class="layout-table">
+        <thead><tr><td><div class="layout-header-space"></div></td></tr></thead>
+        <tfoot><tr><td><div class="layout-footer-space"></div></td></tr></tfoot>
+        <tbody>
+            <tr>
+                <td>
 
         <div class="event-header">
             <div class="eh-left-group">
@@ -240,12 +262,11 @@ if (!empty($heats)) {
             </table>
         <?php endif; ?>
         
-        <div class="footer-fixed">
-            <?php foreach($sponsors as $spon): ?>
-                <img src="../../../public/<?= $spon ?>" alt="Sponsor">
-            <?php endforeach; ?>
-        </div>
-    </div>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
 
 <script>
 document.addEventListener("DOMContentLoaded", function() {

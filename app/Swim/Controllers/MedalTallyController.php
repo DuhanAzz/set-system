@@ -84,9 +84,9 @@ class MedalTallyController extends Controller {
             $teamColumn = "COALESCE(NULLIF(c.nama_klub, ''), 'TANPA KLUB/TIM')";
         }
 
-        // 1. Mencegah Draft Leak (Hanya lomba yang is_published = 1)
+        // 1. Menghitung Medali secara Live (Tanpa harus is_published = 1)
         // 2. Mencegah Medali Hantu (Hanya time_final IS NOT NULL dan bukan DQ)
-        $whereClauses = ["en.event_id = ?", "en.is_published = 1", "es.time_final IS NOT NULL", "es.time_final != 'NT'", "es.is_dq_final = 0"];
+        $whereClauses = ["en.event_id = ?", "es.time_final IS NOT NULL", "es.time_final != 'NT'", "es.is_dq_final = 0"];
         $params = [$eventId];
 
         if ($mode == 'athlete' && $filter_gender !== 'all') {
