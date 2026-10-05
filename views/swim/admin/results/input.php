@@ -227,6 +227,18 @@ if (!function_exists('getKULabelInput')) {
 
         <div class="flex-1 overflow-y-auto p-4 bg-slate-50">
             <div class="grid gap-2" id="dqList">
+                
+                <!-- OPSI DQ KOSONG / UMUM -->
+                <button type="button" onclick="selectDqRule('DQ')" class="dq-item text-left w-full bg-blue-50 border border-blue-200 hover:border-blue-500 hover:shadow-md p-3 rounded-xl transition flex gap-3 group">
+                    <span class="bg-blue-100 border border-blue-300 text-blue-800 font-black px-2 py-1 rounded text-xs h-fit whitespace-nowrap group-hover:bg-blue-500 group-hover:text-white transition">
+                        DQ
+                    </span>
+                    <div>
+                        <div class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-0.5">UMUM</div>
+                        <div class="text-xs font-bold text-slate-800 leading-snug dq-desc">Disqualified (Tanpa alasan spesifik / Cepat)</div>
+                    </div>
+                </button>
+
                 <?php foreach($dq_rules_list as $rule): ?>
                 <button type="button" onclick="selectDqRule('<?= htmlspecialchars($rule['pasal']) ?>')" class="dq-item text-left w-full bg-white border border-slate-200 hover:border-blue-500 hover:shadow-md p-3 rounded-xl transition flex gap-3 group">
                     <span class="bg-red-50 border border-red-200 text-red-700 font-black px-2 py-1 rounded text-xs h-fit whitespace-nowrap group-hover:bg-blue-100 group-hover:text-blue-700 transition">
