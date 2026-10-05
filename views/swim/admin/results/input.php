@@ -12,9 +12,13 @@
     
     @media print {
         body { background: white !important; }
-        .input-time { border: none !important; background: transparent !important; color: black !important; }
-        .input-status { appearance: none !important; -webkit-appearance: none !important; color: black !important; }
+        .input-time { border: none !important; background: transparent !important; color: black !important; padding: 0 !important; margin: 0 !important; box-shadow: none !important; }
+        .input-status { border: none !important; appearance: none !important; -webkit-appearance: none !important; -moz-appearance: none !important; color: black !important; background: transparent !important; box-shadow: none !important; padding: 0 !important; }
         * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+        
+        /* Sembunyikan Elemen Master Layout */
+        nav, aside, #logo-sidebar { display: none !important; }
+        #main-wrapper { margin-left: 0 !important; padding-top: 0 !important; padding: 0 !important; background: white !important; }
     }
 </style>
 
