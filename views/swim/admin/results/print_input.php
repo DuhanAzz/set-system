@@ -22,6 +22,20 @@
         /* KERTAS A4 */
         .page-wrapper { background: white; width: 210mm; margin: 0 auto; padding: 0 10mm; min-height: 297mm; position: relative; box-shadow: 0 0 15px rgba(0,0,0,0.5); display: flex; flex-direction: column; }
         
+        /* HEADER FIXED STYLE */
+        .header-fixed { border-bottom: 3px double #000; padding: 10mm 0 5px 0; margin-bottom: 10px; display: grid; grid-template-columns: 110px 1fr 110px; align-items: flex-end; }
+        .header-center { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; text-align: center; line-height: 1.2; color: #000; }
+        .header-line-1 { font-size: 14pt; font-weight: 900; text-transform: uppercase; margin-bottom: 2px; }
+        .header-line-2 { font-size: 9pt; font-weight: bold; text-transform: uppercase; }
+        .header-line-3 { font-size: 9pt; font-weight: bold; text-transform: uppercase; }
+        .header-line-4 { height: 3px; } 
+        .header-line-5 { font-size: 18pt; font-weight: 900; text-transform: uppercase; letter-spacing: 2px; color: #000; margin-top: 2px; margin-bottom: 0px; line-height: 1; }
+        .logo-img { max-height: 80px; max-width: 100%; object-fit: contain; margin-bottom: 2px; }
+        
+        /* FOOTER SPONSOR */
+        .footer-fixed { margin-top: auto; border-top: 2px double #000; padding: 5mm 0; display: flex; justify-content: center; align-items: center; }
+        .footer-fixed img { height: 40px; margin: 0 10px; object-fit: contain; }
+
         /* HEADER (KOP Acara) */
         .event-header { position: relative; display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #000; padding: 2px 0; margin-top: 10mm; margin-bottom: 0px; background: #fff; min-height: 35px; }
         .eh-left-group { display: flex; flex-direction: column; justify-content: center; width: 180px; line-height: 1.1; z-index: 2; position: relative; background: white; }
@@ -74,6 +88,35 @@ if (!function_exists('getKULabelInput')) {
     }
 }
 
+// Persiapan Data Header
+$eventName  = strtoupper($eventProfile['event_name'] ?? 'EVENT NAME');
+$loc  = $eventProfile['event_location'] ?? '-';
+if (!empty($eventProfile['event_city'])) $loc .= ' - ' . $eventProfile['event_city'];
+$venueName  = strtoupper($loc);
+$eventDate  = $eventProfile['event_date_start'] ?? date('Y-m-d');
+$logoLeft   = !empty($eventProfile['logo_left']) ? '../../../public/' . $eventProfile['logo_left'] : null;
+$logoRight  = !empty($eventProfile['logo_right']) ? '../../../public/' . $eventProfile['logo_right'] : null;
+
+$displayDate = strtoupper(date('d F Y', strtotime($eventDate)));
+if(!empty($eventProfile['event_date_end']) && $eventProfile['event_date_end'] != '0000-00-00' && $eventProfile['event_date_end'] != $eventDate) {
+    $dateRange = date('d', strtotime($eventDate)) . ' - ' . date('d F Y', strtotime($eventProfile['event_date_end']));
+} else {
+    $dateRange = $displayDate;
+}
+$dateRange = strtoupper($dateRange);
+
+// Jadwal Acara Kiri
+$jadwalKiri = $displayDate . " | " . (empty($raceInfo['schedule_time']) ? '08:00 WIB' : date('H:i', strtotime($raceInfo['schedule_time'])) . ' WIB');
+
+// Ambil Data Sponsor
+global $pdo;
+$sponsors = [];
+if (isset($pdo)) {
+    $stmtSpon = $pdo->prepare("SELECT image_path FROM event_sponsors WHERE event_id = ?");
+    $stmtSpon->execute([$eventProfile['id']]); 
+    $sponsors = $stmtSpon->fetchAll(PDO::FETCH_COLUMN);
+}
+
 // Merekap seluruh perenang dari semua seri
 $allSwimmers = [];
 if (!empty($heats)) {
@@ -113,9 +156,23 @@ if (!empty($heats)) {
     </div>
 
     <div class="page-wrapper">
+        
+        <div class="header-fixed">
+            <div style="text-align: left;"><?php if($logoLeft): ?><img src="<?= $logoLeft ?>" class="logo-img"><?php endif; ?></div>
+            <div class="header-center">
+                <div class="header-line-1"><?= htmlspecialchars($eventName) ?></div>
+                <div class="header-line-2"><?= htmlspecialchars($venueName) ?></div>
+                <div class="header-line-3"><?= htmlspecialchars($dateRange) ?></div>
+                <div class="header-line-4"></div>
+                <div class="header-line-5">REKAP HASIL</div>
+            </div>
+            <div style="text-align: right;"><?php if($logoRight): ?><img src="<?= $logoRight ?>" class="logo-img"><?php endif; ?></div>
+        </div>
+
         <div class="event-header">
             <div class="eh-left-group">
                 <div class="eh-number">ACARA #<?= htmlspecialchars($raceInfo['event_number'] ?? '') ?></div>
+                <div class="eh-date"><?= htmlspecialchars($jadwalKiri) ?></div>
             </div>
             <div class="eh-center">
                 <div class="eh-title"><?= htmlspecialchars($raceInfo['event_name'] ?? '') ?></div>
@@ -170,6 +227,12 @@ if (!empty($heats)) {
                 </tbody>
             </table>
         <?php endif; ?>
+        
+        <div class="footer-fixed">
+            <?php foreach($sponsors as $spon): ?>
+                <img src="../../../public/<?= $spon ?>" alt="Sponsor">
+            <?php endforeach; ?>
+        </div>
     </div>
 
 <script>
