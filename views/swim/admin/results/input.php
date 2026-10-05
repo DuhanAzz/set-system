@@ -11,25 +11,35 @@
     .input-status { width: 100%; border: none; background: transparent; font-size: 8pt; font-weight: bold; text-align: center; cursor: pointer; }
     
     @media print {
-        body { background: white !important; font-family: 'Arial Narrow', sans-serif !important; }
+        body { background: white !important; font-family: 'Arial Narrow', sans-serif !important; margin: 0 !important; padding: 0 !important; }
         .input-time { border: none !important; background: transparent !important; color: black !important; padding: 0 !important; margin: 0 !important; box-shadow: none !important; text-align: right !important; font-size: 9pt !important; font-family: 'Courier New', monospace !important; }
         .input-status { border: none !important; appearance: none !important; -webkit-appearance: none !important; -moz-appearance: none !important; color: black !important; background: transparent !important; box-shadow: none !important; padding: 0 !important; font-size: 9pt !important; text-align: center !important; }
         * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
         
         /* Sembunyikan Elemen Master Layout */
-        nav, aside, #logo-sidebar { display: none !important; }
+        nav, aside, #logo-sidebar, .no-print, .alert-box { display: none !important; }
         #main-wrapper { margin-left: 0 !important; padding-top: 0 !important; padding: 0 !important; background: white !important; min-height: 0 !important; }
         
-        /* Format Legacy (Rapat & Hitam Putih) */
-        table { font-size: 9pt !important; margin-bottom: 2px !important; width: 100% !important; border-collapse: collapse !important; }
-        th { background-color: #e5e7eb !important; padding: 2px 4px !important; border-top: 1px solid #000 !important; border-bottom: 2px solid #000 !important; font-size: 8pt !important; color: #000 !important; }
-        td { padding: 4px 4px !important; border-bottom: 1px solid #ccc !important; font-size: 9pt !important; color: #000 !important; }
-        .mb-8 { margin-bottom: 15px !important; }
-        .text-2xl { font-size: 16pt !important; margin-bottom: 2px !important; }
-        .text-right.font-bold.text-sm.border-b-2 { font-size: 10pt !important; padding-bottom: 2px !important; border-bottom: 1px solid #000 !important; margin-bottom: 5px !important; }
-        .mb-6 { margin-bottom: 15px !important; }
-        .pb-4 { padding-bottom: 5px !important; }
-        .w-20 { width: 50px !important; height: 50px !important; }
+        /* Format Legacy (Sama dengan view_startlist.php) */
+        .print-header { position: relative !important; display: flex !important; justify-content: space-between !important; align-items: flex-end !important; border-bottom: 2px solid #000 !important; padding: 2px 0 !important; margin-top: 10px !important; margin-bottom: 0px !important; background: #fff !important; min-height: 35px !important; border-top: none !important; }
+        .print-header-left { display: flex !important; flex-direction: column !important; justify-content: center !important; width: 180px !important; line-height: 1.1 !important; z-index: 2 !important; position: relative !important; background: white !important; }
+        .print-header-left h1 { font-size: 14pt !important; font-weight: 900 !important; margin-bottom: 2px !important; color: #000 !important; text-transform: uppercase !important; font-style: normal !important; }
+        .print-header-center { position: absolute !important; left: 50% !important; bottom: 3px !important; transform: translateX(-50%) !important; text-align: center !important; width: 60% !important; z-index: 1 !important; }
+        .print-header-center p { font-size: 11pt !important; font-weight: 800 !important; text-transform: uppercase !important; color: #000 !important; }
+        .print-header-right { width: 80px !important; text-align: right !important; z-index: 2 !important; position: relative !important; background: white !important; color: #000 !important; }
+        
+        .print-heat-title { text-align: right !important; font-size: 9pt !important; font-weight: bold !important; text-transform: uppercase !important; margin-top: 12px !important; margin-bottom: 2px !important; color: #000 !important; border: none !important; padding: 0 !important; }
+        
+        .print-table { width: 100% !important; border-collapse: collapse !important; table-layout: fixed !important; margin-bottom: 2px !important; font-size: 8pt !important; border: none !important; }
+        .print-table th { background-color: #e5e7eb !important; color: #000 !important; font-weight: bold !important; font-size: 8pt !important; text-transform: uppercase !important; padding: 2px 2px !important; border-top: 1px solid #000 !important; border-bottom: 2px solid #000 !important; border-left: none !important; border-right: none !important; text-align: center !important; }
+        .print-table td { padding: 4px 4px !important; border-bottom: 1px solid #ccc !important; border-top: none !important; border-left: none !important; border-right: none !important; vertical-align: middle !important; font-weight: bold !important; color: #000 !important; } 
+        
+        .print-table th:first-child, .print-table td:first-child { width: 5% !important; text-align: center !important; } /* LN */
+        .print-table th:nth-child(2), .print-table td:nth-child(2) { text-align: left !important; padding-left: 5px !important; } /* NAMA */
+        .print-table th:nth-child(3), .print-table td:nth-child(3) { width: 10% !important; text-align: center !important; } /* KU */
+        .print-table th:nth-child(4), .print-table td:nth-child(4) { width: 22% !important; text-align: left !important; padding-left: 5px !important; } /* TIM */
+        .print-table th:nth-child(5), .print-table td:nth-child(5) { width: 12% !important; text-align: right !important; padding-right: 5px !important; } /* WAKTU */
+        .print-table th:nth-child(6), .print-table td:nth-child(6) { width: 12% !important; text-align: center !important; } /* STATUS */
     }
 </style>
 
@@ -107,16 +117,23 @@ if (!function_exists('getKULabelInput')) {
 <form id="formResult" method="POST" action="<?= getenv('APP_URL') ?>/swim/admin/results/input?category_id=<?= $cat_id ?>">
     <input type="hidden" name="rank_mode_input" value="<?= $raceInfo['rank_mode'] ?? 'split' ?>">
 
-    <div class="max-w-4xl mx-auto bg-white p-6 rounded-xl shadow-sm border border-slate-200 print:shadow-none print:border-none print:p-0">
-        <div class="flex justify-between items-start mb-6 pb-4 border-b border-slate-300">
-            <div class="text-left">
+    <div class="max-w-4xl mx-auto bg-white p-6 rounded-xl shadow-sm border border-slate-200 print:shadow-none print:border-none print:p-0 print:max-w-full">
+        <div class="flex justify-between items-start mb-6 pb-4 border-b border-slate-300 print-header">
+            <div class="text-left print-header-left">
                 <h1 class="text-2xl font-black text-slate-800 uppercase italic">ACARA #<?= htmlspecialchars($raceInfo['event_number'] ?? '') ?></h1>
+            </div>
+            
+            <div class="print-header-center hidden print:block">
                 <p class="font-bold text-slate-600"><?= htmlspecialchars($raceInfo['event_name'] ?? '') ?></p>
             </div>
             
-            <div class="hidden print:flex flex-col items-center justify-center">
-                <img id="printQrCode" src="" alt="QR" class="w-20 h-20 object-contain">
-                <span class="text-[9px] font-bold mt-1 text-slate-600 uppercase tracking-widest">LIVE RESULT</span>
+            <div class="hidden print:flex flex-col items-center justify-center print-header-right">
+                <img id="printQrCode" src="" alt="QR" class="w-16 h-16 object-contain mb-0.5">
+                <span class="text-[7px] font-bold mt-0 text-slate-600 uppercase tracking-widest text-center leading-none">LIVE<br>RESULT</span>
+            </div>
+            
+            <div class="text-left print:hidden">
+                <p class="font-bold text-slate-600"><?= htmlspecialchars($raceInfo['event_name'] ?? '') ?></p>
             </div>
         </div>
         
@@ -124,9 +141,9 @@ if (!function_exists('getKULabelInput')) {
             <div class="text-center py-12"><p class="italic text-slate-400">Belum ada peserta di nomor acara ini.</p></div>
         <?php else: ?>
             <?php foreach($heats as $heatNo => $lanesData): ?>
-            <div class="mb-8">
-                <div class="text-right font-bold text-sm border-b-2 border-slate-800 mb-2">SERI <?= str_pad($heatNo, 2, '0', STR_PAD_LEFT) ?></div>
-                <table class="w-full text-sm text-left">
+            <div class="mb-8 print:mb-2">
+                <div class="text-right font-bold text-sm border-b-2 border-slate-800 mb-2 print-heat-title">SERI <?= str_pad($heatNo, 2, '0', STR_PAD_LEFT) ?></div>
+                <table class="w-full text-sm text-left print-table">
                     <thead class="text-xs text-slate-700 uppercase bg-slate-100">
                         <tr>
                             <th class="px-4 py-3 text-center w-12">LN</th>
@@ -160,8 +177,8 @@ if (!function_exists('getKULabelInput')) {
                                 }
                             ?>
                                 <td class="px-4 py-3 font-bold"><?= htmlspecialchars($s['nama_atlet'] ?? '') ?></td>
-                                <td class="px-4 py-3 text-center text-[10px] text-slate-700 font-bold"><?= htmlspecialchars($kuLabel) ?></td>
-                                <td class="px-4 py-3 text-xs"><?= htmlspecialchars($teamName) ?></td>
+                                <td class="px-4 py-3 text-center text-xs text-slate-700 font-bold print:text-[9pt] print:text-black"><?= htmlspecialchars($kuLabel) ?></td>
+                                <td class="px-4 py-3 text-xs print:text-[9pt] print:font-normal"><?= htmlspecialchars($teamName) ?></td>
                                 <td class="px-4 py-3 text-right">
                                     <input type="text" name="entries[<?= $s['id'] ?>][time]" value="<?= htmlspecialchars($s['final_time'] ?? '') ?>" class="input-time" autocomplete="off" <?= (($s['is_dq']??0) == 1) ? 'disabled style="background:#eee;color:#ccc;"' : '' ?>>
                                 </td>
