@@ -721,23 +721,36 @@ if ($format === 'csv') {
             .layout-header-space { height: 42mm; } 
             .layout-footer-space { height: 25mm; }
 
-            table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 8pt; }
-            th, td { border: 1px solid #ccc; padding: 4px 4px; text-align: left; vertical-align: middle; }
-            th { background-color: #e5e7eb; font-family: 'Arial Narrow', sans-serif; font-weight: bold; text-transform: uppercase; border-top: 1px solid #000; border-bottom: 2px solid #000; text-align: center; }
-            td { font-weight: bold !important; color: #000; }
+            /* HEADER (KOP Acara) */
+            .event-header { position: relative; display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #000; padding: 2px 0; margin-top: 5mm; margin-bottom: 0px; background: #fff; min-height: 35px; }
+            .eh-left-group { display: flex; flex-direction: column; justify-content: center; width: 180px; line-height: 1.1; z-index: 2; position: relative; background: white; }
+            .eh-number { font-size: 14pt; font-weight: 900; margin-bottom: 2px; color: #000; }
+            .eh-date { font-size: 8pt; font-weight: bold; font-style: normal; color: #000; }
+            .eh-center { position: absolute; left: 50%; bottom: 3px; transform: translateX(-50%); text-align: center; width: 60%; z-index: 1; }
+            .eh-title  { font-size: 11pt; font-weight: 800; text-transform: uppercase; color: #000; }
+            .eh-right  { width: 80px; text-align: center; z-index: 2; position: relative; background: white; color: #000; display: flex; flex-direction: column; align-items: center; justify-content: flex-end;}
             
-            .event-header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #000; padding-bottom: 2px; margin-bottom: 5px; margin-top: 5mm; }
-            .eh-number { font-size: 14pt; font-weight: 900; line-height: 1; color: #000; }
-            .eh-date { font-size: 8pt; font-weight: bold; color: #000; }
-            .eh-title { font-size: 11pt; font-weight: 800; text-transform: uppercase; text-align: center; flex: 1; color: #000; }
+            /* TABEL KLASEMEN */
+            .data-table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: 10px; font-size: 8pt; font-family: 'Arial Narrow', sans-serif; }
+            .data-table th { background-color: #e5e7eb; color: #000; font-weight: bold; font-size: 8pt; text-transform: uppercase; padding: 2px 2px; border-top: 1px solid #000; border-bottom: 2px solid #000; text-align: center; }
+            .data-table td { padding: 4px 4px; border-bottom: 1px solid #ccc; vertical-align: middle; font-weight: bold !important; color: #000; } 
             
-            .event-records-container { border-bottom: 1px solid #000; padding: 4px 0; margin-bottom: 10px; font-size: 8pt; font-family: 'Arial Narrow', sans-serif; font-weight: bold; line-height: 1.3; }
+            .event-records-container { border-bottom: 1px solid #000; padding: 4px 0; margin-bottom: 10px; font-size: 8pt; font-family: 'Arial Narrow', sans-serif; font-weight: bold; line-height: 1.3; margin-top: 2px; }
             .rec-row { display: flex; justify-content: flex-start; text-transform: uppercase; }
             .rec-label { width: 140px; font-weight: 900; color: #000; }
             .rec-details { flex: 1; color: #000; }
             
             .text-center { text-align: center; }
             .text-red { color: #dc2626 !important; font-weight: bold; }
+            .col-rank { width: 5%; text-align: center; background: #f8f9fa; border-right: 1px solid #eee; font-weight: bold; white-space: nowrap; }
+            .col-uid { width: 10%; text-align: center; }
+            .col-nama { text-align: left; padding-left: 5px; white-space: normal; line-height: 1.1; }
+            .col-lahir { width: 8%; text-align: center; }
+            .col-ku { width: 8%; text-align: center; white-space: nowrap; }
+            .col-tim { width: 20%; text-align: left; padding-left: 5px; white-space: normal; line-height: 1.1; }
+            .col-waktu { width: 10%; text-align: right; padding-right: 5px; white-space: nowrap; font-family: 'Courier New', monospace; }
+            .col-hasil { width: 10%; text-align: center; color: #000; letter-spacing: 0px; white-space: nowrap; }
+            .col-ket { width: 12%; }
             
             @media print {
                 @page { margin: 0; size: A4; }
@@ -792,14 +805,16 @@ if ($format === 'csv') {
             <?php foreach ($finalGroups as $groupKey => $groupData): ?>
                 
                 <div class="event-header">
-                    <div style="width: 150px;">
+                    <div class="eh-left-group">
                         <?php if($cfg_event_no): ?><div class="eh-number">ACARA #<?= $groupData['meta']['nomor'] ?></div><?php endif; ?>
-                        <?php if($cfg_date): ?><div class="eh-date"><?= $eventDateStr ?></div><?php endif; ?>
+                        <?php if($cfg_date): ?><div class="eh-date"><?= htmlspecialchars($eventDateStr) ?></div><?php endif; ?>
                     </div>
-                    <div class="eh-title">
-                        <?= htmlspecialchars($groupData['meta']['judul']) ?>
+                    <div class="eh-center">
+                        <div class="eh-title">
+                            <?= htmlspecialchars($groupData['meta']['judul']) ?>
+                        </div>
                     </div>
-                    <div style="width: 150px; text-align: right;"></div>
+                    <div class="eh-right"></div>
                 </div>
 
                 <?php if ($cfg_show_records && !empty($groupData['meta']['records'])): ?>
@@ -820,18 +835,18 @@ if ($format === 'csv') {
                     </div>
                 <?php endif; ?>
 
-                <table>
+                <table class="data-table">
                     <thead>
                         <tr>
-                            <th width="5%" class="text-center">Rank</th>
-                            <?php if($col_uid): ?><th width="10%" class="text-center">UID</th><?php endif; ?>
-                            <th>Nama Atlet</th>
-                            <?php if($col_lahir): ?><th width="8%" class="text-center">Lahir</th><?php endif; ?>
-                            <?php if($col_ku): ?><th width="8%" class="text-center">KU</th><?php endif; ?>
-                            <?php if($col_tim): ?><th width="20%">Tim / Sekolah</th><?php endif; ?>
-                            <?php if($col_waktu): ?><th width="8%" class="text-center">Entry</th><?php endif; ?>
-                            <?php if($col_hasil): ?><th width="8%" class="text-center">Final</th><?php endif; ?>
-                            <?php if($col_ket): ?><th width="12%">Ket</th><?php endif; ?>
+                            <th class="col-rank">RANK</th>
+                            <?php if($col_uid): ?><th class="col-uid">UID</th><?php endif; ?>
+                            <th class="col-nama">NAMA ATLET</th>
+                            <?php if($col_lahir): ?><th class="col-lahir">LAHIR</th><?php endif; ?>
+                            <?php if($col_ku): ?><th class="col-ku">KU</th><?php endif; ?>
+                            <?php if($col_tim): ?><th class="col-tim">TIM / SEKOLAH</th><?php endif; ?>
+                            <?php if($col_waktu): ?><th class="col-waktu">ENTRY</th><?php endif; ?>
+                            <?php if($col_hasil): ?><th class="col-hasil">FINAL</th><?php endif; ?>
+                            <?php if($col_ket): ?><th class="col-ket">KET</th><?php endif; ?>
                         </tr>
                     </thead>
                     <tbody>
@@ -842,15 +857,15 @@ if ($format === 'csv') {
                                 $ket = $isDQ ? ($atlet['dq_reason_final'] ?: 'DQ') : '';
                             ?>
                             <tr>
-                                <td class="text-center <?= $isDQ ? 'text-red' : '' ?>"><?= $rankLabel ?></td>
-                                <?php if($col_uid): ?><td class="text-center"><?= htmlspecialchars($atlet['uid']) ?></td><?php endif; ?>
-                                <td><?= htmlspecialchars(strtoupper($atlet['nama_atlet'])) ?></td>
-                                <?php if($col_lahir): ?><td class="text-center"><?= date('Y', strtotime($atlet['tanggal_lahir'])) ?></td><?php endif; ?>
-                                <?php if($col_ku): ?><td class="text-center"><?= htmlspecialchars(strtoupper($atlet['real_ku'])) ?></td><?php endif; ?>
-                                <?php if($col_tim): ?><td><?= htmlspecialchars(strtoupper($atlet['team_name'])) ?></td><?php endif; ?>
-                                <?php if($col_waktu): ?><td class="text-center"><?= htmlspecialchars($atlet['entry_time'] ? formatTimeDisplay($atlet['entry_time']) : '-') ?></td><?php endif; ?>
-                                <?php if($col_hasil): ?><td class="text-center <?= $isDQ ? 'text-red' : '' ?>"><?= htmlspecialchars($atlet['time_final'] ? formatTimeDisplay($atlet['time_final']) : '-') ?></td><?php endif; ?>
-                                <?php if($col_ket): ?><td class="<?= $isDQ ? 'text-red' : '' ?>"><?= htmlspecialchars($ket) ?></td><?php endif; ?>
+                                <td class="col-rank <?= $isDQ ? 'text-red' : '' ?>"><?= $rankLabel ?></td>
+                                <?php if($col_uid): ?><td class="col-uid text-center"><?= htmlspecialchars($atlet['uid']) ?></td><?php endif; ?>
+                                <td class="col-nama"><?= htmlspecialchars(strtoupper($atlet['nama_atlet'])) ?></td>
+                                <?php if($col_lahir): ?><td class="col-lahir text-center"><?= date('Y', strtotime($atlet['tanggal_lahir'])) ?></td><?php endif; ?>
+                                <?php if($col_ku): ?><td class="col-ku text-center"><?= htmlspecialchars(strtoupper($atlet['real_ku'])) ?></td><?php endif; ?>
+                                <?php if($col_tim): ?><td class="col-tim"><?= htmlspecialchars(strtoupper($atlet['team_name'])) ?></td><?php endif; ?>
+                                <?php if($col_waktu): ?><td class="col-waktu text-center"><?= htmlspecialchars($atlet['entry_time'] ? formatTimeDisplay($atlet['entry_time']) : '-') ?></td><?php endif; ?>
+                                <?php if($col_hasil): ?><td class="col-hasil text-center <?= $isDQ ? 'text-red' : '' ?>"><?= htmlspecialchars($atlet['time_final'] ? formatTimeDisplay($atlet['time_final']) : '-') ?></td><?php endif; ?>
+                                <?php if($col_ket): ?><td class="col-ket <?= $isDQ ? 'text-red' : '' ?>"><?= htmlspecialchars($ket) ?></td><?php endif; ?>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>
