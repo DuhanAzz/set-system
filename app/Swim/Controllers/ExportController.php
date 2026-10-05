@@ -353,6 +353,14 @@ $partType = strtolower($event['participation_type'] ?? 'club');
 $isSchool = (strpos($partType, 'school') !== false || strpos($partType, 'sekolah') !== false);
 $eventYear = date('Y', strtotime($event['event_date_start']));
 
+$logoLeft = !empty($event['logo_left']) ? getenv('APP_URL') . '/public/' . $event['logo_left'] : null;
+$logoRight = !empty($event['logo_right']) ? getenv('APP_URL') . '/public/' . $event['logo_right'] : null;
+
+$sponsors = [];
+$stmtSpon = $this->db->prepare("SELECT image_path FROM event_sponsors WHERE event_id = ?");
+$stmtSpon->execute([$event_id]); 
+$sponsors = $stmtSpon->fetchAll(PDO::FETCH_COLUMN);
+
 $eventName = strtoupper($event['event_name'] ?? 'EVENT NAME');
 $eventLoc = strtoupper($event['event_location'] ?? 'LOKASI');
 $eventDateStr = strtoupper(date('d F Y', strtotime($event['event_date_start'])));
@@ -685,20 +693,43 @@ if ($format === 'csv') {
         <meta charset="UTF-8">
         <title>Laporan Resmi - <?= $eventName ?></title>
         <style>
-            body { font-family: 'Arial', sans-serif; font-size: 11px; margin: 0; padding: 20px; color: #333; }
-            .header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #000; padding-bottom: 10px; }
-            .header h1 { font-size: 16px; margin: 0 0 5px 0; text-transform: uppercase; }
-            .header h2 { font-size: 14px; margin: 0 0 5px 0; }
-            .header p { font-size: 11px; margin: 0; }
+            * { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            body { font-family: 'Arial Narrow', sans-serif; font-size: 11px; margin: 0; padding: 20px; color: #000; background: #525659; }
             
-            table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-            th, td { border: 1px solid #999; padding: 4px 6px; text-align: left; }
-            th { background-color: #f1f5f9; font-weight: bold; }
+            /* TOMBOL NAVIGASI DI LUAR KERTAS */
+            .no-print { display: flex; justify-content: center; flex-direction: column; align-items: center; gap: 10px; width: 210mm; margin: 0 auto 15px auto; }
             
-            .event-header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #000; padding-bottom: 2px; margin-bottom: 5px; margin-top: 15px; }
-            .eh-number { font-size: 14pt; font-weight: 900; line-height: 1; }
-            .eh-date { font-size: 8pt; font-weight: bold; }
-            .eh-title { font-size: 11pt; font-weight: 800; text-transform: uppercase; text-align: center; flex: 1; }
+            /* KERTAS A4 */
+            .page-wrapper { background: white; width: 210mm; margin: 0 auto; padding: 0 10mm; min-height: 297mm; position: relative; box-shadow: 0 0 15px rgba(0,0,0,0.5); }
+            
+            /* HEADER FIXED STYLE */
+            .header-fixed { position: fixed; top: 0; left: 0; right: 0; height: 35mm; background: white; border-bottom: 3px double #000; display: grid; grid-template-columns: 110px 1fr 110px; align-items: flex-end; padding: 5px 10mm 3px 10mm; z-index: 999; display: none; }
+            .header-center { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; text-align: center; line-height: 1.2; color: #000; }
+            .header-line-1 { font-size: 14pt; font-weight: 900; text-transform: uppercase; margin-bottom: 2px; }
+            .header-line-2 { font-size: 9pt; font-weight: bold; text-transform: uppercase; }
+            .header-line-3 { font-size: 9pt; font-weight: bold; text-transform: uppercase; }
+            .header-line-4 { height: 3px; } 
+            .header-line-5 { font-size: 18pt; font-weight: 900; text-transform: uppercase; letter-spacing: 2px; color: #000; margin-top: 2px; margin-bottom: 0px; line-height: 1; }
+            .logo-img { max-height: 80px; max-width: 100%; object-fit: contain; margin-bottom: 2px; }
+            
+            /* FOOTER SPONSOR */
+            .footer-fixed { position: fixed; bottom: 0; left: 0; right: 0; height: 20mm; background: white; border-top: 2px double #000; display: flex; justify-content: center; align-items: center; padding: 0 10mm; z-index: 999; display: none; }
+            .footer-fixed img { height: 40px; margin: 0 10px; object-fit: contain; }
+
+            /* SPACER TABEL CETAK */
+            .layout-table { width: 100%; border-collapse: collapse; border: none; }
+            .layout-header-space { height: 42mm; } 
+            .layout-footer-space { height: 25mm; }
+
+            table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 8pt; }
+            th, td { border: 1px solid #ccc; padding: 4px 4px; text-align: left; vertical-align: middle; }
+            th { background-color: #e5e7eb; font-family: 'Arial Narrow', sans-serif; font-weight: bold; text-transform: uppercase; border-top: 1px solid #000; border-bottom: 2px solid #000; text-align: center; }
+            td { font-weight: bold !important; color: #000; }
+            
+            .event-header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #000; padding-bottom: 2px; margin-bottom: 5px; margin-top: 5mm; }
+            .eh-number { font-size: 14pt; font-weight: 900; line-height: 1; color: #000; }
+            .eh-date { font-size: 8pt; font-weight: bold; color: #000; }
+            .eh-title { font-size: 11pt; font-weight: 800; text-transform: uppercase; text-align: center; flex: 1; color: #000; }
             
             .event-records-container { border-bottom: 1px solid #000; padding: 4px 0; margin-bottom: 10px; font-size: 8pt; font-family: 'Arial Narrow', sans-serif; font-weight: bold; line-height: 1.3; }
             .rec-row { display: flex; justify-content: flex-start; text-transform: uppercase; }
@@ -706,26 +737,54 @@ if ($format === 'csv') {
             .rec-details { flex: 1; color: #000; }
             
             .text-center { text-align: center; }
-            .text-red { color: #dc2626; font-weight: bold; }
+            .text-red { color: #dc2626 !important; font-weight: bold; }
+            
             @media print {
-                @page { margin: 1cm; size: A4; }
-                body { padding: 0; }
+                @page { margin: 0; size: A4; }
+                body { padding: 0; background: white; margin: 0; }
                 .no-print { display: none !important; }
+                .page-wrapper { margin: 0; width: 100%; box-shadow: none; padding: 0 10mm; min-height: auto; position: relative; }
+                .header-fixed { display: grid !important; }
+                .footer-fixed { display: flex !important; justify-content: center !important; }
+                .layout-table > thead { display: table-header-group !important; }
+                .data-table > thead { display: table-row-group !important; }
+                tfoot { display: table-footer-group; }
+                .event-header { margin-top: 0; }
             }
         </style>
     </head>
-    <body onload="window.print()">
+    <body>
         
         <div class="no-print" style="margin-bottom: 20px; text-align: center;">
-            <button onclick="window.print()" style="padding: 10px 20px; background: #000; color: #fff; border: none; cursor: pointer; font-weight: bold;">🖨️ Cetak PDF</button>
-            <p>Atur <strong>Destination</strong> ke "Save as PDF" di dialog cetak browser Anda.</p>
+            <button onclick="window.print()" style="padding: 10px 20px; background: #2563eb; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 10pt;">🖨️ CETAK HALAMAN INI</button>
+            <p style="color: #ccc;">Atur <strong>Destination</strong> ke "Save as PDF" di dialog cetak browser Anda.</p>
         </div>
 
-        <div class="header">
-            <h1>LAPORAN RESMI HASIL PERTANDINGAN</h1>
-            <h2><?= htmlspecialchars($eventName) ?></h2>
-            <p><?= htmlspecialchars($eventLoc) ?> | <?= htmlspecialchars($eventDateStr) ?></p>
+        <div class="header-fixed">
+            <div style="text-align: left;"><?php if($logoLeft): ?><img src="<?= $logoLeft ?>" class="logo-img"><?php endif; ?></div>
+            <div class="header-center">
+                <div class="header-line-1"><?= htmlspecialchars($eventName) ?></div>
+                <div class="header-line-2"><?= htmlspecialchars($eventLoc) ?></div>
+                <div class="header-line-3"><?= htmlspecialchars($eventDateStr) ?></div>
+                <div class="header-line-4"></div>
+                <div class="header-line-5">LAPORAN RESMI HASIL</div>
+            </div>
+            <div style="text-align: right;"><?php if($logoRight): ?><img src="<?= $logoRight ?>" class="logo-img"><?php endif; ?></div>
         </div>
+
+        <div class="footer-fixed">
+            <?php foreach($sponsors as $spon): ?>
+                <img src="<?= getenv('APP_URL') ?>/public/<?= $spon ?>" alt="Sponsor">
+            <?php endforeach; ?>
+        </div>
+
+        <div class="page-wrapper">
+            <table class="layout-table">
+                <thead><tr><td><div class="layout-header-space"></div></td></tr></thead>
+                <tfoot><tr><td><div class="layout-footer-space"></div></td></tr></tfoot>
+                <tbody>
+                    <tr>
+                        <td>
 
         <?php if(empty($finalGroups)): ?>
             <p class="text-center">Tidak ada data yang sesuai dengan filter yang dipilih.</p>
@@ -802,6 +861,15 @@ if ($format === 'csv') {
         <div style="margin-top: 30px; font-size: 10px; text-align: right; color: #666;">
             Waktu Cetak Dokumen: <?= date('d M Y H:i:s') ?>
         </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <script>
+            setTimeout(() => { window.print(); }, 1000);
+        </script>
     </body>
     </html>
     <?php
