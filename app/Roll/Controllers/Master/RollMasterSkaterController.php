@@ -26,8 +26,61 @@ class RollMasterSkaterController extends Controller {
         )");
     }
 
+    private function generateSkaterUID($db, $nama_atlet, $tanggal_lahir, $jenis_kelamin) {
+        $nama_bersih = preg_replace('/[^A-Za-z\s]/', '', strtoupper(trim($nama_atlet)));
+        $kata = explode(' ', $nama_bersih);
+        
+        $huruf1 = isset($kata[0][0]) ? $kata[0][0] : 'A';
+        $kode1 = str_pad(ord($huruf1) - 64, 2, '0', STR_PAD_LEFT); 
+        
+        if (isset($kata[1]) && !empty($kata[1])) {
+            $huruf2 = $kata[1][0];
+        } else {
+            $huruf2 = isset($kata[0][1]) ? $kata[0][1] : 'X'; 
+        }
+        $kode2 = str_pad(ord($huruf2) - 64, 2, '0', STR_PAD_LEFT);
+        
+        $tahun = date('Y', strtotime($tanggal_lahir));
+        $kode_jk = (strtoupper($jenis_kelamin) == 'L' || strtoupper($jenis_kelamin) == 'M' || strtoupper($jenis_kelamin) == 'PUTRA' || strtoupper($jenis_kelamin) == 'MALE') ? '1' : '9';
+        
+        $base_uid = $kode1 . $kode2 . $tahun . $kode_jk;
+        
+        $stmt = $db->prepare("SELECT uid FROM roll_skaters WHERE uid LIKE ? ORDER BY uid DESC LIMIT 1");
+        $stmt->execute([$base_uid . '%']);
+        $last_uid = $stmt->fetchColumn();
+        
+        $digit_akhir = 0;
+        if ($last_uid) {
+            $last_digit = (int) substr($last_uid, -1);
+            $digit_akhir = $last_digit + 1;
+            if ($digit_akhir > 9) {
+                $digit_akhir = 9; 
+            }
+        }
+        
+        return $base_uid . $digit_akhir;
+    }
+
     public function index() {
         $db = Database::getInstance()->getConnection();
+        
+        try {
+            $db->query("SELECT uid FROM roll_skaters LIMIT 1");
+        } catch (\Exception $e) {
+            $db->exec("ALTER TABLE roll_skaters ADD COLUMN uid VARCHAR(20) NULL AFTER id");
+        }
+
+        // Generate missing UIDs
+        $stmtMissing = $db->query("SELECT id, skater_name, birth_date, gender FROM roll_skaters WHERE uid IS NULL OR uid = ''");
+        $missingUids = $stmtMissing->fetchAll(PDO::FETCH_ASSOC);
+        if (!empty($missingUids)) {
+            $stmtUpdate = $db->prepare("UPDATE roll_skaters SET uid = ? WHERE id = ?");
+            foreach ($missingUids as $m) {
+                $uid = $this->generateSkaterUID($db, $m['skater_name'], $m['birth_date'], $m['gender']);
+                $stmtUpdate->execute([$uid, $m['id']]);
+            }
+        }
+
         $search = $_GET['search'] ?? '';
         $whereClause = "WHERE 1=1";
         $params = [];
@@ -92,6 +145,68 @@ class RollMasterSkaterController extends Controller {
                 $_SESSION['flash_type'] = "success";
             }
             header("Location: " . getenv('APP_URL') . "/roll/master/skaters/index");
+            exit;
+        }
+    }
+
+    public function cleanse() {
+        $db = Database::getInstance()->getConnection();
+
+        // 1. Exact Duplicates
+        $stmtDup = $db->query("
+            SELECT skater_name, birth_date, gender, COUNT(*) as total_entries, GROUP_CONCAT(id) as ids, GROUP_CONCAT(c.club_name SEPARATOR ' | ') as clubs
+            FROM roll_skaters s
+            LEFT JOIN roll_clubs c ON s.club_id = c.id
+            GROUP BY skater_name, birth_date, gender
+            HAVING total_entries > 1
+            ORDER BY total_entries DESC
+        ");
+        $exactDuplicates = $stmtDup->fetchAll(PDO::FETCH_ASSOC);
+
+        // 2. Potential Typos (Same name, different DOB)
+        $stmtTypo = $db->query("
+            SELECT skater_name, COUNT(*) as total_entries, GROUP_CONCAT(id) as ids, GROUP_CONCAT(birth_date SEPARATOR ' | ') as dobs, GROUP_CONCAT(c.club_name SEPARATOR ' | ') as clubs
+            FROM roll_skaters s
+            LEFT JOIN roll_clubs c ON s.club_id = c.id
+            GROUP BY skater_name
+            HAVING total_entries > 1
+        ");
+        $typoCandidatesRaw = $stmtTypo->fetchAll(PDO::FETCH_ASSOC);
+        $typoCandidates = [];
+        foreach ($typoCandidatesRaw as $n) {
+            $dobs = explode(' | ', $n['dobs']);
+            if (count(array_unique($dobs)) > 1) {
+                $typoCandidates[] = $n;
+            }
+        }
+
+        // 3. Date Anomalies
+        $stmtAnom = $db->query("
+            SELECT s.id, s.skater_name, s.birth_date, s.gender, c.club_name
+            FROM roll_skaters s
+            LEFT JOIN roll_clubs c ON s.club_id = c.id
+            WHERE s.birth_date IS NULL OR s.birth_date = '0000-00-00' OR YEAR(s.birth_date) < 1950 OR YEAR(s.birth_date) > YEAR(CURDATE())
+        ");
+        $anomalies = $stmtAnom->fetchAll(PDO::FETCH_ASSOC);
+
+        return $this->view('roll/master/skaters/cleanse', [
+            'exactDuplicates' => $exactDuplicates,
+            'typoCandidates' => $typoCandidates,
+            'anomalies' => $anomalies
+        ]);
+    }
+
+    public function delete() {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $db = Database::getInstance()->getConnection();
+            $id = $_POST['id'] ?? null;
+            if ($id) {
+                $stmt = $db->prepare("DELETE FROM roll_skaters WHERE id = ?");
+                $stmt->execute([$id]);
+                $_SESSION['flash_message'] = "Skater berhasil dihapus.";
+                $_SESSION['flash_type'] = "success";
+            }
+            header("Location: " . getenv('APP_URL') . "/roll/master/skaters/cleanse");
             exit;
         }
     }

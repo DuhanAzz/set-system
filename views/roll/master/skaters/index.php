@@ -21,6 +21,7 @@
             <div class="w-full md:w-auto flex flex-col sm:flex-row items-center gap-2">
                 <div class="bg-white p-1 rounded-xl shadow-sm border border-slate-200 flex w-full sm:w-auto mb-2 sm:mb-0">
                     <a href="<?= getenv('APP_URL') ?>/roll/master/skaters/index" class="px-4 py-2 w-full text-center sm:w-auto rounded-lg text-[10px] font-black uppercase transition bg-slate-900 text-white shadow-md">Daftar Skater</a>
+                    <a href="<?= getenv('APP_URL') ?>/roll/master/skaters/cleanse" class="px-4 py-2 w-full text-center sm:w-auto rounded-lg text-[10px] font-black uppercase transition text-slate-400 hover:bg-slate-50 border-x border-slate-100">Cleanse Data</a>
                     <a href="<?= getenv('APP_URL') ?>/roll/master/skaters/history_transfer" class="px-4 py-2 w-full text-center sm:w-auto rounded-lg text-[10px] font-black uppercase transition text-slate-400 hover:bg-slate-50">Riwayat Mutasi</a>
                 </div>
 
@@ -78,6 +79,7 @@
                                                 <?php endif; ?>
                                             </div>
                                             <div class="font-mono text-slate-400 text-[10px] tracking-wide mt-0.5">
+                                                UID: <span class="font-bold text-blue-500 mr-3"><?= htmlspecialchars($s['uid'] ?? '-') ?></span>
                                                 Reg: <span class="font-bold text-slate-500"><?= date('d M Y', strtotime($s['created_at'])) ?></span>
                                             </div>
                                         </div>
