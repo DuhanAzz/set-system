@@ -252,12 +252,20 @@ class MedalTallyController extends Controller {
     public function index() {
         $this->checkAccess();
         $data = $this->calculateTally('team');
-        $this->view('swim/admin/medal_tally/index', $data);
+        if (isset($_GET['print']) && $_GET['print'] == 1) {
+            $this->view('swim/admin/medal_tally/print_index', $data, false);
+        } else {
+            $this->view('swim/admin/medal_tally/index', $data);
+        }
     }
 
     public function best_swimmer() {
         $this->checkAccess();
         $data = $this->calculateTally('athlete');
-        $this->view('swim/admin/medal_tally/best_swimmer', $data);
+        if (isset($_GET['print']) && $_GET['print'] == 1) {
+            $this->view('swim/admin/medal_tally/print_best_swimmer', $data, false);
+        } else {
+            $this->view('swim/admin/medal_tally/best_swimmer', $data);
+        }
     }
 }

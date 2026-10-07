@@ -136,9 +136,9 @@ $filter_gender = $_GET['gender'] ?? 'all';
     </div>
 
     <div class="flex justify-end">
-        <button onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white px-6 py-2 rounded text-xs font-bold uppercase shadow flex items-center gap-2">
+        <a href="<?= getenv('APP_URL') ?>/swim/admin/medal_tally/best_swimmer?team_source=<?= htmlspecialchars($team_source) ?>&gender=<?= htmlspecialchars($filter_gender) ?>&<?= http_build_query(['ku' => $selected_ku_ids]) ?>&print=1" target="_blank" class="bg-slate-900 hover:bg-slate-800 text-white px-6 py-2 rounded text-xs font-bold uppercase shadow flex items-center gap-2">
             🖨️ Cetak Laporan
-        </button>
+        </a>
     </div>
 </div>
 
