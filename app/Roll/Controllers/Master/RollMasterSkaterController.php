@@ -154,10 +154,10 @@ class RollMasterSkaterController extends Controller {
 
         // 1. Exact Duplicates
         $stmtDup = $db->query("
-            SELECT skater_name, birth_date, gender, COUNT(*) as total_entries, GROUP_CONCAT(id) as ids, GROUP_CONCAT(c.club_name SEPARATOR ' | ') as clubs
+            SELECT s.skater_name, s.birth_date, s.gender, COUNT(*) as total_entries, GROUP_CONCAT(s.id) as ids, GROUP_CONCAT(COALESCE(c.club_name, 'No Club') SEPARATOR ' | ') as clubs
             FROM roll_skaters s
             LEFT JOIN roll_clubs c ON s.club_id = c.id
-            GROUP BY skater_name, birth_date, gender
+            GROUP BY s.skater_name, s.birth_date, s.gender
             HAVING total_entries > 1
             ORDER BY total_entries DESC
         ");
@@ -165,10 +165,10 @@ class RollMasterSkaterController extends Controller {
 
         // 2. Potential Typos (Same name, different DOB)
         $stmtTypo = $db->query("
-            SELECT skater_name, COUNT(*) as total_entries, GROUP_CONCAT(id) as ids, GROUP_CONCAT(birth_date SEPARATOR ' | ') as dobs, GROUP_CONCAT(c.club_name SEPARATOR ' | ') as clubs
+            SELECT s.skater_name, COUNT(*) as total_entries, GROUP_CONCAT(s.id) as ids, GROUP_CONCAT(s.birth_date SEPARATOR ' | ') as dobs, GROUP_CONCAT(COALESCE(c.club_name, 'No Club') SEPARATOR ' | ') as clubs
             FROM roll_skaters s
             LEFT JOIN roll_clubs c ON s.club_id = c.id
-            GROUP BY skater_name
+            GROUP BY s.skater_name
             HAVING total_entries > 1
         ");
         $typoCandidatesRaw = $stmtTypo->fetchAll(PDO::FETCH_ASSOC);
