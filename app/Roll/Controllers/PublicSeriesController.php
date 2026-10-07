@@ -175,7 +175,9 @@ class PublicSeriesController extends Controller {
                         return $a['skater_name'] <=> $b['skater_name'];
                     });
                 }
+                unset($skaters);
             }
+            unset($genders);
             
             uksort($bestSkaters, function($a, $b) {
                 $getSortValue = function($str) {
@@ -200,8 +202,10 @@ class PublicSeriesController extends Controller {
             
             // Filter KU yang diizinkan untuk dipublish
             $pubKuRaw = $series['published_ku_standings'] ?? null;
+            error_log("PUB_KU_RAW for Series ID " . $series['id'] . ": " . print_r($pubKuRaw, true));
             if (!empty($pubKuRaw)) {
                 $pubKu = json_decode($pubKuRaw, true);
+                error_log("PUB_KU decoded: " . print_r($pubKu, true));
                 if (is_array($pubKu)) {
                     $filteredSkaters = [];
                     foreach ($bestSkaters as $ku => $genders) {

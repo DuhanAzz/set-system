@@ -479,7 +479,9 @@ class RollMasterSettingsController extends Controller {
                         return $a['skater_name'] <=> $b['skater_name'];
                     });
                 }
+                unset($skaters);
             }
+            unset($genders);
             $perEventStandings[] = [
                 'event_name' => $eData['event_name'],
                 'standings' => $eData['standings']
@@ -512,7 +514,9 @@ class RollMasterSettingsController extends Controller {
                     return $a['skater_name'] <=> $b['skater_name'];
                 });
             }
+            unset($skaters);
         }
+        unset($genders);
         ksort($overallStandings);
 
         return ['overall' => $overallStandings, 'per_event' => array_values($perEventStandings)];
