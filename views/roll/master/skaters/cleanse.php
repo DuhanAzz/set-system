@@ -49,12 +49,18 @@
                                 <div class="flex gap-2">
                                     <?php 
                                         $idList = explode(',', $d['ids']); 
-                                        // Hapus 1 per 1 (biarkan 1 tetap hidup)
-                                        $idToDelete = end($idList);
+                                        $primaryId = $idList[0]; 
+                                        $duplicateId = $idList[1] ?? 0; 
                                     ?>
-                                    <form action="<?= getenv('APP_URL') ?>/roll/master/skaters/delete" method="POST" onsubmit="return confirm('Hapus entri duplikat ID <?= $idToDelete ?>?')">
-                                        <input type="hidden" name="id" value="<?= $idToDelete ?>">
-                                        <button type="submit" class="px-4 py-2 bg-red-50 text-red-600 hover:bg-red-600 hover:text-white border border-red-200 rounded-lg text-xs font-bold uppercase transition">Hapus Salah Satu</button>
+                                    <form action="<?= getenv('APP_URL') ?>/roll/master/skaters/merge" method="POST" onsubmit="return confirm('Gabungkan poin & data dari ID <?= $duplicateId ?> ke ID Utama <?= $primaryId ?>?\n\nSemua riwayat (medali, poin MVP, history transfer) akan berpindah, lalu akun <?= $duplicateId ?> akan otomatis dihapus.')">
+                                        <input type="hidden" name="primary_id" value="<?= $primaryId ?>">
+                                        <input type="hidden" name="duplicate_id" value="<?= $duplicateId ?>">
+                                        <button type="submit" class="px-4 py-2 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white border border-blue-200 rounded-lg text-xs font-bold uppercase transition">Merge Data</button>
+                                    </form>
+
+                                    <form action="<?= getenv('APP_URL') ?>/roll/master/skaters/delete" method="POST" onsubmit="return confirm('YAKIN HANYA MENGHAPUS?\n\nHapus permanen ID <?= $duplicateId ?> TANPA memindahkan poin/medali?')">
+                                        <input type="hidden" name="id" value="<?= $duplicateId ?>">
+                                        <button type="submit" class="px-4 py-2 bg-red-50 text-red-600 hover:bg-red-600 hover:text-white border border-red-200 rounded-lg text-xs font-bold uppercase transition">Hapus Kosong</button>
                                     </form>
                                 </div>
                             </div>

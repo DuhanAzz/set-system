@@ -196,15 +196,66 @@ class RollMasterSkaterController extends Controller {
         ]);
     }
 
+    public function merge() {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $db = Database::getInstance()->getConnection();
+            $primary_id = (int)($_POST['primary_id'] ?? 0);
+            $duplicate_id = (int)($_POST['duplicate_id'] ?? 0);
+            
+            if ($primary_id > 0 && $duplicate_id > 0 && $primary_id !== $duplicate_id) {
+                try {
+                    $db->beginTransaction();
+
+                    // 1. Pindahkan entri pendaftaran (IGNORE jika primary sudah terdaftar di kelas lomba yg sama)
+                    $db->exec("UPDATE IGNORE roll_entries SET skater_id = $primary_id WHERE skater_id = $duplicate_id");
+                    
+                    // 2. Pindahkan hasil lomba & poin
+                    $db->exec("UPDATE IGNORE roll_event_results SET skater_id = $primary_id WHERE skater_id = $duplicate_id");
+                    
+                    // 3. Pindahkan riwayat transfer klub
+                    $db->exec("UPDATE IGNORE roll_skater_transfers SET skater_id = $primary_id WHERE skater_id = $duplicate_id");
+
+                    // 4. Hapus sisa record dari duplicate yang gagal pindah (karena bentrok dgn primary)
+                    $db->exec("DELETE FROM roll_entries WHERE skater_id = $duplicate_id");
+                    $db->exec("DELETE FROM roll_event_results WHERE skater_id = $duplicate_id");
+                    $db->exec("DELETE FROM roll_skater_transfers WHERE skater_id = $duplicate_id");
+
+                    // 5. Hapus akun duplicate secara permanen
+                    $db->exec("DELETE FROM roll_skaters WHERE id = $duplicate_id");
+
+                    $db->commit();
+                    $_SESSION['flash_message'] = "Sukses! Data poin, hasil lomba, dan riwayat berhasil digabung ke ID Utama (Skater ID $primary_id). Data duplikat telah dihapus.";
+                    $_SESSION['flash_type'] = "success";
+                } catch (\Exception $e) {
+                    $db->rollBack();
+                    $_SESSION['flash_message'] = "Gagal melakukan Merge: " . $e->getMessage();
+                    $_SESSION['flash_type'] = "error";
+                }
+            }
+            header("Location: " . getenv('APP_URL') . "/roll/master/skaters/cleanse");
+            exit;
+        }
+    }
+
     public function delete() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $db = Database::getInstance()->getConnection();
-            $id = $_POST['id'] ?? null;
-            if ($id) {
-                $stmt = $db->prepare("DELETE FROM roll_skaters WHERE id = ?");
-                $stmt->execute([$id]);
-                $_SESSION['flash_message'] = "Skater berhasil dihapus.";
-                $_SESSION['flash_type'] = "success";
+            $id = (int)($_POST['id'] ?? 0);
+            if ($id > 0) {
+                try {
+                    $db->beginTransaction();
+                    $db->exec("DELETE FROM roll_entries WHERE skater_id = $id");
+                    $db->exec("DELETE FROM roll_event_results WHERE skater_id = $id");
+                    $db->exec("DELETE FROM roll_skater_transfers WHERE skater_id = $id");
+                    $db->exec("DELETE FROM roll_skaters WHERE id = $id");
+                    $db->commit();
+                    $_SESSION['flash_message'] = "Skater (beserta seluruh riwayat kosongnya) berhasil dihapus.";
+                    $_SESSION['flash_type'] = "success";
+                } catch (\Exception $e) {
+                    $db->rollBack();
+                    $_SESSION['flash_message'] = "Gagal menghapus skater: " . $e->getMessage();
+                    $_SESSION['flash_type'] = "error";
+                }
             }
             header("Location: " . getenv('APP_URL') . "/roll/master/skaters/cleanse");
             exit;
