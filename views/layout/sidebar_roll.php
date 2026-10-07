@@ -157,7 +157,7 @@ if (!function_exists('isGroupActive')) {
 
          <?php if ($hasSeriesAccess): ?>
              <?php $seriesActive = isGroupActive($req, ['admin/series']); ?>
-             <a href="<?= getenv('APP_URL') ?>/roll/admin/series/index" class="<?= $seriesActive ? $activeLinkClass : $baseLinkClass ?>">
+             <a href="<?= getenv('APP_URL') ?>/roll/admin/series/index" class="<?= $seriesActive ? $activeLink : $baseLink ?>">
                 <div class="flex items-center">
                    <span class="w-6 text-xl mr-3 text-center opacity-80">🏆</span>
                    <span class="font-bold text-[11px] tracking-widest uppercase">Pengelola Series</span>
