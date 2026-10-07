@@ -199,8 +199,9 @@ class PublicSeriesController extends Controller {
             });
             
             // Filter KU yang diizinkan untuk dipublish
-            if (isset($series['published_ku_standings']) && $series['published_ku_standings'] !== null && $series['published_ku_standings'] !== '') {
-                $pubKu = json_decode($series['published_ku_standings'], true);
+            $pubKuRaw = $series['published_ku_standings'] ?? null;
+            if (!empty($pubKuRaw)) {
+                $pubKu = json_decode($pubKuRaw, true);
                 if (is_array($pubKu)) {
                     $filteredSkaters = [];
                     foreach ($bestSkaters as $ku => $genders) {

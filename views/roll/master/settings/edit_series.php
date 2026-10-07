@@ -20,9 +20,10 @@ $point_rules = json_decode($series['point_rules'] ?? '{}', true) ?: [
         </div>
     </div>
 
-    <div class="bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200">
-        <form action="<?= getenv('APP_URL') ?>/roll/master/settings/saveSeriesData" method="POST" enctype="multipart/form-data" class="p-8 space-y-8">
-            <input type="hidden" name="series_id" value="<?= $series['id'] ?? 0 ?>">
+    <form action="<?= getenv('APP_URL') ?>/roll/master/settings/saveSeriesData" method="POST" enctype="multipart/form-data" class="space-y-8">
+        <div class="bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200">
+            <div class="p-8 space-y-8">
+                <input type="hidden" name="series_id" value="<?= $series['id'] ?? 0 ?>">
             
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 
@@ -266,7 +267,7 @@ $point_rules = json_decode($series['point_rules'] ?? '{}', true) ?: [
                     Simpan Perubahan
                 </button>
             </div>
-    </div>
+        </div>
     
     <?php if (!empty($series['id']) && !empty($leaderboard_data['overall'])): ?>
     <div id="preview-klasemen" class="mt-8 bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200">
@@ -293,10 +294,14 @@ $point_rules = json_decode($series['point_rules'] ?? '{}', true) ?: [
                     <div class="text-[10px] text-blue-800 font-bold uppercase tracking-widest mb-2">Pilih KU yang Ditampilkan:</div>
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 max-h-64 overflow-y-auto pr-2">
                         <?php 
-                        $pubKu = json_decode($series['published_ku_standings'] ?? '[]', true) ?: []; 
+                        $pubKuRaw = $series['published_ku_standings'] ?? null;
+                        $pubKu = json_decode($pubKuRaw, true);
+                        if (!is_array($pubKu)) $pubKu = [];
+                        
                         foreach(array_keys($leaderboard_data['overall']) as $ku): 
-                            // Default to checked if no data saved yet, or if explicitly saved
-                            $isChecked = (empty($series['published_ku_standings']) || in_array($ku, $pubKu)) ? 'checked' : '';
+                            // Default to checked if no data saved yet (null or empty string). 
+                            // If user explicitly saved an empty array '[]', it should be unchecked.
+                            $isChecked = (empty($pubKuRaw) || in_array($ku, $pubKu)) ? 'checked' : '';
                         ?>
                         <label class="flex items-center gap-1.5 cursor-pointer bg-white px-2 py-1 rounded border border-blue-200 text-[10px] text-blue-900 font-bold hover:bg-blue-100 transition">
                             <input type="checkbox" name="published_ku_standings[]" value="<?= htmlspecialchars($ku) ?>" <?= $isChecked ?> class="w-3.5 h-3.5 rounded border-blue-300 text-blue-600">
