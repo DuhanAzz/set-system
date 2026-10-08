@@ -761,12 +761,13 @@ class RollPelotonController extends Controller {
         $mech = self::getMechanism($classData['distance_name'] ?? '', $classData['roller_name'] ?? '');
 
         // Fetch heats/entries
-        $stmtEntries = $db->prepare("
-            SELECT e.skater_id, s.skater_name, s.gender, c.club_name, e.bib_number, p.heat_name, p.start_grid, p.round
+            SELECT e.skater_id, s.skater_name, s.gender, c.club_name, e.bib_number, p.heat_name, p.start_grid, p.round, e.team_name, a.group_name
             FROM roll_entries e
             JOIN roll_skaters s ON e.skater_id = s.id
             LEFT JOIN roll_clubs c ON s.club_id = c.id
             LEFT JOIN roll_pelotons p ON e.skater_id = p.skater_id AND p.race_class_id = e.race_class_id AND p.event_id = e.event_id
+            LEFT JOIN roll_event_details ed ON ed.id = e.race_class_id
+            LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id
             LEFT JOIN roll_payments pay ON pay.club_id = s.club_id AND pay.event_id = e.event_id AND (e.is_manual = 0 OR e.is_manual IS NULL)
             LEFT JOIN roll_manual_payments mpay ON mpay.invoice_code = e.manual_invoice_code AND e.is_manual = 1
             WHERE e.event_id = ? AND e.race_class_id = ? AND (pay.status = 'Paid' OR mpay.status = 'Paid')
