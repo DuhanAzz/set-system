@@ -441,14 +441,15 @@ async function quickGenerateTime(btn) {
 
     try {
         const formData = new FormData();
+        const getVal = (name, fallback) => localStorage.getItem('roll_gen_time_' + name) || fallback;
+
         for(let i=1; i<=5; i++) {
-            formData.append(`start_times[${i}]`, '08:00');
-            formData.append(`break_start_times[${i}]`, '12:00');
-            formData.append(`break_end_times[${i}]`, '13:00');
+            formData.append(`start_times[${i}]`, getVal(`start_times[${i}]`, '07:30'));
+            formData.append(`break_start_times[${i}]`, getVal(`break_start_times[${i}]`, '11:30'));
+            formData.append(`break_end_times[${i}]`, getVal(`break_end_times[${i}]`, '13:00'));
         }
-        formData.append('sprint_duration', '3');
-        formData.append('tt_duration', '2');
-        formData.append('group_duration', '5');
+        const pd = getVal('pemula_duration', '');
+        if (pd) formData.append('pemula_duration', pd);
 
         const res = await fetch(`<?= getenv('APP_URL') ?>/roll/admin/events/generate_schedule_time`, {
             method: 'POST',
