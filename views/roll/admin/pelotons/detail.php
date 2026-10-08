@@ -102,17 +102,23 @@ $raceNumStr = str_pad($classData['race_number'], 3, '0', STR_PAD_LEFT);
     <!-- KONTEN HEAT -->
     <!-- ============================================================ -->
     <?php 
+        // Hanya tampilkan babak PALING AWAL yang tersedia (jangan dicampur dengan babak berikutnya)
         $hasAnyHeat = false;
-        foreach(['Kualifikasi', 'Perempat Final', 'Semi Final', 'Final'] as $rnd):
-            $roundHeats = $heatsByRound[$rnd] ?? [];
-            if(!empty($roundHeats)) $hasAnyHeat = true;
-        endforeach;
+        $activeRound = null;
+        foreach(['Kualifikasi', 'Perempat Final', 'Semi Final', 'Final'] as $rnd) {
+            if (!empty($heatsByRound[$rnd])) {
+                $hasAnyHeat = true;
+                $activeRound = $rnd;
+                break;
+            }
+        }
     ?>
     
     <?php if(!$hasAnyHeat): ?>
         <div style="text-align:center; padding: 50px; font-weight:bold; color: #888;">BELUM ADA HEAT PADA KELAS INI</div>
     <?php else: ?>
         <?php foreach(['Kualifikasi', 'Perempat Final', 'Semi Final', 'Final'] as $rnd): 
+            if ($rnd !== $activeRound) continue; // Skip babak lain
             $roundHeats = $heatsByRound[$rnd] ?? [];
             if(empty($roundHeats)) continue;
         ?>

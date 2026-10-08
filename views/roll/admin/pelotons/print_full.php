@@ -533,6 +533,22 @@ if ($cc['klub']) $activeColumnsCount++;
                                 <div class="eh-right"><?= $isHeat ? 'PENYISIHAN' : 'FINAL' ?></div>
                             </div>
 
+                            <?php 
+                            // Only print the earliest available round for this race
+                            $logicalOrder = ['Kualifikasi', 'Perempat Final', 'Semi Final', 'Final'];
+                            $earliestRound = [];
+                            foreach ($logicalOrder as $lr) {
+                                if (isset($data['rounds'][$lr])) {
+                                    $earliestRound[$lr] = $data['rounds'][$lr];
+                                    break;
+                                }
+                            }
+                            if (empty($earliestRound) && !empty($data['rounds'])) {
+                                $firstKey = array_key_first($data['rounds']);
+                                $earliestRound[$firstKey] = $data['rounds'][$firstKey];
+                            }
+                            $data['rounds'] = $earliestRound;
+                            ?>
                             <?php foreach($data['rounds'] as $rndName => $heats): ?>
                                 
                                 <?php if($isHeat && count($data['rounds']) > 1): ?>
