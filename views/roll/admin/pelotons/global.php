@@ -434,13 +434,13 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 async function quickGenerateTime(btn) {
+    if (!confirm("Berdasarkan durasi default, proses ini akan meng-generate waktu jadwal. Lanjutkan?")) return;
     const originalText = btn.innerHTML;
     btn.innerHTML = '<span class="animate-spin inline-block">⏳</span> Generating...';
     btn.disabled = true;
 
     try {
         const formData = new FormData();
-        // Fallback defaults for time generation
         for(let i=1; i<=5; i++) {
             formData.append(`start_times[${i}]`, '08:00');
             formData.append(`break_start_times[${i}]`, '12:00');
@@ -457,22 +457,15 @@ async function quickGenerateTime(btn) {
         const json = await res.json();
         
         if (json.success) {
-            Swal.fire({
-                title: 'Berhasil',
-                text: 'Waktu perlombaan berhasil digenerate berdasarkan auto-seeding terakhir.',
-                icon: 'success',
-                timer: 2000,
-                showConfirmButton: false
-            }).then(() => {
-                location.reload();
-            });
+            alert('Berhasil: Waktu perlombaan berhasil digenerate berdasarkan auto-seeding terakhir.');
+            location.reload();
         } else {
-            Swal.fire('Gagal', json.message || 'Gagal mengenerate waktu', 'error');
+            alert('Gagal: ' + (json.message || 'Gagal mengenerate waktu'));
             btn.innerHTML = originalText;
             btn.disabled = false;
         }
     } catch (e) {
-        Swal.fire('Gagal', 'Terjadi kesalahan pada server saat mencoba generate waktu', 'error');
+        alert('Gagal: Terjadi kesalahan pada saat memproses response dari server.');
         btn.innerHTML = originalText;
         btn.disabled = false;
     }
