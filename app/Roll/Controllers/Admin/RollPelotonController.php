@@ -745,7 +745,7 @@ class RollPelotonController extends Controller {
 
         // Fetch class info
         $stmtCls = $db->prepare("
-            SELECT ed.race_number, ed.category_name, d.distance_name, a.group_name, sc.class_name as roller_name
+            SELECT ed.race_number, ed.category_name, d.distance_name, a.group_name, sc.class_name as roller_name, ed.gender, ed.custom_name
             FROM roll_event_details ed 
             LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id 
             LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id 

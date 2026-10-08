@@ -113,7 +113,12 @@
                             <input type="file" name="cover_image" accept="image/*" class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
                         </div>
                         <div>
-                            <label class="block text-sm font-bold text-slate-700 mb-2">Upload Gambar Jadwal (Opsional)</label>
+                            <div class="flex items-center justify-between mb-2">
+                                <label class="block text-sm font-bold text-slate-700">Upload Gambar Jadwal (Opsional)</label>
+                                <button type="button" onclick="quickGenerateTime(this)" class="inline-flex items-center gap-1 bg-amber-100 hover:bg-amber-200 text-amber-700 text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-md transition-colors" title="Generate Waktu Perlombaan Otomatis">
+                                    <span>⚡</span> Generate Waktu
+                                </button>
+                            </div>
                             <input type="file" name="schedule_image" accept="image/*" class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
                             <label class="flex items-center gap-2 mt-3 cursor-pointer">
                                 <input type="checkbox" name="show_schedule_auto" checked class="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
@@ -428,6 +433,50 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+async function quickGenerateTime(btn) {
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<span class="animate-spin inline-block">⏳</span> Generating...';
+    btn.disabled = true;
+
+    try {
+        const formData = new FormData();
+        // Fallback defaults for time generation
+        for(let i=1; i<=5; i++) {
+            formData.append(`start_times[${i}]`, '08:00');
+            formData.append(`break_start_times[${i}]`, '12:00');
+            formData.append(`break_end_times[${i}]`, '13:00');
+        }
+        formData.append('sprint_duration', '3');
+        formData.append('tt_duration', '2');
+        formData.append('group_duration', '5');
+
+        const res = await fetch(`<?= getenv('APP_URL') ?>/roll/admin/events/generate_schedule_time`, {
+            method: 'POST',
+            body: formData
+        });
+        const json = await res.json();
+        
+        if (json.success) {
+            Swal.fire({
+                title: 'Berhasil',
+                text: 'Waktu perlombaan berhasil digenerate berdasarkan auto-seeding terakhir.',
+                icon: 'success',
+                timer: 2000,
+                showConfirmButton: false
+            }).then(() => {
+                location.reload();
+            });
+        } else {
+            Swal.fire('Gagal', json.message || 'Gagal mengenerate waktu', 'error');
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+    } catch (e) {
+        Swal.fire('Gagal', 'Terjadi kesalahan pada server saat mencoba generate waktu', 'error');
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
+}
 </script>
 
 <!-- MODAL MERGE CLASSES -->
