@@ -761,6 +761,7 @@ class RollPelotonController extends Controller {
         $mech = self::getMechanism($classData['distance_name'] ?? '', $classData['roller_name'] ?? '');
 
         // Fetch heats/entries
+        $stmtEntries = $db->prepare("
             SELECT e.skater_id, s.skater_name, s.gender, c.club_name, e.bib_number, p.heat_name, p.start_grid, p.round, e.team_name, a.group_name
             FROM roll_entries e
             JOIN roll_skaters s ON e.skater_id = s.id
