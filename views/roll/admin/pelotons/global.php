@@ -229,10 +229,23 @@
                                     <span class="text-sm">⚡</span>
                                     <span class="text-xs font-bold uppercase tracking-widest hidden sm:inline">Gen</span>
                                 </button>
-                                <a href="<?= getenv('APP_URL') ?>/roll/admin/pelotons/detail?class_id=<?= $clsGroup['classes'][0] ?>" target="_blank" class="bg-emerald-100 hover:bg-emerald-200 text-emerald-700 p-2 rounded-lg transition-colors flex items-center gap-1" title="Lihat Detail Seri">
-                                    <span class="text-sm">👁️</span>
-                                    <span class="text-xs font-bold uppercase tracking-widest hidden sm:inline">View</span>
-                                </a>
+                                <?php if (count($clsGroup['classes']) == 1): ?>
+                                    <a href="<?= getenv('APP_URL') ?>/roll/admin/pelotons/detail?class_id=<?= $clsGroup['classes'][0] ?>" target="_blank" class="bg-emerald-100 hover:bg-emerald-200 text-emerald-700 p-2 rounded-lg transition-colors flex items-center gap-1" title="Lihat Detail Seri">
+                                        <span class="text-sm">👁️</span>
+                                        <span class="text-xs font-bold uppercase tracking-widest hidden sm:inline">View</span>
+                                    </a>
+                                <?php else: ?>
+                                    <div class="flex items-center gap-1">
+                                    <?php foreach($clsGroup['classes'] as $idx => $cId): 
+                                        $label = ($idx == 0) ? 'Pa' : 'Pi';
+                                    ?>
+                                        <a href="<?= getenv('APP_URL') ?>/roll/admin/pelotons/detail?class_id=<?= $cId ?>" target="_blank" class="bg-emerald-100 hover:bg-emerald-200 text-emerald-700 p-2 rounded-lg transition-colors flex items-center gap-1" title="Lihat Detail <?= $label ?>">
+                                            <span class="text-sm">👁️</span>
+                                            <span class="text-[10px] font-bold uppercase tracking-widest hidden sm:inline"><?= $label ?></span>
+                                        </a>
+                                    <?php endforeach; ?>
+                                    </div>
+                                <?php endif; ?>
                             </form>
                         </div>
                     <?php endforeach; ?>

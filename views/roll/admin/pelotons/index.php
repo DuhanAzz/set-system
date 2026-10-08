@@ -15,7 +15,7 @@
         <div class="text-5xl mb-4 grayscale">⚠️</div>
         <h3 class="font-black text-slate-400 uppercase tracking-widest text-lg">Pilih Event Terlebih Dahulu</h3>
     </div>
-<?php elseif(empty($classes)): ?>
+<?php elseif(empty($groupedClasses)): ?>
     <div class="max-w-7xl mx-auto flex flex-col items-center justify-center py-20 text-center opacity-50">
         <div class="text-5xl mb-4 grayscale">📭</div>
         <h3 class="font-black text-slate-400 uppercase tracking-widest text-lg">Belum Ada Nomor Perlombaan</h3>
@@ -24,8 +24,9 @@
 
     <?php
     // Tentukan mekanisme dari kelas pertama (semua kelas di halaman ini punya distance yang sama)
-    $pageMechanism = $classes[0]['mechanism'] ?? 'heat';
-    $pageRaceType = $classes[0]['race_type'] ?? 'sprint';
+    $firstKey = array_key_first($groupedClasses);
+    $pageMechanism = $groupedClasses[$firstKey]['mechanism'] ?? 'heat';
+    $pageRaceType = $groupedClasses[$firstKey]['race_type'] ?? 'sprint';
     ?>
 
     <!-- BADGE MEKANISME -->
@@ -58,12 +59,14 @@
     </div>
     
     <div class="max-w-7xl mx-auto grid grid-cols-1 gap-8">
-        <?php foreach($classes as $cls): 
-            $cId = $cls['class_id'];
-            $totalEntries = $cls['total_paid_entries'];
-            $hasHeats = $cls['total_heats'] > 0;
-            $raceNumber = !empty($cls['race_number']) ? str_pad($cls['race_number'], 3, '0', STR_PAD_LEFT) : '---';
-            $mech = $cls['mechanism'] ?? 'heat';
+        <?php foreach($groupedClasses as $groupKey => $clsGroup): 
+            $totalEntries = $clsGroup['total_entries'];
+            $totalPa = $clsGroup['total_pa'];
+            $totalPi = $clsGroup['total_pi'];
+            $hasHeats = $clsGroup['total_heats'] > 0;
+            $raceNumber = !empty($clsGroup['race_number']) ? str_pad($clsGroup['race_number'], 3, '0', STR_PAD_LEFT) : '---';
+            $mech = $clsGroup['mechanism'] ?? 'heat';
+            $genders = implode(' & ', $clsGroup['genders']);
         ?>
         
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col md:flex-row items-center justify-between mb-3">
@@ -75,10 +78,15 @@
                 </div>
                 <div>
                     <h2 class="text-base md:text-lg font-black uppercase italic leading-tight">
-                        <?= $cls['group_name'] ?> | <?= $cls['roller_name'] ?> | <?= $cls['distance_name'] ?>
+                        <?= $clsGroup['group_name'] ?> | <?= $clsGroup['roller_name'] ?> | <?= $clsGroup['distance_name'] ?> <span class="text-xs font-normal opacity-70 ml-2">(<?= $genders ?>)</span>
                     </h2>
                     <p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
-                        Total Pendaftar Valid: <span class="text-emerald-400"><?= $totalEntries ?> Atlet</span>
+                        Total Pendaftar Valid: 
+                        <span class="text-emerald-400 mr-2"><?= $totalEntries ?> Atlet</span>
+                        <?php if(count($clsGroup['classes']) > 1): ?>
+                            <span class="text-blue-400">Pa: <?= $totalPa ?></span> | 
+                            <span class="text-pink-400">Pi: <?= $totalPi ?></span>
+                        <?php endif; ?>
                     </p>
                 </div>
             </div>
@@ -106,7 +114,7 @@
                     <?php if($hasHeats): ?>
                         <div class="flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-lg border border-emerald-100">
                             <span class="text-sm">✅</span>
-                            <span class="text-[10px] font-black uppercase tracking-widest"><?= $cls['total_heats'] ?? 0 ?> Heat</span>
+                            <span class="text-[10px] font-black uppercase tracking-widest"><?= $clsGroup['total_heats'] ?? 0 ?> Heat</span>
                         </div>
                     <?php else: ?>
                         <div class="flex items-center gap-1.5 bg-amber-50 text-amber-700 px-3 py-1.5 rounded-lg border border-amber-200">
@@ -115,9 +123,21 @@
                         </div>
                     <?php endif; ?>
 
-                    <a href="<?= getenv('APP_URL') ?>/roll/admin/pelotons/detail?class_id=<?= $cId ?>" class="bg-slate-900 hover:bg-indigo-600 text-white text-[10px] font-bold uppercase tracking-widest py-2 px-4 rounded-lg transition-colors shrink-0 shadow-sm">
-                        📄 Lihat Detail
-                    </a>
+                    <?php if (count($clsGroup['classes']) == 1): ?>
+                        <a href="<?= getenv('APP_URL') ?>/roll/admin/pelotons/detail?class_id=<?= $clsGroup['classes'][0] ?>" class="bg-slate-900 hover:bg-indigo-600 text-white text-[10px] font-bold uppercase tracking-widest py-2 px-4 rounded-lg transition-colors shrink-0 shadow-sm">
+                            📄 Lihat Detail
+                        </a>
+                    <?php else: ?>
+                        <div class="flex items-center gap-1">
+                        <?php foreach($clsGroup['classes'] as $idx => $cId): 
+                            $label = ($idx == 0) ? 'Detail Pa' : 'Detail Pi';
+                        ?>
+                            <a href="<?= getenv('APP_URL') ?>/roll/admin/pelotons/detail?class_id=<?= $cId ?>" class="bg-slate-900 hover:bg-indigo-600 text-white text-[10px] font-bold uppercase tracking-widest py-2 px-2 rounded-lg transition-colors shrink-0 shadow-sm">
+                                📄 <?= $label ?>
+                            </a>
+                        <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
 
                 <?php endif; ?>
 

@@ -326,15 +326,22 @@ class RollPelotonController extends Controller {
         $type = $_GET['type'] ?? '';
         $distance = $_GET['distance'] ?? '';
 
-        $classes = [];
-        $entriesByClass = [];
-
-        $sqlClasses = "SELECT ed.id as class_id, ed.race_number, ed.category_name, d.distance_name, a.group_name, sc.class_name as roller_name,
+        $sqlClasses = "SELECT ed.id as class_id, ed.race_number, ed.category_name, d.distance_name, a.group_name, ed.custom_name, sc.class_name as roller_name, ed.gender, ed.max_lanes,
                        (SELECT COUNT(*) FROM roll_entries e 
                         JOIN roll_skaters s ON e.skater_id = s.id
                         LEFT JOIN roll_payments pay ON pay.club_id = s.club_id AND pay.event_id = e.event_id AND (e.is_manual = 0 OR e.is_manual IS NULL)
                         LEFT JOIN roll_manual_payments mpay ON mpay.invoice_code = e.manual_invoice_code AND e.is_manual = 1
-                        WHERE e.race_class_id = ed.id AND (pay.status = 'Paid' OR mpay.status = 'Paid')) as total_paid_entries
+                        WHERE e.race_class_id = ed.id AND (pay.status = 'Paid' OR mpay.status = 'Paid')) as total_paid_entries,
+                       (SELECT COUNT(*) FROM roll_entries e 
+                        JOIN roll_skaters s ON e.skater_id = s.id
+                        LEFT JOIN roll_payments pay ON pay.club_id = s.club_id AND pay.event_id = e.event_id AND (e.is_manual = 0 OR e.is_manual IS NULL)
+                        LEFT JOIN roll_manual_payments mpay ON mpay.invoice_code = e.manual_invoice_code AND e.is_manual = 1
+                        WHERE e.race_class_id = ed.id AND (pay.status = 'Paid' OR mpay.status = 'Paid') AND s.gender IN ('M', 'Male', 'L', 'Man', 'Putra', 'Pa')) as total_pa_entries,
+                       (SELECT COUNT(*) FROM roll_entries e 
+                        JOIN roll_skaters s ON e.skater_id = s.id
+                        LEFT JOIN roll_payments pay ON pay.club_id = s.club_id AND pay.event_id = e.event_id AND (e.is_manual = 0 OR e.is_manual IS NULL)
+                        LEFT JOIN roll_manual_payments mpay ON mpay.invoice_code = e.manual_invoice_code AND e.is_manual = 1
+                        WHERE e.race_class_id = ed.id AND (pay.status = 'Paid' OR mpay.status = 'Paid') AND s.gender IN ('F', 'Female', 'P', 'Woman', 'Putri', 'Pi')) as total_pi_entries
                        FROM roll_event_details ed 
                        LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id 
                        LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id 
@@ -352,26 +359,64 @@ class RollPelotonController extends Controller {
             $params[] = $distance;
         }
         
-        $sqlClasses .= " ORDER BY CAST(ed.race_number AS UNSIGNED) ASC, ed.race_number ASC";
+        $sqlClasses .= " ORDER BY CAST(ed.race_number AS UNSIGNED) ASC, ed.race_number ASC, ed.gender DESC, a.id ASC";
         
         $stmtClasses = $db->prepare($sqlClasses);
         $stmtClasses->execute($params);
         $classes = $stmtClasses->fetchAll(\PDO::FETCH_ASSOC);
 
-        foreach ($classes as &$cls) {
+        $groupedClasses = [];
+        foreach ($classes as $cls) {
+            $cat = $cls['roller_name'] ?: 'Lainnya';
+            $rn = $cls['race_number'];
+            $isEksebisi = (($cls['category_name'] ?? '') === 'EKSEBISI');
+            $groupKey = $rn . ($isEksebisi ? '_EKS' : '');
+            $groupName = !empty($cls['custom_name']) ? $cls['custom_name'] : $cls['group_name'];
+            
+            if (!isset($groupedClasses[$groupKey])) {
+                // Klasifikasi mekanisme
+                $mech = self::getMechanism($cls['distance_name'] ?? '', $cat);
+                
+                $groupedClasses[$groupKey] = [
+                    'race_number' => $rn,
+                    'group_name' => $groupName,
+                    'distance_name' => $cls['distance_name'],
+                    'category_name' => $cls['category_name'],
+                    'roller_name' => $cat,
+                    'max_lanes' => $cls['max_lanes'] > 0 ? (int)$cls['max_lanes'] : self::getDefaultMaxLanes($cls['distance_name'], $cat),
+                    'total_entries' => 0,
+                    'total_pa' => 0,
+                    'total_pi' => 0,
+                    'classes' => [],
+                    'genders' => [],
+                    'total_heats' => 0,
+                    'mechanism' => $mech['mechanism'],
+                    'race_type' => $mech['race_type']
+                ];
+            }
+            
+            $entries = (int)$cls['total_paid_entries'];
             $cId = $cls['class_id'];
+            $groupedClasses[$groupKey]['classes'][] = $cId;
+            $groupedClasses[$groupKey]['total_entries'] += $entries;
+            
+            $groupedClasses[$groupKey]['total_pa'] += (int)$cls['total_pa_entries'];
+            $groupedClasses[$groupKey]['total_pi'] += (int)$cls['total_pi_entries'];
+            
+            // Format gender label
+            $gLabel = in_array($cls['gender'], ['M', 'Male', 'L']) ? 'Pa' : (in_array($cls['gender'], ['F', 'Female', 'P']) ? 'Pi' : 'Pa & Pi');
+            if (!in_array($gLabel, $groupedClasses[$groupKey]['genders'])) {
+                $groupedClasses[$groupKey]['genders'][] = $gLabel;
+            }
+
+            // Hitung heats
             $stmtHeats = $db->prepare("SELECT COUNT(DISTINCT heat_name) as total_heats FROM roll_pelotons WHERE event_id = ? AND race_class_id = ?");
             $stmtHeats->execute([$eventId, $cId]);
-            $cls['total_heats'] = $stmtHeats->fetchColumn();
-
-            // Klasifikasi mekanisme
-            $mech = self::getMechanism($cls['distance_name'] ?? '', $cls['roller_name'] ?? '');
-            $cls['mechanism'] = $mech['mechanism'];
-            $cls['race_type'] = $mech['race_type'];
+            $groupedClasses[$groupKey]['total_heats'] += (int)$stmtHeats->fetchColumn();
         }
 
         return $this->view('roll/admin/pelotons/index', [
-            'classes' => $classes,
+            'groupedClasses' => $groupedClasses,
             'type' => $type,
             'distance' => $distance,
             'eventId' => $eventId
