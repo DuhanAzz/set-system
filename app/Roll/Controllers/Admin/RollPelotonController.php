@@ -772,7 +772,7 @@ class RollPelotonController extends Controller {
             LEFT JOIN roll_payments pay ON pay.club_id = s.club_id AND pay.event_id = e.event_id AND (e.is_manual = 0 OR e.is_manual IS NULL)
             LEFT JOIN roll_manual_payments mpay ON mpay.invoice_code = e.manual_invoice_code AND e.is_manual = 1
             WHERE e.event_id = ? AND e.race_class_id = ? AND (pay.status = 'Paid' OR mpay.status = 'Paid')
-            ORDER BY p.round ASC, p.heat_name ASC, p.start_grid ASC, s.skater_name ASC
+            ORDER BY p.round ASC, LENGTH(p.heat_name) ASC, p.heat_name ASC, p.start_grid ASC, s.skater_name ASC
         ");
         $stmtEntries->execute([$eventId, $classId]);
         
