@@ -4,10 +4,10 @@
 </div>
 
 <!-- ACTION CARDS -->
-<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
     
     <!-- CARD 1: CSV -->
-    <div class="bg-gradient-to-br from-indigo-600 to-blue-700 rounded-2xl p-8 text-white shadow-lg relative overflow-hidden group">
+    <div class="bg-gradient-to-br from-indigo-600 to-blue-700 rounded-2xl p-8 text-white shadow-lg relative overflow-hidden group flex flex-col justify-between">
         <div class="relative z-10">
             <h3 class="text-2xl font-black mb-2 flex items-center gap-2">📊 Kumpulan CSV (ZIP)</h3>
             <p class="text-blue-100 text-sm font-medium mb-6">Unduh bundel file `.zip` berisi seluruh file CSV siap pakai yang sudah dipisah-pisah berdasarkan nomor kelas lomba dan babaknya (Kualifikasi, Final, dsb) untuk sistem hardware.</p>
@@ -25,7 +25,7 @@
     </div>
 
     <!-- CARD 2: LAPORAN -->
-    <div class="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl p-8 text-white shadow-lg relative overflow-hidden group border-b-4 border-emerald-500">
+    <div class="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl p-8 text-white shadow-lg relative overflow-hidden group border-b-4 border-emerald-500 flex flex-col justify-between">
         <div class="relative z-10">
             <h3 class="text-2xl font-black mb-2 flex items-center gap-2">📄 Buku Lomba Terpadu</h3>
             <p class="text-slate-300 text-sm font-medium mb-6">Cetak dokumen lomba dalam format PDF (Print Ready) yang cocok untuk dibagikan kepada klub, juri, maupun penonton.</p>
@@ -44,7 +44,7 @@
     </div>
 
     <!-- CARD 3: VOUCHER MAKAN -->
-    <div class="bg-gradient-to-br from-orange-500 to-red-600 rounded-2xl p-8 text-white shadow-lg relative overflow-hidden group">
+    <div class="bg-gradient-to-br from-orange-500 to-red-600 rounded-2xl p-8 text-white shadow-lg relative overflow-hidden group flex flex-col justify-between">
         <div class="relative z-10">
             <h3 class="text-2xl font-black mb-2 flex items-center gap-2">🍽️ Ekspor Voucher Makan</h3>
             <p class="text-orange-100 text-sm font-medium mb-6">Unduh data rekapitulasi atlet yang bermain per hari dalam format Excel (XLS) berlembar-lembar (multi-sheet) untuk kebutuhan logistik dan konsumsi.</p>
@@ -54,6 +54,50 @@
             </a>
         </div>
         <div class="absolute right-[-20px] bottom-[-20px] opacity-10 group-hover:scale-110 transition text-8xl">🍱</div>
+    </div>
+
+    <!-- CARD 4: REKAP PEMENANG CSV -->
+    <div class="bg-gradient-to-br from-amber-500 via-amber-600 to-yellow-600 rounded-2xl p-8 text-white shadow-lg relative overflow-hidden group border-b-4 border-yellow-300 flex flex-col justify-between">
+        <div class="relative z-10">
+            <h3 class="text-2xl font-black mb-2 flex items-center gap-2">🏆 Rekap Pemenang (CSV)</h3>
+            <p class="text-amber-100 text-sm font-medium mb-4">Unduh rekapitulasi juara di tiap kelas & per nomor lomba dalam format CSV (siap pakai untuk Canva, arsip, & UPP).</p>
+            
+            <form method="GET" action="<?= getenv('APP_URL') ?>/roll/admin/export/export_winners_csv" class="space-y-3">
+                <div>
+                    <label class="block text-[10px] font-black uppercase tracking-wider text-amber-100 mb-1">Batasan Pemenang:</label>
+                    <select name="limit_rank" class="w-full bg-amber-700/70 border border-amber-300/40 text-white rounded-xl text-xs font-bold py-2 px-3 focus:outline-none focus:ring-2 focus:ring-yellow-300">
+                        <option value="TOP3" class="text-slate-800">🥇 Juara 1 - 3 (Podium / Medali)</option>
+                        <option value="TOP5" class="text-slate-800">🏅 Top 5 (Juara 1 - 5)</option>
+                        <option value="ALL" class="text-slate-800">📋 Semua Peringkat (Finished)</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-black uppercase tracking-wider text-amber-100 mb-1">Filter Kategori:</label>
+                    <select name="category" class="w-full bg-amber-700/70 border border-amber-300/40 text-white rounded-xl text-xs font-bold py-2 px-3 focus:outline-none focus:ring-2 focus:ring-yellow-300">
+                        <option value="ALL" class="text-slate-800">Semua Kategori</option>
+                        <?php if (!empty($categories)): ?>
+                            <?php foreach ($categories as $cat): ?>
+                                <option value="<?= htmlspecialchars($cat) ?>" class="text-slate-800"><?= htmlspecialchars($cat) ?></option>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-black uppercase tracking-wider text-amber-100 mb-1">Status Lomba:</label>
+                    <select name="status" class="w-full bg-amber-700/70 border border-amber-300/40 text-white rounded-xl text-xs font-bold py-2 px-3 focus:outline-none focus:ring-2 focus:ring-yellow-300">
+                        <option value="all" class="text-slate-800">Semua Nomor yang Ada Hasil</option>
+                        <option value="published" class="text-slate-800">Hanya Nomor yang 'Published'</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="block text-center w-full bg-white text-amber-800 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-amber-50 transition shadow-md mt-2">
+                    📥 UNDUH CSV PEMENANG
+                </button>
+            </form>
+        </div>
+        <div class="absolute right-[-20px] bottom-[-20px] opacity-10 group-hover:scale-110 transition text-8xl">🎖️</div>
     </div>
 
 </div>
