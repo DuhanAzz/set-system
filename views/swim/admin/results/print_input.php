@@ -33,10 +33,10 @@
         .logo-img { max-height: 95px; max-width: 100%; object-fit: contain; margin-bottom: 2px; }
         
         /* FOOTER SPONSOR */
-        .footer-fixed { position: fixed; bottom: 0; left: 0; right: 0; height: 20mm; background: white; border-top: 2px double #000; display: flex; justify-content: space-between; align-items: center; padding: 0 10mm; z-index: 999; }
-        .footer-sponsors { display: flex; gap: 15px; align-items: center; justify-content: center; flex: 1; }
+        .footer-fixed { position: fixed; bottom: 0; left: 0; right: 0; height: 20mm; background: white; border-top: 2px double #000; display: flex; justify-content: center; align-items: center; padding: 0 10mm; z-index: 999; }
+        .footer-sponsors { display: flex; gap: 15px; align-items: center; justify-content: center; z-index: 2; position: relative; }
         .footer-sponsors img { height: 42px; max-height: 42px; object-fit: contain; margin: 0 6px; }
-        .footer-time { font-family: monospace; font-size: 8pt; color: #666; width: 140px; text-align: right; }
+        .footer-time { position: absolute; right: 10mm; bottom: 4px; font-family: 'Courier New', Courier, monospace; font-size: 7.5pt; color: #888; white-space: nowrap; z-index: 1; pointer-events: none; }
 
         /* SPACER TABEL CETAK */
         .layout-table { width: 100%; border-collapse: collapse; border: none; }
@@ -81,7 +81,7 @@
             .no-print { display: none !important; }
             .page-wrapper { margin: 0; width: 100%; box-shadow: none; padding: 0 10mm; min-height: auto; position: relative; }
             .header-fixed { display: grid !important; }
-            .footer-fixed { display: flex !important; justify-content: space-between !important; }
+            .footer-fixed { display: flex !important; justify-content: center !important; }
             .layout-table > thead { display: table-header-group !important; }
             .data-table > thead { display: table-row-group !important; }
             tfoot { display: table-footer-group; }
@@ -291,7 +291,10 @@ unset($rows);
             <?php endif; ?>
         <?php endforeach; endif; ?>
     </div>
-    <div class="footer-time">Printed: <?= date('d/m/Y H:i') ?></div>
+    <?php 
+    $dtWib = new DateTime('now', new DateTimeZone('Asia/Jakarta'));
+    ?>
+    <div class="footer-time"><?= $dtWib->format('d/m/Y H:i') ?> WIB</div>
 </div>
 
 <div class="page-wrapper">
