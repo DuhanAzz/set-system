@@ -107,43 +107,97 @@
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         
         <!-- CARD 1: CANVA -->
-        <div class="bg-gradient-to-br from-indigo-600 to-blue-700 rounded-2xl p-8 text-white shadow-lg relative overflow-hidden group">
+        <div class="bg-gradient-to-br from-indigo-900 via-indigo-800 to-blue-900 rounded-2xl p-7 text-white shadow-xl relative overflow-hidden group border border-indigo-500/30 flex flex-col justify-between">
             <div class="relative z-10">
-                <h3 class="text-2xl font-black mb-2 flex items-center gap-2">🎨 Canva Bulk Create</h3>
-                <p class="text-blue-100 text-sm font-medium mb-6">Unduh format CSV khusus (Clean Header) yang dapat langsung di-upload ke Canva untuk mencetak ribuan E-Sertifikat secara otomatis.</p>
+                <div class="flex items-center justify-between mb-2">
+                    <h3 class="text-2xl font-black flex items-center gap-2 text-white">🎨 Canva Bulk Create</h3>
+                    <span class="bg-indigo-500/30 text-indigo-200 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full border border-indigo-400/30">Auto E-Sertifikat</span>
+                </div>
+                <p class="text-indigo-200 text-xs font-medium mb-5 leading-relaxed">Unduh format CSV khusus (Clean Header) yang dapat langsung di-upload ke Canva untuk mencetak ribuan E-Sertifikat secara otomatis.</p>
                 
-                <button type="button" onclick="downloadExport('canva')" class="w-full bg-white text-indigo-700 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-indigo-50 transition shadow-md">
-                    📥 UNDUH CSV CANVA
-                </button>
+                <div class="space-y-4">
+                    <!-- SEKSI 1: SERTIFIKAT PESERTA -->
+                    <div class="bg-indigo-950/60 rounded-xl p-4 border border-indigo-500/30 backdrop-blur-sm">
+                        <div class="flex items-center justify-between mb-1.5">
+                            <span class="text-xs font-black uppercase tracking-wider text-indigo-200 flex items-center gap-1.5">
+                                🎖️ Sertifikat Peserta
+                            </span>
+                            <span class="text-[10px] font-bold text-indigo-300 bg-indigo-800/60 px-2 py-0.5 rounded">Partisipasi</span>
+                        </div>
+                        <p class="text-[11px] text-indigo-300 mb-3">Seluruh atlet yang bertanding dengan predikat <b>PESERTA</b> (tanpa label diskualifikasi).</p>
+                        
+                        <div class="flex items-center gap-2 mb-3">
+                            <label class="text-[10px] font-black uppercase tracking-wider text-indigo-300 shrink-0">Format:</label>
+                            <select id="canvaParticipantScope" class="flex-1 bg-indigo-900/90 border border-indigo-400/40 text-white rounded-lg text-xs font-bold py-1.5 px-2 focus:ring-2 focus:ring-indigo-400 focus:outline-none">
+                                <option value="event">Per Nomor Lomba (Ada Nomor & Waktu)</option>
+                                <option value="swimmer">1 Sertifikat per Atlet (Deduplikasi Nama)</option>
+                            </select>
+                        </div>
+
+                        <button type="button" onclick="downloadExport('canva', 'peserta')" class="w-full bg-white text-indigo-900 py-3 rounded-xl font-black text-xs uppercase tracking-wider hover:bg-indigo-50 transition shadow-md flex items-center justify-center gap-2">
+                            <span>📥 UNDUH CSV SERTIFIKAT PESERTA</span>
+                        </button>
+                    </div>
+
+                    <!-- DIVIDER / PEMISAH ANTAR KEBUTUHAN -->
+                    <div class="relative flex items-center justify-center my-2">
+                        <div class="border-t border-indigo-400/30 w-full"></div>
+                        <span class="bg-indigo-950 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest text-amber-300 border border-amber-400/40 shadow-sm shrink-0">
+                            ⚡ ATAU KHUSUS PODIUM JUARA
+                        </span>
+                        <div class="border-t border-indigo-400/30 w-full"></div>
+                    </div>
+
+                    <!-- SEKSI 2: SERTIFIKAT PEMENANG -->
+                    <div class="bg-gradient-to-r from-amber-950/70 to-yellow-950/60 rounded-xl p-4 border border-amber-500/40 backdrop-blur-sm">
+                        <div class="flex items-center justify-between mb-1.5">
+                            <span class="text-xs font-black uppercase tracking-wider text-amber-200 flex items-center gap-1.5">
+                                🏆 Sertifikat Pemenang (Juara 1 - 3)
+                            </span>
+                            <span class="text-[10px] font-black text-amber-950 bg-amber-400 px-2 py-0.5 rounded shadow-sm">Medali</span>
+                        </div>
+                        <p class="text-[11px] text-amber-200/90 mb-3">Khusus atlet peraih podium juara 1, 2, dan 3 (Label: Juara 1-3 & Medali Emas, Perak, Perunggu).</p>
+
+                        <button type="button" onclick="downloadExport('canva', 'pemenang')" class="w-full bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-400 text-amber-950 py-3 rounded-xl font-black text-xs uppercase tracking-wider hover:brightness-105 transition shadow-lg flex items-center justify-center gap-2 border border-amber-200/60">
+                            <span>🥇 UNDUH CSV SERTIFIKAT PEMENANG</span>
+                        </button>
+                    </div>
+                </div>
             </div>
-            <div class="absolute right-[-20px] bottom-[-20px] opacity-10 group-hover:scale-110 transition text-8xl">🖼️</div>
+            <div class="absolute right-[-20px] bottom-[-20px] opacity-10 group-hover:scale-110 transition text-8xl pointer-events-none">🖼️</div>
         </div>
 
         <!-- CARD 2: LAPORAN -->
-        <div class="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl p-8 text-white shadow-lg relative overflow-hidden group border-b-4 border-emerald-500">
+        <div class="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl p-7 text-white shadow-xl relative overflow-hidden group border-b-4 border-emerald-500 flex flex-col justify-between">
             <div class="relative z-10">
-                <h3 class="text-2xl font-black mb-2 flex items-center gap-2">📄 Laporan Resmi</h3>
-                <p class="text-slate-300 text-sm font-medium mb-6">Cetak Buku Hasil Pertandingan dengan struktur formal. Pilih format output sesuai kebutuhan dokumentasi.</p>
+                <div class="flex items-center justify-between mb-2">
+                    <h3 class="text-2xl font-black flex items-center gap-2 text-white">📄 Laporan Resmi</h3>
+                    <span class="bg-emerald-500/20 text-emerald-300 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full border border-emerald-400/30">Official Book</span>
+                </div>
+                <p class="text-slate-300 text-xs font-medium mb-6 leading-relaxed">Cetak Buku Hasil Pertandingan dengan struktur formal. Pilih format output sesuai kebutuhan dokumentasi.</p>
                 
-                <div class="flex flex-col sm:flex-row gap-3">
-                    <select id="reportFormat" class="bg-slate-700 border-slate-600 text-white rounded-xl text-sm font-bold focus:ring-emerald-500">
-                        <option value="pdf">PDF (Print Ready)</option>
-                        <option value="excel">Microsoft Excel (.xls)</option>
-                        <option value="csv">CSV (Spreadsheet)</option>
+                <div class="bg-slate-950/50 rounded-xl p-4 border border-slate-700/60 mb-4">
+                    <label class="block text-[10px] font-black text-slate-300 uppercase tracking-widest mb-2">Pilih Format Berkas:</label>
+                    <select id="reportFormat" class="w-full bg-slate-800 border border-slate-600 text-white rounded-xl text-sm font-bold focus:ring-emerald-500 py-2.5 px-3">
+                        <option value="pdf">📄 PDF (Print Ready / Buku Resmi)</option>
+                        <option value="excel">📊 Microsoft Excel (.xls)</option>
+                        <option value="csv">📑 CSV (Spreadsheet Mentah)</option>
                     </select>
-                    
-                    <button type="button" onclick="downloadExport('report')" class="flex-1 bg-emerald-500 text-white py-3 px-4 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-emerald-400 transition shadow-md">
-                        📥 CETAK LAPORAN
-                    </button>
                 </div>
             </div>
-            <div class="absolute right-[-20px] bottom-[-20px] opacity-10 group-hover:scale-110 transition text-8xl">📊</div>
+            
+            <div class="relative z-10 pt-2">
+                <button type="button" onclick="downloadExport('report')" class="w-full bg-emerald-500 text-white py-3 px-4 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-emerald-400 transition shadow-md flex items-center justify-center gap-2">
+                    <span>📥 CETAK LAPORAN RESMI</span>
+                </button>
+            </div>
+            <div class="absolute right-[-20px] bottom-[-20px] opacity-10 group-hover:scale-110 transition text-8xl pointer-events-none">📊</div>
         </div>
 
     </div>
 
 <script>
-function downloadExport(type) {
+function downloadExport(type, certType = '') {
     const eventId = document.getElementById('eventSelect').value;
     const ku = document.getElementById('kuSelect').value;
     const team = document.getElementById('teamSelect').value;
@@ -153,6 +207,16 @@ function downloadExport(type) {
     let baseUrl = type === 'canva' ? '<?= getenv('APP_URL') ?>/swim/admin/export/download_canva' : '<?= getenv('APP_URL') ?>/swim/admin/export/download_report';
     let params = `?event_id=${eventId}&ku=${encodeURIComponent(ku)}&team=${encodeURIComponent(team)}&limit=${limit}&rank_mode=${rankMode}`;
     
+    if (type === 'canva') {
+        if (certType) {
+            params += `&cert_type=${certType}`;
+        }
+        const scopeEl = document.getElementById('canvaParticipantScope');
+        if (scopeEl && certType === 'peserta') {
+            params += `&scope=${scopeEl.value}`;
+        }
+    }
+
     // Konfigurasi Checkbox Khusus Laporan
     if (type === 'report') {
         const format = document.getElementById('reportFormat').value;
