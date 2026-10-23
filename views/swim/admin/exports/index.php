@@ -81,6 +81,7 @@
                             <label class="flex items-center gap-2 cursor-pointer select-none"><input type="checkbox" id="cfg_pool" class="rounded border-slate-300 text-blue-600 cfg-cb" checked> Tipe Kolam</label>
                             <label class="flex items-center gap-2 cursor-pointer select-none"><input type="checkbox" id="cfg_round" class="rounded border-slate-300 text-blue-600 cfg-cb" checked> Babak (FINAL)</label>
                             <label class="flex items-center gap-2 cursor-pointer select-none text-amber-700 font-extrabold"><input type="checkbox" id="cfg_show_records" class="rounded border-amber-300 text-amber-600 cfg-cb" checked> Tampilkan Rekor</label>
+                            <label class="flex items-center gap-2 cursor-pointer select-none text-emerald-700 font-extrabold col-span-2"><input type="checkbox" id="cfg_medal_tally" class="rounded border-emerald-300 text-emerald-600 cfg-cb" checked> 🏅 Sertakan Klasemen Medali (Medal Tally)</label>
                         </div>
                     </div>
                     
@@ -174,8 +175,9 @@
                     <h3 class="text-2xl font-black flex items-center gap-2 text-white">📄 Laporan Resmi</h3>
                     <span class="bg-emerald-500/20 text-emerald-300 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full border border-emerald-400/30">Official Book</span>
                 </div>
-                <p class="text-slate-300 text-xs font-medium mb-6 leading-relaxed">Cetak Buku Hasil Pertandingan dengan struktur formal. Pilih format output sesuai kebutuhan dokumentasi.</p>
+                <p class="text-slate-300 text-xs font-medium mb-5 leading-relaxed">Cetak Buku Hasil Pertandingan dengan struktur formal. Lengkap dengan Cover Depan, Klasemen Medali, dan Hasil Perlombaan.</p>
                 
+                <!-- PILIH FORMAT BERKAS -->
                 <div class="bg-slate-950/50 rounded-xl p-4 border border-slate-700/60 mb-4">
                     <label class="block text-[10px] font-black text-slate-300 uppercase tracking-widest mb-2">Pilih Format Berkas:</label>
                     <select id="reportFormat" class="w-full bg-slate-800 border border-slate-600 text-white rounded-xl text-sm font-bold focus:ring-emerald-500 py-2.5 px-3">
@@ -184,11 +186,59 @@
                         <option value="csv">📑 CSV (Spreadsheet Mentah)</option>
                     </select>
                 </div>
+
+                <!-- SAMPUL / COVER BUKU LAPORAN -->
+                <div class="bg-slate-950/50 rounded-xl p-4 border border-slate-700/60 mb-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <label class="block text-[10px] font-black text-slate-300 uppercase tracking-widest">
+                            🎨 Sampul / Cover Buku (Halaman 1)
+                        </label>
+                        <span id="coverStatusBadge" class="<?= !empty($selectedEvent['report_cover']) ? 'bg-emerald-500/20 text-emerald-300 border-emerald-400/30' : 'bg-slate-800 text-slate-400 border-slate-700' ?> text-[9px] font-black uppercase px-2 py-0.5 rounded-full border">
+                            <?= !empty($selectedEvent['report_cover']) ? '✓ Cover Aktif' : 'Belum Ada Cover' ?>
+                        </span>
+                    </div>
+                    <p class="text-[11px] text-slate-400 mb-3 leading-relaxed">
+                        Unggah gambar cover (portrait A4). Cover akan otomatis disatukan di halaman paling depan laporan PDF.
+                    </p>
+
+                    <!-- Preview Thumbnail & Action Container -->
+                    <div id="coverContainer" class="flex items-start gap-4 <?= !empty($selectedEvent['report_cover']) ? '' : 'hidden' ?> mb-3 p-3 bg-slate-900/80 rounded-xl border border-slate-800">
+                        <div class="relative w-16 h-22 rounded-lg overflow-hidden border border-slate-600 shadow-md shrink-0 bg-slate-950 flex items-center justify-center">
+                            <img id="coverPreviewImg" src="<?= !empty($selectedEvent['report_cover']) ? getenv('APP_URL') . '/public/' . ltrim($selectedEvent['report_cover'], '/') : '' ?>" class="w-full h-full object-cover" alt="Preview Cover">
+                        </div>
+                        <div class="flex-1 min-w-0 flex flex-col justify-between py-0.5">
+                            <div>
+                                <p class="text-xs font-bold text-white truncate" id="coverFileName"><?= !empty($selectedEvent['report_cover']) ? basename($selectedEvent['report_cover']) : 'Cover Laporan' ?></p>
+                                <p class="text-[10px] text-slate-400">Tersimpan untuk event ini</p>
+                            </div>
+                            <div class="flex items-center gap-2 mt-2">
+                                <button type="button" onclick="deleteCover()" id="btnDeleteCover" class="text-[11px] font-black text-rose-400 hover:text-rose-300 transition flex items-center gap-1">
+                                    🗑️ Hapus Cover
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Input Upload File -->
+                    <div class="space-y-2">
+                        <input type="file" id="coverImageInput" name="cover_image" accept="image/jpeg,image/png,image/webp" class="hidden" onchange="handleCoverFileSelected(event)">
+                        
+                        <div class="flex gap-2">
+                            <button type="button" onclick="document.getElementById('coverImageInput').click()" class="flex-1 bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 py-2.5 px-3 rounded-xl font-bold text-xs uppercase tracking-wider transition flex items-center justify-center gap-1.5 shadow-sm">
+                                <span>📁 <?= !empty($selectedEvent['report_cover']) ? 'Ganti File Cover...' : 'Pilih File Cover...' ?></span>
+                            </button>
+                            <button type="button" onclick="uploadCoverDirectly()" id="btnSaveCoverAjax" class="hidden bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 px-3 rounded-xl font-bold text-xs uppercase tracking-wider transition shadow-sm items-center justify-center gap-1">
+                                <span>💾 Simpan</span>
+                            </button>
+                        </div>
+                        <p class="text-[9px] text-slate-500 italic">*Format: JPG/PNG/WEBP. Cover juga otomatis tersimpan saat Anda mencetak laporan.</p>
+                    </div>
+                </div>
             </div>
             
             <div class="relative z-10 pt-2">
-                <button type="button" onclick="downloadExport('report')" class="w-full bg-emerald-500 text-white py-3 px-4 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-emerald-400 transition shadow-md flex items-center justify-center gap-2">
-                    <span>📥 CETAK LAPORAN RESMI</span>
+                <button type="button" onclick="downloadExport('report')" class="w-full bg-emerald-500 text-white py-3.5 px-4 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-emerald-400 transition shadow-md flex items-center justify-center gap-2">
+                    <span>📥 CETAK LAPORAN RESMI (PDF / EXCEL / CSV)</span>
                 </button>
             </div>
             <div class="absolute right-[-20px] bottom-[-20px] opacity-10 group-hover:scale-110 transition text-8xl pointer-events-none">📊</div>
@@ -197,6 +247,94 @@
     </div>
 
 <script>
+function handleCoverFileSelected(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        document.getElementById('coverPreviewImg').src = e.target.result;
+        document.getElementById('coverFileName').innerText = file.name;
+        document.getElementById('coverContainer').classList.remove('hidden');
+        const btnSave = document.getElementById('btnSaveCoverAjax');
+        btnSave.classList.remove('hidden');
+        btnSave.classList.add('flex');
+    };
+    reader.readAsDataURL(file);
+}
+
+function uploadCoverDirectly() {
+    const fileInput = document.getElementById('coverImageInput');
+    const eventId = document.getElementById('eventSelect').value;
+    if (!fileInput.files || fileInput.files.length === 0) {
+        alert('Pilih file gambar terlebih dahulu.');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('event_id', eventId);
+    formData.append('cover_image', fileInput.files[0]);
+
+    const btn = document.getElementById('btnSaveCoverAjax');
+    btn.disabled = true;
+    btn.innerHTML = '<span>⏳ Menyimpan...</span>';
+
+    fetch('<?= getenv('APP_URL') ?>/swim/admin/export/upload_cover', {
+        method: 'POST',
+        body: formData
+    })
+    .then(r => r.json())
+    .then(res => {
+        btn.disabled = false;
+        btn.classList.add('hidden');
+        btn.classList.remove('flex');
+        btn.innerHTML = '<span>💾 Simpan</span>';
+        if (res.success) {
+            const badge = document.getElementById('coverStatusBadge');
+            badge.className = 'bg-emerald-500/20 text-emerald-300 border-emerald-400/30 text-[9px] font-black uppercase px-2 py-0.5 rounded-full border';
+            badge.innerText = '✓ Cover Aktif';
+            alert('Cover berhasil disimpan untuk event ini!');
+        } else {
+            alert('Gagal menyimpan cover: ' + (res.message || 'Terjadi kesalahan'));
+        }
+    })
+    .catch(err => {
+        btn.disabled = false;
+        btn.innerHTML = '<span>💾 Simpan</span>';
+        alert('Error: ' + err.message);
+    });
+}
+
+function deleteCover() {
+    if (!confirm('Apakah Anda yakin ingin menghapus cover untuk event ini?')) return;
+    const eventId = document.getElementById('eventSelect').value;
+
+    const formData = new FormData();
+    formData.append('event_id', eventId);
+
+    fetch('<?= getenv('APP_URL') ?>/swim/admin/export/delete_cover', {
+        method: 'POST',
+        body: formData
+    })
+    .then(r => r.json())
+    .then(res => {
+        if (res.success) {
+            document.getElementById('coverContainer').classList.add('hidden');
+            document.getElementById('coverImageInput').value = '';
+            document.getElementById('coverPreviewImg').src = '';
+            const btnSave = document.getElementById('btnSaveCoverAjax');
+            btnSave.classList.add('hidden');
+            btnSave.classList.remove('flex');
+            const badge = document.getElementById('coverStatusBadge');
+            badge.className = 'bg-slate-800 text-slate-400 border-slate-700 text-[9px] font-black uppercase px-2 py-0.5 rounded-full border';
+            badge.innerText = 'Belum Ada Cover';
+        } else {
+            alert('Gagal menghapus cover: ' + (res.message || 'Terjadi kesalahan'));
+        }
+    })
+    .catch(err => alert('Error: ' + err.message));
+}
+
 function downloadExport(type, certType = '') {
     const eventId = document.getElementById('eventSelect').value;
     const ku = document.getElementById('kuSelect').value;
@@ -215,22 +353,80 @@ function downloadExport(type, certType = '') {
         if (scopeEl && certType === 'peserta') {
             params += `&scope=${scopeEl.value}`;
         }
+        window.open(baseUrl + params, '_blank');
+        return;
     }
 
     // Konfigurasi Checkbox Khusus Laporan
-    if (type === 'report') {
-        const format = document.getElementById('reportFormat').value;
-        params += `&format=${format}`;
+    const format = document.getElementById('reportFormat').value;
+    const cfgs = [
+        'cfg_event_no', 'cfg_date', 'cfg_event_name', 'cfg_group', 'cfg_gender', 'cfg_pool', 'cfg_round', 'cfg_show_records', 'cfg_medal_tally',
+        'col_uid', 'col_lahir', 'col_ku', 'col_tim', 'col_waktu', 'col_hasil', 'col_ket'
+    ];
+
+    const fileInput = document.getElementById('coverImageInput');
+    const hasNewCover = fileInput && fileInput.files && fileInput.files.length > 0;
+
+    // Gunakan Form POST dinamis dengan target="_blank"
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = baseUrl;
+    form.target = '_blank';
+    form.enctype = 'multipart/form-data';
+
+    const addField = (name, value) => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = name;
+        input.value = value;
+        form.appendChild(input);
+    };
+
+    addField('event_id', eventId);
+    addField('ku', ku);
+    addField('team', team);
+    addField('limit', limit);
+    addField('rank_mode', rankMode);
+    addField('format', format);
+
+    cfgs.forEach(id => {
+        const el = document.getElementById(id);
+        if (el && el.checked) {
+            addField(id, '1');
+        } else {
+            addField(id, '0');
+        }
+    });
+
+    if (hasNewCover) {
+        const parent = fileInput.parentNode;
+        const nextSib = fileInput.nextSibling;
+        form.appendChild(fileInput);
+        document.body.appendChild(form);
+        form.submit();
         
-        const cfgs = ['cfg_event_no', 'cfg_date', 'cfg_event_name', 'cfg_group', 'cfg_gender', 'cfg_pool', 'cfg_round', 'cfg_show_records',
-                      'col_uid', 'col_lahir', 'col_ku', 'col_tim', 'col_waktu', 'col_hasil', 'col_ket'];
-        cfgs.forEach(id => {
-            const el = document.getElementById(id);
-            if (el && el.checked) params += `&${id}=1`;
-        });
+        // Kembalikan file input ke tempat semula di DOM
+        if (nextSib) {
+            parent.insertBefore(fileInput, nextSib);
+        } else {
+            parent.appendChild(fileInput);
+        }
+        document.body.removeChild(form);
+
+        const badge = document.getElementById('coverStatusBadge');
+        if (badge) {
+            badge.className = 'bg-emerald-500/20 text-emerald-300 border-emerald-400/30 text-[9px] font-black uppercase px-2 py-0.5 rounded-full border';
+            badge.innerText = '✓ Cover Aktif';
+        }
+        const btnSave = document.getElementById('btnSaveCoverAjax');
+        if (btnSave) {
+            btnSave.classList.add('hidden');
+            btnSave.classList.remove('flex');
+        }
+    } else {
+        document.body.appendChild(form);
+        form.submit();
+        document.body.removeChild(form);
     }
-    
-    // Buka di tab baru agar tidak mengganggu state halaman ini
-    window.open(baseUrl + params, '_blank');
 }
 </script>
