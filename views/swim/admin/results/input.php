@@ -49,7 +49,11 @@ if (!function_exists('getKULabelInput')) {
             <h2 class="text-lg font-black text-slate-800 italic">INPUT HASIL LOMBA</h2>
             <div class="flex items-center gap-2 mt-1">
                 <span class="text-[10px] font-bold uppercase text-slate-500">Mode Ranking:</span>
-                <span class="text-xs font-bold text-blue-600">
+                <div class="relative inline-block w-12 align-middle select-none mr-1">
+                    <input type="checkbox" name="toggle" id="modeToggle" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" <?= ($raceInfo['rank_mode'] ?? 'split') === 'overall' ? 'checked' : '' ?> onchange="updateModeInput()">
+                    <label for="modeToggle" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
+                </div>
+                <span id="modeLabel" class="text-xs font-bold <?= ($raceInfo['rank_mode'] ?? 'split') === 'overall' ? 'text-blue-600' : 'text-slate-600' ?>">
                     <?= ($raceInfo['rank_mode'] ?? 'split') === 'overall' ? 'GABUNGAN (OVERALL)' : 'PER KELOMPOK UMUR (SPLIT)' ?>
                 </span>
             </div>
@@ -84,7 +88,7 @@ if (!function_exists('getKULabelInput')) {
 </div>
 
 <form id="formResult" method="POST" action="<?= getenv('APP_URL') ?>/swim/admin/results/input?category_id=<?= $cat_id ?>">
-    <input type="hidden" name="rank_mode_input" value="<?= $raceInfo['rank_mode'] ?? 'split' ?>">
+    <input type="hidden" name="rank_mode_input" id="rankModeInput" value="<?= $raceInfo['rank_mode'] ?? 'split' ?>">
 
     <div class="max-w-4xl mx-auto bg-white p-6 rounded-xl shadow-sm border border-slate-200">
         <div class="flex justify-between items-start mb-6 pb-4 border-b border-slate-300">
@@ -215,6 +219,23 @@ if (!function_exists('getKULabelInput')) {
 <script>
 let currentDqTarget = null;
 
+function updateModeInput() {
+    const checkbox = document.getElementById('modeToggle');
+    const hiddenInput = document.getElementById('rankModeInput');
+    const label = document.getElementById('modeLabel');
+    if (checkbox.checked) {
+        hiddenInput.value = 'overall';
+        label.innerText = 'GABUNGAN (OVERALL)';
+        label.classList.remove('text-slate-600');
+        label.classList.add('text-blue-600');
+    } else {
+        hiddenInput.value = 'split';
+        label.innerText = 'PER KELOMPOK UMUR (SPLIT)';
+        label.classList.remove('text-blue-600');
+        label.classList.add('text-slate-600');
+    }
+}
+
 function handleStatusChange(selectObj, id) {
     const val = selectObj.value;
     const timeInput = document.querySelector(`input[name="entries[${id}][time]"]`);
@@ -222,23 +243,17 @@ function handleStatusChange(selectObj, id) {
     const dqDisplay = document.getElementById(`dq_display_${id}`);
     
     if(val === 'DQ') {
-        timeInput.disabled = true;
-        timeInput.style.background = '#eee';
-        timeInput.style.color = '#ccc';
-        
-        // Tetapkan default 'DQ' jika user langsung menutup modal
-        if(dqReasonHidden.value === '') {
-            dqReasonHidden.value = 'DQ';
-            dqDisplay.innerText = 'DQ';
-        }
-        
         currentDqTarget = id;
+        document.getElementById('searchDq').value = '';
+        filterDq();
         document.getElementById('dqModal').classList.remove('hidden');
         document.getElementById('dqModal').classList.add('flex');
+        setTimeout(() => document.getElementById('searchDq').focus(), 100);
     } else if(val === 'DNF' || val === 'DNS') {
         timeInput.disabled = true;
         timeInput.style.background = '#eee';
         timeInput.style.color = '#ccc';
+        timeInput.value = '';
         dqReasonHidden.value = val;
         dqDisplay.innerText = '';
     } else {
@@ -253,12 +268,33 @@ function handleStatusChange(selectObj, id) {
 function closeDqModal() {
     document.getElementById('dqModal').classList.add('hidden');
     document.getElementById('dqModal').classList.remove('flex');
+    if (currentDqTarget) {
+        const dqReasonHidden = document.getElementById(`dq_reason_${currentDqTarget}`);
+        const selectObj = document.querySelector(`select[name="entries[${currentDqTarget}][status]"]`);
+        if (!dqReasonHidden.value || dqReasonHidden.value.trim() === '') {
+            if (selectObj) selectObj.value = '';
+            const timeInput = document.querySelector(`input[name="entries[${currentDqTarget}][time]"]`);
+            if (timeInput) {
+                timeInput.disabled = false;
+                timeInput.style.background = '#f9f9f9';
+                timeInput.style.color = 'blue';
+            }
+        }
+    }
+    currentDqTarget = null;
 }
 
 function selectDqRule(pasal) {
     if(currentDqTarget) {
         document.getElementById(`dq_reason_${currentDqTarget}`).value = pasal;
         document.getElementById(`dq_display_${currentDqTarget}`).innerText = pasal;
+        const timeInput = document.querySelector(`input[name="entries[${currentDqTarget}][time]"]`);
+        if (timeInput) {
+            timeInput.disabled = true;
+            timeInput.style.background = '#eee';
+            timeInput.style.color = '#ccc';
+            timeInput.value = '';
+        }
     }
     closeDqModal();
 }
@@ -273,11 +309,31 @@ function filterDq() {
 }
 
 document.addEventListener("DOMContentLoaded", function() {
+    // 1. Sinkronisasi Link GDrive / Web untuk QR Code ke localStorage
     const inputLink = document.getElementById('qrLinkInput');
-    const qrImage = document.getElementById('printQrCode');
     const storageKey = "qr_link_cat_<?= $cat_id ?>"; 
-    const defaultUrl = "<?= getenv('APP_URL') ?>/swim/results";
     
-    // (QR Logic removed from here since it's not rendered on this page anymore)
+    if (inputLink) {
+        const savedLink = localStorage.getItem(storageKey);
+        if (savedLink) {
+            inputLink.value = savedLink;
+        }
+        inputLink.addEventListener('input', function() {
+            localStorage.setItem(storageKey, this.value.trim());
+        });
+    }
+
+    // 2. Auto-format input waktu saat pengetikan (Masking 00:00.00)
+    document.querySelectorAll('.input-time').forEach(function(input) {
+        input.addEventListener('input', function(e) {
+            let val = this.value.replace(/\D/g, '');
+            if (val.length > 6) { val = val.substring(0, 6); }
+            let formatted = '';
+            if (val.length > 0) { formatted += val.substring(0, 2); }
+            if (val.length > 2) { formatted += ':' + val.substring(2, 4); }
+            if (val.length > 4) { formatted += '.' + val.substring(4, 6); }
+            this.value = formatted;
+        });
+    });
 });
 </script>

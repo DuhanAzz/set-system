@@ -1,12 +1,12 @@
 <?php
 // FILE: views/swim/admin/results/print_input.php
-// Digunakan murni untuk print (seperti view_startlist.php)
+// Digunakan murni untuk print hasil lomba standar resmi
 ?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Print Input Hasil - Acara #<?= htmlspecialchars($raceInfo['event_number']) ?></title>
+    <title>Print Hasil - Acara #<?= htmlspecialchars($raceInfo['event_number'] ?? '') ?></title>
     <style>
         /* RESET & PRINT COLOR */
         * { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
@@ -42,29 +42,36 @@
         .layout-footer-space { height: 25mm; }
 
         /* HEADER (KOP Acara) */
-        .event-header { position: relative; display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #000; padding: 2px 0; margin-top: 5mm; margin-bottom: 0px; background: #fff; min-height: 35px; }
+        .event-header { position: relative; display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #000; padding: 2px 0; margin-top: 5mm; margin-bottom: 4px; background: #fff; min-height: 35px; }
         .eh-left-group { display: flex; flex-direction: column; justify-content: center; width: 180px; line-height: 1.1; z-index: 2; position: relative; background: white; }
         .eh-number { font-size: 14pt; font-weight: 900; margin-bottom: 2px; color: #000; }
         .eh-date { font-size: 8pt; font-weight: bold; font-style: normal; color: #000; }
         .eh-center { position: absolute; left: 50%; bottom: 3px; transform: translateX(-50%); text-align: center; width: 60%; z-index: 1; }
         .eh-title  { font-size: 11pt; font-weight: 800; text-transform: uppercase; color: #000; }
-        .eh-right  { width: 80px; text-align: center; z-index: 2; position: relative; background: white; color: #000; display: flex; flex-direction: column; align-items: center; justify-content: flex-end;}
+        .eh-right  { width: 80px; text-align: center; z-index: 2; position: relative; background: white; color: #000; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; }
+
+        /* REKOR CONTAINER */
+        .event-records-container { border-bottom: 1px solid #000; padding: 2px 0 4px 0; margin-bottom: 6px; font-size: 8pt; font-family: 'Arial Narrow', sans-serif; font-weight: bold; line-height: 1.3; text-align: left; }
+        .records-table { width: 100%; border-collapse: collapse; font-size: 8pt; font-family: 'Arial Narrow', sans-serif; font-weight: bold; text-transform: uppercase; }
+        .records-table th { text-align: left; padding: 2px 0; color: #000; border-bottom: 1px solid #000; font-size: 8pt; }
+        .records-table td { padding: 2px 0; color: #000; }
         
-        /* TABEL SERI / HEAT */
-        .heat-title { text-align: right; font-size: 9pt; font-weight: bold; text-transform: uppercase; margin-top: 12px; margin-bottom: 2px; color: #000; }
+        /* DATA TABLE DINAMIS */
+        .data-table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: 10px; font-size: 8pt; }
+        .data-table th { background-color: #e5e7eb; color: #000; font-weight: bold; font-size: 8pt; text-transform: uppercase; padding: 4px 2px; border-top: 1px solid #000; border-bottom: 2px solid #000; text-align: center; }
+        .data-table td { padding: 4px 4px; border-bottom: 1px solid #ccc; vertical-align: middle; color: #000; font-weight: bold !important; } 
         
-        .data-table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: 2px; font-size: 8pt; }
-        .data-table th { background-color: #e5e7eb; color: #000; font-weight: bold; font-size: 8pt; text-transform: uppercase; padding: 2px 2px; border-top: 1px solid #000; border-bottom: 2px solid #000; text-align: center; }
-        .data-table td { padding: 4px 4px; border-bottom: 1px solid #ccc; vertical-align: middle; font-weight: bold !important; color: #000; } 
+        .col-rank { width: 6%; text-align: center; background: #f8f9fa; font-weight: bold; }
+        .col-uid { width: 12%; text-align: center; font-family: 'Courier New', Courier, monospace; }
+        .col-nama { width: 32%; text-align: left; padding-left: 5px; font-weight: bold; white-space: normal; line-height: 1.1; }
+        .col-ku { width: 10%; text-align: center; }
+        .col-tim { width: 20%; text-align: left; padding-left: 5px; white-space: normal; line-height: 1.1; }
+        .col-waktu-awal { width: 10%; text-align: right; padding-right: 5px; font-family: 'Courier New', Courier, monospace; font-size: 8pt; }
+        .col-hasil { width: 10%; text-align: right; padding-right: 5px; font-family: 'Courier New', Courier, monospace; font-weight: bold; font-size: 8.5pt; color: #000; }
         
-        .col-ln { width: 5%; text-align: center; background: #f8f9fa; border-right: 1px solid #eee; font-weight: bold; white-space: nowrap; }
-        .col-nama { text-align: left; padding-left: 5px; white-space: normal; line-height: 1.1; }
-        .col-ku { width: 10%; text-align: center; white-space: nowrap; }
-        .col-tim { width: 22%; text-align: left; padding-left: 5px; white-space: normal; line-height: 1.1; }
-        .col-waktu { width: 12%; text-align: right; padding-right: 5px; white-space: nowrap; font-family: 'Courier New', monospace; }
-        .col-hasil { width: 12%; text-align: center; color: #000; letter-spacing: 0px; white-space: nowrap; }
-        
-        .data-table tr:nth-child(even) { background-color: #f9fafb; }
+        .group-row td { background-color: #f3f4f6 !important; font-family: 'Arial', sans-serif; font-weight: 900; text-transform: uppercase; color: #374151; border-top: 1px solid #9ca3af; border-bottom: 1px solid #9ca3af; padding: 5px 8px; text-align: left; font-size: 8.5pt; }
+        .data-table tr:nth-child(even):not(.group-row) { background-color: #f9fafb; }
+        .data-table tr { break-inside: avoid; }
 
         @media print {
             @page { size: A4; margin: 0; }
@@ -98,14 +105,27 @@ if (!function_exists('getKULabelInput')) {
     }
 }
 
+if (!function_exists('timeToMsPrint')) {
+    function timeToMsPrint($time) {
+        $time = trim($time);
+        if (empty($time) || strtoupper($time) == 'NT' || strpos($time, '99') !== false || $time == '-') return 9999999999; 
+        $parts = preg_split('/[:.]/', $time);
+        $menit = 0; $detik = 0; $ms = 0;
+        if (count($parts) == 3) { $menit = (int)$parts[0]; $detik = (int)$parts[1]; $ms = (int)$parts[2]; } 
+        elseif (count($parts) == 2) { $detik = (int)$parts[0]; $ms = (int)$parts[1]; } 
+        elseif (count($parts) == 1) { $detik = (int)$parts[0]; }
+        return ($menit * 60000) + ($detik * 1000) + ($ms * 10);
+    }
+}
+
 // Persiapan Data Header
 $eventName  = strtoupper($eventProfile['event_name'] ?? 'EVENT NAME');
 $loc  = $eventProfile['event_location'] ?? '-';
 if (!empty($eventProfile['event_city'])) $loc .= ' - ' . $eventProfile['event_city'];
 $venueName  = strtoupper($loc);
 $eventDate  = $eventProfile['event_date_start'] ?? date('Y-m-d');
-$logoLeft   = !empty($eventProfile['logo_left']) ? '../../../public/' . $eventProfile['logo_left'] : null;
-$logoRight  = !empty($eventProfile['logo_right']) ? '../../../public/' . $eventProfile['logo_right'] : null;
+$logoLeft   = !empty($eventProfile['logo_left']) ? getenv('APP_URL') . '/public/' . ltrim($eventProfile['logo_left'], '/') : null;
+$logoRight  = !empty($eventProfile['logo_right']) ? getenv('APP_URL') . '/public/' . ltrim($eventProfile['logo_right'], '/') : null;
 
 $displayDate = strtoupper(date('d F Y', strtotime($eventDate)));
 if(!empty($eventProfile['event_date_end']) && $eventProfile['event_date_end'] != '0000-00-00' && $eventProfile['event_date_end'] != $eventDate) {
@@ -114,6 +134,13 @@ if(!empty($eventProfile['event_date_end']) && $eventProfile['event_date_end'] !=
     $dateRange = $displayDate;
 }
 $dateRange = strtoupper($dateRange);
+
+// Judul Acara Tengah Sesuai Standar Legacy
+$cleanStroke = trim(str_ireplace(['Gaya', 'GAYA'], '', $raceInfo['stroke'] ?? ''));
+$gender_label = (in_array($raceInfo['jenis_kelamin'] ?? '', ['L','Male','Man'])) ? 'PUTRA' : 'PUTRI';
+if (($raceInfo['jenis_kelamin'] ?? '') == 'Campuran') $gender_label = 'CAMPURAN';
+$poolSuffix = (strtoupper($eventProfile['pool_type'] ?? 'LCM') == 'SCM') ? ' - SCM' : ' - LCM';
+$judul_print = $raceInfo['distance'] . "M " . strtoupper($cleanStroke) . " - " . ($raceInfo['age_group'] ?? '') . " " . $gender_label . $poolSuffix;
 
 // Jadwal Acara Kiri
 $jadwalKiri = $displayDate . " | " . (empty($raceInfo['schedule_time']) ? '08:00 WIB' : date('H:i', strtotime($raceInfo['schedule_time'])) . ' WIB');
@@ -126,56 +153,91 @@ if (isset($pdo)) {
     $sponsors = $stmtSpon->fetchAll(PDO::FETCH_COLUMN);
 }
 
-// Merekap seluruh perenang dari semua seri
-$allSwimmers = [];
-if (!empty($heats)) {
-    foreach($heats as $heatNo => $lanesData) {
-        foreach($lanesData as $ln => $s) {
-            if ($s) {
-                $allSwimmers[] = $s;
-            }
+// Ambil Master Data Rekor
+$records = [];
+if (isset($pdo)) {
+    // 1. Rekornas
+    $stmtRec = $pdo->prepare("SELECT record_type, holder_name, record_time, location, record_year FROM swim_master_records WHERE distance = ? AND (stroke = ? OR REPLACE(REPLACE(REPLACE(LOWER(stroke), 'gaya', ''), ' ', ''), '-', '') = REPLACE(REPLACE(REPLACE(LOWER(?), 'gaya', ''), ' ', ''), '-', '')) AND jenis_kelamin = ? AND record_type = 'rekornas' ORDER BY id ASC");
+    $stmtRec->execute([$raceInfo['distance'], $raceInfo['stroke'], $raceInfo['stroke'], $raceInfo['jenis_kelamin']]);
+    $records = array_merge($records, $stmtRec->fetchAll(PDO::FETCH_ASSOC));
+
+    // 2. Rekor Acuan Event (Jika paket rekor diatur)
+    if (!empty($eventProfile['record_package_id'])) {
+        $stmtPkg = $pdo->prepare("
+            SELECT 'rekor_event' as record_type, ehr.holder_name, ehr.record_time, COALESCE(NULLIF(ehr.location, ''), e.event_city, '-') as location, COALESCE(NULLIF(ehr.record_year, 0), YEAR(e.event_date_start), '-') as record_year 
+            FROM event_historical_records ehr 
+            LEFT JOIN swim_events e ON ehr.source_event_id = e.id
+            WHERE ehr.package_id = ? 
+              AND ehr.distance = ? 
+              AND REPLACE(REPLACE(REPLACE(LOWER(ehr.stroke), 'gaya', ''), ' ', ''), '-', '') = REPLACE(REPLACE(REPLACE(LOWER(?), 'gaya', ''), ' ', ''), '-', '') 
+              AND LOWER(TRIM(ehr.jenis_kelamin)) = LOWER(TRIM(?)) 
+              AND LOWER(TRIM(ehr.age_group)) = LOWER(TRIM(?))
+        ");
+        $stmtPkg->execute([$eventProfile['record_package_id'], $raceInfo['distance'], $raceInfo['stroke'], $raceInfo['jenis_kelamin'], $raceInfo['age_group']]);
+        $records = array_merge($records, $stmtPkg->fetchAll(PDO::FETCH_ASSOC));
+    }
+}
+
+// Kumpulkan seluruh data perenang
+$swimmersList = [];
+if (!empty($rawData)) {
+    $swimmersList = $rawData;
+} elseif (!empty($heats)) {
+    foreach ($heats as $heatNo => $lanesData) {
+        foreach ($lanesData as $ln => $s) {
+            if ($s) $swimmersList[] = $s;
         }
     }
-    
-    // Urutkan berdasarkan waktu dan status
-    usort($allSwimmers, function($a, $b) {
-        $getStatusOrder = function($s) {
-            $is_real_dq = (($s['is_dq'] ?? 0) == 1 && !in_array($s['dq_reason'], ['DNF', 'DNS', '']));
-            $reason = $is_real_dq ? 'DQ' : ($s['dq_reason'] ?? '');
-            
-            if ($reason === 'DQ' || $is_real_dq) return 2;
-            if ($reason === 'DNF') return 3;
-            if ($reason === 'DNS') return 4;
-            
-            $empty = empty($s['final_time']) || $s['final_time'] == '00:00.00' || strpos($s['final_time'], '99') !== false;
-            if ($empty) return 1;
-            
-            return 0; // Waktu Valid
-        };
-        
-        $orderA = $getStatusOrder($a);
-        $orderB = $getStatusOrder($b);
-        
-        // Jika status berbeda, yang orderya lebih kecil di atas
-        if ($orderA !== $orderB) {
-            return $orderA - $orderB;
+}
+
+// Logika Pengelompokan & Mode Ranking (Overall vs Split KU)
+$currentMode = $raceInfo['rank_mode'] ?? 'split';
+$groupedResults = [];
+
+if ($currentMode === 'overall') {
+    $groupTitle = "OPEN KATEGORI";
+    foreach ($swimmersList as $row) {
+        if (!empty($row['id'])) {
+            $row['ms_sort'] = 9999999999;
+            if (($row['is_dq'] ?? 0) == 1) {
+                $row['ms_sort'] = 9999999999 + 100;
+            } elseif (!empty($row['final_time']) && strtoupper($row['final_time']) != 'NT' && strpos($row['final_time'], '99') === false) {
+                $row['ms_sort'] = timeToMsPrint($row['final_time']);
+            }
+            $groupedResults[$groupTitle][] = $row;
         }
-        
-        // Jika keduanya waktu valid, bandingkan waktunya
-        if ($orderA === 0) {
-            return strcmp($a['final_time'], $b['final_time']);
+    }
+} else {
+    foreach ($swimmersList as $row) {
+        if (!empty($row['id'])) {
+            $groupName = getKULabelInput($row['tanggal_lahir'] ?? '0000-00-00', $eventYear, $ageGroups ?? []);
+            $row['ms_sort'] = 9999999999;
+            if (($row['is_dq'] ?? 0) == 1) {
+                $row['ms_sort'] = 9999999999 + 100;
+            } elseif (!empty($row['final_time']) && strtoupper($row['final_time']) != 'NT' && strpos($row['final_time'], '99') === false) {
+                $row['ms_sort'] = timeToMsPrint($row['final_time']);
+            }
+            $groupedResults[$groupName][] = $row;
         }
-        
-        // Jika status sama, urutkan nama abjad
-        return strcmp($a['nama_atlet'] ?? '', $b['nama_atlet'] ?? '');
+    }
+    ksort($groupedResults);
+}
+
+foreach ($groupedResults as $key => &$rows) {
+    usort($rows, function($a, $b) {
+        if ($a['ms_sort'] == $b['ms_sort']) {
+            return strcmp($a['nama_atlet'] ?? '', $b['nama_atlet'] ?? '');
+        }
+        return ($a['ms_sort'] < $b['ms_sort']) ? -1 : 1;
     });
 }
+unset($rows);
 ?>
 
-    <div class="no-print">
-        <button onclick="window.close()" class="btn btn-back">← TUTUP</button>
-        <button onclick="window.print()" class="btn btn-print">🖨️ CETAK HALAMAN INI</button>
-    </div>
+<div class="no-print">
+    <button onclick="window.close()" class="btn btn-back">← TUTUP</button>
+    <button onclick="window.print()" class="btn btn-print">🖨️ CETAK HALAMAN INI</button>
+</div>
 
 <div class="header-fixed">
     <div style="text-align: left;"><?php if($logoLeft): ?><img src="<?= $logoLeft ?>" class="logo-img"><?php endif; ?></div>
@@ -191,7 +253,7 @@ if (!empty($heats)) {
 
 <div class="footer-fixed">
     <?php foreach($sponsors as $spon): ?>
-        <img src="../../../public/<?= $spon ?>" alt="Sponsor">
+        <img src="<?= getenv('APP_URL') ?>/public/<?= ltrim($spon, '/') ?>" alt="Sponsor">
     <?php endforeach; ?>
 </div>
 
@@ -209,54 +271,107 @@ if (!empty($heats)) {
                 <div class="eh-date"><?= htmlspecialchars($jadwalKiri) ?></div>
             </div>
             <div class="eh-center">
-                <div class="eh-title"><?= htmlspecialchars($raceInfo['event_name'] ?? '') ?></div>
+                <div class="eh-title"><?= htmlspecialchars($judul_print) ?></div>
             </div>
             <div class="eh-right">
-                <img id="printQrCode" src="" alt="QR" style="width: 50px; height: 50px; object-fit: contain; margin-bottom: 2px;">
+                <img id="printQrCode" src="" alt="QR" style="width: 48px; height: 48px; object-fit: contain; margin-bottom: 2px;">
                 <span style="font-size: 7px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; line-height: 1;">LIVE<br>RESULT</span>
             </div>
         </div>
 
-        <?php if(empty($allSwimmers)): ?>
+        <?php if(!empty($records)): ?>
+            <div class="event-records-container">
+                <table class="records-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 140px;">REKOR</th>
+                            <th>NAMA ATLET</th>
+                            <th style="width: 180px;">LOKASI</th>
+                            <th style="width: 60px; text-align: center;">TAHUN</th>
+                            <th style="width: 80px; text-align: right;">WAKTU</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach($records as $rec): 
+                            $tipeLabel = strtoupper(str_replace('_', ' ', $rec['record_type']));
+                            if($tipeLabel === 'REKORNAS') $tipeLabel = 'REKOR NAS';
+                            $lokasiDisplay = !empty($rec['location']) ? strtoupper($rec['location']) : '-';
+                            $tahunDisplay = !empty($rec['record_year']) ? $rec['record_year'] : '-';
+                        ?>
+                        <tr>
+                            <td><?= $tipeLabel ?></td>
+                            <td><?= strtoupper($rec['holder_name']) ?></td>
+                            <td><?= $lokasiDisplay ?></td>
+                            <td style="text-align: center;"><?= $tahunDisplay ?></td>
+                            <td style="text-align: right;"><?= $rec['record_time'] ?></td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        <?php endif; ?>
+
+        <?php if(empty($groupedResults)): ?>
             <div style="text-align:center; padding: 40px; font-style: italic; color: #666;">Belum ada data peserta.</div>
         <?php else: ?>
-            <div class="heat-title">HASIL KESELURUHAN (REKAP)</div>
             <table class="data-table">
                 <thead>
                     <tr>
-                        <th class="col-ln">RANK</th>
+                        <th class="col-rank">RANK</th>
+                        <th class="col-uid">UID</th>
                         <th class="col-nama">NAMA ATLET</th>
                         <th class="col-ku">KU</th>
-                        <th class="col-tim">TIM</th>
-                        <th class="col-waktu">WAKTU</th>
-                        <th class="col-hasil">STATUS</th>
+                        <th class="col-tim">TIM / SEKOLAH</th>
+                        <th class="col-waktu-awal">ENTRY</th>
+                        <th class="col-hasil">HASIL</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <?php 
-                    $rank = 1;
-                    foreach($allSwimmers as $s): 
-                        $kuLabel = getKULabelInput($s['tanggal_lahir'] ?? '0000-00-00', $eventYear, $ageGroups ?? []);
-                        if (isset($raceInfo['is_relay']) && $raceInfo['is_relay'] == 1) {
-                            $teamName = $s['club_name'] ?? '';
-                        } else {
-                            $teamName = $isSchoolEvent ? (!empty($s['asal_sekolah']) ? $s['asal_sekolah'] : ($s['club_name'] ?? '')) : ($s['club_name'] ?? '');
-                        }
-                        
-                        $is_real_dq = (($s['is_dq']??0) == 1 && !in_array($s['dq_reason'], ['DNF', 'DNS', '']));
-                        $status_val = $is_real_dq ? 'DQ' : ($s['dq_reason'] ?? '');
-                        
-                        // Sembunyikan rank jika kosong atau DQ
-                        $is_valid_time = (!empty($s['final_time']) && $s['final_time'] !== '00:00.00' && strpos($s['final_time'], '99') === false && !$is_real_dq && empty($status_val));
-                    ?>
-                    <tr>
-                        <td class="col-ln"><?= $is_valid_time ? $rank++ : '-' ?></td>
-                        <td class="col-nama"><?= htmlspecialchars($s['nama_atlet'] ?? '') ?></td>
-                        <td class="col-ku"><?= htmlspecialchars($kuLabel) ?></td>
-                        <td class="col-tim"><?= htmlspecialchars($teamName) ?></td>
-                        <td class="col-waktu"><?= htmlspecialchars($s['final_time'] ?? '') ?></td>
-                        <td class="col-hasil"><?= htmlspecialchars($status_val) ?></td>
-                    </tr>
+                    <?php foreach($groupedResults as $groupTitle => $swimmers): ?>
+                        <tr class="group-row"><td colspan="7"><?= htmlspecialchars($groupTitle) ?></td></tr>
+                        <?php 
+                        $rank = 1; $real_rank = 1; $prev_time = null;
+                        foreach($swimmers as $p): 
+                            $is_valid = (($p['is_dq'] ?? 0) == 0 && !empty($p['final_time']) && strtoupper($p['final_time']) != 'NT' && strpos($p['final_time'], '99') === false);
+                            $rank_display = '-';
+                            if ($is_valid) {
+                                if ($p['ms_sort'] !== $prev_time) { $real_rank = $rank; }
+                                $rank_display = $real_rank;
+                                $prev_time = $p['ms_sort'];
+                                $rank++;
+                            }
+                            
+                            $kuLabel = getKULabelInput($p['tanggal_lahir'] ?? '0000-00-00', $eventYear, $ageGroups ?? []);
+                            if (isset($raceInfo['is_relay']) && $raceInfo['is_relay'] == 1) {
+                                $teamName = $p['club_name'] ?? '';
+                            } else {
+                                $teamName = $isSchoolEvent ? (!empty($p['asal_sekolah']) ? $p['asal_sekolah'] : ($p['club_name'] ?? '')) : ($p['club_name'] ?? '');
+                            }
+                            
+                            $seedTime = (!empty($p['entry_time']) && $p['entry_time'] != '99:99.99' && $p['entry_time'] != '99.99.99' && strtoupper($p['entry_time']) != 'NT') ? $p['entry_time'] : 'NT';
+                        ?>
+                        <tr>
+                            <td class="col-rank"><?= $rank_display ?></td>
+                            <td class="col-uid"><?= htmlspecialchars($p['uid'] ?? '-') ?></td>
+                            <td class="col-nama"><?= htmlspecialchars($p['nama_atlet'] ?? '') ?></td>
+                            <td class="col-ku"><?= htmlspecialchars($kuLabel) ?></td>
+                            <td class="col-tim"><?= htmlspecialchars($teamName) ?></td>
+                            <td class="col-waktu-awal"><?= htmlspecialchars($seedTime) ?></td>
+                            <td class="col-hasil">
+                                <?php 
+                                if (($p['is_dq'] ?? 0) == 1) {
+                                    $reason = $p['dq_reason'] ?? 'DQ';
+                                    $print_text = (in_array($reason, ['DNS', 'DNF'])) ? $reason : 'DQ';
+                                    echo '<span style="color:red; font-weight:bold;">' . htmlspecialchars($print_text) . '</span>';
+                                } elseif ($is_valid) {
+                                    echo htmlspecialchars($p['final_time']);
+                                } else {
+                                    echo '-';
+                                }
+                                ?>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
                     <?php endforeach; ?>
                 </tbody>
             </table>
@@ -275,14 +390,14 @@ document.addEventListener("DOMContentLoaded", function() {
     const defaultUrl = "<?= getenv('APP_URL') ?>/swim/results";
     
     let link = localStorage.getItem(storageKey);
-    if (!link) link = defaultUrl;
+    if (!link || link.trim() === '') link = defaultUrl;
     
     if (qrImage) {
         qrImage.src = "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=" + encodeURIComponent(link);
     }
     
-    // Auto print on load (opsional)
-    setTimeout(() => { window.print(); }, 1000);
+    // Otomatis print setelah sedikit jeda agar logo dan QR termuat
+    setTimeout(() => { window.print(); }, 800);
 });
 </script>
 </body>
