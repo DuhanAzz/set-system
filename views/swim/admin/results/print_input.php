@@ -315,7 +315,6 @@ unset($rows);
             </div>
             <div class="eh-right">
                 <img id="printQrCode" src="" alt="QR" style="width: 48px; height: 48px; object-fit: contain; margin-bottom: 2px;">
-                <span style="font-size: 7px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; line-height: 1;">LIVE<br>RESULT</span>
             </div>
         </div>
 
