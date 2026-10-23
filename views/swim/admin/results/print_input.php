@@ -23,18 +23,20 @@
         .page-wrapper { background: white; width: 210mm; margin: 0 auto; padding: 0 10mm; min-height: 297mm; position: relative; box-shadow: 0 0 15px rgba(0,0,0,0.5); }
         
         /* HEADER FIXED STYLE */
-        .header-fixed { position: fixed; top: 0; left: 0; right: 0; height: 35mm; background: white; border-bottom: 3px double #000; display: grid; grid-template-columns: 110px 1fr 110px; align-items: flex-end; padding: 5px 10mm 3px 10mm; z-index: 999; display: none; }
+        .header-fixed { position: fixed; top: 0; left: 0; right: 0; height: 35mm; background: white; border-bottom: 3px double #000; display: grid; grid-template-columns: 110px 1fr 110px; align-items: flex-end; padding: 5px 10mm 3px 10mm; z-index: 999; }
         .header-center { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; text-align: center; line-height: 1.2; color: #000; }
         .header-line-1 { font-size: 14pt; font-weight: 900; text-transform: uppercase; margin-bottom: 2px; }
         .header-line-2 { font-size: 9pt; font-weight: bold; text-transform: uppercase; }
         .header-line-3 { font-size: 9pt; font-weight: bold; text-transform: uppercase; }
         .header-line-4 { height: 3px; } 
         .header-line-5 { font-size: 18pt; font-weight: 900; text-transform: uppercase; letter-spacing: 2px; color: #000; margin-top: 2px; margin-bottom: 0px; line-height: 1; }
-        .logo-img { max-height: 80px; max-width: 100%; object-fit: contain; margin-bottom: 2px; }
+        .logo-img { max-height: 95px; max-width: 100%; object-fit: contain; margin-bottom: 2px; }
         
         /* FOOTER SPONSOR */
-        .footer-fixed { position: fixed; bottom: 0; left: 0; right: 0; height: 20mm; background: white; border-top: 2px double #000; display: flex; justify-content: center; align-items: center; padding: 0 10mm; z-index: 999; display: none; }
-        .footer-fixed img { height: 40px; margin: 0 10px; object-fit: contain; }
+        .footer-fixed { position: fixed; bottom: 0; left: 0; right: 0; height: 20mm; background: white; border-top: 2px double #000; display: flex; justify-content: space-between; align-items: center; padding: 0 10mm; z-index: 999; }
+        .footer-sponsors { display: flex; gap: 15px; align-items: center; justify-content: center; flex: 1; }
+        .footer-sponsors img { height: 42px; max-height: 42px; object-fit: contain; margin: 0 6px; }
+        .footer-time { font-family: monospace; font-size: 8pt; color: #666; width: 140px; text-align: right; }
 
         /* SPACER TABEL CETAK */
         .layout-table { width: 100%; border-collapse: collapse; border: none; }
@@ -59,15 +61,15 @@
         /* DATA TABLE DINAMIS */
         .data-table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: 10px; font-size: 8pt; }
         .data-table th { background-color: #e5e7eb; color: #000; font-weight: bold; font-size: 8pt; text-transform: uppercase; padding: 4px 2px; border-top: 1px solid #000; border-bottom: 2px solid #000; text-align: center; }
-        .data-table td { padding: 4px 4px; border-bottom: 1px solid #ccc; vertical-align: middle; color: #000; font-weight: bold !important; } 
+        .data-table td { padding: 4px 4px; border-bottom: 1px solid #ccc; vertical-align: middle; color: #000; } 
         
         .col-rank { width: 6%; text-align: center; background: #f8f9fa; font-weight: bold; }
-        .col-uid { width: 12%; text-align: center; font-family: 'Courier New', Courier, monospace; }
+        .col-uid { width: 12%; text-align: center; font-family: 'Courier New', Courier, monospace; font-weight: bold; }
         .col-nama { width: 32%; text-align: left; padding-left: 5px; font-weight: bold; white-space: normal; line-height: 1.1; }
-        .col-ku { width: 10%; text-align: center; }
-        .col-tim { width: 20%; text-align: left; padding-left: 5px; white-space: normal; line-height: 1.1; }
-        .col-waktu-awal { width: 10%; text-align: right; padding-right: 5px; font-family: 'Courier New', Courier, monospace; font-size: 8pt; }
-        .col-hasil { width: 10%; text-align: right; padding-right: 5px; font-family: 'Courier New', Courier, monospace; font-weight: bold; font-size: 8.5pt; color: #000; }
+        .col-ku { width: 10%; text-align: center; font-weight: bold; }
+        .col-tim { width: 20%; text-align: left; padding-left: 5px; white-space: normal; line-height: 1.1; font-weight: bold; }
+        .col-waktu-awal { width: 10%; text-align: right; padding-right: 5px; font-family: 'Courier New', Courier, monospace; font-size: 8pt; font-weight: normal !important; color: #4b5563; }
+        .col-hasil { width: 10%; text-align: right; padding-right: 5px; font-family: 'Courier New', Courier, monospace; font-weight: 900 !important; font-size: 8.5pt; color: #000; }
         
         .group-row td { background-color: #f3f4f6 !important; font-family: 'Arial', sans-serif; font-weight: 900; text-transform: uppercase; color: #374151; border-top: 1px solid #9ca3af; border-bottom: 1px solid #9ca3af; padding: 5px 8px; text-align: left; font-size: 8.5pt; }
         .data-table tr:nth-child(even):not(.group-row) { background-color: #f9fafb; }
@@ -79,7 +81,7 @@
             .no-print { display: none !important; }
             .page-wrapper { margin: 0; width: 100%; box-shadow: none; padding: 0 10mm; min-height: auto; position: relative; }
             .header-fixed { display: grid !important; }
-            .footer-fixed { display: flex !important; justify-content: center !important; }
+            .footer-fixed { display: flex !important; justify-content: space-between !important; }
             .layout-table > thead { display: table-header-group !important; }
             .data-table > thead { display: table-row-group !important; }
             tfoot { display: table-footer-group; }
@@ -118,14 +120,43 @@ if (!function_exists('timeToMsPrint')) {
     }
 }
 
+if (!function_exists('getPrintImageUrl')) {
+    function getPrintImageUrl($path) {
+        if (empty($path)) return null;
+        $cleanPath = ltrim(preg_replace('/^(\.\.\/)+/', '', $path), '/');
+        if (strpos($cleanPath, 'set-system/set-swim-system/') === 0) $cleanPath = substr($cleanPath, 28);
+        
+        $sub = ltrim(str_replace(['public/uploads/', 'uploads/'], '', $cleanPath), '/');
+        $candidates = [
+            __DIR__ . '/../../../../public/uploads/logos/' . $sub,
+            __DIR__ . '/../../../../public/uploads/' . $sub,
+            __DIR__ . '/../../../../public/' . ltrim($cleanPath, '/')
+        ];
+        foreach ($candidates as $cand) {
+            if (file_exists($cand) && !is_dir($cand)) {
+                $ext = strtolower(pathinfo($cand, PATHINFO_EXTENSION));
+                if ($ext === 'jpg') $ext = 'jpeg';
+                $data = file_get_contents($cand);
+                return 'data:image/' . $ext . ';base64,' . base64_encode($data);
+            }
+        }
+        
+        $appUrl = rtrim(getenv('APP_URL') ?: '', '/');
+        if (strpos($cleanPath, 'public/') === 0) {
+            $cleanPath = substr($cleanPath, 7);
+        }
+        return $appUrl . '/' . ltrim($cleanPath, '/');
+    }
+}
+
 // Persiapan Data Header
 $eventName  = strtoupper($eventProfile['event_name'] ?? 'EVENT NAME');
 $loc  = $eventProfile['event_location'] ?? '-';
 if (!empty($eventProfile['event_city'])) $loc .= ' - ' . $eventProfile['event_city'];
 $venueName  = strtoupper($loc);
 $eventDate  = $eventProfile['event_date_start'] ?? date('Y-m-d');
-$logoLeft   = !empty($eventProfile['logo_left']) ? getenv('APP_URL') . '/public/' . ltrim($eventProfile['logo_left'], '/') : null;
-$logoRight  = !empty($eventProfile['logo_right']) ? getenv('APP_URL') . '/public/' . ltrim($eventProfile['logo_right'], '/') : null;
+$logoLeft   = getPrintImageUrl($eventProfile['logo_left'] ?? '');
+$logoRight  = getPrintImageUrl($eventProfile['logo_right'] ?? '');
 
 $displayDate = strtoupper(date('d F Y', strtotime($eventDate)));
 if(!empty($eventProfile['event_date_end']) && $eventProfile['event_date_end'] != '0000-00-00' && $eventProfile['event_date_end'] != $eventDate) {
@@ -246,15 +277,21 @@ unset($rows);
         <div class="header-line-2"><?= htmlspecialchars($venueName) ?></div>
         <div class="header-line-3"><?= htmlspecialchars($dateRange) ?></div>
         <div class="header-line-4"></div>
-        <div class="header-line-5">REKAP HASIL</div>
+        <div class="header-line-5">BUKU HASIL LOMBA</div>
     </div>
     <div style="text-align: right;"><?php if($logoRight): ?><img src="<?= $logoRight ?>" class="logo-img"><?php endif; ?></div>
 </div>
 
 <div class="footer-fixed">
-    <?php foreach($sponsors as $spon): ?>
-        <img src="<?= getenv('APP_URL') ?>/public/<?= ltrim($spon, '/') ?>" alt="Sponsor">
-    <?php endforeach; ?>
+    <div class="footer-sponsors">
+        <?php if(!empty($sponsors)): foreach($sponsors as $spon): 
+            $sponSrc = getPrintImageUrl($spon);
+            if ($sponSrc): ?>
+                <img src="<?= $sponSrc ?>" alt="Sponsor">
+            <?php endif; ?>
+        <?php endforeach; endif; ?>
+    </div>
+    <div class="footer-time">Printed: <?= date('d/m/Y H:i') ?></div>
 </div>
 
 <div class="page-wrapper">
@@ -356,13 +393,13 @@ unset($rows);
                             <td class="col-nama"><?= htmlspecialchars($p['nama_atlet'] ?? '') ?></td>
                             <td class="col-ku"><?= htmlspecialchars($kuLabel) ?></td>
                             <td class="col-tim"><?= htmlspecialchars($teamName) ?></td>
-                            <td class="col-waktu-awal"><?= htmlspecialchars($seedTime) ?></td>
-                            <td class="col-hasil">
+                            <td class="col-waktu-awal" style="font-weight: normal !important; color: #4b5563;"><?= htmlspecialchars($seedTime) ?></td>
+                            <td class="col-hasil" style="font-weight: 900 !important; color: #000;">
                                 <?php 
                                 if (($p['is_dq'] ?? 0) == 1) {
                                     $reason = $p['dq_reason'] ?? 'DQ';
                                     $print_text = (in_array($reason, ['DNS', 'DNF'])) ? $reason : 'DQ';
-                                    echo '<span style="color:red; font-weight:bold;">' . htmlspecialchars($print_text) . '</span>';
+                                    echo '<span style="color:red; font-weight:900;">' . htmlspecialchars($print_text) . '</span>';
                                 } elseif ($is_valid) {
                                     echo htmlspecialchars($p['final_time']);
                                 } else {
