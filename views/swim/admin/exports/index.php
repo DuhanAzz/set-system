@@ -204,7 +204,7 @@
                     <!-- Preview Thumbnail & Action Container -->
                     <div id="coverContainer" class="flex items-start gap-4 <?= !empty($selectedEvent['report_cover']) ? '' : 'hidden' ?> mb-3 p-3 bg-slate-900/80 rounded-xl border border-slate-800">
                         <div class="relative w-16 h-22 rounded-lg overflow-hidden border border-slate-600 shadow-md shrink-0 bg-slate-950 flex items-center justify-center">
-                            <img id="coverPreviewImg" src="<?= !empty($selectedEvent['report_cover']) ? getenv('APP_URL') . '/public/' . ltrim($selectedEvent['report_cover'], '/') : '' ?>" class="w-full h-full object-cover" alt="Preview Cover">
+                            <img id="coverPreviewImg" src="<?= !empty($selectedEvent['report_cover']) ? rtrim(getenv('APP_URL') ?: '', '/') . '/' . ltrim(str_replace('public/', '', $selectedEvent['report_cover']), '/') : '' ?>" class="w-full h-full object-cover" alt="Preview Cover">
                         </div>
                         <div class="flex-1 min-w-0 flex flex-col justify-between py-0.5">
                             <div>
@@ -283,7 +283,14 @@ function uploadCoverDirectly() {
         method: 'POST',
         body: formData
     })
-    .then(r => r.json())
+    .then(async r => {
+        const text = await r.text();
+        try {
+            return JSON.parse(text);
+        } catch (e) {
+            throw new Error(text.substring(0, 120) || ('Respon server kosong (HTTP ' + r.status + ')'));
+        }
+    })
     .then(res => {
         btn.disabled = false;
         btn.classList.add('hidden');
@@ -316,7 +323,14 @@ function deleteCover() {
         method: 'POST',
         body: formData
     })
-    .then(r => r.json())
+    .then(async r => {
+        const text = await r.text();
+        try {
+            return JSON.parse(text);
+        } catch (e) {
+            throw new Error(text.substring(0, 120) || ('Respon server kosong (HTTP ' + r.status + ')'));
+        }
+    })
     .then(res => {
         if (res.success) {
             document.getElementById('coverContainer').classList.add('hidden');

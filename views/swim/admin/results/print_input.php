@@ -123,14 +123,19 @@ if (!function_exists('timeToMsPrint')) {
 if (!function_exists('getPrintImageUrl')) {
     function getPrintImageUrl($path) {
         if (empty($path)) return null;
+        if (strpos($path, 'data:image/') === 0) return $path;
         $cleanPath = ltrim(preg_replace('/^(\.\.\/)+/', '', $path), '/');
         if (strpos($cleanPath, 'set-system/set-swim-system/') === 0) $cleanPath = substr($cleanPath, 28);
+        if (strpos($cleanPath, 'public/') === 0) $cleanPath = substr($cleanPath, 7);
         
         $sub = ltrim(str_replace(['public/uploads/', 'uploads/'], '', $cleanPath), '/');
+        $baseDir = dirname(dirname(dirname(dirname(__DIR__)))) . '/public';
         $candidates = [
-            __DIR__ . '/../../../../public/uploads/logos/' . $sub,
-            __DIR__ . '/../../../../public/uploads/' . $sub,
-            __DIR__ . '/../../../../public/' . ltrim($cleanPath, '/')
+            $baseDir . '/uploads/logos/' . $sub,
+            $baseDir . '/uploads/sponsors/' . $sub,
+            $baseDir . '/uploads/covers/' . $sub,
+            $baseDir . '/uploads/' . $sub,
+            $baseDir . '/' . ltrim($cleanPath, '/')
         ];
         foreach ($candidates as $cand) {
             if (file_exists($cand) && !is_dir($cand)) {
@@ -141,10 +146,21 @@ if (!function_exists('getPrintImageUrl')) {
             }
         }
         
-        $appUrl = rtrim(getenv('APP_URL') ?: '', '/');
-        if (strpos($cleanPath, 'public/') === 0) {
-            $cleanPath = substr($cleanPath, 7);
+        // ponytail: Jika di lokal file fisik tidak ada (misal dump DB dari server), auto-fetch & cache dari setsystem.id
+        $remoteUrl = 'https://setsystem.id/' . ltrim($cleanPath, '/');
+        $ctx = stream_context_create(['http' => ['timeout' => 2]]);
+        $remoteData = @file_get_contents($remoteUrl, false, $ctx);
+        if ($remoteData !== false && strlen($remoteData) > 0) {
+            $savePath = $baseDir . '/' . ltrim($cleanPath, '/');
+            $dir = dirname($savePath);
+            if (!is_dir($dir)) @mkdir($dir, 0777, true);
+            @file_put_contents($savePath, $remoteData);
+            $ext = strtolower(pathinfo($savePath, PATHINFO_EXTENSION));
+            if ($ext === 'jpg') $ext = 'jpeg';
+            return 'data:image/' . $ext . ';base64,' . base64_encode($remoteData);
         }
+        
+        $appUrl = rtrim(getenv('APP_URL') ?: '', '/');
         return $appUrl . '/' . ltrim($cleanPath, '/');
     }
 }

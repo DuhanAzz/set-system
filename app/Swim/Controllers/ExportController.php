@@ -5,12 +5,25 @@ namespace App\Swim\Controllers;
 use App\Core\Controller;
 use App\Core\Database;
 use PDO;
+use PDOException;
+use DateTime;
+use DateTimeZone;
+use Exception;
+use Throwable;
 
 class ExportController extends Controller {
     private $db;
 
     public function __construct() {
         $this->db = Database::getInstance()->getConnection();
+        // Auto-ensure report_cover column exists in swim_events
+        try {
+            $this->db->query("SELECT report_cover FROM swim_events LIMIT 1");
+        } catch (Throwable $e) {
+            try {
+                $this->db->exec("ALTER TABLE swim_events ADD COLUMN report_cover VARCHAR(255) NULL DEFAULT NULL");
+            } catch (Throwable $t) {}
+        }
     }
 
     private function checkAccess() {
@@ -214,49 +227,226 @@ class ExportController extends Controller {
         return $tallyData;
     }
 
+    private function getPrintImageUrlInternal($path) {
+        if (empty($path)) return null;
+        if (strpos($path, 'data:image/') === 0) return $path;
+
+        $cleanPath = ltrim(preg_replace('/^(\.\.\/)+/', '', $path), '/');
+        if (strpos($cleanPath, 'set-system/set-swim-system/') === 0) $cleanPath = substr($cleanPath, 28);
+        if (strpos($cleanPath, 'public/') === 0) $cleanPath = substr($cleanPath, 7);
+
+        $sub = ltrim(str_replace(['public/uploads/', 'uploads/'], '', $cleanPath), '/');
+        $baseDir = dirname(dirname(dirname(__DIR__))) . '/public';
+        $candidates = [
+            $baseDir . '/uploads/covers/' . $sub,
+            $baseDir . '/uploads/logos/' . $sub,
+            $baseDir . '/uploads/sponsors/' . $sub,
+            $baseDir . '/uploads/' . $sub,
+            $baseDir . '/' . ltrim($cleanPath, '/'),
+            $baseDir . '/uploads/' . ltrim($cleanPath, '/')
+        ];
+
+        foreach ($candidates as $cand) {
+            if (file_exists($cand) && !is_dir($cand)) {
+                $ext = strtolower(pathinfo($cand, PATHINFO_EXTENSION));
+                if ($ext === 'jpg') $ext = 'jpeg';
+                $data = file_get_contents($cand);
+                return 'data:image/' . $ext . ';base64,' . base64_encode($data);
+            }
+        }
+
+        // ponytail: Jika di lokal file tidak ada (karena dump DB dari server), auto-fetch & cache dari setsystem.id
+        $remoteUrl = 'https://setsystem.id/' . ltrim($cleanPath, '/');
+        $ctx = stream_context_create(['http' => ['timeout' => 2]]);
+        $remoteData = @file_get_contents($remoteUrl, false, $ctx);
+        if ($remoteData !== false && strlen($remoteData) > 0) {
+            $savePath = $baseDir . '/' . ltrim($cleanPath, '/');
+            $dir = dirname($savePath);
+            if (!is_dir($dir)) @mkdir($dir, 0777, true);
+            @file_put_contents($savePath, $remoteData);
+            $ext = strtolower(pathinfo($savePath, PATHINFO_EXTENSION));
+            if ($ext === 'jpg') $ext = 'jpeg';
+            return 'data:image/' . $ext . ';base64,' . base64_encode($remoteData);
+        }
+
+        $appUrl = rtrim(getenv('APP_URL') ?: '', '/');
+        return $appUrl . '/' . ltrim($cleanPath, '/');
+    }
+
+    private function getBestSwimmerData($eventId, $rankMode = 'SPLIT', $isSchool = false) {
+        $stmtEvent = $this->db->prepare("SELECT event_date_start FROM swim_events WHERE id = ?");
+        $stmtEvent->execute([$eventId]);
+        $eventYear = date('Y', strtotime($stmtEvent->fetchColumn() ?: date('Y-m-d')));
+
+        $stmtAge = $this->db->prepare("SELECT id, group_name, min_age, max_age FROM swim_event_age_groups WHERE event_id = ? ORDER BY min_age ASC");
+        $stmtAge->execute([$eventId]);
+        $ageGroups = $stmtAge->fetchAll(PDO::FETCH_ASSOC);
+
+        $teamColumn = $isSchool ? "COALESCE(NULLIF(s.asal_sekolah, ''), 'TANPA SEKOLAH')" : "COALESCE(NULLIF(c.nama_klub, ''), 'TANPA KLUB/TIM')";
+
+        $whereSql = "en.event_id = ? AND es.time_final IS NOT NULL AND es.time_final != 'NT' AND es.is_dq_final = 0 AND en.is_relay = 0";
+        $sql = "
+            SELECT en.event_number, en.age_group as event_age_group, en.rank_mode,
+                   s.id as swimmer_id, s.uid, s.nama_atlet, s.jenis_kelamin, s.tanggal_lahir,
+                   $teamColumn as team_name,
+                   es.time_final, es.is_dq_final
+            FROM swim_event_entries ee
+            JOIN swim_event_seeding es ON ee.id = es.entry_id
+            JOIN swim_swimmers s ON ee.swimmer_id = s.id
+            JOIN swim_event_numbers en ON ee.category_id = en.id
+            LEFT JOIN swim_clubs c ON ee.club_id = c.id
+            WHERE $whereSql";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$eventId]);
+        $entries = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $eventsGrouped = [];
+        foreach ($entries as $r) {
+            $r['ms_sort'] = $this->timeToMsInternal($r['time_final']);
+            $is_gabungan = (stripos($r['event_age_group'], 'GABUNG') !== false || strpos($r['event_age_group'], ',') !== false || strpos($r['event_age_group'], '/') !== false);
+            $isSplit = ($rankMode === 'SPLIT' || ($r['rank_mode'] === 'split'));
+
+            $groupKey = ($isSplit && $is_gabungan) ? $this->getAgeGroupLabelInternal($r['tanggal_lahir'], $eventYear, $ageGroups) : $r['event_age_group'];
+            $eventsGrouped[$r['event_number']][$groupKey][] = $r;
+        }
+
+        $rawTally = [];
+        foreach ($eventsGrouped as $eventNum => $groups) {
+            foreach ($groups as $groupName => &$swimmers) {
+                usort($swimmers, function($a, $b) {
+                    if ($a['ms_sort'] == $b['ms_sort']) return 0;
+                    return ($a['ms_sort'] < $b['ms_sort']) ? -1 : 1;
+                });
+
+                $rank = 1; $real_rank = 1; $prev_time = null;
+                foreach ($swimmers as &$s) {
+                    if ($s['ms_sort'] !== $prev_time) { $real_rank = $rank; }
+                    if ($real_rank <= 3) {
+                        $key = $s['swimmer_id'];
+                        if (!isset($rawTally[$key])) {
+                            $rawTally[$key] = [
+                                'entity_name' => $s['nama_atlet'],
+                                'uid' => $s['uid'],
+                                'jenis_kelamin' => strtoupper($s['jenis_kelamin']),
+                                'tanggal_lahir' => $s['tanggal_lahir'],
+                                'team_name' => $s['team_name'],
+                                'gold' => 0,
+                                'silver' => 0,
+                                'bronze' => 0,
+                                'total' => 0
+                            ];
+                        }
+                        if ($real_rank == 1) $rawTally[$key]['gold']++;
+                        if ($real_rank == 2) $rawTally[$key]['silver']++;
+                        if ($real_rank == 3) $rawTally[$key]['bronze']++;
+                        $rawTally[$key]['total']++;
+                    }
+                    $prev_time = $s['ms_sort'];
+                    $rank++;
+                }
+            }
+        }
+        unset($swimmers);
+
+        $tallyData = array_values($rawTally);
+        usort($tallyData, function($a, $b) {
+            if ($a['gold'] != $b['gold']) return $b['gold'] - $a['gold'];
+            if ($a['silver'] != $b['silver']) return $b['silver'] - $a['silver'];
+            if ($a['bronze'] != $b['bronze']) return $b['bronze'] - $a['bronze'];
+            return strcmp($a['entity_name'], $b['entity_name']);
+        });
+
+        $groupedAthleteData = [];
+        foreach ($tallyData as $row) {
+            $age = $eventYear - (int)date('Y', strtotime($row['tanggal_lahir']));
+            $ku_name = 'UMUM';
+            foreach ($ageGroups as $ku) {
+                if ($age >= $ku['min_age'] && $age <= $ku['max_age']) {
+                    $ku_name = strtoupper($ku['group_name']);
+                    break;
+                }
+            }
+            $gen = (in_array($row['jenis_kelamin'], ['L', 'MALE', 'PUTRA'])) ? 'L' : 'P';
+            $groupedAthleteData[$ku_name][$gen][] = $row;
+        }
+        ksort($groupedAthleteData);
+
+        return $groupedAthleteData;
+    }
+
     public function upload_cover() {
-        $this->checkAccess();
-        header('Content-Type: application/json');
-        
+        if (ob_get_level() > 0) ob_clean();
+        header('Content-Type: application/json; charset=utf-8');
+
+        if (!isset($_SESSION['swim_role']) || ($_SESSION['swim_role'] !== 'admin' && $_SESSION['swim_role'] !== 'master')) {
+            http_response_code(401);
+            echo json_encode(['success' => false, 'message' => 'Sesi login telah berakhir. Silakan login kembali.']);
+            exit;
+        }
+
         $eventId = isset($_POST['event_id']) ? (int)$_POST['event_id'] : 0;
         if ($eventId <= 0) {
             echo json_encode(['success' => false, 'message' => 'Event ID tidak valid']);
             exit;
         }
 
-        if (empty($_FILES['cover_image']['tmp_name'])) {
-            echo json_encode(['success' => false, 'message' => 'Tidak ada file cover yang diunggah']);
+        if (!isset($_FILES['cover_image']) || $_FILES['cover_image']['error'] !== UPLOAD_ERR_OK) {
+            $errCode = $_FILES['cover_image']['error'] ?? UPLOAD_ERR_NO_FILE;
+            $msg = 'Tidak ada file cover yang diunggah.';
+            if ($errCode === UPLOAD_ERR_INI_SIZE || $errCode === UPLOAD_ERR_FORM_SIZE) {
+                $msg = 'Ukuran file terlalu besar untuk diunggah (melebihi batas server ' . ini_get('upload_max_filesize') . ').';
+            } elseif ($errCode === UPLOAD_ERR_PARTIAL) {
+                $msg = 'File hanya terunggah sebagian. Silakan coba lagi.';
+            }
+            echo json_encode(['success' => false, 'message' => $msg]);
             exit;
         }
 
-        $uploadDir = __DIR__ . '/../../../public/uploads/covers/';
-        if (!is_dir($uploadDir)) {
-            @mkdir($uploadDir, 0777, true);
-        }
+        try {
+            $uploadDir = dirname(dirname(dirname(__DIR__))) . '/public/uploads/covers/';
+            if (!is_dir($uploadDir)) {
+                @mkdir($uploadDir, 0777, true);
+            }
 
-        $ext = strtolower(pathinfo($_FILES['cover_image']['name'], PATHINFO_EXTENSION));
-        if (!in_array($ext, ['jpg', 'jpeg', 'png', 'webp'])) {
-            echo json_encode(['success' => false, 'message' => 'Format file harus JPG, PNG, atau WEBP']);
-            exit;
-        }
+            $ext = strtolower(pathinfo($_FILES['cover_image']['name'], PATHINFO_EXTENSION));
+            if (!in_array($ext, ['jpg', 'jpeg', 'png', 'webp'])) {
+                echo json_encode(['success' => false, 'message' => 'Format file harus JPG, PNG, atau WEBP']);
+                exit;
+            }
 
-        $newFilename = 'report_cover_' . $eventId . '_' . time() . '.' . $ext;
-        $destPath = $uploadDir . $newFilename;
-        if (move_uploaded_file($_FILES['cover_image']['tmp_name'], $destPath)) {
-            $dbPath = 'uploads/covers/' . $newFilename;
-            $stmtUpdate = $this->db->prepare("UPDATE swim_events SET report_cover = ? WHERE id = ?");
-            $stmtUpdate->execute([$dbPath, $eventId]);
-            $url = getenv('APP_URL') . '/public/' . $dbPath;
-            echo json_encode(['success' => true, 'cover_url' => $url, 'message' => 'Cover berhasil disimpan!']);
-        } else {
-            echo json_encode(['success' => false, 'message' => 'Gagal menyimpan file cover di server']);
+            $newFilename = 'report_cover_' . $eventId . '_' . time() . '.' . $ext;
+            $destPath = $uploadDir . $newFilename;
+            if (move_uploaded_file($_FILES['cover_image']['tmp_name'], $destPath)) {
+                $dbPath = 'uploads/covers/' . $newFilename;
+                try {
+                    $stmtUpdate = $this->db->prepare("UPDATE swim_events SET report_cover = ? WHERE id = ?");
+                    $stmtUpdate->execute([$dbPath, $eventId]);
+                } catch (Throwable $dbErr) {
+                    $this->db->exec("ALTER TABLE swim_events ADD COLUMN report_cover VARCHAR(255) NULL DEFAULT NULL");
+                    $stmtUpdate = $this->db->prepare("UPDATE swim_events SET report_cover = ? WHERE id = ?");
+                    $stmtUpdate->execute([$dbPath, $eventId]);
+                }
+                $url = rtrim(getenv('APP_URL') ?: '', '/') . '/' . ltrim($dbPath, '/');
+                echo json_encode(['success' => true, 'cover_url' => $url, 'message' => 'Cover berhasil disimpan!']);
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Gagal memindahkan file cover ke folder uploads/covers/']);
+            }
+        } catch (Throwable $e) {
+            echo json_encode(['success' => false, 'message' => 'Terjadi kesalahan: ' . $e->getMessage()]);
         }
         exit;
     }
 
     public function delete_cover() {
-        $this->checkAccess();
-        header('Content-Type: application/json');
+        if (ob_get_level() > 0) ob_clean();
+        header('Content-Type: application/json; charset=utf-8');
+
+        if (!isset($_SESSION['swim_role']) || ($_SESSION['swim_role'] !== 'admin' && $_SESSION['swim_role'] !== 'master')) {
+            http_response_code(401);
+            echo json_encode(['success' => false, 'message' => 'Sesi login telah berakhir.']);
+            exit;
+        }
 
         $eventId = isset($_POST['event_id']) ? (int)$_POST['event_id'] : 0;
         if ($eventId <= 0) {
@@ -264,21 +454,25 @@ class ExportController extends Controller {
             exit;
         }
 
-        $stmt = $this->db->prepare("SELECT report_cover FROM swim_events WHERE id = ?");
-        $stmt->execute([$eventId]);
-        $currentCover = $stmt->fetchColumn();
+        try {
+            $stmt = $this->db->prepare("SELECT report_cover FROM swim_events WHERE id = ?");
+            $stmt->execute([$eventId]);
+            $currentCover = $stmt->fetchColumn();
 
-        if (!empty($currentCover)) {
-            $filePath = __DIR__ . '/../../../public/' . ltrim($currentCover, '/');
-            if (file_exists($filePath)) {
-                @unlink($filePath);
+            if (!empty($currentCover)) {
+                $filePath = dirname(dirname(dirname(__DIR__))) . '/public/' . ltrim(str_replace('public/', '', $currentCover), '/');
+                if (file_exists($filePath)) {
+                    @unlink($filePath);
+                }
             }
+
+            $stmtUpdate = $this->db->prepare("UPDATE swim_events SET report_cover = NULL WHERE id = ?");
+            $stmtUpdate->execute([$eventId]);
+
+            echo json_encode(['success' => true, 'message' => 'Cover berhasil dihapus']);
+        } catch (Throwable $e) {
+            echo json_encode(['success' => false, 'message' => 'Gagal menghapus cover: ' . $e->getMessage()]);
         }
-
-        $stmtUpdate = $this->db->prepare("UPDATE swim_events SET report_cover = NULL WHERE id = ?");
-        $stmtUpdate->execute([$eventId]);
-
-        echo json_encode(['success' => true, 'message' => 'Cover berhasil dihapus']);
         exit;
     }
 
@@ -641,13 +835,17 @@ exit;
         $isSchool = (strpos($partType, 'school') !== false || strpos($partType, 'sekolah') !== false);
         $eventYear = date('Y', strtotime($event['event_date_start']));
 
-        $logoLeft = !empty($event['logo_left']) ? getenv('APP_URL') . '/public/' . $event['logo_left'] : null;
-        $logoRight = !empty($event['logo_right']) ? getenv('APP_URL') . '/public/' . $event['logo_right'] : null;
+        $logoLeft = $this->getPrintImageUrlInternal($event['logo_left'] ?? null);
+        $logoRight = $this->getPrintImageUrlInternal($event['logo_right'] ?? null);
 
         $sponsors = [];
         $stmtSpon = $this->db->prepare("SELECT image_path FROM event_sponsors WHERE event_id = ?");
         $stmtSpon->execute([$event_id]); 
-        $sponsors = $stmtSpon->fetchAll(PDO::FETCH_COLUMN);
+        $rawSponsors = $stmtSpon->fetchAll(PDO::FETCH_COLUMN);
+        foreach ($rawSponsors as $spon) {
+            $src = $this->getPrintImageUrlInternal($spon);
+            if ($src) $sponsors[] = $src;
+        }
 
         $eventName = strtoupper($event['event_name'] ?? 'EVENT NAME');
         $eventLoc = strtoupper($event['event_location'] ?? 'LOKASI');
@@ -679,7 +877,7 @@ exit;
                     $stmtUpdate = $this->db->prepare("UPDATE swim_events SET report_cover = ? WHERE id = ?");
                     $stmtUpdate->execute([$dbPath, $event_id]);
                     $event['report_cover'] = $dbPath;
-                    $coverImage = getenv('APP_URL') . '/public/' . $dbPath;
+                    $coverImage = $this->getPrintImageUrlInternal($dbPath);
                 } else {
                     $imgData = file_get_contents($_FILES['cover_image']['tmp_name']);
                     $coverImage = 'data:' . $_FILES['cover_image']['type'] . ';base64,' . base64_encode($imgData);
@@ -689,13 +887,15 @@ exit;
 
         // Jika tidak ada upload baru, gunakan cover yang tersimpan di database
         if (empty($coverImage) && !empty($event['report_cover'])) {
-            $coverImage = getenv('APP_URL') . '/public/' . ltrim($event['report_cover'], '/');
+            $coverImage = $this->getPrintImageUrlInternal($event['report_cover']);
         }
 
-        // Hitung Data Medal Tally jika diaktifkan
+        // Hitung Data Medal Tally & Rekapitulasi Perenang Terbaik jika diaktifkan
         $tallyData = [];
+        $bestSwimmerData = [];
         if ($cfg_medal_tally) {
             $tallyData = $this->getMedalTallyData($event_id, $rank_mode, $isSchool);
+            $bestSwimmerData = $this->getBestSwimmerData($event_id, $rank_mode, $isSchool);
         }
 
         // 2. Dapatkan batas KU untuk pemisahan
@@ -818,16 +1018,20 @@ exit;
                 // Fetch records if enabled
                 $records = [];
                 if ($cfg_show_records) {
-                    $stmtRec = $this->db->prepare("SELECT record_type, holder_name, record_time, location, record_year FROM swim_master_records WHERE distance = ? AND stroke = ? AND jenis_kelamin = ? AND record_type = 'rekornas' ORDER BY id ASC");
-                    $stmtRec->execute([$r['distance'], $r['stroke'], $r['jenis_kelamin']]);
+                    $stmtRec = $this->db->prepare("SELECT record_type, holder_name, record_time, location, record_year FROM swim_master_records WHERE distance = ? AND (stroke = ? OR REPLACE(REPLACE(REPLACE(LOWER(stroke), 'gaya', ''), ' ', ''), '-', '') = REPLACE(REPLACE(REPLACE(LOWER(?), 'gaya', ''), ' ', ''), '-', '')) AND jenis_kelamin = ? AND record_type = 'rekornas' ORDER BY id ASC");
+                    $stmtRec->execute([$r['distance'], $r['stroke'], $r['stroke'], $r['jenis_kelamin']]);
                     $records = array_merge($records, $stmtRec->fetchAll(PDO::FETCH_ASSOC));
 
                     if (!empty($event['record_package_id'])) {
                         $stmtPkg = $this->db->prepare("
-                            SELECT 'rekor_event' as record_type, ehr.holder_name, ehr.record_time, e.event_city as location, YEAR(e.event_date_start) as record_year 
+                            SELECT 'rekor_event' as record_type, ehr.holder_name, ehr.record_time, COALESCE(NULLIF(ehr.location, ''), e.event_city, '-') as location, COALESCE(NULLIF(ehr.record_year, 0), YEAR(e.event_date_start), '-') as record_year 
                             FROM event_historical_records ehr 
                             LEFT JOIN swim_events e ON ehr.source_event_id = e.id
-                            WHERE ehr.package_id = ? AND ehr.distance = ? AND ehr.stroke = ? AND ehr.jenis_kelamin = ? AND ehr.age_group = ?
+                            WHERE ehr.package_id = ? 
+                              AND ehr.distance = ? 
+                              AND REPLACE(REPLACE(REPLACE(LOWER(ehr.stroke), 'gaya', ''), ' ', ''), '-', '') = REPLACE(REPLACE(REPLACE(LOWER(?), 'gaya', ''), ' ', ''), '-', '') 
+                              AND LOWER(TRIM(ehr.jenis_kelamin)) = LOWER(TRIM(?)) 
+                              AND LOWER(TRIM(ehr.age_group)) = LOWER(TRIM(?))
                         ");
                         $stmtPkg->execute([$event['record_package_id'], $r['distance'], $r['stroke'], $r['jenis_kelamin'], $r['event_age_group']]);
                         $records = array_merge($records, $stmtPkg->fetchAll(PDO::FETCH_ASSOC));
@@ -986,6 +1190,35 @@ exit;
                     echo '</tr>';
                 }
                 echo '<tr><th colspan="8"></th></tr>';
+            }
+
+            // Render Best Swimmer in Excel if enabled
+            if ($cfg_medal_tally && !empty($bestSwimmerData)) {
+                echo '<tr style="background-color:#1e293b; color:#ffffff; font-weight:bold; font-size:14px;"><th colspan="8" style="text-align:center; padding:8px;">REKAPITULASI PERENANG TERBAIK</th></tr>';
+                foreach ($bestSwimmerData as $ku_name => $genders) {
+                    foreach (['L', 'P'] as $gen) {
+                        if (!empty($genders[$gen])) {
+                            $genderLabel = ($gen == 'L') ? 'PUTRA' : 'PUTRI';
+                            echo '<tr style="background-color:#f1f5f9; font-weight:bold;"><td colspan="8">KELOMPOK UMUR: ' . $ku_name . ' - ' . $genderLabel . '</td></tr>';
+                            echo '<tr style="background-color:#e2e8f0; font-weight:bold;">';
+                            echo '<th>Rank</th><th>Nama Perenang</th><th colspan="2">' . ($isSchool ? 'Sekolah' : 'Tim / Klub') . '</th><th>Emas</th><th>Perak</th><th>Perunggu</th><th>Total</th>';
+                            echo '</tr>';
+                            $rB = 1;
+                            foreach ($genders[$gen] as $row) {
+                                echo '<tr>';
+                                echo '<td style="text-align:center;">' . $rB++ . '</td>';
+                                echo '<td style="font-weight:bold;">' . htmlspecialchars(strtoupper($row['entity_name'])) . '</td>';
+                                echo '<td colspan="2">' . htmlspecialchars(strtoupper($row['team_name'])) . '</td>';
+                                echo '<td style="text-align:center; background-color:#fef3c7;">' . $row['gold'] . '</td>';
+                                echo '<td style="text-align:center; background-color:#f3f4f6;">' . $row['silver'] . '</td>';
+                                echo '<td style="text-align:center; background-color:#ffedd5;">' . $row['bronze'] . '</td>';
+                                echo '<td style="text-align:center; background-color:#e0f2fe; font-weight:bold;">' . $row['total'] . '</td>';
+                                echo '</tr>';
+                            }
+                        }
+                    }
+                }
+                echo '<tr><th colspan="8"></th></tr>';
                 echo '<tr><th colspan="8"></th></tr>';
             }
             
@@ -1105,11 +1338,13 @@ exit;
                     .header-line-3 { font-size: 9pt; font-weight: bold; text-transform: uppercase; }
                     .header-line-4 { height: 3px; } 
                     .header-line-5 { font-size: 18pt; font-weight: 900; text-transform: uppercase; letter-spacing: 2px; color: #000; margin-top: 2px; margin-bottom: 0px; line-height: 1; }
-                    .logo-img { max-height: 80px; max-width: 100%; object-fit: contain; margin-bottom: 2px; }
+                    .logo-img { max-height: 95px; max-width: 100%; object-fit: contain; margin-bottom: 2px; }
                     
                     /* FOOTER SPONSOR */
                     .footer-fixed { position: fixed; bottom: 0; left: 0; right: 0; height: 20mm; background: white; border-top: 2px double #000; display: flex; justify-content: center; align-items: center; padding: 0 10mm; z-index: 999; display: none; }
-                    .footer-fixed img { height: 40px; margin: 0 10px; object-fit: contain; }
+                    .footer-sponsors { display: flex; gap: 15px; align-items: center; justify-content: center; z-index: 2; position: relative; }
+                    .footer-sponsors img { height: 42px; max-height: 42px; object-fit: contain; margin: 0 6px; }
+                    .footer-time { position: absolute; right: 10mm; bottom: 4px; font-family: 'Courier New', Courier, monospace; font-size: 7.5pt; color: #888; white-space: nowrap; z-index: 1; pointer-events: none; }
 
                     /* SPACER TABEL CETAK */
                     .layout-table { width: 100%; border-collapse: collapse; border: none; }
@@ -1117,35 +1352,39 @@ exit;
                     .layout-footer-space { height: 25mm; }
 
                     /* HEADER (KOP Acara) */
-                    .event-header { position: relative; display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #000; padding: 2px 0; margin-top: 5mm; margin-bottom: 0px; background: #fff; min-height: 35px; }
+                    .event-header { position: relative; display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #000; padding: 2px 0; margin-top: 5mm; margin-bottom: 4px; background: #fff; min-height: 35px; }
                     .eh-left-group { display: flex; flex-direction: column; justify-content: center; width: 180px; line-height: 1.1; z-index: 2; position: relative; background: white; }
                     .eh-number { font-size: 14pt; font-weight: 900; margin-bottom: 2px; color: #000; }
                     .eh-date { font-size: 8pt; font-weight: bold; font-style: normal; color: #000; }
                     .eh-center { position: absolute; left: 50%; bottom: 3px; transform: translateX(-50%); text-align: center; width: 60%; z-index: 1; }
                     .eh-title  { font-size: 11pt; font-weight: 800; text-transform: uppercase; color: #000; }
                     .eh-right  { width: 80px; text-align: center; z-index: 2; position: relative; background: white; color: #000; display: flex; flex-direction: column; align-items: center; justify-content: flex-end;}
+
+                    /* REKOR CONTAINER */
+                    .event-records-container { border-bottom: 1px solid #000; padding: 2px 0 4px 0; margin-bottom: 6px; font-size: 8pt; font-family: 'Arial Narrow', sans-serif; font-weight: bold; line-height: 1.3; text-align: left; }
+                    .records-table { width: 100%; border-collapse: collapse; font-size: 8pt; font-family: 'Arial Narrow', sans-serif; font-weight: bold; text-transform: uppercase; }
+                    .records-table th { text-align: left; padding: 2px 0; color: #000; border-bottom: 1px solid #000; font-size: 8pt; }
+                    .records-table td { padding: 2px 0; color: #000; }
                     
-                    /* TABEL KLASEMEN */
+                    /* DATA TABLE DINAMIS */
                     .data-table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: 10px; font-size: 8pt; font-family: 'Arial Narrow', sans-serif; }
-                    .data-table th { background-color: #e5e7eb; color: #000; font-weight: bold; font-size: 8pt; text-transform: uppercase; padding: 2px 2px; border-top: 1px solid #000; border-bottom: 2px solid #000; text-align: center; }
-                    .data-table td { padding: 4px 4px; border-bottom: 1px solid #ccc; vertical-align: middle; font-weight: bold !important; color: #000; } 
+                    .data-table th { background-color: #e5e7eb; color: #000; font-weight: bold; font-size: 8pt; text-transform: uppercase; padding: 4px 2px; border-top: 1px solid #000; border-bottom: 2px solid #000; text-align: center; }
+                    .data-table td { padding: 4px 4px; border-bottom: 1px solid #ccc; vertical-align: middle; color: #000; } 
                     
-                    .event-records-container { border-bottom: 1px solid #000; padding: 4px 0; margin-bottom: 10px; font-size: 8pt; font-family: 'Arial Narrow', sans-serif; font-weight: bold; line-height: 1.3; margin-top: 2px; }
-                    .rec-row { display: flex; justify-content: flex-start; text-transform: uppercase; }
-                    .rec-label { width: 140px; font-weight: 900; color: #000; }
-                    .rec-details { flex: 1; color: #000; }
+                    .col-rank { width: 5%; text-align: center; background: #f8f9fa; font-weight: bold; }
+                    .col-uid { width: 11%; text-align: center; font-family: 'Courier New', Courier, monospace; font-weight: bold; }
+                    .col-nama { text-align: left; padding-left: 5px; font-weight: bold; white-space: normal; line-height: 1.1; }
+                    .col-lahir { width: 6%; text-align: center; font-family: 'Courier New', Courier, monospace; font-weight: bold; }
+                    .col-ku { width: 7%; text-align: center; font-weight: bold; }
+                    .col-tim { width: 20%; text-align: left; padding-left: 5px; white-space: normal; line-height: 1.1; font-weight: bold; }
+                    .col-waktu-awal { width: 10%; text-align: right; padding-right: 5px; font-family: 'Courier New', Courier, monospace; font-size: 8pt; font-weight: normal !important; color: #4b5563; }
+                    .col-hasil { width: 10%; text-align: right; padding-right: 5px; font-family: 'Courier New', Courier, monospace; font-weight: 900 !important; font-size: 8.5pt; color: #000; }
+                    .col-ket { width: 7%; text-align: center; font-weight: bold; }
                     
+                    .data-table tr:nth-child(even) { background-color: #f9fafb; }
+                    .data-table tr { break-inside: avoid; }
                     .text-center { text-align: center; }
                     .text-red { color: #dc2626 !important; font-weight: bold; }
-                    .col-rank { width: 5%; text-align: center; background: #f8f9fa; border-right: 1px solid #eee; font-weight: bold; white-space: nowrap; }
-                    .col-uid { width: 10%; text-align: center; }
-                    .col-nama { text-align: left; padding-left: 5px; white-space: normal; line-height: 1.1; }
-                    .col-lahir { width: 8%; text-align: center; }
-                    .col-ku { width: 8%; text-align: center; white-space: nowrap; }
-                    .col-tim { width: 20%; text-align: left; padding-left: 5px; white-space: normal; line-height: 1.1; }
-                    .col-waktu { width: 10%; text-align: right; padding-right: 5px; white-space: nowrap; font-family: 'Courier New', monospace; }
-                    .col-hasil { width: 10%; text-align: center; color: #000; letter-spacing: 0px; white-space: nowrap; }
-                    .col-ket { width: 12%; }
                     
                     @media print {
                         @page { margin: 0; size: A4; }
@@ -1202,19 +1441,25 @@ exit;
                         <div class="header-line-2"><?= htmlspecialchars($eventLoc) ?></div>
                         <div class="header-line-3"><?= htmlspecialchars($eventDateStr) ?></div>
                         <div class="header-line-4"></div>
-                        <div class="header-line-5">LAPORAN RESMI HASIL</div>
+                        <div class="header-line-5">BUKU HASIL LOMBA</div>
                     </div>
                     <div style="text-align: right;"><?php if($logoRight): ?><img src="<?= $logoRight ?>" class="logo-img"><?php endif; ?></div>
                 </div>
 
                 <div class="footer-fixed">
-                    <?php foreach($sponsors as $spon): ?>
-                        <img src="<?= getenv('APP_URL') ?>/public/<?= $spon ?>" alt="Sponsor">
-                    <?php endforeach; ?>
+                    <div class="footer-sponsors">
+                        <?php foreach($sponsors as $sponSrc): ?>
+                            <img src="<?= $sponSrc ?>" alt="Sponsor">
+                        <?php endforeach; ?>
+                    </div>
+                    <?php 
+                    $dtWib = new DateTime('now', new DateTimeZone('Asia/Jakarta'));
+                    ?>
+                    <div class="footer-time"><?= $dtWib->format('d/m/Y H:i') ?> WIB</div>
                 </div>
 
-                <!-- HALAMAN 2: KLASEMEN MEDALI / MEDAL TALLY (JIKA DIAKTIFKAN) -->
-                <?php if ($cfg_medal_tally && !empty($tallyData)): ?>
+                <!-- HALAMAN 2: KLASEMEN MEDALI & PERENANG TERBAIK (JIKA DIAKTIFKAN) -->
+                <?php if ($cfg_medal_tally && (!empty($tallyData) || !empty($bestSwimmerData))): ?>
                     <div class="page-wrapper tally-section">
                         <table class="layout-table">
                             <thead><tr><td><div class="layout-header-space"></div></td></tr></thead>
@@ -1222,41 +1467,101 @@ exit;
                             <tbody>
                                 <tr>
                                     <td>
-                                        <div class="event-header" style="margin-bottom: 12px;">
-                                            <div class="eh-left-group">
-                                                <div class="eh-number">REKAPITULASI MEDALI</div>
-                                                <div class="eh-date"><?= htmlspecialchars($eventDateStr) ?></div>
+                                        <!-- BAGIAN 1: KLASEMEN JUARA UMUM -->
+                                        <?php if (!empty($tallyData)): ?>
+                                            <div class="event-header" style="margin-bottom: 8px;">
+                                                <div class="eh-left-group">
+                                                    <div class="eh-number">REKAPITULASI MEDALI</div>
+                                                    <div class="eh-date"><?= htmlspecialchars($eventDateStr) ?></div>
+                                                </div>
+                                                <div class="eh-center">
+                                                    <div class="eh-title">KLASEMEN JUARA UMUM</div>
+                                                </div>
+                                                <div class="eh-right"></div>
                                             </div>
-                                            <div class="eh-center">
-                                                <div class="eh-title">KLASEMEN JUARA UMUM</div>
-                                            </div>
-                                            <div class="eh-right"></div>
-                                        </div>
 
-                                        <table class="data-table">
-                                            <thead>
-                                                <tr>
-                                                    <th class="col-rank">RANK</th>
-                                                    <th class="col-nama" style="text-align:left; padding-left:8px;">TIM / SEKOLAH / KLUB</th>
-                                                    <th class="col-med bg-gold">🥇 EMAS</th>
-                                                    <th class="col-med bg-silver">🥈 PERAK</th>
-                                                    <th class="col-med bg-bronze">🥉 PERUNGGU</th>
-                                                    <th class="col-med bg-total">TOTAL</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <?php $rankTally = 1; foreach ($tallyData as $t): ?>
+                                            <table class="data-table">
+                                                <thead>
                                                     <tr>
-                                                        <td class="col-rank text-center font-bold"><?= $rankTally++ ?></td>
-                                                        <td class="col-nama" style="font-weight:900 !important;"><?= htmlspecialchars(strtoupper($t['entity_name'])) ?></td>
-                                                        <td class="col-med text-center bg-gold"><?= $t['gold'] ?></td>
-                                                        <td class="col-med text-center bg-silver"><?= $t['silver'] ?></td>
-                                                        <td class="col-med text-center bg-bronze"><?= $t['bronze'] ?></td>
-                                                        <td class="col-med text-center bg-total font-black"><?= $t['total'] ?></td>
+                                                        <th class="col-rank">RANK</th>
+                                                        <th class="col-nama" style="text-align:left; padding-left:8px;">TIM / SEKOLAH / KLUB</th>
+                                                        <th class="col-med bg-gold">🥇 EMAS</th>
+                                                        <th class="col-med bg-silver">🥈 PERAK</th>
+                                                        <th class="col-med bg-bronze">🥉 PERUNGGU</th>
+                                                        <th class="col-med bg-total">TOTAL</th>
                                                     </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <?php $rankTally = 1; foreach ($tallyData as $t): ?>
+                                                        <tr>
+                                                            <td class="col-rank text-center font-bold"><?= $rankTally++ ?></td>
+                                                            <td class="col-nama" style="font-weight:900 !important;"><?= htmlspecialchars(strtoupper($t['entity_name'])) ?></td>
+                                                            <td class="col-med text-center bg-gold"><?= $t['gold'] ?></td>
+                                                            <td class="col-med text-center bg-silver"><?= $t['silver'] ?></td>
+                                                            <td class="col-med text-center bg-bronze"><?= $t['bronze'] ?></td>
+                                                            <td class="col-med text-center bg-total font-black"><?= $t['total'] ?></td>
+                                                        </tr>
+                                                    <?php endforeach; ?>
+                                                </tbody>
+                                            </table>
+                                        <?php endif; ?>
+
+                                        <!-- BAGIAN 2: REKAPITULASI PERENANG TERBAIK -->
+                                        <?php if (!empty($bestSwimmerData)): ?>
+                                            <div style="margin-top: 25px; margin-bottom: 10px;">
+                                                <div class="event-header" style="margin-bottom: 8px;">
+                                                    <div class="eh-left-group">
+                                                        <div class="eh-number">REKAPITULASI MEDALI</div>
+                                                        <div class="eh-date"><?= htmlspecialchars($eventDateStr) ?></div>
+                                                    </div>
+                                                    <div class="eh-center">
+                                                        <div class="eh-title">REKAPITULASI PERENANG TERBAIK</div>
+                                                    </div>
+                                                    <div class="eh-right"></div>
+                                                </div>
+                                            </div>
+
+                                            <?php foreach($bestSwimmerData as $ku_name => $genders): ?>
+                                                <?php foreach(['L', 'P'] as $gender): ?>
+                                                    <?php if(!empty($genders[$gender])): ?>
+                                                        <div style="margin-bottom: 15px; page-break-inside: avoid;">
+                                                            <div style="background-color: #f1f5f9; border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 4px 8px; font-weight: 900; font-size: 8.5pt; display: flex; justify-content: space-between; align-items: center;">
+                                                                <span>KELOMPOK UMUR: <?= htmlspecialchars($ku_name) ?></span>
+                                                                <span style="color: #1e3a8a;"><?= $gender == 'L' ? 'PUTRA' : 'PUTRI' ?></span>
+                                                            </div>
+
+                                                            <table class="data-table" style="margin-top: 0;">
+                                                                <thead>
+                                                                    <tr>
+                                                                        <th class="col-rank">RANK</th>
+                                                                        <th class="col-nama">NAMA PERENANG</th>
+                                                                        <th class="col-tim"><?= $isSchool ? 'SEKOLAH' : 'TIM / KLUB' ?></th>
+                                                                        <th class="col-med bg-gold">🥇 EMAS</th>
+                                                                        <th class="col-med bg-silver">🥈 PERAK</th>
+                                                                        <th class="col-med bg-bronze">🥉 PERUNGGU</th>
+                                                                        <th class="col-med bg-total">TOTAL</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    <?php $rAt = 1; foreach ($genders[$gender] as $row): ?>
+                                                                        <tr>
+                                                                            <td class="col-rank text-center font-bold"><?= $rAt++ ?></td>
+                                                                            <td class="col-nama font-bold"><?= htmlspecialchars(strtoupper($row['entity_name'])) ?></td>
+                                                                            <td class="col-tim"><?= htmlspecialchars(strtoupper($row['team_name'])) ?></td>
+                                                                            <td class="col-med text-center bg-gold"><?= $row['gold'] ?></td>
+                                                                            <td class="col-med text-center bg-silver"><?= $row['silver'] ?></td>
+                                                                            <td class="col-med text-center bg-bronze"><?= $row['bronze'] ?></td>
+                                                                            <td class="col-med text-center bg-total font-black"><?= $row['total'] ?></td>
+                                                                        </tr>
+                                                                    <?php endforeach; ?>
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                    <?php endif; ?>
                                                 <?php endforeach; ?>
-                                            </tbody>
-                                        </table>
+                                            <?php endforeach; ?>
+                                        <?php endif; ?>
+
                                     </td>
                                 </tr>
                             </tbody>
@@ -1293,19 +1598,33 @@ exit;
 
                         <?php if ($cfg_show_records && !empty($groupData['meta']['records'])): ?>
                             <div class="event-records-container">
-                                <?php foreach($groupData['meta']['records'] as $rec): 
-                                    $lbl = strtoupper(str_replace('_', ' ', $rec['record_type']));
-                                    if($lbl === 'REKORNAS') $lbl = 'REKOR NAS';
-                                ?>
-                                    <div class="rec-row">
-                                        <div class="rec-label"><?= $lbl ?></div>
-                                        <div class="rec-details">
-                                            <?= strtoupper($rec['holder_name']) ?> 
-                                            <?= !empty($rec['location']) ? '('.$rec['location'].' '.($rec['record_year']?:'').')' : '' ?> 
-                                            - <?= $rec['record_time'] ?>
-                                        </div>
-                                    </div>
-                                <?php endforeach; ?>
+                                <table class="records-table">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 140px;">REKOR</th>
+                                            <th>NAMA ATLET</th>
+                                            <th style="width: 180px;">LOKASI</th>
+                                            <th style="width: 60px; text-align: center;">TAHUN</th>
+                                            <th style="width: 80px; text-align: right;">WAKTU</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach($groupData['meta']['records'] as $rec): 
+                                            $tipeLabel = strtoupper(str_replace('_', ' ', $rec['record_type']));
+                                            if($tipeLabel === 'REKORNAS') $tipeLabel = 'REKOR NAS';
+                                            $lokasiDisplay = !empty($rec['location']) ? strtoupper($rec['location']) : '-';
+                                            $tahunDisplay = !empty($rec['record_year']) ? $rec['record_year'] : '-';
+                                        ?>
+                                        <tr>
+                                            <td><?= $tipeLabel ?></td>
+                                            <td><?= strtoupper($rec['holder_name']) ?></td>
+                                            <td><?= $lokasiDisplay ?></td>
+                                            <td style="text-align: center;"><?= $tahunDisplay ?></td>
+                                            <td style="text-align: right;"><?= $rec['record_time'] ?></td>
+                                        </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
                             </div>
                         <?php endif; ?>
 
@@ -1318,7 +1637,7 @@ exit;
                                     <?php if($col_lahir): ?><th class="col-lahir">LAHIR</th><?php endif; ?>
                                     <?php if($col_ku): ?><th class="col-ku">KU</th><?php endif; ?>
                                     <?php if($col_tim): ?><th class="col-tim">TIM / SEKOLAH</th><?php endif; ?>
-                                    <?php if($col_waktu): ?><th class="col-waktu">ENTRY</th><?php endif; ?>
+                                    <?php if($col_waktu): ?><th class="col-waktu-awal">ENTRY</th><?php endif; ?>
                                     <?php if($col_hasil): ?><th class="col-hasil">FINAL</th><?php endif; ?>
                                     <?php if($col_ket): ?><th class="col-ket">KET</th><?php endif; ?>
                                 </tr>
@@ -1329,16 +1648,25 @@ exit;
                                         $isDQ = ($atlet['is_dq_final'] == 1);
                                         $rankLabel = $isDQ ? 'DQ' : ($atlet['dynamic_rank'] ?: '-');
                                         $ket = $isDQ ? ($atlet['dq_reason_final'] ?: 'DQ') : '';
+                                        $seedTime = (!empty($atlet['entry_time']) && $atlet['entry_time'] != '99:99.99' && $atlet['entry_time'] != '99.99.99' && strtoupper($atlet['entry_time']) != 'NT') ? formatTimeDisplay($atlet['entry_time']) : 'NT';
+                                        $finalTime = (!empty($atlet['time_final']) && $atlet['time_final'] != '99:99.99' && $atlet['time_final'] != '99.99.99' && strtoupper($atlet['time_final']) != 'NT') ? formatTimeDisplay($atlet['time_final']) : '-';
+                                        $dobYear = (!empty($atlet['tanggal_lahir']) && $atlet['tanggal_lahir'] != '0000-00-00') ? date('Y', strtotime($atlet['tanggal_lahir'])) : '-';
                                     ?>
                                     <tr>
                                         <td class="col-rank <?= $isDQ ? 'text-red' : '' ?>"><?= $rankLabel ?></td>
-                                        <?php if($col_uid): ?><td class="col-uid text-center"><?= htmlspecialchars($atlet['uid']) ?></td><?php endif; ?>
+                                        <?php if($col_uid): ?><td class="col-uid"><?= htmlspecialchars($atlet['uid'] ?: '-') ?></td><?php endif; ?>
                                         <td class="col-nama"><?= htmlspecialchars(strtoupper($atlet['nama_atlet'])) ?></td>
-                                        <?php if($col_lahir): ?><td class="col-lahir text-center"><?= date('Y', strtotime($atlet['tanggal_lahir'])) ?></td><?php endif; ?>
-                                        <?php if($col_ku): ?><td class="col-ku text-center"><?= htmlspecialchars(strtoupper($atlet['real_ku'])) ?></td><?php endif; ?>
+                                        <?php if($col_lahir): ?><td class="col-lahir"><?= $dobYear ?></td><?php endif; ?>
+                                        <?php if($col_ku): ?><td class="col-ku"><?= htmlspecialchars(strtoupper($atlet['real_ku'])) ?></td><?php endif; ?>
                                         <?php if($col_tim): ?><td class="col-tim"><?= htmlspecialchars(strtoupper($atlet['team_name'])) ?></td><?php endif; ?>
-                                        <?php if($col_waktu): ?><td class="col-waktu text-center"><?= htmlspecialchars($atlet['entry_time'] ? formatTimeDisplay($atlet['entry_time']) : '-') ?></td><?php endif; ?>
-                                        <?php if($col_hasil): ?><td class="col-hasil text-center <?= $isDQ ? 'text-red' : '' ?>"><?= htmlspecialchars($atlet['time_final'] ? formatTimeDisplay($atlet['time_final']) : '-') ?></td><?php endif; ?>
+                                        <?php if($col_waktu): ?><td class="col-waktu-awal"><?= htmlspecialchars($seedTime) ?></td><?php endif; ?>
+                                        <?php if($col_hasil): ?><td class="col-hasil <?= $isDQ ? 'text-red' : '' ?>">
+                                            <?php if ($isDQ): ?>
+                                                <span style="color:red; font-weight:900;"><?= htmlspecialchars($ket ?: 'DQ') ?></span>
+                                            <?php else: ?>
+                                                <?= htmlspecialchars($finalTime) ?>
+                                            <?php endif; ?>
+                                        </td><?php endif; ?>
                                         <?php if($col_ket): ?><td class="col-ket <?= $isDQ ? 'text-red' : '' ?>"><?= htmlspecialchars($ket) ?></td><?php endif; ?>
                                     </tr>
                                 <?php endforeach; ?>
@@ -1347,9 +1675,7 @@ exit;
                     <?php endforeach; ?>
                 <?php endif; ?>
 
-                <div style="margin-top: 30px; font-size: 10px; text-align: right; color: #666;">
-                    Waktu Cetak Dokumen: <?= date('d M Y H:i:s') ?>
-                </div>
+
                                 </td>
                             </tr>
                         </tbody>
