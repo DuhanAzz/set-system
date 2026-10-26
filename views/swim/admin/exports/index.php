@@ -114,8 +114,28 @@
                     <h3 class="text-2xl font-black flex items-center gap-2 text-white">🎨 Canva Bulk Create</h3>
                     <span class="bg-indigo-500/30 text-indigo-200 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full border border-indigo-400/30">Auto E-Sertifikat</span>
                 </div>
-                <p class="text-indigo-200 text-xs font-medium mb-5 leading-relaxed">Unduh format CSV khusus (Clean Header) yang dapat langsung di-upload ke Canva untuk mencetak ribuan E-Sertifikat secara otomatis.</p>
+                <p class="text-indigo-200 text-xs font-medium mb-4 leading-relaxed">Unduh format CSV khusus yang dapat langsung di-upload ke Canva untuk mencetak ribuan E-Sertifikat secara otomatis.</p>
                 
+                <!-- PILIH FORMAT TEMPLATE CANVA -->
+                <div class="bg-indigo-950/80 rounded-xl p-3 border border-indigo-400/40 mb-4">
+                    <div class="flex items-center justify-between gap-3 mb-2">
+                        <div class="flex items-center gap-2">
+                            <span class="text-base">📋</span>
+                            <div>
+                                <p class="text-[11px] font-black uppercase text-indigo-100 tracking-wider">Format Kolom CSV:</p>
+                                <p class="text-[10px] text-indigo-300 font-mono font-bold">Nama;Juara;Nomor lomba</p>
+                            </div>
+                        </div>
+                        <select id="canvaTemplateFormat" class="bg-indigo-900 border border-indigo-400/50 text-white rounded-lg text-[11px] font-bold py-1.5 px-2.5 focus:ring-2 focus:ring-indigo-400 focus:outline-none">
+                            <option value="template" selected>⭐ Template Singkron Canva</option>
+                            <option value="full">📊 Format Lengkap (Semua Kolom)</option>
+                        </select>
+                    </div>
+                    <p class="text-[10px] text-indigo-200/80 leading-tight">
+                        ✨ Langsung singkron otomatis dengan text box Canva: <code class="bg-indigo-900 px-1 py-0.5 rounded text-amber-300">{{Nama}}</code>, <code class="bg-indigo-900 px-1 py-0.5 rounded text-amber-300">{{Juara}}</code>, dan <code class="bg-indigo-900 px-1 py-0.5 rounded text-amber-300">{{Nomor lomba}}</code> (Pemisah titik koma <code class="bg-indigo-900 px-1 rounded text-white">;</code> tanpa tanda kutip).
+                    </p>
+                </div>
+
                 <div class="space-y-4">
                     <!-- SEKSI 1: SERTIFIKAT PESERTA -->
                     <div class="bg-indigo-950/60 rounded-xl p-4 border border-indigo-500/30 backdrop-blur-sm">
@@ -362,6 +382,10 @@ function downloadExport(type, certType = '') {
     if (type === 'canva') {
         if (certType) {
             params += `&cert_type=${certType}`;
+        }
+        const templateFormatEl = document.getElementById('canvaTemplateFormat');
+        if (templateFormatEl) {
+            params += `&template_format=${templateFormatEl.value}`;
         }
         const scopeEl = document.getElementById('canvaParticipantScope');
         if (scopeEl && certType === 'peserta') {

@@ -493,6 +493,7 @@ $filter_limit = isset($_GET['limit']) ? $_GET['limit'] : 'ALL'; // ALL, TOP3, DQ
 $rank_mode = isset($_GET['rank_mode']) ? $_GET['rank_mode'] : 'OVERALL'; // SPLIT, OVERALL
 $cert_type = isset($_GET['cert_type']) ? strtolower(trim($_GET['cert_type'])) : 'all'; // peserta, pemenang, all
 $scope = isset($_GET['scope']) ? strtolower(trim($_GET['scope'])) : 'event'; // event, swimmer
+$template_format = isset($_GET['template_format']) ? strtolower(trim($_GET['template_format'])) : 'template'; // template (Nama;Juara;Nomor lomba), full
 
 if ($event_id === 0) die("Event ID invalid.");
 
@@ -652,28 +653,68 @@ foreach ($groupedResults as $groupName => &$rows) {
         $genderLabel = (in_array(strtoupper($atlet['jenis_kelamin']), ['L', 'MALE', 'MAN', 'PUTRA'])) ? 'PUTRA' : 'PUTRI';
         $waktuFormatted = (!empty($timeFinal) && strtoupper($timeFinal) != 'NT') ? formatTimeDisplay($timeFinal) : '-';
 
+        // Helper Roman Juara & Formatter Canva Template
+        $romanMap = [1 => 'I', 2 => 'II', 3 => 'III', 4 => 'IV', 5 => 'V', 6 => 'VI', 7 => 'VII', 8 => 'VIII', 9 => 'IX', 10 => 'X'];
+        $namaTitle = !empty($atlet['nama_atlet']) ? mb_convert_case(trim($atlet['nama_atlet']), MB_CASE_TITLE, "UTF-8") : '-';
+
+        // Format Jarak (contoh: 50m, 100m, 4x50m)
+        $distRaw = trim((string)$atlet['distance']);
+        $distClean = rtrim(preg_replace('/\s+/', '', $distRaw), 'mM');
+        $dist = !empty($distClean) ? $distClean . 'm' : $distRaw;
+
+        // Format Gaya Renang
+        $rawStroke = trim($atlet['stroke'] ?? '');
+        $cleanStroke = trim(preg_replace('/^gaya\s+/i', '', $rawStroke));
+        if (stripos($rawStroke, 'Kick') !== false) {
+            $strokeFormatted = ucwords(strtolower($rawStroke));
+        } else {
+            $strokeFormatted = 'Gaya ' . ucwords(strtolower($cleanStroke));
+        }
+        $strokeFormatted = str_ireplace('kupu-kupu', 'Kupu-kupu', $strokeFormatted);
+
+        // Format Gender
+        $rawGender = strtoupper(trim((string)$atlet['jenis_kelamin']));
+        if (in_array($rawGender, ['L', 'MALE', 'MAN', 'PUTRA', 'BOY', 'BOYS', 'PRIA'])) {
+            $genderTitle = 'Putra';
+        } elseif (in_array($rawGender, ['P', 'W', 'FEMALE', 'WOMAN', 'PUTRI', 'GIRL', 'GIRLS', 'WANITA'])) {
+            $genderTitle = 'Putri';
+        } else {
+            $genderTitle = 'Campuran';
+        }
+
+        $nomorLombaTitle = $dist . ' ' . $strokeFormatted . ' ' . $genderTitle;
+
         // 1. Cabang Sertifikat PEMENANG (Juara 1 - 3 Sah)
         if ($cert_type === 'pemenang') {
             if (!$isValid || $atlet['dynamic_rank'] === null || $atlet['dynamic_rank'] > 3) {
                 continue;
             }
             
+            $juaraRoman = isset($romanMap[$atlet['dynamic_rank']]) ? 'Juara ' . $romanMap[$atlet['dynamic_rank']] : 'Juara ' . $atlet['dynamic_rank'];
             $medali = ($atlet['dynamic_rank'] == 1) ? 'EMAS' : (($atlet['dynamic_rank'] == 2) ? 'PERAK' : 'PERUNGGU');
 
-            $finalOutput[] = [
-                'UID' => $atlet['uid'] ?: '-',
-                'Nama_Atlet' => strtoupper($atlet['nama_atlet']),
-                'Klub_Sekolah' => strtoupper($atlet['team_name']),
-                'Nomor_Acara' => $atlet['event_number'],
-                'Perlombaan' => strtoupper($atlet['distance'] . "M " . $atlet['stroke'] . " " . $genderLabel),
-                'Kelompok_Umur' => strtoupper($atlet['real_ku']),
-                'Gender' => $genderLabel,
-                'Waktu_Final' => $waktuFormatted,
-                'Peringkat' => 'Juara ' . $atlet['dynamic_rank'],
-                'Juara' => 'JUARA ' . $atlet['dynamic_rank'],
-                'Medali' => $medali,
-                'Juara_Angka' => (string)$atlet['dynamic_rank']
-            ];
+            if ($template_format === 'template') {
+                $finalOutput[] = [
+                    'Nama' => $namaTitle,
+                    'Juara' => $juaraRoman,
+                    'Nomor lomba' => $nomorLombaTitle
+                ];
+            } else {
+                $finalOutput[] = [
+                    'UID' => $atlet['uid'] ?: '-',
+                    'Nama_Atlet' => strtoupper($atlet['nama_atlet']),
+                    'Klub_Sekolah' => strtoupper($atlet['team_name']),
+                    'Nomor_Acara' => $atlet['event_number'],
+                    'Perlombaan' => strtoupper($atlet['distance'] . "M " . $atlet['stroke'] . " " . $genderLabel),
+                    'Kelompok_Umur' => strtoupper($atlet['real_ku']),
+                    'Gender' => $genderLabel,
+                    'Waktu_Final' => $waktuFormatted,
+                    'Peringkat' => $juaraRoman,
+                    'Juara' => $juaraRoman,
+                    'Medali' => $medali,
+                    'Juara_Angka' => (string)$atlet['dynamic_rank']
+                ];
+            }
             continue;
         }
 
@@ -692,31 +733,47 @@ foreach ($groupedResults as $groupName => &$rows) {
                 }
                 $seenSwimmers[$dedupKey] = true;
 
-                $finalOutput[] = [
-                    'UID' => $atlet['uid'] ?: '-',
-                    'Nama_Atlet' => strtoupper($atlet['nama_atlet']),
-                    'Klub_Sekolah' => strtoupper($atlet['team_name']),
-                    'Gender' => $genderLabel,
-                    'Kelompok_Umur' => strtoupper($atlet['real_ku']),
-                    'Peringkat' => 'PESERTA',
-                    'Predikat' => 'PESERTA'
-                ];
+                if ($template_format === 'template') {
+                    $finalOutput[] = [
+                        'Nama' => $namaTitle,
+                        'Juara' => 'Peserta',
+                        'Nomor lomba' => 'Peserta Perlombaan'
+                    ];
+                } else {
+                    $finalOutput[] = [
+                        'UID' => $atlet['uid'] ?: '-',
+                        'Nama_Atlet' => strtoupper($atlet['nama_atlet']),
+                        'Klub_Sekolah' => strtoupper($atlet['team_name']),
+                        'Gender' => $genderLabel,
+                        'Kelompok_Umur' => strtoupper($atlet['real_ku']),
+                        'Peringkat' => 'PESERTA',
+                        'Predikat' => 'PESERTA'
+                    ];
+                }
                 continue;
             }
 
             // Default: Per Nomor Lomba
-            $finalOutput[] = [
-                'UID' => $atlet['uid'] ?: '-',
-                'Nama_Atlet' => strtoupper($atlet['nama_atlet']),
-                'Klub_Sekolah' => strtoupper($atlet['team_name']),
-                'Nomor_Acara' => $atlet['event_number'],
-                'Perlombaan' => strtoupper($atlet['distance'] . "M " . $atlet['stroke'] . " " . $genderLabel),
-                'Kelompok_Umur' => strtoupper($atlet['real_ku']),
-                'Gender' => $genderLabel,
-                'Waktu_Final' => $isDQ ? '-' : $waktuFormatted,
-                'Peringkat' => 'PESERTA',
-                'Predikat' => 'PESERTA'
-            ];
+            if ($template_format === 'template') {
+                $finalOutput[] = [
+                    'Nama' => $namaTitle,
+                    'Juara' => 'Peserta',
+                    'Nomor lomba' => $nomorLombaTitle
+                ];
+            } else {
+                $finalOutput[] = [
+                    'UID' => $atlet['uid'] ?: '-',
+                    'Nama_Atlet' => strtoupper($atlet['nama_atlet']),
+                    'Klub_Sekolah' => strtoupper($atlet['team_name']),
+                    'Nomor_Acara' => $atlet['event_number'],
+                    'Perlombaan' => strtoupper($atlet['distance'] . "M " . $atlet['stroke'] . " " . $genderLabel),
+                    'Kelompok_Umur' => strtoupper($atlet['real_ku']),
+                    'Gender' => $genderLabel,
+                    'Waktu_Final' => $isDQ ? '-' : $waktuFormatted,
+                    'Peringkat' => 'PESERTA',
+                    'Predikat' => 'PESERTA'
+                ];
+            }
             continue;
         }
 
@@ -731,7 +788,7 @@ foreach ($groupedResults as $groupName => &$rows) {
             $rankLabel = 'DQ (' . ($atlet['dq_reason_final'] ?: '-') . ')';
         } else if ($atlet['dynamic_rank'] !== null) {
             if ($atlet['dynamic_rank'] <= 3) {
-                $rankLabel = 'Juara ' . $atlet['dynamic_rank'];
+                $rankLabel = isset($romanMap[$atlet['dynamic_rank']]) ? 'Juara ' . $romanMap[$atlet['dynamic_rank']] : 'Juara ' . $atlet['dynamic_rank'];
             } else {
                 $rankLabel = 'Peserta';
             }
@@ -739,36 +796,57 @@ foreach ($groupedResults as $groupName => &$rows) {
             $rankLabel = 'Peserta';
         }
 
-        $finalOutput[] = [
-            'UID' => $atlet['uid'] ?: '-',
-            'Nama_Atlet' => strtoupper($atlet['nama_atlet']),
-            'Klub_Sekolah' => strtoupper($atlet['team_name']),
-            'Nomor_Acara' => $atlet['event_number'],
-            'Perlombaan' => strtoupper($atlet['distance'] . "M " . $atlet['stroke'] . " " . $genderLabel),
-            'Kelompok_Umur' => strtoupper($atlet['real_ku']),
-            'Gender' => $genderLabel,
-            'Waktu_Final' => $timeFinal ? formatTimeDisplay($timeFinal) : '-',
-            'Peringkat' => $rankLabel
-        ];
+        if ($template_format === 'template') {
+            $finalOutput[] = [
+                'Nama' => $namaTitle,
+                'Juara' => $rankLabel,
+                'Nomor lomba' => $nomorLombaTitle
+            ];
+        } else {
+            $finalOutput[] = [
+                'UID' => $atlet['uid'] ?: '-',
+                'Nama_Atlet' => strtoupper($atlet['nama_atlet']),
+                'Klub_Sekolah' => strtoupper($atlet['team_name']),
+                'Nomor_Acara' => $atlet['event_number'],
+                'Perlombaan' => strtoupper($atlet['distance'] . "M " . $atlet['stroke'] . " " . $genderLabel),
+                'Kelompok_Umur' => strtoupper($atlet['real_ku']),
+                'Gender' => $genderLabel,
+                'Waktu_Final' => $timeFinal ? formatTimeDisplay($timeFinal) : '-',
+                'Peringkat' => $rankLabel
+            ];
+        }
     }
 }
 unset($rows);
 
 // 5. Generate CSV
-if ($cert_type === 'pemenang') {
-    $filename = "Canva_Sertifikat_Pemenang_" . $cleanEventName . "_" . date('Ymd_His') . ".csv";
-    $csvHeaders = ['UID', 'Nama_Atlet', 'Klub_Sekolah', 'Nomor_Acara', 'Perlombaan', 'Kelompok_Umur', 'Gender', 'Waktu_Final', 'Peringkat', 'Juara', 'Medali', 'Juara_Angka'];
-} elseif ($cert_type === 'peserta') {
-    if ($scope === 'swimmer') {
-        $filename = "Canva_Sertifikat_Peserta_" . $cleanEventName . "_PerAtlet_" . date('Ymd_His') . ".csv";
-        $csvHeaders = ['UID', 'Nama_Atlet', 'Klub_Sekolah', 'Gender', 'Kelompok_Umur', 'Peringkat', 'Predikat'];
+$delimiter = ($template_format === 'template') ? ';' : ',';
+
+if ($template_format === 'template') {
+    $csvHeaders = ['Nama', 'Juara', 'Nomor lomba'];
+    if ($cert_type === 'pemenang') {
+        $filename = "Canva_Sertifikat_Pemenang_" . $cleanEventName . "_" . date('Ymd_His') . ".csv";
+    } elseif ($cert_type === 'peserta') {
+        $filename = "Canva_Sertifikat_Peserta_" . $cleanEventName . "_" . ($scope === 'swimmer' ? 'PerAtlet_' : 'PerNomor_') . date('Ymd_His') . ".csv";
     } else {
-        $filename = "Canva_Sertifikat_Peserta_" . $cleanEventName . "_PerNomor_" . date('Ymd_His') . ".csv";
-        $csvHeaders = ['UID', 'Nama_Atlet', 'Klub_Sekolah', 'Nomor_Acara', 'Perlombaan', 'Kelompok_Umur', 'Gender', 'Waktu_Final', 'Peringkat', 'Predikat'];
+        $filename = "Canva_Sertifikat_" . $cleanEventName . "_" . date('Ymd_His') . ".csv";
     }
 } else {
-    $filename = "Canva_Sertifikat_Batch_" . $cleanEventName . "_" . date('Ymd_His') . ".csv";
-    $csvHeaders = ['UID', 'Nama_Atlet', 'Klub_Sekolah', 'Nomor_Acara', 'Perlombaan', 'Kelompok_Umur', 'Gender', 'Waktu_Final', 'Peringkat'];
+    if ($cert_type === 'pemenang') {
+        $filename = "Canva_Sertifikat_Pemenang_Full_" . $cleanEventName . "_" . date('Ymd_His') . ".csv";
+        $csvHeaders = ['UID', 'Nama_Atlet', 'Klub_Sekolah', 'Nomor_Acara', 'Perlombaan', 'Kelompok_Umur', 'Gender', 'Waktu_Final', 'Peringkat', 'Juara', 'Medali', 'Juara_Angka'];
+    } elseif ($cert_type === 'peserta') {
+        if ($scope === 'swimmer') {
+            $filename = "Canva_Sertifikat_Peserta_PerAtlet_Full_" . $cleanEventName . "_" . date('Ymd_His') . ".csv";
+            $csvHeaders = ['UID', 'Nama_Atlet', 'Klub_Sekolah', 'Gender', 'Kelompok_Umur', 'Peringkat', 'Predikat'];
+        } else {
+            $filename = "Canva_Sertifikat_Peserta_PerNomor_Full_" . $cleanEventName . "_" . date('Ymd_His') . ".csv";
+            $csvHeaders = ['UID', 'Nama_Atlet', 'Klub_Sekolah', 'Nomor_Acara', 'Perlombaan', 'Kelompok_Umur', 'Gender', 'Waktu_Final', 'Peringkat', 'Predikat'];
+        }
+    } else {
+        $filename = "Canva_Sertifikat_Batch_Full_" . $cleanEventName . "_" . date('Ymd_His') . ".csv";
+        $csvHeaders = ['UID', 'Nama_Atlet', 'Klub_Sekolah', 'Nomor_Acara', 'Perlombaan', 'Kelompok_Umur', 'Gender', 'Waktu_Final', 'Peringkat'];
+    }
 }
 
 header('Content-Type: text/csv; charset=utf-8');
@@ -777,11 +855,27 @@ header('Pragma: no-cache');
 header('Expires: 0');
 
 $output = fopen('php://output', 'w');
-fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF)); // UTF-8 BOM untuk Canva & Excel
-fputcsv($output, $csvHeaders);
-
-foreach ($finalOutput as $row) {
-    fputcsv($output, $row);
+if ($template_format === 'template') {
+    // Format khusus Canva Bulk Create: persis sesuai template pengguna (tanpa BOM, delimiter titik koma, baris CRLF, tanpa quote berlebih)
+    fwrite($output, implode(';', $csvHeaders) . "\r\n");
+    foreach ($finalOutput as $row) {
+        $cleanRow = [];
+        foreach ($row as $val) {
+            $val = trim((string)$val);
+            if (strpos($val, ';') !== false || strpos($val, '"') !== false || strpos($val, "\n") !== false || strpos($val, "\r") !== false) {
+                $cleanRow[] = '"' . str_replace('"', '""', $val) . '"';
+            } else {
+                $cleanRow[] = $val;
+            }
+        }
+        fwrite($output, implode(';', $cleanRow) . "\r\n");
+    }
+} else {
+    fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF)); // UTF-8 BOM untuk format full excel
+    fputcsv($output, $csvHeaders, $delimiter);
+    foreach ($finalOutput as $row) {
+        fputcsv($output, $row, $delimiter);
+    }
 }
 fclose($output);
 exit;
