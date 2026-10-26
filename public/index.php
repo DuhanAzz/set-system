@@ -385,6 +385,8 @@ switch ($module) {
         $controller = new \App\Core\Controllers\ToolsController();
         if ($page === 'pace-calculator' || $page === 'pace_calculator') {
             $controller->pace_calculator();
+        } elseif ($page === 'race-analysis' || $page === 'race_analysis' || $page === 'race-analyzer' || $page === 'race_analyzer') {
+            $controller->race_analysis();
         } else {
             http_response_code(404);
             echo "<h1>404 Not Found</h1><p>Tools '{$page}' tidak ditemukan.</p>";

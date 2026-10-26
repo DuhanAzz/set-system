@@ -14,4 +14,12 @@ class ToolsController extends Controller {
             'pageTitle' => 'Kalkulator Pace Training'
         ]);
     }
+
+    public function race_analysis() {
+        $this->trackVisitor("core");
+
+        return $this->view('core/tools/race_analysis', [
+            'pageTitle' => 'Analisis Performa Lomba (Race Analyzer)'
+        ]);
+    }
 }
