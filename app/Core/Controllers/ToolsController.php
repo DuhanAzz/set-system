@@ -19,7 +19,10 @@ class ToolsController extends Controller {
         $this->trackVisitor("core");
 
         return $this->view('core/tools/race_analysis', [
-            'pageTitle' => 'Analisis Performa Lomba (Race Analyzer)'
+            'pageTitle' => 'Analisis Performa Lomba (Race Analyzer)',
+            'poolOptions' => \App\Core\Models\RaceAnalysisModel::getPoolOptions(),
+            'strokeOptions' => \App\Core\Models\RaceAnalysisModel::getStrokeOptions(),
+            'distanceOptions' => \App\Core\Models\RaceAnalysisModel::getDistanceOptions()
         ]);
     }
 }
