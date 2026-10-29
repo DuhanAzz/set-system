@@ -92,6 +92,7 @@ $appName = $settings['app_name'] ?? 'Universal SET System';
     </main>
 
     <!-- MODULAR SCRIPTS (DECOUPLED & CACHED) -->
+    <script>window.APP_URL = "<?= getenv('APP_URL') ?>";</script>
     <script src="<?= getenv('APP_URL') ?>/js/tools/race_analysis/normative_db.js"></script>
     <script src="<?= getenv('APP_URL') ?>/js/tools/race_analysis/race_chart.js"></script>
     <script src="<?= getenv('APP_URL') ?>/js/tools/race_analysis/race_calculator.js"></script>

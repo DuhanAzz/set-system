@@ -387,6 +387,8 @@ switch ($module) {
             $controller->pace_calculator();
         } elseif ($page === 'race-analysis' || $page === 'race_analysis' || $page === 'race-analyzer' || $page === 'race_analyzer') {
             $controller->race_analysis();
+        } elseif ($page === 'race-stopwatch' || $page === 'race_stopwatch' || $page === 'stopwatch-race') {
+            $controller->race_stopwatch();
         } else {
             http_response_code(404);
             echo "<h1>404 Not Found</h1><p>Tools '{$page}' tidak ditemukan.</p>";

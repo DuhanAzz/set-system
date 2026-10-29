@@ -536,12 +536,148 @@ function calculateAll() {
     }
 }
 
+// 6. STOPWATCH INTEGRATION & REAL-TIME SYNCHRONIZATION
+function openRaceStopwatch() {
+    saveAthleteData();
+
+    const nameInp = document.getElementById('athleteName');
+    const ageInp = document.getElementById('athleteAge');
+    const genderInp = document.getElementById('athleteGender');
+
+    const config = {
+        athleteName: nameInp ? nameInp.value.trim() : '',
+        athleteAge: ageInp ? ageInp.value : '',
+        athleteGender: genderInp ? genderInp.value : 'Putra',
+        poolLength: poolLength,
+        totalDistance: totalDistance,
+        strokeStyle: strokeStyle
+    };
+
+    try {
+        localStorage.setItem('race_stopwatch_config', JSON.stringify(config));
+    } catch (e) {}
+
+    const baseUrl = window.APP_URL || '';
+    const stopwatchUrl = baseUrl + '/tools/race-stopwatch';
+    
+    // Buka di jendela popup yang ideal untuk stopwatch jika layar desktop, atau tab baru jika mobile
+    const winWidth = 650;
+    const winHeight = 780;
+    const left = (window.screen.width / 2) - (winWidth / 2);
+    const top = (window.screen.height / 2) - (winHeight / 2);
+
+    window.open(stopwatchUrl, 'RaceStopwatchWindow', `width=${winWidth},height=${winHeight},top=${top},left=${left},resizable=yes,scrollbars=yes`);
+}
+
+function applyStopwatchData(payload) {
+    if (!payload || !Array.isArray(payload.laps)) return;
+
+    // Perbarui konfigurasi lomba jika stopwatch merubahnya
+    let needRegenerate = false;
+    if (payload.poolLength && parseInt(payload.poolLength) !== poolLength) {
+        poolLength = parseInt(payload.poolLength);
+        needRegenerate = true;
+    }
+    if (payload.totalDistance && parseInt(payload.totalDistance) !== totalDistance) {
+        totalDistance = parseInt(payload.totalDistance);
+        needRegenerate = true;
+    }
+    if (payload.strokeStyle && payload.strokeStyle !== strokeStyle) {
+        setStrokeStyle(payload.strokeStyle);
+    }
+    if (needRegenerate) {
+        generateLapInputs();
+    }
+
+    if (payload.athleteName) {
+        const nameInp = document.getElementById('athleteName');
+        if (nameInp) nameInp.value = payload.athleteName;
+        saveAthleteData();
+    }
+
+    // Suntikkan waktu split dan kayuhan ke baris tabel yang bersesuaian
+    const timeInputs = document.querySelectorAll('.lap-time-input');
+    const strokeInputs = document.querySelectorAll('.lap-stroke-input');
+
+    // Kosongkan dahulu agar jika ada split yang dihapus di stopwatch, tidak tertinggal data lama
+    timeInputs.forEach(inp => inp.value = '');
+    strokeInputs.forEach(inp => inp.value = '');
+
+    payload.laps.forEach((lap, idx) => {
+        if (timeInputs[idx]) {
+            timeInputs[idx].value = lap.splitFormatted || '';
+        }
+        if (strokeInputs[idx]) {
+            strokeInputs[idx].value = (lap.strokes !== undefined && lap.strokes !== null && lap.strokes !== '') ? lap.strokes : '';
+        }
+    });
+
+    calculateAll();
+    showSyncNotification(`⏱️ Data waktu split & kayuhan dari Stopwatch berhasil disinkronkan (${payload.laps.length} Lap)!`);
+}
+
+let syncNotificationTimer = null;
+function showSyncNotification(msg) {
+    let toast = document.getElementById('raceSyncToast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'raceSyncToast';
+        toast.className = 'fixed bottom-6 right-6 z-50 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-xs px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-2 transform translate-y-24 opacity-0 transition-all duration-300 pointer-events-none';
+        toast.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 flex-shrink-0 text-emerald-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+            </svg>
+            <span id="raceSyncToastMsg">${escapeHtml(msg)}</span>
+        `;
+        document.body.appendChild(toast);
+    } else {
+        const msgEl = document.getElementById('raceSyncToastMsg');
+        if (msgEl) msgEl.innerText = msg;
+    }
+
+    // Tampilkan Toast
+    setTimeout(() => {
+        toast.classList.remove('translate-y-24', 'opacity-0');
+        toast.classList.add('translate-y-0', 'opacity-100');
+    }, 10);
+
+    if (syncNotificationTimer) clearTimeout(syncNotificationTimer);
+    syncNotificationTimer = setTimeout(() => {
+        toast.classList.remove('translate-y-0', 'opacity-100');
+        toast.classList.add('translate-y-24', 'opacity-0');
+    }, 3000);
+}
+
+// Pasang Listener Komunikasi Real-time (BroadcastChannel + Storage Event)
+function initStopwatchSyncListener() {
+    try {
+        const bc = new BroadcastChannel('race_stopwatch_channel');
+        bc.onmessage = (event) => {
+            if (event && event.data) {
+                applyStopwatchData(event.data);
+            }
+        };
+    } catch (e) {
+        console.warn('BroadcastChannel error/unsupported:', e);
+    }
+
+    window.addEventListener('storage', (e) => {
+        if (e.key === 'race_stopwatch_result' && e.newValue) {
+            try {
+                const payload = JSON.parse(e.newValue);
+                applyStopwatchData(payload);
+            } catch (err) {}
+        }
+    });
+}
+
 // Inisialisasi Lifecycle Aplikasi
 document.addEventListener('DOMContentLoaded', () => {
     restoreAthleteData();
     if (typeof initChart === 'function') initChart();
     generateLapInputs();
     calculateAll();
+    initStopwatchSyncListener();
 
     if (window.location.search.includes('preview_print=1')) {
         setTimeout(() => {

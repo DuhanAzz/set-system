@@ -27,4 +27,15 @@ class ToolsController extends Controller {
             'distanceOptions' => \App\Core\Models\RaceAnalysisModel::getDistanceOptions()
         ]);
     }
+
+    public function race_stopwatch() {
+        $this->trackVisitor("core");
+
+        return $this->view('core/tools/race_stopwatch', [
+            'pageTitle' => 'Stopwatch Analisis Lomba Renang',
+            'poolOptions' => \App\Core\Models\RaceAnalysisModel::getPoolOptions(),
+            'strokeOptions' => \App\Core\Models\RaceAnalysisModel::getStrokeOptions(),
+            'distanceOptions' => \App\Core\Models\RaceAnalysisModel::getDistanceOptions()
+        ]);
+    }
 }
