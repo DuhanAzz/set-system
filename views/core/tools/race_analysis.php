@@ -147,15 +147,15 @@ $appName = $settings['app_name'] ?? 'Universal SET System';
                         <div class="grid grid-cols-1 sm:grid-cols-12 gap-4">
                             <div class="sm:col-span-5">
                                 <label class="block text-xs font-bold text-slate-700 mb-1">Nama Atlet</label>
-                                <input type="text" id="athleteName" placeholder="Masukkan nama atlet" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-sm">
+                                <input type="text" id="athleteName" placeholder="Masukkan nama atlet" oninput="saveAthleteData(); calculateAll()" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-sm">
                             </div>
                             <div class="sm:col-span-2">
                                 <label class="block text-xs font-bold text-slate-700 mb-1">Umur (Tahun)</label>
-                                <input type="number" id="athleteAge" min="5" max="80" value="13" placeholder="Contoh: 12" oninput="calculateAll()" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-sm">
+                                <input type="number" id="athleteAge" min="5" max="80" value="13" placeholder="Contoh: 12" oninput="saveAthleteData(); calculateAll()" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-sm">
                             </div>
                             <div class="sm:col-span-2">
                                 <label class="block text-xs font-bold text-slate-700 mb-1">Gender</label>
-                                <select id="athleteGender" onchange="calculateAll()" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-sm">
+                                <select id="athleteGender" onchange="saveAthleteData(); calculateAll()" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-sm">
                                     <option value="Putra">Putra</option>
                                     <option value="Putri">Putri</option>
                                 </select>
@@ -383,7 +383,49 @@ $appName = $settings['app_name'] ?? 'Universal SET System';
         let totalDistance = 100;
         let chartInstance = null;
 
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function saveAthleteData() {
+            try {
+                const nameInp = document.getElementById('athleteName');
+                const ageInp = document.getElementById('athleteAge');
+                const genderInp = document.getElementById('athleteGender');
+                if (nameInp) localStorage.setItem('race_analyzer_athlete_name', nameInp.value);
+                if (ageInp) localStorage.setItem('race_analyzer_athlete_age', ageInp.value);
+                if (genderInp) localStorage.setItem('race_analyzer_athlete_gender', genderInp.value);
+            } catch (e) {}
+        }
+
+        function restoreAthleteData() {
+            try {
+                const savedName = localStorage.getItem('race_analyzer_athlete_name');
+                const nameInp = document.getElementById('athleteName');
+                if (savedName && nameInp && !nameInp.value) {
+                    nameInp.value = savedName;
+                }
+                const savedAge = localStorage.getItem('race_analyzer_athlete_age');
+                const ageInp = document.getElementById('athleteAge');
+                if (savedAge && ageInp) {
+                    ageInp.value = savedAge;
+                }
+                const savedGender = localStorage.getItem('race_analyzer_athlete_gender');
+                const genderInp = document.getElementById('athleteGender');
+                if (savedGender && genderInp) {
+                    genderInp.value = savedGender;
+                }
+            } catch (e) {}
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
+            restoreAthleteData();
             initChart();
             generateLapInputs();
             calculateAll();
@@ -1055,7 +1097,13 @@ $appName = $settings['app_name'] ?? 'Universal SET System';
                 }
             }
 
-            const name = document.getElementById('athleteName').value.trim() || '-';
+            let rawName = document.getElementById('athleteName').value.trim();
+            if (!rawName) {
+                try {
+                    rawName = (localStorage.getItem('race_analyzer_athlete_name') || '').trim();
+                } catch (e) {}
+            }
+            const name = rawName || '-';
             const age = document.getElementById('athleteAge').value.trim() || '-';
             const gender = document.getElementById('athleteGender').value;
             const date = document.getElementById('raceDate').value || '<?= date('d/m/Y') ?>';
@@ -1185,22 +1233,32 @@ $appName = $settings['app_name'] ?? 'Universal SET System';
             const printHtml = `
                 <div class="print-sheet" style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; color: #0f172a;">
                     
-                    <!-- 1. DATA ATLET & NOMOR LOMBA -->
-                    <div style="background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 8px; padding: 6px 14px; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; font-size: 10px; color: #475569; page-break-inside: avoid;">
-                        <div>
-                            <strong style="color: #64748b; font-size: 9px; text-transform: uppercase;">NAMA ATLET :</strong> 
-                            <span style="font-size: 12px; font-weight: 800; color: #0f172a; margin-left: 4px;">${name}</span>
-                            <span style="margin: 0 8px; color: #cbd5e1;">&bull;</span>
-                            <strong style="color: #64748b; font-size: 9px; text-transform: uppercase;">UMUR / GENDER :</strong> 
-                            <span style="font-weight: 700; color: #1e293b; margin-left: 4px;">${age !== '-' ? age + ' Tahun' : '-'} (${gender})</span> &bull; 
-                            <span style="color:#047857; font-weight:800; background:#ecfdf5; padding: 1px 6px; border-radius: 4px; border: 1px solid #a7f3d0; font-size: 9px;">${norms.tierName}</span>
+                    <!-- 1. DATA ATLET & NOMOR LOMBA (2 BARIS TERSTRUKTUR - BEBAS OVERFLOW) -->
+                    <div style="background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 8px; padding: 8px 14px; margin-bottom: 6px; page-break-inside: avoid; box-sizing: border-box;">
+                        <!-- Baris 1: Nama Atlet & Nomor Lomba -->
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; padding-bottom: 6px; border-bottom: 1px dashed #cbd5e1;">
+                            <div style="display: flex; align-items: baseline; gap: 6px; overflow: hidden;">
+                                <span style="color: #64748b; font-size: 9.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; flex-shrink: 0;">NAMA ATLET :</span>
+                                <span style="font-size: 13px; font-weight: 900; color: #0f172a; text-transform: uppercase; letter-spacing: 0.3px;">${escapeHtml(name)}</span>
+                            </div>
+                            <div style="display: flex; align-items: baseline; gap: 6px; text-align: right; flex-shrink: 0;">
+                                <span style="color: #64748b; font-size: 9.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">NOMOR LOMBA :</span>
+                                <span style="font-size: 13px; font-weight: 900; color: #1e3a8a;">${totalDistance}m ${escapeHtml(strokeStyle)}</span>
+                                <span style="font-size: 10px; color: #64748b; font-weight: 700;">(Kolam ${poolLength}m)</span>
+                            </div>
                         </div>
-                        <div>
-                            <strong style="color: #64748b; font-size: 9px; text-transform: uppercase;">NOMOR LOMBA :</strong> 
-                            <span style="font-size: 12px; font-weight: 800; color: #0f172a; margin-left: 4px;">${totalDistance}m ${strokeStyle}</span> 
-                            <span style="font-size: 9.5px; color: #64748b; font-weight: 600;">(Kolam ${poolLength}m)</span>
-                            <span style="margin: 0 8px; color: #cbd5e1;">&bull;</span>
-                            <span style="font-weight: 600; color: #64748b;">${formattedDate}</span>
+                        <!-- Baris 2: Umur / Gender / KU & Tanggal -->
+                        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 10px;">
+                            <div style="display: flex; align-items: center; gap: 6px; flex-wrap: nowrap;">
+                                <span style="color: #64748b; font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; flex-shrink: 0;">UMUR / GENDER :</span>
+                                <span style="font-weight: 700; color: #1e293b; white-space: nowrap;">${age !== '-' ? age + ' Tahun' : '-'} (${escapeHtml(gender)})</span>
+                                <span style="color: #cbd5e1;">&bull;</span>
+                                <span style="display: inline-block; color: #047857; font-weight: 800; background: #ecfdf5; padding: 2px 8px; border-radius: 4px; border: 1px solid #a7f3d0; font-size: 9.5px; white-space: nowrap;">${escapeHtml(norms.tierName)}</span>
+                            </div>
+                            <div style="text-align: right; color: #64748b; font-size: 10px; flex-shrink: 0;">
+                                <span style="color: #94a3b8; font-size: 9px; font-weight: 800; text-transform: uppercase;">TANGGAL :</span>
+                                <span style="font-weight: 700; color: #334155; margin-left: 4px;">${formattedDate}</span>
+                            </div>
                         </div>
                     </div>
 
@@ -1549,7 +1607,7 @@ $appName = $settings['app_name'] ?? 'Universal SET System';
     <div class="toolbar no-print">
         <div class="toolbar-info">
             <span class="toolbar-badge">Race Analyzer</span>
-            <span class="toolbar-title">${name} &bull; ${totalDistance}m ${strokeStyle}</span>
+            <span class="toolbar-title">${escapeHtml(name)} &bull; ${totalDistance}m ${escapeHtml(strokeStyle)}</span>
         </div>
         <div class="toolbar-actions">
             <button id="btn-png" class="btn btn-png" onclick="downloadPNG()">
