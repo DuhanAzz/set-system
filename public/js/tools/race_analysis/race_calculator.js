@@ -560,13 +560,22 @@ function openRaceStopwatch() {
     const baseUrl = window.APP_URL || '';
     const stopwatchUrl = baseUrl + '/tools/race-stopwatch';
     
-    // Buka di jendela popup yang ideal untuk stopwatch jika layar desktop, atau tab baru jika mobile
-    const winWidth = 650;
-    const winHeight = 780;
-    const left = (window.screen.width / 2) - (winWidth / 2);
-    const top = (window.screen.height / 2) - (winHeight / 2);
+    // Deteksi apakah perangkat adalah mobile atau iPad/tablet
+    const isMobileOrTablet = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) 
+        || (window.innerWidth <= 1024) 
+        || (navigator.maxTouchPoints && navigator.maxTouchPoints > 2);
 
-    window.open(stopwatchUrl, 'RaceStopwatchWindow', `width=${winWidth},height=${winHeight},top=${top},left=${left},resizable=yes,scrollbars=yes`);
+    if (isMobileOrTablet) {
+        // Pada iPad dan Mobile, buka tab baru penuh agar optimal untuk sentuhan layar
+        window.open(stopwatchUrl, '_blank');
+    } else {
+        // Pada desktop, buka di jendela popup yang proporsional
+        const winWidth = 680;
+        const winHeight = 820;
+        const left = (window.screen.width / 2) - (winWidth / 2);
+        const top = (window.screen.height / 2) - (winHeight / 2);
+        window.open(stopwatchUrl, 'RaceStopwatchWindow', `width=${winWidth},height=${winHeight},top=${top},left=${left},resizable=yes,scrollbars=yes`);
+    }
 }
 
 function applyStopwatchData(payload) {

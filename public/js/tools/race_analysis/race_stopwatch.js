@@ -163,9 +163,9 @@ function toggleStartStop() {
         rafId = requestAnimationFrame(updateTimer);
 
         if (btn) {
-            btn.className = 'w-full py-4 px-4 bg-rose-600 hover:bg-rose-500 active:bg-rose-700 text-white rounded-2xl font-black text-base uppercase tracking-wider shadow-lg shadow-rose-600/30 transition transform active:scale-95 flex items-center justify-center gap-2';
+            btn.className = 'col-span-1 min-h-[64px] sm:min-h-[76px] md:min-h-[82px] py-3.5 px-3 bg-rose-600 hover:bg-rose-500 active:bg-rose-700 text-white rounded-2xl font-black text-sm sm:text-base uppercase tracking-wider shadow-lg shadow-rose-600/30 transition transform active:scale-95 flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer';
         }
-        if (lbl) lbl.innerText = 'JEDA / STOP';
+        if (lbl) lbl.innerText = 'STOP';
         if (icon) icon.innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
         if (btnSplit) btnSplit.disabled = false;
 
@@ -176,9 +176,9 @@ function toggleStartStop() {
         accumulatedMs += (performance.now() - startPerfTime);
 
         if (btn) {
-            btn.className = 'w-full py-4 px-4 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white rounded-2xl font-black text-base uppercase tracking-wider shadow-lg shadow-emerald-600/30 transition transform active:scale-95 flex items-center justify-center gap-2';
+            btn.className = 'col-span-1 min-h-[64px] sm:min-h-[76px] md:min-h-[82px] py-3.5 px-3 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white rounded-2xl font-black text-sm sm:text-base uppercase tracking-wider shadow-lg shadow-emerald-600/30 transition transform active:scale-95 flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer';
         }
-        if (lbl) lbl.innerText = 'LANJUT (RESUME)';
+        if (lbl) lbl.innerText = 'LANJUT';
         if (icon) icon.innerHTML = '<path d="M8 5v14l11-7z"/>';
     }
 }
@@ -311,9 +311,9 @@ function resetStopwatch() {
     const btnSplit = document.getElementById('btnSplit');
 
     if (btn) {
-        btn.className = 'w-full py-4 px-4 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white rounded-2xl font-black text-base uppercase tracking-wider shadow-lg shadow-emerald-600/30 transition transform active:scale-95 flex items-center justify-center gap-2';
+        btn.className = 'col-span-1 min-h-[64px] sm:min-h-[76px] md:min-h-[82px] py-3.5 px-3 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white rounded-2xl font-black text-sm sm:text-base uppercase tracking-wider shadow-lg shadow-emerald-600/30 transition transform active:scale-95 flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer';
     }
-    if (lbl) lbl.innerText = 'MULAI (START)';
+    if (lbl) lbl.innerText = 'MULAI';
     if (icon) icon.innerHTML = '<path d="M8 5v14l11-7z"/>';
     if (btnSplit) btnSplit.disabled = true;
 
@@ -429,18 +429,35 @@ function sendDataToRaceAnalysis(shouldFocusOpener = false) {
     }
 
     if (shouldFocusOpener) {
-        showToast('✅ Data waktu & kayuhan berhasil dikirim ke Analisis Lomba!');
+        showToast('✅ Mengirim data & mengalihkan ke Analisis Lomba...');
+
+        // 1. Coba tutup jendela stopwatch jika dibuka via popup/tab oleh Analisis Lomba
+        let closedSuccessfully = false;
         if (window.opener && !window.opener.closed) {
             try {
                 window.opener.focus();
             } catch (e) {}
+            try {
+                window.close();
+                closedSuccessfully = true;
+            } catch (e) {}
         } else {
-            // Jika tab terpisah dibuka mandiri, tawarkan navigasi
-            setTimeout(() => {
-                const targetUrl = (window.APP_URL || '') + '/tools/race-analysis';
-                window.location.href = targetUrl;
-            }, 600);
+            try {
+                window.close();
+            } catch (e) {}
         }
+
+        // 2. Fallback untuk iPad/Mobile Safari/Chrome yang membatasi window.close()
+        // Mengalihkan tab saat ini kembali ke halaman Analisis Lomba dengan replace (tanpa loop back)
+        setTimeout(() => {
+            try {
+                window.close();
+            } catch (e) {}
+
+            const targetUrl = (window.APP_URL || '') + '/tools/race-analysis';
+            // Hanya redirect jika tab belum tertutup
+            window.location.replace(targetUrl);
+        }, 150);
     }
 }
 
