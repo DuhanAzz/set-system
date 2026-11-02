@@ -464,6 +464,67 @@ class EventsController extends Controller {
         exit;
     }
 
+    public function download_template_csv() {
+        $pdo = Database::getInstance()->getConnection();
+        $adminId = $_SESSION['swim_user_id'] ?? $_SESSION['user_id'] ?? 0;
+        $requestedEventId = (int)($_GET['event_id'] ?? 0);
+        list($activeEvent) = $this->resolveEvent($pdo, $adminId, $requestedEventId);
+
+        $eventId = $activeEvent ? (int)$activeEvent['id'] : $requestedEventId;
+        $isPackage = ($activeEvent['pricing_mode'] ?? 'per_item') === 'package';
+        $defaultPrice = 0;
+        if (!$isPackage && $eventId > 0) {
+            $stmtPrice = $pdo->prepare("SELECT price FROM swim_event_numbers WHERE event_id = ? AND price > 0 AND (is_relay = 0 OR is_relay IS NULL) LIMIT 1");
+            $stmtPrice->execute([$eventId]);
+            $foundPrice = $stmtPrice->fetchColumn();
+            $defaultPrice = $foundPrice !== false ? (float)$foundPrice : 50000;
+        }
+
+        // Ambil daftar KU event jika ada
+        $kus = [];
+        if ($eventId > 0) {
+            $stmtKU = $pdo->prepare("SELECT group_name FROM swim_event_age_groups WHERE event_id = ? ORDER BY min_age ASC");
+            $stmtKU->execute([$eventId]);
+            $kus = $stmtKU->fetchAll(PDO::FETCH_COLUMN);
+        }
+
+        if (empty($kus)) {
+            $kus = ['KU 1', 'KU 2', 'KU 3'];
+        }
+
+        $cleanEventName = !empty($activeEvent['event_name']) ? preg_replace('/[^a-zA-Z0-9_-]/', '_', $activeEvent['event_name']) : 'event_' . ($eventId ?: 'sample');
+        $filename = "template_nomor_lomba_" . $cleanEventName . ".csv";
+
+        header('Pragma: public');
+        header('Expires: 0');
+        header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
+        header('Content-Type: text/csv; charset=UTF-8');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+
+        $output = fopen('php://output', 'w');
+        // UTF-8 BOM untuk kompatibilitas sempurna dengan Microsoft Excel & Google Sheets
+        fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
+
+        // Header kolom CSV
+        fputcsv($output, ['No Acara', 'Jarak', 'Gaya', 'Gender', 'Kelompok Umur', 'Biaya']);
+
+        // Generate data baris contoh terstruktur
+        $eventNo = 101;
+        $strokes = ['Gaya Bebas', 'Gaya Dada', 'Gaya Punggung', 'Gaya Kupu-kupu'];
+
+        foreach ($kus as $ku) {
+            foreach ($strokes as $stroke) {
+                fputcsv($output, [(string)$eventNo, '50', $stroke, 'L', $ku, (string)$defaultPrice]);
+                $eventNo++;
+                fputcsv($output, [(string)$eventNo, '50', $stroke, 'P', $ku, (string)$defaultPrice]);
+                $eventNo++;
+            }
+        }
+
+        fclose($output);
+        exit;
+    }
+
     private function getActiveEventId($pdo, $adminId) {
         list($activeEvent) = $this->resolveEvent($pdo, $adminId);
         return $activeEvent ? (int)$activeEvent['id'] : 0;

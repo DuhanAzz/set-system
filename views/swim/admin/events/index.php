@@ -629,26 +629,99 @@
                     <!-- TAB 3: SALIN / PASTE DARI EXCEL           -->
                     <!-- ========================================== -->
                     <div id="tabContentExcel" class="hidden space-y-4">
-                        <div class="bg-indigo-50/60 p-4 rounded-2xl border border-indigo-100 text-xs text-indigo-900 space-y-2">
-                            <p class="font-bold flex items-center gap-1.5">
-                                <span>📋</span> Petunjuk Format Salin dari Excel / Spreadsheet:
-                            </p>
-                            <p class="text-[11px] leading-relaxed text-indigo-800">
-                                Blok dan salin tabel susunan acara Anda di Excel (dengan atau tanpa baris judul), lalu tempelkan langsung ke kotak teks di bawah. Sistem mendukung pemisah Kolom Tab (standar copy Excel) atau Koma (CSV).
-                            </p>
-                            <p class="font-mono text-[10px] bg-white/80 p-2 rounded-lg border border-indigo-200 text-indigo-950">
-                                Format Kolom: [No Acara] &nbsp; [Jarak] &nbsp; [Gaya] &nbsp; [Gender: L/P] &nbsp; [Nama KU] &nbsp; [Biaya: Opsional]
-                            </p>
+                        <div class="bg-indigo-50/70 p-5 rounded-2xl border border-indigo-100 text-xs text-indigo-900 space-y-4">
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-indigo-100/80">
+                                <div>
+                                    <div class="flex items-center gap-2 text-indigo-950 font-black text-xs uppercase tracking-wider">
+                                        <span>📋</span>
+                                        <span>Petunjuk Format Salin dari Excel / Spreadsheet</span>
+                                    </div>
+                                    <p class="text-[11px] text-indigo-700 mt-0.5">
+                                        Unduh template file .csv untuk diedit di Excel atau Spreadsheet, lalu unggah / tempelkan datanya ke kotak di bawah.
+                                    </p>
+                                </div>
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <button type="button" onclick="downloadTemplateCSV()" class="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 rounded-xl font-black text-[11px] shadow-sm transition">
+                                        <span>📥</span> Download Format CSV (.csv)
+                                    </button>
+                                    <input type="file" id="csvFileInput" accept=".csv,.txt" class="hidden" onchange="handleCSVFileUpload(this)">
+                                    <button type="button" onclick="document.getElementById('csvFileInput').click()" class="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-xl font-bold text-[11px] shadow-sm transition">
+                                        <span>📁</span> Buka File CSV
+                                    </button>
+                                    <button type="button" onclick="loadSampleToTextarea()" class="inline-flex items-center gap-1.5 bg-white hover:bg-indigo-50 text-indigo-700 border border-indigo-200 px-3 py-2 rounded-xl font-bold text-[11px] shadow-sm transition">
+                                        <span>📋</span> Isi Contoh
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Preview Tabel Kolom CSV -->
+                            <div class="space-y-1.5">
+                                <span class="text-[10px] font-black uppercase tracking-wider text-indigo-900">
+                                    Tabel Susunan Kolom Standar CSV / Excel:
+                                </span>
+                                <div class="overflow-x-auto rounded-xl border border-indigo-200/80 bg-white shadow-sm">
+                                    <table class="w-full text-left text-[11px]">
+                                        <thead class="bg-indigo-100/70 text-indigo-950 font-black uppercase text-[10px] tracking-wider border-b border-indigo-200/60">
+                                            <tr>
+                                                <th class="py-2 px-3">No Acara</th>
+                                                <th class="py-2 px-3">Jarak</th>
+                                                <th class="py-2 px-3">Gaya</th>
+                                                <th class="py-2 px-3">Gender</th>
+                                                <th class="py-2 px-3">Kelompok Umur</th>
+                                                <th class="py-2 px-3">Biaya (Rp)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-slate-100 font-mono text-[10px] text-slate-700">
+                                            <tr class="hover:bg-indigo-50/40">
+                                                <td class="py-1.5 px-3 font-bold text-blue-600">101</td>
+                                                <td class="py-1.5 px-3">50</td>
+                                                <td class="py-1.5 px-3 font-sans font-bold">Gaya Bebas</td>
+                                                <td class="py-1.5 px-3"><span class="px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 font-bold">L</span></td>
+                                                <td class="py-1.5 px-3 font-sans font-bold text-slate-900"><?= !empty($listKU) ? htmlspecialchars($listKU[0]['group_name']) : 'KU 1' ?></td>
+                                                <td class="py-1.5 px-3 text-slate-500"><?= (int)$suggestedDefaultPrice ?></td>
+                                            </tr>
+                                            <tr class="hover:bg-indigo-50/40">
+                                                <td class="py-1.5 px-3 font-bold text-blue-600">102</td>
+                                                <td class="py-1.5 px-3">50</td>
+                                                <td class="py-1.5 px-3 font-sans font-bold">Gaya Bebas</td>
+                                                <td class="py-1.5 px-3"><span class="px-1.5 py-0.5 rounded bg-pink-100 text-pink-700 font-bold">P</span></td>
+                                                <td class="py-1.5 px-3 font-sans font-bold text-slate-900"><?= !empty($listKU) ? htmlspecialchars($listKU[0]['group_name']) : 'KU 1' ?></td>
+                                                <td class="py-1.5 px-3 text-slate-500"><?= (int)$suggestedDefaultPrice ?></td>
+                                            </tr>
+                                            <tr class="hover:bg-indigo-50/40">
+                                                <td class="py-1.5 px-3 font-bold text-blue-600">103</td>
+                                                <td class="py-1.5 px-3">50</td>
+                                                <td class="py-1.5 px-3 font-sans font-bold">Gaya Dada</td>
+                                                <td class="py-1.5 px-3"><span class="px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 font-bold">L</span></td>
+                                                <td class="py-1.5 px-3 font-sans font-bold text-slate-900"><?= !empty($listKU) ? htmlspecialchars($listKU[0]['group_name']) : 'KU 1' ?></td>
+                                                <td class="py-1.5 px-3 text-slate-500"><?= (int)$suggestedDefaultPrice ?></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11px] text-indigo-900 bg-white/80 p-3 rounded-xl border border-indigo-200/70">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-sm">💡</span>
+                                    <span>
+                                        <b>Keterangan:</b> Biaya dapat dikosongkan (otomatis mengikuti Biaya Default <b>Rp <?= number_format($suggestedDefaultPrice, 0, ',', '.') ?></b>). Gender diisi <b>L</b> (Putra), <b>P</b> (Putri), atau <b>Mix</b>.
+                                    </span>
+                                </div>
+                                <a href="<?= getenv('APP_URL') ?>/swim/admin/events/download_template_csv?event_id=<?= $eventId ?>" download class="inline-flex items-center gap-1 text-emerald-700 font-bold hover:underline shrink-0 text-xs">
+                                    <span>📥</span> Unduh template_nomor_lomba.csv
+                                </a>
+                            </div>
                         </div>
 
                         <div>
-                            <label class="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1.5">
-                                Tempelkan Teks Excel / CSV Di Sini:
-                            </label>
-                            <textarea id="excelPasteArea" rows="6" class="w-full bg-slate-50 border border-slate-300 rounded-2xl p-4 font-mono text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="101	50	Gaya Bebas	L	KU 1	50000
-102	50	Gaya Bebas	P	KU 1	50000
-103	50	Gaya Dada	L	KU 1	50000
-104	50	Gaya Dada	P	KU 1	50000"></textarea>
+                            <div class="flex items-center justify-between mb-1.5">
+                                <label class="block text-[10px] font-black uppercase tracking-wider text-slate-500">
+                                    Tempelkan Teks Excel / CSV Di Sini (atau Drop File .csv ke kotak ini):
+                                </label>
+                                <span class="text-[10px] text-slate-400 font-medium">Mendukung pemisah Tab (copy dari Excel), Koma (CSV), atau Titik-Koma (;)</span>
+                            </div>
+                            <textarea id="excelPasteArea" rows="7" class="w-full bg-slate-50 border border-slate-300 rounded-2xl p-4 font-mono text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition placeholder:text-slate-400" placeholder="101	50	Gaya Bebas	L	KU 1	<?= (int)$suggestedDefaultPrice ?>&#10;102	50	Gaya Bebas	P	KU 1	<?= (int)$suggestedDefaultPrice ?>&#10;103	50	Gaya Dada	L	KU 1	<?= (int)$suggestedDefaultPrice ?>&#10;104	50	Gaya Dada	P	KU 1	<?= (int)$suggestedDefaultPrice ?>"></textarea>
                         </div>
 
                         <button type="button" onclick="parseFromExcel()" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-black py-4 px-6 rounded-2xl shadow-lg shadow-blue-500/25 transition flex items-center justify-center gap-2 text-xs uppercase tracking-widest">
@@ -1187,7 +1260,9 @@ function parseFromExcel() {
         if (!trimmed) return;
 
         let cols = trimmed.split('\t');
-        if (cols.length === 1 && trimmed.includes(',')) {
+        if (cols.length === 1 && trimmed.includes(';')) {
+            cols = trimmed.split(';');
+        } else if (cols.length === 1 && trimmed.includes(',')) {
             cols = trimmed.split(',');
         }
         cols = cols.map(c => c.trim().replace(/^["']|["']$/g, ''));
@@ -1235,6 +1310,90 @@ function parseFromExcel() {
     }
 
     renderDraftPreview(items);
+}
+
+// DOWNLOAD TEMPLATE CSV (Client-side & Fast Instant Download)
+function downloadTemplateCSV() {
+    const eventId = "<?= $eventId ?>";
+    const appUrl = "<?= getenv('APP_URL') ?>";
+    const kus = (window.eventKUs && window.eventKUs.length > 0) 
+        ? window.eventKUs.map(k => k.group_name) 
+        : ['KU 1', 'KU 2', 'KU 3'];
+        
+    const price = (window.isPackageActive) ? 0 : (window.savedSatuanPrice || 50000);
+    
+    // Format CSV dengan UTF-8 BOM (\uFEFF) untuk kompatibilitas sempurna dengan Excel
+    let csvContent = "\uFEFFNo Acara,Jarak,Gaya,Gender,Kelompok Umur,Biaya\r\n";
+    let eventNo = 101;
+    const strokes = ['Gaya Bebas', 'Gaya Dada', 'Gaya Punggung', 'Gaya Kupu-kupu'];
+    
+    kus.forEach(ku => {
+        strokes.forEach(stroke => {
+            csvContent += `${eventNo},50,"${stroke}",L,"${ku}",${price}\r\n`;
+            eventNo++;
+            csvContent += `${eventNo},50,"${stroke}",P,"${ku}",${price}\r\n`;
+            eventNo++;
+        });
+    });
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `template_nomor_lomba_event_${eventId || 'sample'}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(url), 100);
+}
+
+// BUKA FILE CSV DARI LOCAL KOMPUTER
+function handleCSVFileUpload(input) {
+    if (input.files && input.files[0]) {
+        readFileToTextarea(input.files[0]);
+    }
+}
+
+function readFileToTextarea(file) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const text = e.target.result;
+        const textarea = document.getElementById('excelPasteArea');
+        if (textarea) {
+            textarea.value = text;
+            textarea.focus();
+        }
+    };
+    reader.readAsText(file);
+}
+
+function loadSampleToTextarea() {
+    const kuSamples = (window.eventKUs && window.eventKUs.length > 0) 
+        ? window.eventKUs.map(k => k.group_name) 
+        : ['KU 1', 'KU 2'];
+
+    const price = (window.isPackageActive) ? 0 : (window.savedSatuanPrice || 50000);
+    const k1 = kuSamples[0];
+    const k2 = kuSamples[1] || kuSamples[0];
+
+    const sample = 
+`101\t50\tGaya Bebas\tL\t${k1}\t${price}
+102\t50\tGaya Bebas\tP\t${k1}\t${price}
+103\t50\tGaya Dada\tL\t${k1}\t${price}
+104\t50\tGaya Dada\tP\t${k1}\t${price}
+105\t50\tGaya Punggung\tL\t${k1}\t${price}
+106\t50\tGaya Punggung\tP\t${k1}\t${price}
+107\t50\tGaya Kupu-kupu\tL\t${k1}\t${price}
+108\t50\tGaya Kupu-kupu\tP\t${k1}\t${price}
+109\t50\tGaya Bebas\tL\t${k2}\t${price}
+110\t50\tGaya Bebas\tP\t${k2}\t${price}`;
+
+    const textarea = document.getElementById('excelPasteArea');
+    if (textarea) {
+        textarea.value = sample;
+        textarea.focus();
+    }
 }
 
 // RENDER PREVIEW
@@ -1425,8 +1584,27 @@ function updateSimulation() {
     if (simTotal) simTotal.textContent = formatRupiah(total);
 }
 
-// Initial simulation calculation on page load
+// Initial simulation calculation on page load & drag-and-drop setup
 document.addEventListener('DOMContentLoaded', function() {
     updateSimulation();
+
+    const dropArea = document.getElementById('excelPasteArea');
+    if (dropArea) {
+        dropArea.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            dropArea.classList.add('border-blue-500', 'bg-blue-50/50');
+        });
+        dropArea.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            dropArea.classList.remove('border-blue-500', 'bg-blue-50/50');
+        });
+        dropArea.addEventListener('drop', function(e) {
+            e.preventDefault();
+            dropArea.classList.remove('border-blue-500', 'bg-blue-50/50');
+            if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                readFileToTextarea(e.dataTransfer.files[0]);
+            }
+        });
+    }
 });
 </script>
