@@ -634,67 +634,65 @@
                                 <div>
                                     <div class="flex items-center gap-2 text-indigo-950 font-black text-xs uppercase tracking-wider">
                                         <span>📋</span>
-                                        <span>Petunjuk Format Salin dari Excel / Spreadsheet</span>
+                                        <span>Petunjuk Format Salin Buku Acara Juknis (PUTRA | ACARA | PUTRI)</span>
                                     </div>
                                     <p class="text-[11px] text-indigo-700 mt-0.5">
-                                        Unduh template file .csv untuk diedit di Excel atau Spreadsheet, lalu unggah / tempelkan datanya ke kotak di bawah.
+                                        Format standar Buku Acara renang (PRSI / Aquatik Indonesia). 1 baris Juknis otomatis menghasilkan 2 nomor lomba (Putra & Putri).
                                     </p>
                                 </div>
                                 <div class="flex flex-wrap items-center gap-2">
                                     <button type="button" onclick="downloadTemplateCSV()" class="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 rounded-xl font-black text-[11px] shadow-sm transition">
-                                        <span>📥</span> Download Format CSV (.csv)
+                                        <span>📥</span> Download Template Juknis (.csv)
                                     </button>
                                     <input type="file" id="csvFileInput" accept=".csv,.txt" class="hidden" onchange="handleCSVFileUpload(this)">
                                     <button type="button" onclick="document.getElementById('csvFileInput').click()" class="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-xl font-bold text-[11px] shadow-sm transition">
                                         <span>📁</span> Buka File CSV
                                     </button>
                                     <button type="button" onclick="loadSampleToTextarea()" class="inline-flex items-center gap-1.5 bg-white hover:bg-indigo-50 text-indigo-700 border border-indigo-200 px-3 py-2 rounded-xl font-bold text-[11px] shadow-sm transition">
-                                        <span>📋</span> Isi Contoh
+                                        <span>📋</span> Isi Contoh Juknis
                                     </button>
                                 </div>
                             </div>
 
-                            <!-- Preview Tabel Kolom CSV -->
+                            <!-- Preview Tabel Kolom CSV Juknis -->
                             <div class="space-y-1.5">
-                                <span class="text-[10px] font-black uppercase tracking-wider text-indigo-900">
-                                    Tabel Susunan Kolom Standar CSV / Excel:
-                                </span>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-[10px] font-black uppercase tracking-wider text-indigo-900">
+                                        Susunan 3 Kolom Standar Juknis Perlombaan:
+                                    </span>
+                                    <span class="text-[10px] font-bold text-emerald-700 bg-emerald-100/70 px-2 py-0.5 rounded-full">
+                                        ⚡ Otomatis Jadi 2 Nomor (PA & PI)
+                                    </span>
+                                </div>
                                 <div class="overflow-x-auto rounded-xl border border-indigo-200/80 bg-white shadow-sm">
                                     <table class="w-full text-left text-[11px]">
                                         <thead class="bg-indigo-100/70 text-indigo-950 font-black uppercase text-[10px] tracking-wider border-b border-indigo-200/60">
                                             <tr>
-                                                <th class="py-2 px-3">No Acara</th>
-                                                <th class="py-2 px-3">Jarak</th>
-                                                <th class="py-2 px-3">Gaya</th>
-                                                <th class="py-2 px-3">Gender</th>
-                                                <th class="py-2 px-3">Kelompok Umur</th>
-                                                <th class="py-2 px-3">Biaya (Rp)</th>
+                                                <th class="py-2.5 px-4 w-1/4">PUTRA (No Acara)</th>
+                                                <th class="py-2.5 px-4 w-1/2">NOMOR ACARA / DISIPLIN & KU</th>
+                                                <th class="py-2.5 px-4 w-1/4">PUTRI (No Acara)</th>
                                             </tr>
                                         </thead>
-                                        <tbody class="divide-y divide-slate-100 font-mono text-[10px] text-slate-700">
+                                        <tbody class="divide-y divide-slate-100 font-mono text-[11px] text-slate-700">
                                             <tr class="hover:bg-indigo-50/40">
-                                                <td class="py-1.5 px-3 font-bold text-blue-600">101</td>
-                                                <td class="py-1.5 px-3">50</td>
-                                                <td class="py-1.5 px-3 font-sans font-bold">Gaya Bebas</td>
-                                                <td class="py-1.5 px-3"><span class="px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 font-bold">L</span></td>
-                                                <td class="py-1.5 px-3 font-sans font-bold text-slate-900"><?= !empty($listKU) ? htmlspecialchars($listKU[0]['group_name']) : 'KU 1' ?></td>
-                                                <td class="py-1.5 px-3 text-slate-500"><?= (int)$suggestedDefaultPrice ?></td>
+                                                <td class="py-2 px-4 font-black text-blue-600">1</td>
+                                                <td class="py-2 px-4 font-sans font-bold text-slate-900">PAPAN BEBAS KU 2020</td>
+                                                <td class="py-2 px-4 font-black text-pink-600">2</td>
                                             </tr>
                                             <tr class="hover:bg-indigo-50/40">
-                                                <td class="py-1.5 px-3 font-bold text-blue-600">102</td>
-                                                <td class="py-1.5 px-3">50</td>
-                                                <td class="py-1.5 px-3 font-sans font-bold">Gaya Bebas</td>
-                                                <td class="py-1.5 px-3"><span class="px-1.5 py-0.5 rounded bg-pink-100 text-pink-700 font-bold">P</span></td>
-                                                <td class="py-1.5 px-3 font-sans font-bold text-slate-900"><?= !empty($listKU) ? htmlspecialchars($listKU[0]['group_name']) : 'KU 1' ?></td>
-                                                <td class="py-1.5 px-3 text-slate-500"><?= (int)$suggestedDefaultPrice ?></td>
+                                                <td class="py-2 px-4 font-black text-blue-600">3</td>
+                                                <td class="py-2 px-4 font-sans font-bold text-slate-900">PAPAN BEBAS KU 2019</td>
+                                                <td class="py-2 px-4 font-black text-pink-600">4</td>
                                             </tr>
                                             <tr class="hover:bg-indigo-50/40">
-                                                <td class="py-1.5 px-3 font-bold text-blue-600">103</td>
-                                                <td class="py-1.5 px-3">50</td>
-                                                <td class="py-1.5 px-3 font-sans font-bold">Gaya Dada</td>
-                                                <td class="py-1.5 px-3"><span class="px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 font-bold">L</span></td>
-                                                <td class="py-1.5 px-3 font-sans font-bold text-slate-900"><?= !empty($listKU) ? htmlspecialchars($listKU[0]['group_name']) : 'KU 1' ?></td>
-                                                <td class="py-1.5 px-3 text-slate-500"><?= (int)$suggestedDefaultPrice ?></td>
+                                                <td class="py-2 px-4 font-black text-blue-600">9</td>
+                                                <td class="py-2 px-4 font-sans font-bold text-slate-900">GAYA BEBAS KU 2016</td>
+                                                <td class="py-2 px-4 font-black text-pink-600">10</td>
+                                            </tr>
+                                            <tr class="hover:bg-indigo-50/40 bg-purple-50/30">
+                                                <td class="py-2 px-4 font-black text-blue-600">41</td>
+                                                <td class="py-2 px-4 font-sans font-black text-purple-700">ESTAFET 4X25M GAYA BEBAS</td>
+                                                <td class="py-2 px-4 font-black text-pink-600">42</td>
                                             </tr>
                                         </tbody>
                                     </table>
@@ -705,11 +703,11 @@
                                 <div class="flex items-center gap-2">
                                     <span class="text-sm">💡</span>
                                     <span>
-                                        <b>Keterangan:</b> Biaya dapat dikosongkan (otomatis mengikuti Biaya Default <b>Rp <?= number_format($suggestedDefaultPrice, 0, ',', '.') ?></b>). Gender diisi <b>L</b> (Putra), <b>P</b> (Putri), atau <b>Mix</b>.
+                                        <b>Keterangan:</b> Sistem otomatis mengekstrak Jarak (misal 50m atau 25m papan), Gaya renang, KU, dan status Estafet. Biaya per nomor otomatis mengikuti aturan biaya aktif (<b>Rp <?= number_format($suggestedDefaultPrice, 0, ',', '.') ?></b>).
                                     </span>
                                 </div>
                                 <a href="<?= getenv('APP_URL') ?>/swim/admin/events/download_template_csv?event_id=<?= $eventId ?>" download class="inline-flex items-center gap-1 text-emerald-700 font-bold hover:underline shrink-0 text-xs">
-                                    <span>📥</span> Unduh template_nomor_lomba.csv
+                                    <span>📥</span> Unduh template_juknis.csv
                                 </a>
                             </div>
                         </div>
@@ -717,11 +715,11 @@
                         <div>
                             <div class="flex items-center justify-between mb-1.5">
                                 <label class="block text-[10px] font-black uppercase tracking-wider text-slate-500">
-                                    Tempelkan Teks Excel / CSV Di Sini (atau Drop File .csv ke kotak ini):
+                                    Tempelkan Teks Juknis / Excel Di Sini (atau Drop File .csv ke kotak ini):
                                 </label>
                                 <span class="text-[10px] text-slate-400 font-medium">Mendukung pemisah Tab (copy dari Excel), Koma (CSV), atau Titik-Koma (;)</span>
                             </div>
-                            <textarea id="excelPasteArea" rows="7" class="w-full bg-slate-50 border border-slate-300 rounded-2xl p-4 font-mono text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition placeholder:text-slate-400" placeholder="101	50	Gaya Bebas	L	KU 1	<?= (int)$suggestedDefaultPrice ?>&#10;102	50	Gaya Bebas	P	KU 1	<?= (int)$suggestedDefaultPrice ?>&#10;103	50	Gaya Dada	L	KU 1	<?= (int)$suggestedDefaultPrice ?>&#10;104	50	Gaya Dada	P	KU 1	<?= (int)$suggestedDefaultPrice ?>"></textarea>
+                            <textarea id="excelPasteArea" rows="8" class="w-full bg-slate-50 border border-slate-300 rounded-2xl p-4 font-mono text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition placeholder:text-slate-400" placeholder="PUTRA	NOMOR	PUTRI&#10;1	PAPAN BEBAS KU 2020	2&#10;3	PAPAN BEBAS KU 2019	4&#10;5	GAYA BEBAS KU 2018	6&#10;7	GAYA DADA KU 2017	8&#10;9	GAYA BEBAS KU 2016	10"></textarea>
                         </div>
 
                         <button type="button" onclick="parseFromExcel()" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-black py-4 px-6 rounded-2xl shadow-lg shadow-blue-500/25 transition flex items-center justify-center gap-2 text-xs uppercase tracking-widest">
@@ -1259,88 +1257,256 @@ function parseFromExcel() {
         const trimmed = line.trim();
         if (!trimmed) return;
 
+        // Split columns (mendukung Tab, Titik-Koma, atau Koma)
         let cols = trimmed.split('\t');
         if (cols.length === 1 && trimmed.includes(';')) {
             cols = trimmed.split(';');
         } else if (cols.length === 1 && trimmed.includes(',')) {
             cols = trimmed.split(',');
         }
+        
+        // Bersihkan whitespace & tanda kutip dari setiap sel
         cols = cols.map(c => c.trim().replace(/^["']|["']$/g, ''));
+        
+        // Buang kolom kosong di ujung kanan akibat copy paste Excel
+        while (cols.length > 3 && cols[cols.length - 1] === '') {
+            cols.pop();
+        }
 
-        const first = cols[0].toLowerCase();
-        if (first.includes('no') || first.includes('acara') || first.includes('nomor')) {
+        const col0Lower = (cols[0] || '').toLowerCase();
+        const col1Lower = (cols[1] || '').toLowerCase();
+
+        // Lewati baris header jika ada
+        if (col0Lower.includes('putra') || col0Lower.includes('pa') || 
+            col1Lower.includes('nomor') || col1Lower.includes('acara') || col0Lower.includes('no acara')) {
             return;
         }
 
-        const nomor = cols[0] || (101 + idx).toString();
-        const distance = parseInt(cols[1], 10) || 50;
-        const stroke = cols[2] || 'Gaya Bebas';
-        let rawGender = (cols[3] || 'L').toUpperCase();
-        let gender = 'L';
-        if (rawGender.includes('P') || rawGender.includes('PUTRI') || rawGender === 'PI') gender = 'P';
-        else if (rawGender.includes('CAMPURAN') || rawGender.includes('MIX')) gender = 'Campuran';
+        // DETEKSI FORMAT: JUKNIS (3 KOLOM) vs DETAIL (5-6 KOLOM)
+        const isDetailFormat = cols.length >= 5 && (cols[3] === 'L' || cols[3] === 'P' || cols[3] === 'Mix' || cols[3] === 'PUTRA' || cols[3] === 'PUTRI');
 
-        const kuName = cols[4] || 'Umum';
-        const price = cols[5] ? parseFloat(cols[5]) : defaultPrice;
+        if (isDetailFormat) {
+            // FORMAT DETAIL LAMA: [No, Jarak, Gaya, Gender, KU, Biaya]
+            const nomor = cols[0] || (101 + idx).toString();
+            const distance = parseInt(cols[1], 10) || 50;
+            const stroke = cols[2] || 'Gaya Bebas';
+            let rawGender = (cols[3] || 'L').toUpperCase();
+            let gender = 'L';
+            if (rawGender.includes('P') || rawGender.includes('PUTRI') || rawGender === 'PI') gender = 'P';
+            else if (rawGender.includes('CAMPURAN') || rawGender.includes('MIX')) gender = 'Campuran';
 
-        const labelJK = (gender === 'L') ? 'PUTRA' : (gender === 'P' ? 'PUTRI' : 'MIXED');
-        const eventName = `${distance} M ${stroke.toUpperCase()} ${labelJK} - ${window.poolLabel}`;
+            const kuName = cols[4] || 'Umum';
+            const price = cols[5] ? parseFloat(cols[5]) : defaultPrice;
 
-        const matchedKU = window.eventKUs.find(k => k.group_name.toUpperCase() === kuName.toUpperCase());
-        const selectedKuIds = matchedKU ? [parseInt(matchedKU.id, 10)] : [];
+            const labelJK = (gender === 'L') ? 'PUTRA' : (gender === 'P' ? 'PUTRI' : 'MIXED');
+            const eventName = `${distance} M ${stroke.toUpperCase()} ${labelJK} - ${window.poolLabel}`;
 
-        items.push({
-            event_number: nomor,
-            distance: distance,
-            stroke: stroke,
-            jenis_kelamin: gender,
-            selected_ku_ids: selectedKuIds,
-            age_group: kuName,
-            event_name: eventName,
-            price: price,
-            schedule_date: date,
-            schedule_time: time,
-            is_relay: 0
-        });
+            const matchedKU = window.eventKUs.find(k => k.group_name.toUpperCase() === kuName.toUpperCase());
+            const selectedKuIds = matchedKU ? [parseInt(matchedKU.id, 10)] : [];
+
+            items.push({
+                event_number: nomor,
+                distance: distance,
+                stroke: stroke,
+                jenis_kelamin: gender,
+                selected_ku_ids: selectedKuIds,
+                age_group: kuName,
+                event_name: eventName,
+                price: price,
+                schedule_date: date,
+                schedule_time: time,
+                is_relay: 0
+            });
+        } else {
+            // FORMAT JUKNIS STANDAR BUKU ACARA: [PUTRA, NOMOR ACARA, PUTRI]
+            let noPutra = cols[0] || '';
+            let namaAcara = cols[1] || '';
+            let noPutri = cols[2] || '';
+
+            // TOLERANSI GLITCH COPY PDF/EXCEL (contoh: "19   GAYA PUNGGUNG 2016 20   0")
+            // Jika kolom acara diakhiri angka dan noPutri adalah '0' atau kosong
+            const glitchMatch = namaAcara.match(/^(.*?)\s+(\d{1,4})$/);
+            if (glitchMatch && (!noPutri || noPutri === '0' || noPutri === '-')) {
+                namaAcara = glitchMatch[1].trim();
+                noPutri = glitchMatch[2].trim();
+            }
+
+            if (!namaAcara && noPutra) {
+                namaAcara = noPutra;
+                noPutra = '';
+            }
+
+            const parsed = parseJuknisAcara(namaAcara);
+
+            // Tambahkan nomor PUTRA jika nomor valid
+            const numPa = parseInt(noPutra, 10);
+            if (!isNaN(numPa) && numPa > 0) {
+                items.push({
+                    event_number: noPutra,
+                    distance: parsed.distance,
+                    stroke: parsed.stroke,
+                    jenis_kelamin: 'L',
+                    selected_ku_ids: parsed.selectedKuIds,
+                    age_group: parsed.kuName,
+                    event_name: `${parsed.cleanTitle} - PUTRA`,
+                    price: defaultPrice,
+                    schedule_date: date,
+                    schedule_time: time,
+                    is_relay: parsed.isRelay
+                });
+            }
+
+            // Tambahkan nomor PUTRI jika nomor valid
+            const numPi = parseInt(noPutri, 10);
+            if (!isNaN(numPi) && numPi > 0) {
+                items.push({
+                    event_number: noPutri,
+                    distance: parsed.distance,
+                    stroke: parsed.stroke,
+                    jenis_kelamin: 'P',
+                    selected_ku_ids: parsed.selectedKuIds,
+                    age_group: parsed.kuName,
+                    event_name: `${parsed.cleanTitle} - PUTRI`,
+                    price: defaultPrice,
+                    schedule_date: date,
+                    schedule_time: time,
+                    is_relay: parsed.isRelay
+                });
+            }
+        }
     });
 
     if (items.length === 0) {
-        alert('Gagal membaca data dari teks. Pastikan format kolom sesuai petunjuk.');
+        alert('Gagal membaca data dari teks. Pastikan format kolom sesuai petunjuk Juknis.');
         return;
     }
+
+    // Urutkan item berdasarkan nomor acara (ascending: 1, 2, 3, 4...)
+    items.sort((a, b) => {
+        const numA = parseInt(a.event_number, 10) || 0;
+        const numB = parseInt(b.event_number, 10) || 0;
+        return numA - numB;
+    });
 
     renderDraftPreview(items);
 }
 
-// DOWNLOAD TEMPLATE CSV (Client-side & Fast Instant Download)
+// HELPER PARSER TEKS ACARA JUKNIS
+function parseJuknisAcara(acaraText) {
+    const raw = (acaraText || '').trim();
+    const upper = raw.toUpperCase();
+    
+    // 1. Deteksi Relay / Estafet
+    const isRelay = (upper.includes('ESTAFET') || upper.includes('RELAY')) ? 1 : 0;
+    
+    // 2. Deteksi Gaya / Stroke
+    let stroke = 'Gaya Bebas';
+    if (upper.includes('PAPAN BEBAS')) stroke = 'Papan Bebas';
+    else if (upper.includes('PAPAN DADA')) stroke = 'Papan Dada';
+    else if (upper.includes('PAPAN PUNGGUNG')) stroke = 'Papan Punggung';
+    else if (upper.includes('PAPAN KUPU')) stroke = 'Papan Kupu-kupu';
+    else if (upper.includes('PAPAN LUNCUR') || upper.includes('KICKING')) stroke = 'Papan Luncur';
+    else if (upper.includes('GAYA GANTI') || upper.includes('INDIVIDUAL MEDLEY') || upper.includes(' IM ')) stroke = 'Gaya Ganti Perorangan';
+    else if (upper.includes('GAYA BEBAS') || upper.includes(' BEBAS') || upper.startsWith('BEBAS')) stroke = 'Gaya Bebas';
+    else if (upper.includes('GAYA DADA') || upper.includes(' DADA') || upper.startsWith('DADA') || upper.includes('BREAST')) stroke = 'Gaya Dada';
+    else if (upper.includes('GAYA PUNGGUNG') || upper.includes(' PUNGGUNG') || upper.startsWith('PUNGGUNG') || upper.includes('BACK')) stroke = 'Gaya Punggung';
+    else if (upper.includes('GAYA KUPU') || upper.includes(' KUPU') || upper.startsWith('KUPU') || upper.includes('FLY')) stroke = 'Gaya Kupu-kupu';
+    else if (isRelay) stroke = 'Estafet Gaya Bebas';
+
+    // 3. Deteksi Jarak
+    let distance = 50;
+    const matchRelayDist = upper.match(/4\s*[xX]\s*(\d{2,3})\s*M?/);
+    const matchDist = upper.match(/\b(25|50|100|200|400|800|1500)\s*M?\b/);
+
+    if (matchRelayDist) {
+        distance = parseInt(matchRelayDist[1], 10) * 4; // e.g. 4x25 = 100m
+    } else if (matchDist) {
+        distance = parseInt(matchDist[1], 10);
+    } else if (stroke.includes('Papan')) {
+        distance = 25; // nomor papan pemula biasanya 25m
+    } else {
+        distance = 50; // default nomor lomba
+    }
+
+    // 4. Deteksi Kelompok Umur (KU)
+    let kuName = 'Umum';
+    let selectedKuIds = [];
+
+    // Prioritaskan pencocokan terhadap window.eventKUs yang terdaftar di event
+    if (window.eventKUs && window.eventKUs.length > 0) {
+        // Cek nama KU persis
+        for (const ku of window.eventKUs) {
+            const kuUpper = ku.group_name.toUpperCase();
+            if (upper.includes(kuUpper)) {
+                kuName = ku.group_name;
+                selectedKuIds = [parseInt(ku.id, 10)];
+                break;
+            }
+        }
+
+        // Cek pencocokan tahun kelahiran (misal "2020", "2019", dll.)
+        if (selectedKuIds.length === 0) {
+            const matchYear = upper.match(/\b(19\d{2}|20\d{2})\b/);
+            if (matchYear) {
+                const yearStr = matchYear[1];
+                for (const ku of window.eventKUs) {
+                    if (ku.group_name.includes(yearStr)) {
+                        kuName = ku.group_name;
+                        selectedKuIds = [parseInt(ku.id, 10)];
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    // Fallback jika tidak terdaftar di eventKUs, ekstrak dari teks
+    if (kuName === 'Umum') {
+        const matchKuText = upper.match(/(KU\s*\w+|KU\s*\d{4}|\b20\d{2}\b|SENIOR|PEMULA|OPEN|MASTER)/i);
+        if (matchKuText) {
+            kuName = matchKuText[0].trim();
+        }
+    }
+
+    return {
+        distance: distance,
+        stroke: stroke,
+        kuName: kuName,
+        selectedKuIds: selectedKuIds,
+        isRelay: isRelay,
+        cleanTitle: raw
+    };
+}
+
+// DOWNLOAD TEMPLATE CSV JUKNIS (Client-side & Fast Instant Download)
 function downloadTemplateCSV() {
     const eventId = "<?= $eventId ?>";
-    const appUrl = "<?= getenv('APP_URL') ?>";
     const kus = (window.eventKUs && window.eventKUs.length > 0) 
         ? window.eventKUs.map(k => k.group_name) 
-        : ['KU 1', 'KU 2', 'KU 3'];
+        : ['KU 2020', 'KU 2019', 'KU 2018', 'KU 2017', 'KU 2016'];
         
-    const price = (window.isPackageActive) ? 0 : (window.savedSatuanPrice || 50000);
-    
-    // Format CSV dengan UTF-8 BOM (\uFEFF) untuk kompatibilitas sempurna dengan Excel
-    let csvContent = "\uFEFFNo Acara,Jarak,Gaya,Gender,Kelompok Umur,Biaya\r\n";
-    let eventNo = 101;
-    const strokes = ['Gaya Bebas', 'Gaya Dada', 'Gaya Punggung', 'Gaya Kupu-kupu'];
+    // Format CSV Juknis dengan UTF-8 BOM (\uFEFF) untuk kompatibilitas sempurna dengan Excel
+    let csvContent = "\uFEFFPUTRA,NOMOR ACARA,PUTRI\r\n";
+    let paNo = 1;
+    let piNo = 2;
+    const strokes = ['50 M GAYA BEBAS', '50 M GAYA DADA', '50 M GAYA PUNGGUNG', '50 M GAYA KUPU-KUPU'];
     
     kus.forEach(ku => {
         strokes.forEach(stroke => {
-            csvContent += `${eventNo},50,"${stroke}",L,"${ku}",${price}\r\n`;
-            eventNo++;
-            csvContent += `${eventNo},50,"${stroke}",P,"${ku}",${price}\r\n`;
-            eventNo++;
+            csvContent += `${paNo},"${stroke} ${ku}",${piNo}\r\n`;
+            paNo += 2;
+            piNo += 2;
         });
     });
+
+    // Tambahkan contoh nomor estafet
+    csvContent += `${paNo},"ESTAFET 4X25M GAYA BEBAS",${piNo}\r\n`;
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
     link.setAttribute("href", url);
-    link.setAttribute("download", `template_nomor_lomba_event_${eventId || 'sample'}.csv`);
+    link.setAttribute("download", `template_juknis_event_${eventId || 'sample'}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -1369,25 +1535,49 @@ function readFileToTextarea(file) {
 }
 
 function loadSampleToTextarea() {
-    const kuSamples = (window.eventKUs && window.eventKUs.length > 0) 
-        ? window.eventKUs.map(k => k.group_name) 
-        : ['KU 1', 'KU 2'];
-
-    const price = (window.isPackageActive) ? 0 : (window.savedSatuanPrice || 50000);
-    const k1 = kuSamples[0];
-    const k2 = kuSamples[1] || kuSamples[0];
-
     const sample = 
-`101\t50\tGaya Bebas\tL\t${k1}\t${price}
-102\t50\tGaya Bebas\tP\t${k1}\t${price}
-103\t50\tGaya Dada\tL\t${k1}\t${price}
-104\t50\tGaya Dada\tP\t${k1}\t${price}
-105\t50\tGaya Punggung\tL\t${k1}\t${price}
-106\t50\tGaya Punggung\tP\t${k1}\t${price}
-107\t50\tGaya Kupu-kupu\tL\t${k1}\t${price}
-108\t50\tGaya Kupu-kupu\tP\t${k1}\t${price}
-109\t50\tGaya Bebas\tL\t${k2}\t${price}
-110\t50\tGaya Bebas\tP\t${k2}\t${price}`;
+`PUTRA\tNOMOR\tPUTRI
+1\tPAPAN BEBAS KU 2020\t2
+3\tPAPAN BEBAS KU 2019\t4
+5\tPAPAN BEBAS KU 2018\t6
+7\tPAPAN BEBAS KU 2017\t8
+9\tGAYA BEBAS KU 2016\t10
+11\tGAYA BEBAS KU 2017\t12
+13\tGAYA BEBAS KU 2018\t14
+15\tGAYA BEBAS KU 2019\t16
+17\tGAYA BEBAS KU 2020\t18
+19\tGAYA PUNGGUNG 2016 20\t0
+21\tPAPAN DADA KU 2020\t22
+23\tPAPAN DADA KU 2019\t24
+25\tPAPAN DADA KU 2018\t26
+27\tPAPAN DADA KU 2017\t28
+29\tGAYA DADA KU 2016\t30
+31\tGAYA DADA KU 2017\t32
+33\tGAYA DADA KU 2018\t34
+35\tGAYA DADA KU 2019\t36
+37\tGAYA DADA KU 2020\t38
+39\tGAYA KUPU-KUPU 2016 40\t0
+41\tESTAFET 4X25M GAYA BEBAS\t42
+43\tPAPAN PUNGGUNG KU 2020\t44
+45\tPAPAN PUNGGUNG KU 2019\t46
+47\tPAPAN PUNGGUNG KU 2018\t48
+49\tPAPAN PUNGGUNG KU 2017\t50
+51\tPUNGGUNG KU 2016 52\t0
+53\tPUNGGUNG KU 2017 54\t0
+55\tPUNGGUNG KU 2018 56\t0
+57\tPUNGGUNG KU 2019 58\t0
+59\tPUNGGUNG KU 2020 60\t0
+61\tGAYA DADA KU 2016\t62
+63\tPAPAN KUPU-KUPU KU 2020\t64
+65\tPAPAN KUPU-KUPU KU 2019\t66
+67\tPAPAN KUPU-KUPU KU 2018\t68
+69\tPAPAN KUPU-KUPU KU 2017\t70
+71\tKUPU-KUPU KU 2016 72\t0
+73\tKUPU-KUPU KU 2017 74\t0
+75\tKUPU-KUPU KU 2018 76\t0
+77\tKUPU-KUPU KU 2019 78\t0
+79\tKUPU-KUPU KU 2020 80\t0
+81\tGAYA BEBAS KU 2016\t82`;
 
     const textarea = document.getElementById('excelPasteArea');
     if (textarea) {

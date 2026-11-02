@@ -505,19 +505,19 @@ class EventsController extends Controller {
         // UTF-8 BOM untuk kompatibilitas sempurna dengan Microsoft Excel & Google Sheets
         fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
 
-        // Header kolom CSV
-        fputcsv($output, ['No Acara', 'Jarak', 'Gaya', 'Gender', 'Kelompok Umur', 'Biaya']);
+        // Header kolom CSV Juknis (Buku Acara Standar)
+        fputcsv($output, ['PUTRA', 'NOMOR ACARA', 'PUTRI']);
 
-        // Generate data baris contoh terstruktur
-        $eventNo = 101;
-        $strokes = ['Gaya Bebas', 'Gaya Dada', 'Gaya Punggung', 'Gaya Kupu-kupu'];
+        // Generate data baris contoh terstruktur Juknis
+        $paNo = 1;
+        $piNo = 2;
+        $strokes = ['50 M GAYA BEBAS', '50 M GAYA DADA', '50 M GAYA PUNGGUNG', '50 M GAYA KUPU-KUPU'];
 
         foreach ($kus as $ku) {
             foreach ($strokes as $stroke) {
-                fputcsv($output, [(string)$eventNo, '50', $stroke, 'L', $ku, (string)$defaultPrice]);
-                $eventNo++;
-                fputcsv($output, [(string)$eventNo, '50', $stroke, 'P', $ku, (string)$defaultPrice]);
-                $eventNo++;
+                fputcsv($output, [$paNo, $stroke . ' ' . $ku, $piNo]);
+                $paNo += 2;
+                $piNo += 2;
             }
         }
 
