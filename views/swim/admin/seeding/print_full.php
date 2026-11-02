@@ -138,7 +138,7 @@ $sqlAll = "(
             SELECT en.id as cat_id, en.event_number, en.distance, en.stroke, en.age_group, en.jenis_kelamin, en.schedule_date, en.schedule_time, en.is_relay,
             es.heat_prelim as heat_no, es.lane_prelim as lane_no, es.time_prelim as entry_time,
             NULL as uid, '' as nama_atlet, NULL as tanggal_lahir, c.nama_klub as club_name, '' as asal_sekolah,
-            '' as team_name, s1.nama_atlet as n1, s2.nama_atlet as n2, s3.nama_atlet as n3, s4.nama_atlet as n4
+            re.team_name as team_name, s1.nama_atlet as n1, s2.nama_atlet as n2, s3.nama_atlet as n3, s4.nama_atlet as n4
            FROM swim_event_numbers en
            JOIN swim_relay_entries re ON re.category_id = en.id
            JOIN swim_event_seeding es ON es.entry_id = re.id

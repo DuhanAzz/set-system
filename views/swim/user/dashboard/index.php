@@ -85,7 +85,7 @@
         </a>
 
         <?php if($activeRelayEventId): ?>
-        <a href="kompetisi/relay_registration.php?event_id=<?= $activeRelayEventId ?>" class="bg-gradient-to-br from-white to-slate-50 p-8 rounded-3xl shadow-sm border border-slate-200 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group border-b-4 border-pink-400 relative overflow-hidden">
+        <a href="<?= getenv('APP_URL') ?>/swim/user/relay_registration/index/<?= $activeRelayEventId ?>" class="bg-gradient-to-br from-white to-slate-50 p-8 rounded-3xl shadow-sm border border-slate-200 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group border-b-4 border-pink-400 relative overflow-hidden">
             <div class="absolute -right-6 top-3 bg-pink-500 text-white text-[9px] font-black uppercase px-8 py-1 rotate-45 tracking-widest shadow-lg">NEW</div>
             <span class="w-16 h-16 bg-pink-100 text-pink-600 rounded-2xl flex items-center justify-center text-3xl mb-6 shadow-inner group-hover:scale-110 transition">🏃‍♂️</span>
             <h4 class="font-black text-lg text-slate-800 uppercase italic leading-tight">Daftar Estafet</h4>

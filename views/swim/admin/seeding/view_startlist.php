@@ -130,7 +130,7 @@ $jadwalKiri = $tglMain . " | " . $jamMain;
 $heats = [];
 if (isset($raceInfo['is_relay']) && $raceInfo['is_relay'] == 1) {
     $sql = "SELECT es.heat_prelim as heat_no, es.lane_prelim as lane_no, es.time_prelim as entry_time,
-            '' as team_name, c.nama_klub as club_name, 
+            re.team_name as team_name, c.nama_klub as club_name, 
             s1.nama_atlet as n1, s2.nama_atlet as n2, s3.nama_atlet as n3, s4.nama_atlet as n4
             FROM swim_relay_entries re
             JOIN swim_event_seeding es ON es.entry_id = re.id
