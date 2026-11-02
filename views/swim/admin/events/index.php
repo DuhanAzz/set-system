@@ -235,6 +235,26 @@
                     if ($numVal > $maxEventNum) $maxEventNum = $numVal;
                 }
                 $suggestedStartNo = ($maxEventNum > 0) ? ($maxEventNum + 1) : 101;
+
+                // Sinkronisasi dengan Aturan Biaya Pendaftaran
+                $isPackage = ($activeEvent['pricing_mode'] ?? 'per_item') === 'package';
+                $pkgPrice = (float)($activeEvent['package_price'] ?? 0);
+                $pkgLimit = (int)($activeEvent['package_limit'] ?? 0);
+                $pkgExtra = (float)($activeEvent['extra_price'] ?? 0);
+
+                // Ambil harga standar dari nomor lomba satuan sebelumnya jika ada
+                $standardUnitPrice = 50000;
+                if (!empty($listEvents)) {
+                    foreach ($listEvents as $lev) {
+                        if ((float)$lev['price'] > 0 && empty($lev['is_relay'])) {
+                            $standardUnitPrice = (float)$lev['price'];
+                            break;
+                        }
+                    }
+                }
+
+                // Jika skema paket aktif, nomor individual masuk kuota paket = 0
+                $suggestedDefaultPrice = $isPackage ? 0 : $standardUnitPrice;
                 ?>
 
                 <!-- CARD 2: SMART MULTI-MODE GENERATOR NOMOR LOMBA -->
@@ -294,14 +314,32 @@
                             </div>
 
                             <div>
-                                <label class="block text-[10px] font-black uppercase tracking-wider text-slate-600 mb-1">
-                                    Biaya Default (Rp)
-                                </label>
+                                <div class="flex items-center justify-between mb-1">
+                                    <label class="block text-[10px] font-black uppercase tracking-wider text-slate-600">
+                                        Biaya Default (Rp)
+                                    </label>
+                                    <span id="priceModeIndicator" class="text-[9px] font-black px-2 py-0.5 rounded-full <?= $isPackage ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-blue-100 text-blue-800 border border-blue-200' ?>">
+                                        <?= $isPackage ? '📦 Masuk Kuota Paket' : '🏷️ Mengikuti Satuan' ?>
+                                    </span>
+                                </div>
                                 <div class="relative">
                                     <span class="absolute left-3 top-2 text-xs font-bold text-slate-400">Rp</span>
-                                    <input type="number" id="genDefaultPrice" value="50000" class="w-full bg-white border border-slate-300 rounded-xl pl-9 pr-3 py-2 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500" step="1000" min="0">
+                                    <input type="number" id="genDefaultPrice" value="<?= (int)$suggestedDefaultPrice ?>" class="w-full bg-white border border-slate-300 rounded-xl pl-9 pr-3 py-2 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500" step="1000" min="0">
                                 </div>
-                                <p class="text-[9px] text-slate-400 mt-1">Biaya per nomor (0 jika sistem paket)</p>
+                                <div class="flex items-center justify-between mt-1">
+                                    <p id="priceModeHelp" class="text-[9px] text-slate-500 leading-tight">
+                                        <?php if($isPackage): ?>
+                                            <span class="text-emerald-700 font-bold">📦 Skema Paket:</span> Kuota <?= $pkgLimit ?> nomor (Rp <?= number_format($pkgPrice, 0, ',', '.') ?>), ekstra Rp <?= number_format($pkgExtra, 0, ',', '.') ?>.
+                                        <?php else: ?>
+                                            <span class="text-blue-700 font-bold">🏷️ Skema Satuan:</span> Dihitung akumulasi per nomor lomba.
+                                        <?php endif; ?>
+                                    </p>
+                                    <div class="flex gap-1 text-[9px] font-bold">
+                                        <button type="button" onclick="setGenPrice(0)" class="text-emerald-600 hover:underline">Rp 0</button>
+                                        <span class="text-slate-300">|</span>
+                                        <button type="button" onclick="setGenPrice(<?= (int)$standardUnitPrice ?>)" class="text-blue-600 hover:underline">Rp <?= number_format($standardUnitPrice, 0, ',', '.') ?></button>
+                                    </div>
+                                </div>
                             </div>
 
                             <div>
@@ -675,8 +713,11 @@
                                     </div>
                                 </div>
                                 <div>
-                                    <label class="block text-[9px] font-bold text-slate-400 uppercase mb-1">Biaya</label>
-                                    <input type="number" name="biaya_pendaftaran" value="50000" class="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 py-2 font-bold text-sm outline-none">
+                                    <label class="block text-[9px] font-bold text-slate-400 uppercase mb-1">Biaya (Rp)</label>
+                                    <input type="number" id="manualPriceInput" name="biaya_pendaftaran" value="<?= (int)$suggestedDefaultPrice ?>" class="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 py-2 font-bold text-sm outline-none">
+                                    <p id="manualPriceHelp" class="text-[9px] text-slate-400 mt-1">
+                                        <?= $isPackage ? '📦 Sistem paket aktif: set Rp 0 jika nomor reguler masuk kuota paket' : '🏷️ Biaya perorangan nomor satuan' ?>
+                                    </p>
                                 </div>
                             </div>
 
@@ -863,7 +904,19 @@
 // ==========================================
 window.eventKUs = <?= json_encode($listKU) ?>;
 window.poolLabel = '<?= $poolLabel ?>';
+window.isPackageActive = <?= $isPackage ? 'true' : 'false' ?>;
+window.packagePrice = <?= (float)$pkgPrice ?>;
+window.packageLimit = <?= (int)$pkgLimit ?>;
+window.extraPrice = <?= (float)$pkgExtra ?>;
+window.savedSatuanPrice = <?= (float)$standardUnitPrice ?>;
 let currentDraftItems = [];
+
+function setGenPrice(val) {
+    const input = document.getElementById('genDefaultPrice');
+    if (input) {
+        input.value = val;
+    }
+}
 
 function switchEventTab(tab) {
     const tabs = ['wizard', 'matrix', 'excel', 'manual'];
@@ -1224,8 +1277,12 @@ function renderDraftPreview(items) {
             <td class="p-3 font-bold text-slate-600">
                 ${item.age_group}
             </td>
-            <td class="p-3 text-right font-bold text-slate-700">
-                Rp ${formatRupiah(item.price)}
+            <td class="p-3 text-right">
+                ${(item.price == 0 && window.isPackageActive) 
+                    ? `<div class="flex items-center justify-end gap-1"><span class="font-black text-emerald-600">Rp 0</span><span class="text-[9px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-black border border-emerald-200">📦 PAKET</span></div>` 
+                    : (item.is_relay == 1 
+                        ? `<div class="flex items-center justify-end gap-1"><span class="font-bold text-indigo-700">Rp ${formatRupiah(item.price)}</span><span class="text-[9px] bg-indigo-100 text-indigo-800 px-1.5 py-0.5 rounded font-black">ESTAFET</span></div>`
+                        : `<span class="font-bold text-slate-700">Rp ${formatRupiah(item.price)}</span>`)}
             </td>
             <td class="p-3 text-center">
                 <button type="button" onclick="removeDraftRow(${index})" class="text-slate-300 hover:text-rose-600 font-black text-lg px-2 py-0.5 rounded transition" title="Hapus Nomor Ini">&times;</button>
@@ -1270,20 +1327,70 @@ function togglePricingMode(mode) {
     const satuanConfig = document.getElementById('satuanConfig');
     const badge = document.getElementById('activeModeBadge');
 
+    const genDefaultPrice = document.getElementById('genDefaultPrice');
+    const manualPriceInput = document.getElementById('manualPriceInput');
+    const priceModeIndicator = document.getElementById('priceModeIndicator');
+    const priceModeHelp = document.getElementById('priceModeHelp');
+    const manualPriceHelp = document.getElementById('manualPriceHelp');
+
+    const pkgPrice = parseFloat(document.getElementById('packagePriceInput')?.value) || window.packagePrice || 0;
+    const pkgLimit = parseInt(document.getElementById('packageLimitInput')?.value, 10) || window.packageLimit || 0;
+    const extraPrice = parseFloat(document.getElementById('extraPriceInput')?.value) || window.extraPrice || 0;
+
     if (mode === 'package') {
+        window.isPackageActive = true;
         if (packageConfig) packageConfig.classList.remove('hidden');
         if (satuanConfig) satuanConfig.classList.add('hidden');
         if (badge) {
             badge.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-400/40';
             badge.innerHTML = '📦 Skema Paket Aktif';
         }
+
+        // Sinkronisasi Biaya Default ke Skema Paket
+        if (genDefaultPrice) {
+            genDefaultPrice.value = 0;
+        }
+        if (manualPriceInput) {
+            manualPriceInput.value = 0;
+        }
+        if (priceModeIndicator) {
+            priceModeIndicator.className = 'text-[9px] font-black px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200';
+            priceModeIndicator.textContent = '📦 Masuk Kuota Paket';
+        }
+        if (priceModeHelp) {
+            priceModeHelp.innerHTML = `<span class="text-emerald-700 font-bold">📦 Skema Paket:</span> Kuota ${pkgLimit} nomor (Rp ${formatRupiah(pkgPrice)}), ekstra Rp ${formatRupiah(extraPrice)}.`;
+        }
+        if (manualPriceHelp) {
+            manualPriceHelp.textContent = '📦 Sistem paket aktif: set Rp 0 jika nomor reguler masuk kuota paket';
+        }
+
         updateSimulation();
     } else {
+        window.isPackageActive = false;
         if (packageConfig) packageConfig.classList.add('hidden');
         if (satuanConfig) satuanConfig.classList.remove('hidden');
         if (badge) {
             badge.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-blue-500/20 text-blue-300 border border-blue-400/40';
             badge.innerHTML = '🏷️ Skema Satuan Aktif';
+        }
+
+        // Sinkronisasi Biaya Default ke Skema Satuan
+        const defaultSatuan = window.savedSatuanPrice || 50000;
+        if (genDefaultPrice) {
+            genDefaultPrice.value = defaultSatuan;
+        }
+        if (manualPriceInput) {
+            manualPriceInput.value = defaultSatuan;
+        }
+        if (priceModeIndicator) {
+            priceModeIndicator.className = 'text-[9px] font-black px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 border border-blue-200';
+            priceModeIndicator.textContent = '🏷️ Mengikuti Satuan';
+        }
+        if (priceModeHelp) {
+            priceModeHelp.innerHTML = `<span class="text-blue-700 font-bold">🏷️ Skema Satuan:</span> Dihitung akumulasi per nomor lomba.`;
+        }
+        if (manualPriceHelp) {
+            manualPriceHelp.textContent = '🏷️ Biaya perorangan nomor satuan';
         }
     }
 }
