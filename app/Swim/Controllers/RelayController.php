@@ -30,8 +30,14 @@ class RelayController extends Controller {
         $sql = "
             SELECT 
                 re.id as relay_id,
+                re.club_id,
+                re.team_name,
                 re.status as entry_status,
                 re.seed_time,
+                re.swimmer_1_id,
+                re.swimmer_2_id,
+                re.swimmer_3_id,
+                re.swimmer_4_id,
                 c.nama_klub,
                 en.event_name, 
                 en.event_number, 
@@ -57,9 +63,22 @@ class RelayController extends Controller {
         $stmt = $pdo->prepare($sql);
         $stmt->execute([$eventId]);
         $relays = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        // Ambil data perenang dari klub-klub peserta estafet untuk modal edit panitia
+        $clubIds = array_unique(array_filter(array_column($relays, 'club_id')));
+        $swimmersByClub = [];
+        if (!empty($clubIds)) {
+            $inClubs = implode(',', array_fill(0, count($clubIds), '?'));
+            $stmtSw = $pdo->prepare("SELECT id, club_id, nama_atlet, jenis_kelamin, tanggal_lahir FROM swim_swimmers WHERE club_id IN ($inClubs) ORDER BY nama_atlet ASC");
+            $stmtSw->execute(array_values($clubIds));
+            while ($sw = $stmtSw->fetch(\PDO::FETCH_ASSOC)) {
+                $swimmersByClub[$sw['club_id']][] = $sw;
+            }
+        }
         
         return $this->view('swim/admin/relay/index', [
             'relays' => $relays,
+            'swimmersByClub' => $swimmersByClub,
             'eventName' => $activeEvent['event_name']
         ]);
     }
@@ -94,16 +113,10 @@ class RelayController extends Controller {
                         $clubIds = array_filter([$data['c1'], $data['c2'], $data['c3'], $data['c4']]);
                         $uniqueClubs = array_unique($clubIds);
                         
-                        if (count($clubIds) < 4) {
+                        // Tolak jika ada atlet terpilih yang bukan dari klub bersangkutan
+                        if (!empty($uniqueClubs) && (count($uniqueClubs) > 1 || end($uniqueClubs) != $data['club_id'])) {
                             $_SESSION['swal_type'] = 'error';
-                            $_SESSION['swal_msg'] = 'Gagal: Tim belum lengkap 4 perenang!';
-                            header("Location: " . getenv('APP_URL') . "/swim/admin/relay/index");
-                            exit;
-                        }
-                        
-                        if (count($uniqueClubs) > 1 || end($uniqueClubs) != $data['club_id']) {
-                            $_SESSION['swal_type'] = 'error';
-                            $_SESSION['swal_msg'] = 'Gagal: Ke-4 perenang harus berasal dari Klub yang sama!';
+                            $_SESSION['swal_msg'] = 'Gagal: Atlet terpilih harus berasal dari Klub yang sama!';
                             header("Location: " . getenv('APP_URL') . "/swim/admin/relay/index");
                             exit;
                         }
@@ -122,13 +135,62 @@ class RelayController extends Controller {
                     
                     $_SESSION['swal_type'] = 'success';
                     $_SESSION['swal_msg'] = 'Status estafet berhasil diperbarui!';
+                    $_SESSION['flash_type'] = 'success';
+                    $_SESSION['flash_message'] = 'Status estafet berhasil diperbarui!';
                 } catch (\Exception $e) {
                     $_SESSION['swal_type'] = 'error';
                     $_SESSION['swal_msg'] = 'Gagal memperbarui status estafet.';
+                    $_SESSION['flash_type'] = 'error';
+                    $_SESSION['flash_message'] = 'Gagal memperbarui status estafet.';
                 }
             }
         }
         
+        header("Location: " . getenv('APP_URL') . "/swim/admin/relay/index");
+        exit;
+    }
+
+    public function update_swimmers() {
+        if (!isset($_SESSION['swim_role']) || $_SESSION['swim_role'] !== 'admin') {
+            header("Location: " . getenv('APP_URL') . "/swim/login");
+            exit;
+        }
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $pdo = Database::getInstance()->getConnection();
+            $relayId = (int)($_POST['relay_id'] ?? 0);
+            $s1 = !empty($_POST['swimmer_1_id']) ? (int)$_POST['swimmer_1_id'] : null;
+            $s2 = !empty($_POST['swimmer_2_id']) ? (int)$_POST['swimmer_2_id'] : null;
+            $s3 = !empty($_POST['swimmer_3_id']) ? (int)$_POST['swimmer_3_id'] : null;
+            $s4 = !empty($_POST['swimmer_4_id']) ? (int)$_POST['swimmer_4_id'] : null;
+
+            $selected = array_filter([$s1, $s2, $s3, $s4]);
+            if (count($selected) !== count(array_unique($selected))) {
+                $_SESSION['swal_type'] = 'error';
+                $_SESSION['swal_msg'] = 'Gagal: Perenang tidak boleh dipilih ganda dalam satu tim!';
+                $_SESSION['flash_type'] = 'error';
+                $_SESSION['flash_message'] = 'Gagal: Perenang tidak boleh dipilih ganda dalam satu tim!';
+                header("Location: " . getenv('APP_URL') . "/swim/admin/relay/index");
+                exit;
+            }
+
+            if ($relayId > 0) {
+                try {
+                    $stmt = $pdo->prepare("UPDATE swim_relay_entries SET swimmer_1_id = ?, swimmer_2_id = ?, swimmer_3_id = ?, swimmer_4_id = ?, updated_at = NOW() WHERE id = ?");
+                    $stmt->execute([$s1, $s2, $s3, $s4, $relayId]);
+                    $_SESSION['swal_type'] = 'success';
+                    $_SESSION['swal_msg'] = 'Susunan perenang estafet berhasil diperbarui oleh Panitia!';
+                    $_SESSION['flash_type'] = 'success';
+                    $_SESSION['flash_message'] = 'Susunan perenang estafet berhasil diperbarui oleh Panitia!';
+                } catch (\Exception $e) {
+                    $_SESSION['swal_type'] = 'error';
+                    $_SESSION['swal_msg'] = 'Gagal menyimpan susunan perenang: ' . $e->getMessage();
+                    $_SESSION['flash_type'] = 'error';
+                    $_SESSION['flash_message'] = 'Gagal menyimpan susunan perenang: ' . $e->getMessage();
+                }
+            }
+        }
+
         header("Location: " . getenv('APP_URL') . "/swim/admin/relay/index");
         exit;
     }
