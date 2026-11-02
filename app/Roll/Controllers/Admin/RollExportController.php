@@ -964,4 +964,307 @@ class RollExportController extends Controller {
         fclose($output);
         exit;
     }
+
+    /**
+     * Helper privat untuk mengumpulkan data pemenang / peserta Puspernas secara presisi
+     */
+    private function getPuspernasCertificateData($eventId, $limitRank = 'TOP3', $filterCategory = 'ALL', $filterStatus = 'all', $scope = 'juara') {
+        $db = Database::getInstance()->getConnection();
+
+        $stmtEvt = $db->prepare("SELECT * FROM roll_events WHERE id = ?");
+        $stmtEvt->execute([$eventId]);
+        $event = $stmtEvt->fetch(PDO::FETCH_ASSOC);
+        if (!$event) return ['event' => null, 'items' => []];
+
+        $whereClass = "WHERE ed.event_id = ?";
+        $paramsClass = [$eventId];
+
+        if ($filterStatus === 'published') {
+            $whereClass .= " AND ed.result_status = 'Published'";
+        }
+
+        if ($filterCategory !== 'ALL' && !empty($filterCategory)) {
+            $whereClass .= " AND sc.class_name = ?";
+            $paramsClass[] = $filterCategory;
+        }
+
+        $stmtClasses = $db->prepare("
+            SELECT ed.id, ed.race_number, ed.gender, ed.category_name, ed.custom_name,
+                   d.distance_name, a.group_name, sc.class_name as skate_class_name
+            FROM roll_event_details ed
+            LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
+            LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id
+            LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
+            $whereClass
+            ORDER BY CAST(ed.race_number AS UNSIGNED) ASC, ed.race_number ASC, ed.gender DESC, a.id ASC
+        ");
+        $stmtClasses->execute($paramsClass);
+        $classes = $stmtClasses->fetchAll(PDO::FETCH_ASSOC);
+
+        $stmtRounds = $db->prepare("
+            SELECT DISTINCT round 
+            FROM roll_pelotons 
+            WHERE event_id = ? AND race_class_id = ? 
+            ORDER BY CASE round 
+                WHEN 'Kualifikasi' THEN 1 
+                WHEN 'Perempat Final' THEN 2 
+                WHEN 'Semi Final' THEN 3 
+                WHEN 'Final' THEN 4 
+                ELSE 5 END
+        ");
+
+        $stmtResRounds = $db->prepare("
+            SELECT DISTINCT round 
+            FROM roll_event_results 
+            WHERE event_id = ? AND race_class_id = ? 
+            ORDER BY CASE round 
+                WHEN 'Kualifikasi' THEN 1 
+                WHEN 'Perempat Final' THEN 2 
+                WHEN 'Semi Final' THEN 3 
+                WHEN 'Final' THEN 4 
+                ELSE 5 END
+        ");
+
+        $items = [];
+        $certCounter = 1;
+        $eventYear = date('Y', strtotime($event['event_date_start'] ?? date('Y-m-d')));
+        $cleanEventCode = strtoupper(substr(preg_replace('/[^A-Za-z0-9]/', '', $event['event_name'] ?? 'EVENT'), 0, 8));
+
+        foreach ($classes as $classInfo) {
+            $classId = $classInfo['id'];
+
+            $stmtRounds->execute([$eventId, $classId]);
+            $rounds = $stmtRounds->fetchAll(PDO::FETCH_COLUMN);
+
+            if (empty($rounds)) {
+                $stmtResRounds->execute([$eventId, $classId]);
+                $rounds = $stmtResRounds->fetchAll(PDO::FETCH_COLUMN);
+            }
+
+            if (empty($rounds)) continue;
+
+            $targetRound = in_array('Final', $rounds) ? 'Final' : end($rounds);
+
+            $dn = strtolower($classInfo['distance_name'] ?? '');
+            $raceFormat = 'DTT';
+            if (strpos($dn, 'eliminasi') !== false) {
+                $raceFormat = 'ELIMINASI';
+            } elseif (strpos($dn, 'ptp') !== false || strpos($dn, 'point') !== false) {
+                $raceFormat = 'PTP';
+            }
+            $isRelay = (strpos($dn, 'relay') !== false || strpos($dn, 'pair') !== false);
+
+            if ($raceFormat === 'ELIMINASI') {
+                $orderBy = "ORDER BY CASE WHEN COALESCE(r.status, 'OK') = 'OK' THEN 0 ELSE 1 END ASC, CASE WHEN r.rank IS NULL OR CAST(r.rank AS CHAR) = '0' OR CAST(r.rank AS CHAR) = '' THEN 1 ELSE 0 END ASC, r.rank ASC, CASE WHEN r.time IS NULL OR r.time = '' OR r.time = '00.00.000' OR r.time = '00:00.000' THEN '99:99.999' ELSE r.time END ASC, CAST(REPLACE(p.heat_name, 'Heat ', '') AS UNSIGNED) ASC, p.start_grid ASC";
+            } else if ($raceFormat === 'DTT') {
+                $orderBy = "ORDER BY CASE WHEN COALESCE(r.status, 'OK') = 'OK' THEN 0 ELSE 1 END ASC, CASE WHEN r.rank IS NULL OR CAST(r.rank AS CHAR) = '0' OR CAST(r.rank AS CHAR) = '' THEN 1 ELSE 0 END ASC, r.rank ASC, CASE WHEN r.time IS NULL OR r.time = '' OR r.time = '00.00.000' OR r.time = '00:00.000' THEN 1 ELSE 0 END ASC, REPLACE(r.time, ':', '.') ASC, CAST(REPLACE(p.heat_name, 'Heat ', '') AS UNSIGNED) ASC, p.start_grid ASC";
+            } else {
+                $orderBy = "ORDER BY CASE WHEN COALESCE(r.status, 'OK') = 'OK' THEN 0 ELSE 1 END ASC, CASE WHEN r.rank IS NULL OR CAST(r.rank AS CHAR) = '0' OR CAST(r.rank AS CHAR) = '' THEN 1 ELSE 0 END ASC, r.rank ASC, r.point DESC, CASE WHEN r.time IS NULL OR r.time = '' OR r.time = '00.00.000' OR r.time = '00:00.000' THEN 1 ELSE 0 END ASC, REPLACE(r.time, ':', '.') ASC, CAST(REPLACE(p.heat_name, 'Heat ', '') AS UNSIGNED) ASC, p.start_grid ASC";
+            }
+
+            $stmtResults = $db->prepare("
+                SELECT p.skater_id, e.bib_number, e.team_name, s.skater_name, s.gender, s.uid, s.birth_date,
+                       s.asal_sekolah, s.kota_kabupaten, s.provinsi, c.city_province as city, c.club_name, p.heat_name, p.start_grid,
+                       r.rank as heat_rank, r.rank, r.point, r.time, r.status, r.is_official, r.round, r.print_round_name
+                FROM roll_pelotons p
+                JOIN roll_entries e ON p.skater_id = e.skater_id AND p.race_class_id = e.race_class_id AND p.event_id = e.event_id
+                JOIN roll_skaters s ON p.skater_id = s.id
+                LEFT JOIN roll_clubs c ON s.club_id = c.id
+                LEFT JOIN roll_event_results r ON p.event_id = r.event_id AND p.race_class_id = r.race_class_id AND p.skater_id = r.skater_id AND p.heat_name = r.heat_name AND p.round = r.round
+                WHERE p.event_id = ? AND p.race_class_id = ? AND p.round = ?
+                $orderBy
+            ");
+            $stmtResults->execute([$eventId, $classId, $targetRound]);
+            $roundResults = $stmtResults->fetchAll(PDO::FETCH_ASSOC);
+
+            if (empty($roundResults)) continue;
+
+            $genderRaw = $classInfo['gender'] ?? '';
+            $genderLabel = ($genderRaw === 'M' || $genderRaw === 'L' || strtolower($genderRaw) === 'putra') ? 'PUTRA' : 'PUTRI';
+            $raceNumber = str_pad($classInfo['race_number'], 3, '0', STR_PAD_LEFT);
+            $raceName = trim(($classInfo['skate_class_name'] ?? '') . ' ' . ($classInfo['group_name'] ?? '') . ' ' . $genderLabel . ' ' . ($classInfo['distance_name'] ?? ''));
+            if (!empty($classInfo['custom_name'])) {
+                $raceName = $classInfo['custom_name'] . ' (' . $raceName . ')';
+            }
+
+            $globalRank = 0;
+            foreach ($roundResults as $res) {
+                $statusStr = strtoupper($res['status'] ?? 'OK');
+                $isOk = ($statusStr === 'OK' || empty($res['status']));
+
+                if ($isOk) {
+                    $globalRank++;
+                }
+
+                if ($scope === 'juara') {
+                    if (!$isOk) continue;
+                    if ($limitRank === 'TOP3' && $globalRank > 3) break;
+                    if ($limitRank === 'TOP5' && $globalRank > 5) break;
+                }
+
+                $displayRank = $isOk ? $globalRank : '-';
+                
+                $juaraLabel = '-';
+                $medaliLabel = '-';
+                if ($isOk) {
+                    if ($globalRank === 1) { $juaraLabel = 'JUARA 1'; $medaliLabel = 'EMAS'; }
+                    elseif ($globalRank === 2) { $juaraLabel = 'JUARA 2'; $medaliLabel = 'PERAK'; }
+                    elseif ($globalRank === 3) { $juaraLabel = 'JUARA 3'; $medaliLabel = 'PERUNGGU'; }
+                    elseif ($globalRank === 4) { $juaraLabel = 'JUARA HARAPAN 1'; $medaliLabel = 'PIAGAM'; }
+                    elseif ($globalRank === 5) { $juaraLabel = 'JUARA HARAPAN 2'; $medaliLabel = 'PIAGAM'; }
+                    else { $juaraLabel = 'PERINGKAT ' . $globalRank; $medaliLabel = 'PARTISIPASI'; }
+                } else {
+                    $juaraLabel = $statusStr;
+                    $medaliLabel = '-';
+                }
+
+                // Format Asal Sekolah + Kota + Provinsi Menjadi Satu Kesatuan
+                $institusiPuspernas = \App\Helpers\SchoolHelper::formatInstitusi(
+                    $res['asal_sekolah'],
+                    $res['kota_kabupaten'],
+                    $res['provinsi']
+                );
+
+                $noCert = sprintf("%03d/PUSPERNAS/ROLL/%s/%s", $certCounter++, $cleanEventCode, $eventYear);
+                $timeStr = (!empty($res['time']) && $res['time'] !== '00.00.000') ? $res['time'] : '-';
+
+                $items[] = [
+                    'no' => $certCounter - 1,
+                    'no_sertifikat' => $noCert,
+                    'race_number' => $raceNumber,
+                    'race_name' => $raceName,
+                    'skate_class' => strtoupper($classInfo['skate_class_name'] ?? '-'),
+                    'age_group' => strtoupper($classInfo['group_name'] ?? '-'),
+                    'gender' => $genderLabel,
+                    'distance' => strtoupper($classInfo['distance_name'] ?? '-'),
+                    'round' => strtoupper($targetRound),
+                    'rank' => $displayRank,
+                    'juara' => $juaraLabel,
+                    'medali' => $medaliLabel,
+                    'bib' => $res['bib_number'] ?? '-',
+                    'skater_name' => strtoupper($res['skater_name'] ?? '-'),
+                    'uid' => $res['uid'] ?? '-',
+                    'institusi_puspernas' => $institusiPuspernas,
+                    'asal_sekolah' => strtoupper($res['asal_sekolah'] ?? '-'),
+                    'kota_kabupaten' => strtoupper($res['kota_kabupaten'] ?? '-'),
+                    'provinsi' => strtoupper($res['provinsi'] ?? '-'),
+                    'club_name' => strtoupper($res['team_name'] ?: ($res['club_name'] ?? '-')),
+                    'time' => $timeStr,
+                    'point' => $res['point'] ?? '-',
+                    'status' => $statusStr,
+                    'event_name' => $event['event_name'] ?? '',
+                    'event_date' => $event['event_date_start'] ?? '',
+                    'location' => $event['location'] ?? ''
+                ];
+            }
+        }
+
+        return ['event' => $event, 'items' => $items];
+    }
+
+    /**
+     * Ekspor CSV khusus Canva Bulk Create dengan data Institusi Puspernas sebagai 1 kesatuan
+     */
+    public function export_canva_puspernas() {
+        $eventId = $_SESSION['roll_admin_active_event_id'] ?? 0;
+        if ($eventId == 0) die("Event not selected.");
+
+        $limitRank = $_GET['limit_rank'] ?? 'TOP3';
+        $filterCategory = $_GET['category'] ?? 'ALL';
+        $filterStatus = $_GET['status'] ?? 'all';
+        $scope = $_GET['scope'] ?? 'juara';
+
+        $data = $this->getPuspernasCertificateData($eventId, $limitRank, $filterCategory, $filterStatus, $scope);
+        $event = $data['event'];
+        $items = $data['items'];
+
+        $cleanEvent = preg_replace('/[^a-zA-Z0-9_-]/', '_', $event['event_name'] ?? 'Event');
+        $filename = "Sertifikat_Puspernas_Canva_{$cleanEvent}_" . date('Ymd_His') . ".csv";
+
+        while (ob_get_level()) { ob_end_clean(); }
+
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Pragma: no-cache');
+        header('Expires: 0');
+
+        $output = fopen('php://output', 'w');
+        // UTF-8 BOM
+        fprintf($output, chr(0xEF) . chr(0xBB) . chr(0xBF));
+
+        fputcsv($output, [
+            'NO',
+            'NO_SERTIFIKAT',
+            'NAMA_ATLET',
+            'UID',
+            'INSTITUSI_PUSPERNAS',
+            'ASAL_SEKOLAH',
+            'KOTA_KABUPATEN',
+            'PROVINSI',
+            'KLUB_KONTINGEN',
+            'NOMOR_LOMBA',
+            'KATEGORI',
+            'KELOMPOK_UMUR',
+            'GENDER',
+            'PERINGKAT',
+            'JUARA',
+            'MEDALI',
+            'CATATAN_WAKTU',
+            'BIB',
+            'NAMA_EVENT',
+            'TANGGAL_EVENT',
+            'LOKASI_EVENT'
+        ]);
+
+        foreach ($items as $row) {
+            fputcsv($output, [
+                $row['no'],
+                $row['no_sertifikat'],
+                $row['skater_name'],
+                $row['uid'],
+                $row['institusi_puspernas'],
+                $row['asal_sekolah'],
+                $row['kota_kabupaten'],
+                $row['provinsi'],
+                $row['club_name'],
+                $row['race_name'],
+                $row['skate_class'],
+                $row['age_group'],
+                $row['gender'],
+                $row['rank'],
+                $row['juara'],
+                $row['medali'],
+                $row['time'],
+                $row['bib'],
+                $row['event_name'],
+                $row['event_date'],
+                $row['location']
+            ]);
+        }
+
+        fclose($output);
+        exit;
+    }
+
+    /**
+     * Cetak Langsung Lembar Piagam Resmi A4 Lanskap di Browser
+     */
+    public function print_certificates() {
+        $eventId = $_SESSION['roll_admin_active_event_id'] ?? 0;
+        if ($eventId == 0) die("Event not selected.");
+
+        $limitRank = $_GET['limit_rank'] ?? 'TOP3';
+        $filterCategory = $_GET['category'] ?? 'ALL';
+        $filterStatus = $_GET['status'] ?? 'all';
+        $scope = $_GET['scope'] ?? 'juara';
+
+        $data = $this->getPuspernasCertificateData($eventId, $limitRank, $filterCategory, $filterStatus, $scope);
+        
+        return $this->view('roll/admin/export/print_certificates', [
+            'event' => $data['event'],
+            'certificates' => $data['items'],
+            'limitRank' => $limitRank,
+            'scope' => $scope
+        ]);
+    }
 }

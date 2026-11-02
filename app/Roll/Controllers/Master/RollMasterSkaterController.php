@@ -152,6 +152,12 @@ class RollMasterSkaterController extends Controller {
         $stmt->execute($params);
         $skaters = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+        foreach ($skaters as &$s) {
+            $s['institusi_puspernas'] = \App\Helpers\SchoolHelper::formatInstitusi($s['asal_sekolah'], $s['kota_kabupaten'], $s['provinsi']);
+            $s['transition_info'] = \App\Helpers\SchoolHelper::checkTransition($s['birth_date'], $s['asal_sekolah']);
+        }
+        unset($s);
+
         // Hitung statistik ringkas untuk Master Overview
         $summarySql = "
             SELECT 
@@ -326,6 +332,7 @@ class RollMasterSkaterController extends Controller {
             'Tanggal Lahir',
             'Umur',
             'Klub Asal',
+            'Institusi Puspernas (Satu Kesatuan)',
             'Nama Asal Sekolah',
             'Kota / Kabupaten',
             'Provinsi',
@@ -344,6 +351,7 @@ class RollMasterSkaterController extends Controller {
             }
 
             $jk = in_array(strtoupper($r['gender']), ['M', 'L', 'PUTRA']) ? 'Putra' : 'Putri';
+            $institusi = \App\Helpers\SchoolHelper::formatInstitusi($r['asal_sekolah'], $r['kota_kabupaten'], $r['provinsi']);
 
             fputcsv($output, [
                 $no++,
@@ -353,6 +361,7 @@ class RollMasterSkaterController extends Controller {
                 $r['birth_date'] ?? '',
                 $age,
                 $r['club_name'] ?? 'Tanpa Klub',
+                $institusi,
                 $r['asal_sekolah'] ?? '',
                 $r['kota_kabupaten'] ?? '',
                 $r['provinsi'] ?? '',

@@ -25,6 +25,16 @@
     </div>
     <?php endif; ?>
 
+    <?php if(($transitionAthletesCount ?? 0) > 0): ?>
+    <div class="bg-indigo-50 border-l-4 border-indigo-500 text-indigo-900 p-6 rounded-2xl mb-8 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+            <h3 class="font-black uppercase tracking-widest text-sm mb-1">💡 Pengingat Pintar: Pembaruan Jenjang Sekolah</h3>
+            <p class="text-xs font-medium opacity-90">Sistem mendeteksi <strong><?= $transitionAthletesCount ?> atlet</strong> di klub Anda yang usianya bertambah dan terindikasi perlu pembaruan jenjang sekolah (misal: naik jenjang dari SD ke SMP, SMA/SMK, atau Perguruan Tinggi).</p>
+        </div>
+        <a href="<?= getenv('APP_URL') ?>/roll/user/athletes" class="whitespace-nowrap bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-black uppercase text-[10px] tracking-widest transition shadow-sm">Periksa & Update</a>
+    </div>
+    <?php endif; ?>
+
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
         
         <div class="bg-gradient-to-br from-white to-slate-50 p-6 rounded-2xl shadow-sm border-b-4 border-blue-500 hover:shadow-lg transition-all duration-300 group">

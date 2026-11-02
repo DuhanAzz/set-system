@@ -161,18 +161,25 @@
                                 </div>
                             </td>
 
-                            <!-- Sekolah & Daerah -->
+                            <!-- Sekolah & Daerah (Satu Kesatuan Puspernas) -->
                             <td class="p-5">
-                                <div class="font-bold text-slate-800 text-xs flex items-center gap-1.5">
-                                    <span>🏫</span>
-                                    <span><?= !empty($s['asal_sekolah']) ? htmlspecialchars($s['asal_sekolah']) : '<span class="text-slate-400 font-normal italic">- Belum diisi -</span>' ?></span>
-                                </div>
-                                <div class="text-[10px] text-slate-500 font-medium mt-1 flex items-center gap-1.5">
-                                    <span>📍</span>
-                                    <span><?= !empty($s['kota_kabupaten']) ? htmlspecialchars($s['kota_kabupaten']) : '-' ?><?= !empty($s['provinsi']) ? ', ' . htmlspecialchars($s['provinsi']) : '' ?></span>
-                                    <?php if ($isDataIncomplete): ?>
-                                        <span class="ml-1 text-[9px] bg-rose-50 text-rose-600 border border-rose-200 px-1.5 py-0.2 rounded font-bold">Incomplete</span>
-                                    <?php endif; ?>
+                                <div class="font-bold text-slate-800 text-xs flex items-start gap-1.5">
+                                    <span class="mt-0.5">🏫</span>
+                                    <div>
+                                        <div><?= !empty($s['asal_sekolah']) ? htmlspecialchars($s['institusi_puspernas'] ?? $s['asal_sekolah']) : '<span class="text-slate-400 font-normal italic">- Belum diisi -</span>' ?></div>
+                                        <?php if (!empty($s['transition_info']['needs_update'])): ?>
+                                            <div class="mt-1">
+                                                <span class="inline-flex items-center gap-1 bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded text-[9px] font-bold" title="<?= htmlspecialchars($s['transition_info']['message']) ?>">
+                                                    <span>💡</span> Saran: <?= htmlspecialchars($s['transition_info']['suggested_level']) ?>
+                                                </span>
+                                            </div>
+                                        <?php endif; ?>
+                                        <?php if ($isDataIncomplete): ?>
+                                            <div class="mt-0.5">
+                                                <span class="text-[9px] bg-rose-50 text-rose-600 border border-rose-200 px-1.5 py-0.2 rounded font-bold">Incomplete</span>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
                                 </div>
                             </td>
 
@@ -238,6 +245,15 @@
         <form action="<?= getenv('APP_URL') ?>/roll/master/skaters/update" method="POST" class="p-8 space-y-4">
             <input type="hidden" name="id" id="edit_id">
             
+            <!-- Smart School Transition Alert Box -->
+            <div id="master_transition_alert" class="hidden p-3.5 bg-indigo-50 border border-indigo-200 rounded-xl text-xs text-indigo-900 flex items-start gap-2.5">
+                <span class="text-lg">💡</span>
+                <div>
+                    <strong class="font-bold text-indigo-950 block">Pengingat Kenaikan Jenjang Sekolah:</strong>
+                    <p id="master_transition_msg" class="text-[11px] text-indigo-700 mt-0.5 leading-relaxed"></p>
+                </div>
+            </div>
+
             <div>
                 <label class="text-[10px] font-bold text-slate-500 uppercase">Nama Lengkap Skater *</label>
                 <input type="text" name="skater_name" id="edit_skater_name" class="w-full px-4 py-2.5 border border-slate-200 bg-slate-50 rounded-xl text-sm font-bold focus:bg-white focus:border-blue-500 outline-none uppercase" required>
@@ -321,6 +337,16 @@ function openEditModal(data) {
         note.innerHTML = '<span class="text-emerald-800 font-bold">✓ Atlet ini sudah otomatis terdaftar BPJS karena memiliki riwayat ' + data.total_events + ' event lomba.</span>';
     } else {
         note.innerHTML = 'Centang jika atlet sudah memiliki BPJS aktif. (Atlet yang pernah ikut event otomatis terhitung sudah terdaftar).';
+    }
+
+    // Smart Transition Alert Box
+    const transAlert = document.getElementById('master_transition_alert');
+    const transMsg = document.getElementById('master_transition_msg');
+    if (data.transition_info && data.transition_info.needs_update) {
+        transMsg.innerText = data.transition_info.message + ' (Saran: Jenjang ' + data.transition_info.suggested_level + ')';
+        transAlert.classList.remove('hidden');
+    } else {
+        transAlert.classList.add('hidden');
     }
 
     document.getElementById('modal-edit').classList.remove('hidden');

@@ -107,6 +107,8 @@ class RollUserAthleteController extends Controller {
                 $s['age_group'] = $age . " Thn";
             }
             $s['is_data_incomplete'] = empty($s['asal_sekolah']) || empty($s['provinsi']) || empty($s['kota_kabupaten']);
+            $s['institusi_puspernas'] = \App\Helpers\SchoolHelper::formatInstitusi($s['asal_sekolah'], $s['kota_kabupaten'], $s['provinsi']);
+            $s['transition_info'] = \App\Helpers\SchoolHelper::checkTransition($s['birth_date'], $s['asal_sekolah']);
         }
         unset($s);
 

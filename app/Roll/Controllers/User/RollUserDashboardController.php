@@ -62,11 +62,31 @@ class RollUserDashboardController extends Controller {
             $incompleteAthletesCount = 0;
         }
 
+        // Fitur pintar: Hitung atlet yang usianya sudah melewati jenjang sekolah saat ini (perlu update jenjang)
+        $transitionAthletesCount = 0;
+        try {
+            $stmtTrans = $db->prepare("
+                SELECT birth_date, asal_sekolah 
+                FROM roll_skaters 
+                WHERE club_id = ? AND asal_sekolah IS NOT NULL AND asal_sekolah != ''
+            ");
+            $stmtTrans->execute([$club_id]);
+            while ($sk = $stmtTrans->fetch(PDO::FETCH_ASSOC)) {
+                $check = \App\Helpers\SchoolHelper::checkTransition($sk['birth_date'], $sk['asal_sekolah']);
+                if ($check['needs_update']) {
+                    $transitionAthletesCount++;
+                }
+            }
+        } catch (\Exception $e) {
+            $transitionAthletesCount = 0;
+        }
+
         return $this->view('roll/user/dashboard', [
             'stats' => $stats,
             'clubName' => $clubName,
             'clubCity' => $clubCity,
-            'incompleteAthletesCount' => $incompleteAthletesCount
+            'incompleteAthletesCount' => $incompleteAthletesCount,
+            'transitionAthletesCount' => $transitionAthletesCount
         ]);
     }
 }

@@ -84,13 +84,18 @@
                             </td>
 
                             <td class="px-6 py-3">
-                                <div class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                                    <span>🏫</span>
-                                    <span><?= !empty($s['asal_sekolah']) ? htmlspecialchars($s['asal_sekolah']) : '<span class="text-slate-400 font-normal italic">- Belum diisi -</span>' ?></span>
-                                </div>
-                                <div class="text-[10px] text-slate-500 font-medium mt-0.5 flex items-center gap-1">
-                                    <span>📍</span>
-                                    <span><?= !empty($s['kota_kabupaten']) ? htmlspecialchars($s['kota_kabupaten']) : '-' ?><?= !empty($s['provinsi']) ? ', ' . htmlspecialchars($s['provinsi']) : '' ?></span>
+                                <div class="text-xs font-bold text-slate-800 flex items-start gap-1.5">
+                                    <span class="mt-0.5">🏫</span>
+                                    <div>
+                                        <div><?= !empty($s['asal_sekolah']) ? htmlspecialchars($s['institusi_puspernas'] ?? $s['asal_sekolah']) : '<span class="text-slate-400 font-normal italic">- Belum diisi -</span>' ?></div>
+                                        <?php if (!empty($s['transition_info']['needs_update'])): ?>
+                                            <div class="mt-1">
+                                                <span class="inline-flex items-center gap-1 bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded text-[9px] font-bold" title="<?= htmlspecialchars($s['transition_info']['message']) ?>">
+                                                    <span>💡</span> Saran: <?= htmlspecialchars($s['transition_info']['suggested_level']) ?>
+                                                </span>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
                                 </div>
                             </td>
 
@@ -243,6 +248,15 @@
                 <form action="<?= getenv('APP_URL') ?>/roll/user/athletes/update" method="POST" class="space-y-4">
                     <input type="hidden" name="id" id="edit_id">
                     
+                    <!-- Smart School Transition Alert Box -->
+                    <div id="edit_transition_alert" class="hidden p-3.5 bg-indigo-50 border border-indigo-200 rounded-xl text-xs text-indigo-900 flex items-start gap-2.5">
+                        <span class="text-lg">💡</span>
+                        <div>
+                            <strong class="font-bold text-indigo-950 block">Pengingat Kenaikan Jenjang Sekolah:</strong>
+                            <p id="edit_transition_msg" class="text-[11px] text-indigo-700 mt-0.5 leading-relaxed"></p>
+                        </div>
+                    </div>
+
                     <div>
                         <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Nama Lengkap Atlet *</label>
                         <input type="text" name="skater_name" id="edit_skater_name" required class="w-full bg-white border border-slate-300 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none uppercase">
@@ -322,6 +336,16 @@ function openEditModal(data) {
         note.innerHTML = '<span class="text-emerald-800 font-bold">✓ Atlet ini sudah otomatis terdaftar BPJS karena memiliki riwayat ' + data.total_events + ' event lomba.</span>';
     } else {
         note.innerHTML = 'Centang jika atlet sudah memiliki BPJS aktif. Jika atlet pernah/sudah mengikuti event lomba di sistem, status kepesertaan akan otomatis ditandai terdaftar.';
+    }
+
+    // Smart Transition Alert Box
+    const transAlert = document.getElementById('edit_transition_alert');
+    const transMsg = document.getElementById('edit_transition_msg');
+    if (data.transition_info && data.transition_info.needs_update) {
+        transMsg.innerText = data.transition_info.message + ' (Saran: Jenjang ' + data.transition_info.suggested_level + ')';
+        transAlert.classList.remove('hidden');
+    } else {
+        transAlert.classList.add('hidden');
     }
 
     document.getElementById('modal-edit').classList.remove('hidden');
