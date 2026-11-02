@@ -15,6 +15,16 @@
     </div>
     <?php endif; ?>
 
+    <?php if(($incompleteAthletesCount ?? 0) > 0): ?>
+    <div class="bg-amber-50 border-l-4 border-amber-500 text-amber-800 p-6 rounded-2xl mb-8 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+            <h3 class="font-black uppercase tracking-widest text-sm mb-1">⚠️ Data Atlet Belum Lengkap</h3>
+            <p class="text-xs font-medium opacity-90">Terdapat <strong><?= $incompleteAthletesCount ?> atlet</strong> di klub Anda yang belum melengkapi data <strong>Nama Sekolah, Kota/Kabupaten, atau Provinsi</strong> untuk keperluan Puspernas & verifikasi berkas lomba.</p>
+        </div>
+        <a href="<?= getenv('APP_URL') ?>/roll/user/athletes" class="whitespace-nowrap bg-amber-500 hover:bg-amber-600 text-white px-5 py-2.5 rounded-xl font-black uppercase text-[10px] tracking-widest transition shadow-sm">Lengkapi Sekarang</a>
+    </div>
+    <?php endif; ?>
+
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
         
         <div class="bg-gradient-to-br from-white to-slate-50 p-6 rounded-2xl shadow-sm border-b-4 border-blue-500 hover:shadow-lg transition-all duration-300 group">

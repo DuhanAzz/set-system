@@ -42,14 +42,31 @@ class RollUserDashboardController extends Controller {
                 $clubCity = $club['kota'];
             }
         } catch (\Exception $e) {
-            // Silently fail if column missing, default to Klub Anda and null city
             error_log("Dashboard query error: " . $e->getMessage());
+        }
+
+        // Hitung atlet yang data Puspernas-nya belum lengkap (sekolah, provinsi, kota/kabupaten)
+        $incompleteAthletesCount = 0;
+        try {
+            $stmtInc = $db->prepare("
+                SELECT COUNT(*) 
+                FROM roll_skaters 
+                WHERE club_id = ? 
+                  AND (asal_sekolah IS NULL OR TRIM(asal_sekolah) = '' 
+                       OR provinsi IS NULL OR TRIM(provinsi) = '' 
+                       OR kota_kabupaten IS NULL OR TRIM(kota_kabupaten) = '')
+            ");
+            $stmtInc->execute([$club_id]);
+            $incompleteAthletesCount = (int)$stmtInc->fetchColumn();
+        } catch (\Exception $e) {
+            $incompleteAthletesCount = 0;
         }
 
         return $this->view('roll/user/dashboard', [
             'stats' => $stats,
             'clubName' => $clubName,
-            'clubCity' => $clubCity
+            'clubCity' => $clubCity,
+            'incompleteAthletesCount' => $incompleteAthletesCount
         ]);
     }
 }

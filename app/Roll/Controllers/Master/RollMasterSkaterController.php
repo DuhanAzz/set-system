@@ -24,6 +24,19 @@ class RollMasterSkaterController extends Controller {
             status VARCHAR(50) DEFAULT 'approved',
             transfer_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )");
+
+        // Self-healing migration for new columns
+        try {
+            $db->query("SELECT asal_sekolah FROM roll_skaters LIMIT 1");
+        } catch (\Exception $e) {
+            try {
+                $db->exec("ALTER TABLE roll_skaters 
+                    ADD COLUMN asal_sekolah VARCHAR(150) NULL AFTER birth_date,
+                    ADD COLUMN provinsi VARCHAR(100) NULL AFTER asal_sekolah,
+                    ADD COLUMN kota_kabupaten VARCHAR(100) NULL AFTER provinsi,
+                    ADD COLUMN status_bpjs ENUM('sudah', 'belum') DEFAULT 'belum' AFTER kota_kabupaten");
+            } catch (\Exception $ex) {}
+        }
     }
 
     private function generateSkaterUID($db, $nama_atlet, $tanggal_lahir, $jenis_kelamin) {
@@ -82,27 +95,85 @@ class RollMasterSkaterController extends Controller {
         }
 
         $search = $_GET['search'] ?? '';
+        $bpjsFilter = $_GET['bpjs'] ?? 'all';
+        $completenessFilter = $_GET['completeness'] ?? 'all';
+
         $whereClause = "WHERE 1=1";
         $params = [];
         
         if (!empty($search)) {
-            $whereClause .= " AND (s.skater_name LIKE ? OR c.club_name LIKE ?)";
+            $whereClause .= " AND (s.skater_name LIKE ? OR c.club_name LIKE ? OR s.asal_sekolah LIKE ? OR s.kota_kabupaten LIKE ? OR s.provinsi LIKE ?)";
+            $params[] = "%$search%";
+            $params[] = "%$search%";
+            $params[] = "%$search%";
             $params[] = "%$search%";
             $params[] = "%$search%";
         }
 
-        $sql = "SELECT s.*, c.club_name 
-                FROM roll_skaters s 
-                LEFT JOIN roll_clubs c ON s.club_id = c.id 
-                $whereClause
-                ORDER BY s.skater_name ASC";
+        $havingClauses = [];
+        if ($bpjsFilter === 'sudah') {
+            $havingClauses[] = "bpjs_status = 'sudah'";
+        } elseif ($bpjsFilter === 'belum') {
+            $havingClauses[] = "bpjs_status = 'belum'";
+        }
+
+        if ($completenessFilter === 'incomplete') {
+            $havingClauses[] = "(s.asal_sekolah IS NULL OR TRIM(s.asal_sekolah) = '' OR s.kota_kabupaten IS NULL OR TRIM(s.kota_kabupaten) = '' OR s.provinsi IS NULL OR TRIM(s.provinsi) = '')";
+        } elseif ($completenessFilter === 'complete') {
+            $havingClauses[] = "(s.asal_sekolah IS NOT NULL AND TRIM(s.asal_sekolah) != '' AND s.kota_kabupaten IS NOT NULL AND TRIM(s.kota_kabupaten) != '' AND s.provinsi IS NOT NULL AND TRIM(s.provinsi) != '')";
+        }
+
+        $havingSql = !empty($havingClauses) ? "HAVING " . implode(" AND ", $havingClauses) : "";
+
+        $sql = "
+            SELECT 
+                s.*, 
+                c.club_name,
+                COUNT(e.id) as total_events,
+                CASE 
+                    WHEN COUNT(e.id) > 0 THEN 'sudah_event'
+                    WHEN s.status_bpjs = 'sudah' THEN 'sudah_mandiri'
+                    ELSE 'belum'
+                END as bpjs_badge,
+                CASE 
+                    WHEN COUNT(e.id) > 0 OR s.status_bpjs = 'sudah' THEN 'sudah'
+                    ELSE 'belum'
+                END as bpjs_status
+            FROM roll_skaters s 
+            LEFT JOIN roll_clubs c ON s.club_id = c.id 
+            LEFT JOIN roll_entries e ON s.id = e.skater_id
+            $whereClause
+            GROUP BY s.id
+            $havingSql
+            ORDER BY s.skater_name ASC
+        ";
+
         $stmt = $db->prepare($sql);
         $stmt->execute($params);
         $skaters = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+        // Hitung statistik ringkas untuk Master Overview
+        $summarySql = "
+            SELECT 
+                COUNT(*) as total_skaters,
+                SUM(CASE WHEN (total_entries > 0 OR status_bpjs = 'sudah') THEN 1 ELSE 0 END) as total_bpjs_sudah,
+                SUM(CASE WHEN (total_entries = 0 AND (status_bpjs IS NULL OR status_bpjs = 'belum')) THEN 1 ELSE 0 END) as total_bpjs_belum,
+                SUM(CASE WHEN (asal_sekolah IS NULL OR TRIM(asal_sekolah) = '' OR kota_kabupaten IS NULL OR TRIM(kota_kabupaten) = '' OR provinsi IS NULL OR TRIM(provinsi) = '') THEN 1 ELSE 0 END) as total_incomplete
+            FROM (
+                SELECT s.id, s.status_bpjs, s.asal_sekolah, s.kota_kabupaten, s.provinsi, COUNT(e.id) as total_entries
+                FROM roll_skaters s
+                LEFT JOIN roll_entries e ON s.id = e.skater_id
+                GROUP BY s.id
+            ) as sub
+        ";
+        $summary = $db->query($summarySql)->fetch(PDO::FETCH_ASSOC);
+
         return $this->view('roll/master/skaters/index', [
             'skaters' => $skaters,
-            'search' => $search
+            'search' => $search,
+            'bpjsFilter' => $bpjsFilter,
+            'completenessFilter' => $completenessFilter,
+            'summary' => $summary
         ]);
     }
 
@@ -121,15 +192,20 @@ class RollMasterSkaterController extends Controller {
             'transfers' => $transfers
         ]);
     }
+
     public function update() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $db = Database::getInstance()->getConnection();
             $id = $_POST['id'] ?? null;
             
             if ($id) {
-                $skater_name = $_POST['skater_name'] ?? '';
+                $skater_name = strtoupper(trim($_POST['skater_name'] ?? ''));
                 $gender = $_POST['gender'] ?? '';
                 $birth_date = $_POST['birth_date'] ?? '';
+                $asal_sekolah = trim($_POST['asal_sekolah'] ?? '');
+                $provinsi = trim($_POST['provinsi'] ?? '');
+                $kota_kabupaten = trim($_POST['kota_kabupaten'] ?? '');
+                $status_bpjs = (isset($_POST['status_bpjs']) && $_POST['status_bpjs'] === 'sudah') ? 'sudah' : 'belum';
 
                 $year = (int)date('Y', strtotime($birth_date));
                 $currentYear = (int)date('Y');
@@ -138,8 +214,23 @@ class RollMasterSkaterController extends Controller {
                 $age_group_str = $age . " Thn";
                 $is_pon_veteran = isset($_POST['is_pon_veteran']) ? 1 : 0;
 
-                $stmt = $db->prepare("UPDATE roll_skaters SET skater_name = ?, gender = ?, birth_date = ?, age_group = ?, is_pon_veteran = ? WHERE id = ?");
-                $stmt->execute([$skater_name, $gender, $birth_date, $age_group_str, $is_pon_veteran, $id]);
+                $stmt = $db->prepare("
+                    UPDATE roll_skaters 
+                    SET skater_name = ?, gender = ?, birth_date = ?, asal_sekolah = ?, provinsi = ?, kota_kabupaten = ?, status_bpjs = ?, age_group = ?, is_pon_veteran = ? 
+                    WHERE id = ?
+                ");
+                $stmt->execute([
+                    $skater_name, 
+                    $gender, 
+                    $birth_date, 
+                    $asal_sekolah ?: null, 
+                    $provinsi ?: null, 
+                    $kota_kabupaten ?: null, 
+                    $status_bpjs, 
+                    $age_group_str, 
+                    $is_pon_veteran, 
+                    $id
+                ]);
 
                 $_SESSION['flash_message'] = "Data skater berhasil diperbarui.";
                 $_SESSION['flash_type'] = "success";
@@ -147,6 +238,133 @@ class RollMasterSkaterController extends Controller {
             header("Location: " . getenv('APP_URL') . "/roll/master/skaters/index");
             exit;
         }
+    }
+
+    public function export_excel() {
+        $db = Database::getInstance()->getConnection();
+
+        $search = $_GET['search'] ?? '';
+        $bpjsFilter = $_GET['bpjs'] ?? 'all';
+        $completenessFilter = $_GET['completeness'] ?? 'all';
+
+        $whereClause = "WHERE 1=1";
+        $params = [];
+        
+        if (!empty($search)) {
+            $whereClause .= " AND (s.skater_name LIKE ? OR c.club_name LIKE ? OR s.asal_sekolah LIKE ? OR s.kota_kabupaten LIKE ? OR s.provinsi LIKE ?)";
+            $params[] = "%$search%";
+            $params[] = "%$search%";
+            $params[] = "%$search%";
+            $params[] = "%$search%";
+            $params[] = "%$search%";
+        }
+
+        $havingClauses = [];
+        if ($bpjsFilter === 'sudah') {
+            $havingClauses[] = "bpjs_status = 'sudah'";
+        } elseif ($bpjsFilter === 'belum') {
+            $havingClauses[] = "bpjs_status = 'belum'";
+        }
+
+        if ($completenessFilter === 'incomplete') {
+            $havingClauses[] = "(s.asal_sekolah IS NULL OR TRIM(s.asal_sekolah) = '' OR s.kota_kabupaten IS NULL OR TRIM(s.kota_kabupaten) = '' OR s.provinsi IS NULL OR TRIM(s.provinsi) = '')";
+        } elseif ($completenessFilter === 'complete') {
+            $havingClauses[] = "(s.asal_sekolah IS NOT NULL AND TRIM(s.asal_sekolah) != '' AND s.kota_kabupaten IS NOT NULL AND TRIM(s.kota_kabupaten) != '' AND s.provinsi IS NOT NULL AND TRIM(s.provinsi) != '')";
+        }
+
+        $havingSql = !empty($havingClauses) ? "HAVING " . implode(" AND ", $havingClauses) : "";
+
+        $sql = "
+            SELECT 
+                s.*, 
+                c.club_name,
+                COUNT(e.id) as total_events,
+                CASE 
+                    WHEN COUNT(e.id) > 0 THEN 'Otomatis (Riwayat Event)'
+                    WHEN s.status_bpjs = 'sudah' THEN 'Mandiri (Klub/Pribadi)'
+                    ELSE 'Belum Terdaftar'
+                END as keterangan_bpjs,
+                CASE 
+                    WHEN COUNT(e.id) > 0 OR s.status_bpjs = 'sudah' THEN 'Sudah Terdaftar'
+                    ELSE 'Belum Terdaftar'
+                END as bpjs_status,
+                CASE 
+                    WHEN (s.asal_sekolah IS NOT NULL AND TRIM(s.asal_sekolah) != '' 
+                          AND s.kota_kabupaten IS NOT NULL AND TRIM(s.kota_kabupaten) != '' 
+                          AND s.provinsi IS NOT NULL AND TRIM(s.provinsi) != '') THEN 'Lengkap'
+                    ELSE 'Belum Lengkap'
+                END as kelengkapan_data
+            FROM roll_skaters s 
+            LEFT JOIN roll_clubs c ON s.club_id = c.id 
+            LEFT JOIN roll_entries e ON s.id = e.skater_id
+            $whereClause
+            GROUP BY s.id
+            $havingSql
+            ORDER BY s.skater_name ASC
+        ";
+
+        $stmt = $db->prepare($sql);
+        $stmt->execute($params);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $currentYear = (int)date('Y');
+        $filename = "Rekap_Data_Atlet_BPJS_" . date('Ymd_His') . ".csv";
+
+        header('Content-Type: text/csv; charset=UTF-8');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        
+        // Output UTF-8 BOM so Excel opens indonesian special characters cleanly
+        echo "\xEF\xBB\xBF";
+        $output = fopen('php://output', 'w');
+
+        // Header Row
+        fputcsv($output, [
+            'No',
+            'UID',
+            'Nama Lengkap Atlet',
+            'Jenis Kelamin',
+            'Tanggal Lahir',
+            'Umur',
+            'Klub Asal',
+            'Nama Asal Sekolah',
+            'Kota / Kabupaten',
+            'Provinsi',
+            'Status Kepesertaan BPJS',
+            'Keterangan BPJS',
+            'Total Event Lomba Diikuti',
+            'Kelengkapan Data Puspernas'
+        ]);
+
+        $no = 1;
+        foreach ($rows as $r) {
+            $age = '-';
+            if (!empty($r['birth_date'])) {
+                $y = (int)date('Y', strtotime($r['birth_date']));
+                $age = ($currentYear - $y) . ' Thn';
+            }
+
+            $jk = in_array(strtoupper($r['gender']), ['M', 'L', 'PUTRA']) ? 'Putra' : 'Putri';
+
+            fputcsv($output, [
+                $no++,
+                $r['uid'] ?? '',
+                $r['skater_name'] ?? '',
+                $jk,
+                $r['birth_date'] ?? '',
+                $age,
+                $r['club_name'] ?? 'Tanpa Klub',
+                $r['asal_sekolah'] ?? '',
+                $r['kota_kabupaten'] ?? '',
+                $r['provinsi'] ?? '',
+                $r['bpjs_status'],
+                $r['keterangan_bpjs'],
+                $r['total_events'] ?? 0,
+                $r['kelengkapan_data']
+            ]);
+        }
+
+        fclose($output);
+        exit;
     }
 
     public function cleanse() {

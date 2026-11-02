@@ -52,9 +52,13 @@ class RollUserSkaterController extends Controller {
             $db = Database::getInstance()->getConnection();
             $club_id = $_SESSION['roll_club_id'] ?? 0;
             
-            $skaterName = $_POST['skater_name'] ?? '';
+            $skaterName = strtoupper(trim($_POST['skater_name'] ?? ''));
             $gender = $_POST['gender'] ?? '';
             $birthDate = $_POST['birth_date'] ?? '';
+            $asalSekolah = trim($_POST['asal_sekolah'] ?? '');
+            $provinsi = trim($_POST['provinsi'] ?? '');
+            $kotaKabupaten = trim($_POST['kota_kabupaten'] ?? '');
+            $statusBpjs = (isset($_POST['status_bpjs']) && $_POST['status_bpjs'] === 'sudah') ? 'sudah' : 'belum';
 
             // Anti-Duplikat Check
             $stmtCheck = $db->prepare("SELECT id FROM roll_skaters WHERE club_id = ? AND skater_name = ? AND birth_date = ?");
@@ -66,9 +70,8 @@ class RollUserSkaterController extends Controller {
                 exit;
             }
 
-            // Notice we do NOT save age_group
-            $stmt = $db->prepare("INSERT INTO roll_skaters (skater_name, club_id, gender, birth_date) VALUES (?, ?, ?, ?)");
-            $stmt->execute([$skaterName, $club_id, $gender, $birthDate]);
+            $stmt = $db->prepare("INSERT INTO roll_skaters (skater_name, club_id, gender, birth_date, asal_sekolah, provinsi, kota_kabupaten, status_bpjs) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt->execute([$skaterName, $club_id, $gender, $birthDate, $asalSekolah ?: null, $provinsi ?: null, $kotaKabupaten ?: null, $statusBpjs]);
 
             $_SESSION['flash_message'] = "Skater berhasil ditambahkan ke roster!";
             $_SESSION['flash_type'] = "success";
