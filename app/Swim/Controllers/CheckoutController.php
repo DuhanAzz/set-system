@@ -92,16 +92,40 @@ class CheckoutController extends Controller {
         $clubId = $this->getClubId($uid);
 
         $totalTagihan = 0;
+        $pricingMode = $event['pricing_mode'] ?? 'per_item';
 
         // Hitung Tagihan Individu
-        $stmtSum = $this->db->prepare("
-            SELECT SUM(en.price) 
-            FROM swim_event_entries ee 
-            JOIN swim_event_numbers en ON ee.category_id = en.id 
-            WHERE ee.user_id = ? AND ee.event_id = ?
-        ");
-        $stmtSum->execute([$uid, $event['id']]);
-        $totalTagihan += ($stmtSum->fetchColumn() ?: 0);
+        if ($pricingMode === 'package') {
+            $limit = (int)($event['package_limit'] ?? 0);
+            $basePrice = (float)($event['package_price'] ?? 0);
+            $extraPrice = (float)($event['extra_price'] ?? 0);
+
+            $stmtCount = $this->db->prepare("
+                SELECT swimmer_id, COUNT(*) as cnt
+                FROM swim_event_entries
+                WHERE user_id = ? AND event_id = ?
+                GROUP BY swimmer_id
+            ");
+            $stmtCount->execute([$uid, $event['id']]);
+            $swimmerCounts = $stmtCount->fetchAll(PDO::FETCH_ASSOC);
+
+            foreach ($swimmerCounts as $sc) {
+                $count = (int)$sc['cnt'];
+                if ($count > 0) {
+                    $subtotal = ($count <= $limit) ? $basePrice : ($basePrice + (($count - $limit) * $extraPrice));
+                    $totalTagihan += $subtotal;
+                }
+            }
+        } else {
+            $stmtSum = $this->db->prepare("
+                SELECT SUM(en.price) 
+                FROM swim_event_entries ee 
+                JOIN swim_event_numbers en ON ee.category_id = en.id 
+                WHERE ee.user_id = ? AND ee.event_id = ?
+            ");
+            $stmtSum->execute([$uid, $event['id']]);
+            $totalTagihan += ($stmtSum->fetchColumn() ?: 0);
+        }
 
         // Hitung Tagihan Estafet
         if ($clubId) {

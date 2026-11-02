@@ -13,19 +13,56 @@ class EventsController extends Controller {
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
         }
-        if (!isset($_SESSION['swim_role']) || $_SESSION['swim_role'] !== 'admin') {
+        if (!isset($_SESSION['swim_role']) || ($_SESSION['swim_role'] !== 'admin' && $_SESSION['swim_role'] !== 'master')) {
             header("Location: " . getenv('APP_URL') . "/swim/login");
             exit;
         }
     }
 
+    private function resolveEvent($pdo, $adminId, $requestedEventId = 0) {
+        $isMaster = ($_SESSION['swim_role'] ?? '') === 'master';
+
+        // Ambil semua event yang dapat diakses pengguna
+        if ($isMaster) {
+            $stmtAll = $pdo->query("SELECT id, event_name, event_date_start, pool_type, pricing_mode, package_price, package_limit, extra_price FROM swim_events ORDER BY id DESC");
+            $allEvents = $stmtAll->fetchAll(PDO::FETCH_ASSOC);
+        } else {
+            $stmtAll = $pdo->prepare("SELECT id, event_name, event_date_start, pool_type, pricing_mode, package_price, package_limit, extra_price FROM swim_events WHERE user_id = ? ORDER BY id DESC");
+            $stmtAll->execute([$adminId]);
+            $allEvents = $stmtAll->fetchAll(PDO::FETCH_ASSOC);
+        }
+
+        $activeEvent = null;
+        $targetId = (int)$requestedEventId;
+
+        if ($targetId > 0) {
+            if ($isMaster) {
+                $stmt = $pdo->prepare("SELECT * FROM swim_events WHERE id = ?");
+                $stmt->execute([$targetId]);
+            } else {
+                $stmt = $pdo->prepare("SELECT * FROM swim_events WHERE id = ? AND user_id = ?");
+                $stmt->execute([$targetId, $adminId]);
+            }
+            $activeEvent = $stmt->fetch(PDO::FETCH_ASSOC);
+        }
+
+        // Fallback ke event pertama jika tidak ditentukan
+        if (!$activeEvent && !empty($allEvents)) {
+            $firstId = $allEvents[0]['id'];
+            $stmt = $pdo->prepare("SELECT * FROM swim_events WHERE id = ?");
+            $stmt->execute([$firstId]);
+            $activeEvent = $stmt->fetch(PDO::FETCH_ASSOC);
+        }
+
+        return [$activeEvent, $allEvents];
+    }
+
     public function index() {
         $pdo = Database::getInstance()->getConnection();
         $adminId = $_SESSION['swim_user_id'];
+        $requestedEventId = isset($_GET['event_id']) ? (int)$_GET['event_id'] : 0;
 
-        $stmtEvent = $pdo->prepare("SELECT * FROM swim_events WHERE user_id = ? ORDER BY id DESC LIMIT 1");
-        $stmtEvent->execute([$adminId]);
-        $activeEvent = $stmtEvent->fetch(PDO::FETCH_ASSOC);
+        list($activeEvent, $allEvents) = $this->resolveEvent($pdo, $adminId, $requestedEventId);
 
         $eventId = $activeEvent['id'] ?? 0;
         $poolLabel = ($activeEvent['pool_type'] ?? 'LCM') === 'SCM' ? 'SCM' : 'LCM';
@@ -47,6 +84,7 @@ class EventsController extends Controller {
             'eventId' => $eventId,
             'poolLabel' => $poolLabel,
             'activeEvent' => $activeEvent,
+            'allEvents' => $allEvents,
             'listKU' => $listKU,
             'listEvents' => $listEvents
         ]);
@@ -55,38 +93,59 @@ class EventsController extends Controller {
     public function update_pricing() {
         $pdo = Database::getInstance()->getConnection();
         $adminId = $_SESSION['swim_user_id'];
+        $isMaster = ($_SESSION['swim_role'] ?? '') === 'master';
 
-        $eventId = $this->getActiveEventId($pdo, $adminId);
-        if (!$eventId) {
-            $_SESSION['toast'] = ['type' => 'error', 'msg' => 'Buat Event Dulu di Menu Settings!'];
-            header("Location: " . getenv('APP_URL') . "/swim/admin/events/index"); exit;
+        $requestedEventId = (int)($_POST['event_id'] ?? ($_GET['event_id'] ?? 0));
+        list($activeEvent) = $this->resolveEvent($pdo, $adminId, $requestedEventId);
+
+        if (!$activeEvent) {
+            $_SESSION['toast'] = ['type' => 'error', 'msg' => 'Event tidak ditemukan atau belum dipilih!'];
+            header("Location: " . getenv('APP_URL') . "/swim/admin/events/index");
+            exit;
         }
 
-        if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+        $eventId = (int)$activeEvent['id'];
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             try {
-                $mode = $_POST['pricing_mode'] ?? 'flat'; 
+                $rawMode = trim($_POST['pricing_mode'] ?? 'per_item');
+                $mode = ($rawMode === 'package') ? 'package' : 'per_item';
                 $pkgPrice = !empty($_POST['package_price']) ? (float)$_POST['package_price'] : 0;
                 $pkgLimit = !empty($_POST['package_limit']) ? (int)$_POST['package_limit'] : 0;
                 $pkgExtra = !empty($_POST['extra_price']) ? (float)$_POST['extra_price'] : 0;
 
-                $sql = "UPDATE swim_events SET pricing_mode=?, package_price=?, package_limit=?, extra_price=? WHERE id=? AND user_id=?";
-                $pdo->prepare($sql)->execute([$mode, $pkgPrice, $pkgLimit, $pkgExtra, $eventId, $adminId]);
+                if ($isMaster) {
+                    $sql = "UPDATE swim_events SET pricing_mode=?, package_price=?, package_limit=?, extra_price=? WHERE id=?";
+                    $pdo->prepare($sql)->execute([$mode, $pkgPrice, $pkgLimit, $pkgExtra, $eventId]);
+                } else {
+                    $sql = "UPDATE swim_events SET pricing_mode=?, package_price=?, package_limit=?, extra_price=? WHERE id=? AND user_id=?";
+                    $pdo->prepare($sql)->execute([$mode, $pkgPrice, $pkgLimit, $pkgExtra, $eventId, $adminId]);
+                }
                 
-                $_SESSION['toast'] = ['type' => 'success', 'msg' => 'Aturan Harga Berhasil Disimpan!'];
+                $_SESSION['toast'] = ['type' => 'success', 'msg' => 'Aturan Biaya Berhasil Disimpan!'];
             } catch (Exception $e) {
                 $_SESSION['toast'] = ['type' => 'error', 'msg' => 'Gagal Update Harga: ' . $e->getMessage()];
             }
         }
-        header("Location: " . getenv('APP_URL') . "/swim/admin/events/index"); exit;
+        header("Location: " . getenv('APP_URL') . "/swim/admin/events/index?event_id=" . $eventId);
+        exit;
     }
 
     public function add_ku() {
         $pdo = Database::getInstance()->getConnection();
         $adminId = $_SESSION['swim_user_id'];
+        $requestedEventId = (int)($_POST['event_id'] ?? ($_GET['event_id'] ?? 0));
+        list($activeEvent) = $this->resolveEvent($pdo, $adminId, $requestedEventId);
 
-        $eventId = $this->getActiveEventId($pdo, $adminId);
+        if (!$activeEvent) {
+            $_SESSION['toast'] = ['type' => 'error', 'msg' => 'Pilih event terlebih dahulu!'];
+            header("Location: " . getenv('APP_URL') . "/swim/admin/events/index");
+            exit;
+        }
 
-        if ($_SERVER['REQUEST_METHOD'] == 'POST' && $eventId > 0) {
+        $eventId = (int)$activeEvent['id'];
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && $eventId > 0) {
             try {
                 $groupName = strtoupper(trim($_POST['group_name'] ?? ''));
                 $minAge = (int)($_POST['min_age'] ?? 0);
@@ -103,38 +162,44 @@ class EventsController extends Controller {
                 $_SESSION['toast'] = ['type' => 'error', 'msg' => 'Gagal: ' . $e->getMessage()];
             }
         }
-        header("Location: " . getenv('APP_URL') . "/swim/admin/events/index"); exit;
+        header("Location: " . getenv('APP_URL') . "/swim/admin/events/index?event_id=" . $eventId);
+        exit;
     }
 
     public function delete_ku() {
         $pdo = Database::getInstance()->getConnection();
         $adminId = $_SESSION['swim_user_id'];
-        $eventId = $this->getActiveEventId($pdo, $adminId);
+        $requestedEventId = (int)($_POST['event_id'] ?? ($_GET['event_id'] ?? 0));
+        list($activeEvent) = $this->resolveEvent($pdo, $adminId, $requestedEventId);
 
-        if ($_SERVER['REQUEST_METHOD'] == 'POST' && $eventId > 0) {
+        $eventId = $activeEvent ? (int)$activeEvent['id'] : 0;
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && $eventId > 0) {
             $kuId = (int)($_POST['id'] ?? 0);
             $pdo->prepare("DELETE FROM swim_event_age_groups WHERE id = ? AND event_id = ?")->execute([$kuId, $eventId]);
             $_SESSION['toast'] = ['type' => 'success', 'msg' => 'Kelompok Umur Dihapus'];
         }
-        header("Location: " . getenv('APP_URL') . "/swim/admin/events/index"); exit;
+        header("Location: " . getenv('APP_URL') . "/swim/admin/events/index?event_id=" . $eventId);
+        exit;
     }
 
     public function store() {
         $pdo = Database::getInstance()->getConnection();
         $adminId = $_SESSION['swim_user_id'];
+        $requestedEventId = (int)($_POST['event_id'] ?? ($_GET['event_id'] ?? 0));
+        list($activeEvent) = $this->resolveEvent($pdo, $adminId, $requestedEventId);
 
-        $stmtEvent = $pdo->prepare("SELECT * FROM swim_events WHERE user_id = ? ORDER BY id DESC LIMIT 1");
-        $stmtEvent->execute([$adminId]);
-        $activeEvent = $stmtEvent->fetch(PDO::FETCH_ASSOC);
-        $eventId = $activeEvent['id'] ?? 0;
-        $poolLabel = ($activeEvent['pool_type'] ?? 'LCM') === 'SCM' ? 'SCM' : 'LCM';
-
-        if ($eventId == 0) {
-            $_SESSION['toast'] = ['type' => 'error', 'msg' => 'Buat Event Dulu di Menu Settings!'];
-            header("Location: " . getenv('APP_URL') . "/swim/admin/events/index"); exit;
+        if (!$activeEvent) {
+            $_SESSION['toast'] = ['type' => 'error', 'msg' => 'Pilih atau Buat Event Terlebih Dahulu!'];
+            header("Location: " . getenv('APP_URL') . "/swim/admin/events/index");
+            exit;
         }
 
-        if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+        $eventId = (int)$activeEvent['id'];
+        $organizerId = (int)($activeEvent['user_id'] ?: $adminId);
+        $poolLabel = ($activeEvent['pool_type'] ?? 'LCM') === 'SCM' ? 'SCM' : 'LCM';
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             try {
                 $nomor  = (int)($_POST['nomor_acara'] ?? 0);
                 $jarak  = (int)($_POST['jarak'] ?? 0);
@@ -184,7 +249,7 @@ class EventsController extends Controller {
                 
                 $stmt = $pdo->prepare($sql);
                 $stmt->execute([
-                    $adminId, $eventId, $nomor, $eventName, $jarak, $gaya, $jk, 
+                    $organizerId, $eventId, $nomor, $eventName, $jarak, $gaya, $jk, 
                     $ageGroupString, $globalMin, $globalMax, $selectedIdsString, $harga, $tgl, $jam, $is_relay
                 ]);
 
@@ -194,13 +259,15 @@ class EventsController extends Controller {
                 $_SESSION['toast'] = ['type' => 'error', 'msg' => 'Gagal: ' . $e->getMessage()];
             }
         }
-        header("Location: " . getenv('APP_URL') . "/swim/admin/events/index"); exit;
+        header("Location: " . getenv('APP_URL') . "/swim/admin/events/index?event_id=" . $eventId);
+        exit;
     }
 
     public function update() {
         $pdo = Database::getInstance()->getConnection();
+        $requestedEventId = (int)($_POST['event_id'] ?? ($_GET['event_id'] ?? 0));
         
-        if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             try {
                 $id  = (int)($_POST['id'] ?? 0);
                 $tgl = !empty($_POST['schedule_date']) ? $_POST['schedule_date'] : NULL;
@@ -214,28 +281,36 @@ class EventsController extends Controller {
                 $_SESSION['toast'] = ['type' => 'error', 'msg' => 'Gagal Update Jadwal'];
             }
         }
-        header("Location: " . getenv('APP_URL') . "/swim/admin/events/index"); exit;
+        $redirectUrl = getenv('APP_URL') . "/swim/admin/events/index" . ($requestedEventId > 0 ? "?event_id=" . $requestedEventId : "");
+        header("Location: " . $redirectUrl);
+        exit;
     }
 
     public function delete() {
         $pdo = Database::getInstance()->getConnection();
         $adminId = $_SESSION['swim_user_id'];
+        $isMaster = ($_SESSION['swim_role'] ?? '') === 'master';
+        $requestedEventId = (int)($_POST['event_id'] ?? ($_GET['event_id'] ?? 0));
 
-        if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $id = (int)($_POST['id'] ?? 0);
             if ($id > 0) {
-                $pdo->prepare("DELETE FROM swim_event_numbers WHERE id = ? AND organizer_id = ?")->execute([$id, $adminId]);
+                if ($isMaster) {
+                    $pdo->prepare("DELETE FROM swim_event_numbers WHERE id = ?")->execute([$id]);
+                } else {
+                    $pdo->prepare("DELETE FROM swim_event_numbers WHERE id = ? AND (organizer_id = ? OR event_id = ?)")->execute([$id, $adminId, $requestedEventId]);
+                }
                 $_SESSION['toast'] = ['type' => 'success', 'msg' => 'Nomor Lomba Dihapus'];
             }
         }
-        header("Location: " . getenv('APP_URL') . "/swim/admin/events/index"); exit;
+        $redirectUrl = getenv('APP_URL') . "/swim/admin/events/index" . ($requestedEventId > 0 ? "?event_id=" . $requestedEventId : "");
+        header("Location: " . $redirectUrl);
+        exit;
     }
 
     private function getActiveEventId($pdo, $adminId) {
-        $stmtFind = $pdo->prepare("SELECT id FROM swim_events WHERE user_id = ? ORDER BY id DESC LIMIT 1");
-        $stmtFind->execute([$adminId]);
-        $event = $stmtFind->fetch(PDO::FETCH_ASSOC);
-        return $event ? $event['id'] : 0;
+        list($activeEvent) = $this->resolveEvent($pdo, $adminId);
+        return $activeEvent ? (int)$activeEvent['id'] : 0;
     }
 
     // Optional methods that user requested for full CRUD but logic mostly done in modal index

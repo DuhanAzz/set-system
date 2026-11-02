@@ -50,9 +50,23 @@
                     <?php endif; ?>
                 </div>
 
-                <div class="mt-6 pt-6 border-t-2 border-dashed border-slate-200 flex justify-between items-center">
-                    <p class="text-sm font-black text-slate-800 uppercase italic">Total Tagihan</p>
-                    <p class="text-3xl font-black text-blue-600 tracking-tighter">Rp <?= number_format($totalTagihan, 0, ',', '.') ?></p>
+                <div class="mt-6 pt-6 border-t-2 border-dashed border-slate-200">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <p class="text-sm font-black text-slate-800 uppercase italic">Total Tagihan</p>
+                            <?php if (($event['pricing_mode'] ?? 'per_item') === 'package'): ?>
+                                <p class="text-[10px] text-emerald-700 font-bold mt-0.5">
+                                    📦 Skema Paket: Rp <?= number_format((float)($event['package_price'] ?? 0), 0, ',', '.') ?> (hingga <?= (int)($event['package_limit'] ?? 0) ?> nomor/atlet)
+                                    <?php if ((float)($event['extra_price'] ?? 0) > 0): ?>
+                                        + Ekstra Rp <?= number_format((float)($event['extra_price'] ?? 0), 0, ',', '.') ?>/nomor
+                                    <?php endif; ?>
+                                </p>
+                            <?php else: ?>
+                                <p class="text-[10px] text-slate-400 font-bold mt-0.5">🏷️ Skema Satuan (Per Nomor)</p>
+                            <?php endif; ?>
+                        </div>
+                        <p class="text-3xl font-black text-blue-600 tracking-tighter">Rp <?= number_format($totalTagihan, 0, ',', '.') ?></p>
+                    </div>
                 </div>
             </div>
         </div>
