@@ -121,9 +121,9 @@ class RollResultController extends Controller {
             }
 
             if ($raceFormat === 'ELIMINASI') {
-                $orderBy = "ORDER BY CAST(REPLACE(p.heat_name, 'Heat ', '') AS UNSIGNED) ASC, p.heat_name ASC, CASE WHEN COALESCE(r.status, 'OK') = 'OK' THEN 0 ELSE 1 END ASC, CASE WHEN r.rank IS NULL OR CAST(r.rank AS CHAR) = '0' OR CAST(r.rank AS CHAR) = '' THEN 1 ELSE 0 END ASC, r.rank ASC, CASE WHEN r.time IS NULL OR r.time = '' OR r.time = '00.00.000' OR r.time = '00:00.000' THEN '99:99.999' ELSE r.time END ASC, p.start_grid ASC";
+                $orderBy = "ORDER BY CAST(REPLACE(p.heat_name, 'Heat ', '') AS UNSIGNED) ASC, p.heat_name ASC, CASE WHEN COALESCE(r.status, 'OK') IN ('OK', 'FS 1', 'FS') THEN 0 ELSE 1 END ASC, CASE WHEN r.rank IS NULL OR CAST(r.rank AS CHAR) = '0' OR CAST(r.rank AS CHAR) = '' THEN 1 ELSE 0 END ASC, r.rank ASC, CASE WHEN r.time IS NULL OR r.time = '' OR r.time = '00.00.000' OR r.time = '00:00.000' THEN '99:99.999' ELSE r.time END ASC, p.start_grid ASC";
             } else {
-                $orderBy = "ORDER BY CAST(REPLACE(p.heat_name, 'Heat ', '') AS UNSIGNED) ASC, p.heat_name ASC, CASE WHEN COALESCE(r.status, 'OK') = 'OK' THEN 0 ELSE 1 END ASC, CASE WHEN r.rank IS NULL OR CAST(r.rank AS CHAR) = '0' OR CAST(r.rank AS CHAR) = '' THEN 1 ELSE 0 END ASC, r.rank ASC, r.point DESC, CASE WHEN r.time IS NULL OR r.time = '' OR r.time = '00.00.000' OR r.time = '00:00.000' THEN '99:99.999' ELSE r.time END ASC, p.start_grid ASC";
+                $orderBy = "ORDER BY CAST(REPLACE(p.heat_name, 'Heat ', '') AS UNSIGNED) ASC, p.heat_name ASC, CASE WHEN COALESCE(r.status, 'OK') IN ('OK', 'FS 1', 'FS') THEN 0 ELSE 1 END ASC, CASE WHEN r.rank IS NULL OR CAST(r.rank AS CHAR) = '0' OR CAST(r.rank AS CHAR) = '' THEN 1 ELSE 0 END ASC, r.rank ASC, r.point DESC, CASE WHEN r.time IS NULL OR r.time = '' OR r.time = '00.00.000' OR r.time = '00:00.000' THEN '99:99.999' ELSE r.time END ASC, p.start_grid ASC";
             }
 
             $stmtRes = $db->prepare("
@@ -156,6 +156,30 @@ class RollResultController extends Controller {
             }
         }
 
+        $prevFSSkaters = [];
+        if ($eventId > 0 && $filter_class_id > 0) {
+            $stmtFS = $db->prepare("SELECT DISTINCT skater_id FROM roll_event_results WHERE event_id = ? AND race_class_id = ? AND status IN ('FS 1', 'FS') AND round != ?");
+            $stmtFS->execute([$eventId, $filter_class_id, $current_round_name]);
+            $prevFSSkaters = $stmtFS->fetchAll(PDO::FETCH_COLUMN) ?: [];
+
+            // Jika atlet ada di prevFSSkaters dan pada babak ini status masih OK dan belum input waktu,
+            // sinkronkan statusnya agar otomatis muncul FS 1
+            if (!empty($prevFSSkaters)) {
+                $stmtSyncFS = $db->prepare("UPDATE roll_event_results SET status = 'FS 1' WHERE event_id = ? AND race_class_id = ? AND round = ? AND skater_id = ? AND status = 'OK' AND (time IS NULL OR time = '' OR time = '00.00.000')");
+                foreach ($prevFSSkaters as $fsSkaterId) {
+                    $stmtSyncFS->execute([$eventId, $filter_class_id, $current_round_name, $fsSkaterId]);
+                }
+                foreach ($heatsData as &$hRows) {
+                    foreach ($hRows as &$hRow) {
+                        if (in_array($hRow['skater_id'], $prevFSSkaters) && $hRow['status'] === 'OK' && (empty($hRow['time']) || $hRow['time'] === '00.00.000')) {
+                            $hRow['status'] = 'FS 1';
+                        }
+                    }
+                }
+                unset($hRows, $hRow);
+            }
+        }
+
         $dqRules = $db->query("SELECT id, kode_dq, deskripsi as description FROM roll_dq_rules ORDER BY kode_dq ASC")->fetchAll(PDO::FETCH_ASSOC);
 
         $print_round_name = $current_round_name;
@@ -183,7 +207,8 @@ class RollResultController extends Controller {
             'raceFormat' => $raceFormat,
             'available_rounds' => $available_rounds ?? ['Kualifikasi'],
             'structural_round_name' => $current_round_name ?? 'Kualifikasi',
-            'current_round_name' => $print_round_name
+            'current_round_name' => $print_round_name,
+            'prevFSSkaters' => $prevFSSkaters
         ]);
     }
 
@@ -263,18 +288,31 @@ class RollResultController extends Controller {
 
                     // Group rows by heat_name
                     $heatsGrouped = [];
+                    $stmtCheckPriorFS = $db->prepare("SELECT COUNT(*) FROM roll_event_results WHERE event_id = ? AND race_class_id = ? AND skater_id = ? AND round != ? AND status IN ('FS 1', 'FS')");
+
                     foreach ($skater_ids as $index => $s_id) {
                         $h_name = trim($heat_names[$index] ?? '');
                         if (empty($h_name)) continue;
                         
+                        $curStatus = trim($statuses[$index] ?? 'OK');
+                        // Cek akumulasi false start: jika atlet sudah memiliki FS di babak sebelumnya dan babak ini dapat FS lagi -> otomatis DQ
+                        if (in_array($curStatus, ['FS 1', 'FS'])) {
+                            $stmtCheckPriorFS->execute([$eventId, $filter_class_id, $s_id, $structural_round]);
+                            $priorFS = (int)$stmtCheckPriorFS->fetchColumn();
+                            if ($priorFS >= 1) {
+                                $curStatus = 'DQ';
+                            }
+                        }
+
+                        $isFinishOk = in_array($curStatus, ['OK', 'FS 1', 'FS']);
                         $heatsGrouped[$h_name][] = [
                             'skater_id' => $s_id,
                             'race_class_id' => $filter_class_id,
                             'result_id' => trim($result_ids[$index] ?? ''),
                             'time' => trim($times[$index] ?? ''),
                             'rank' => trim($ranks[$index] ?? ''),
-                            'status' => trim($statuses[$index] ?? 'OK'),
-                            'point' => (trim($statuses[$index] ?? 'OK') !== 'OK') ? 0 : (int)trim($points[$index] ?? '0'),
+                            'status' => $curStatus,
+                            'point' => (!$isFinishOk) ? 0 : (int)trim($points[$index] ?? '0'),
                             'heat_name' => $h_name
                         ];
                     }
@@ -283,9 +321,9 @@ class RollResultController extends Controller {
                     foreach ($heatsGrouped as $heatName => $rows) {
                         // Absolute Sorting Hierarchy Per Heat
                         usort($rows, function($a, $b) {
-                            // 1. Status Non-OK terlempar ke bawah
-                            $aOk = ($a['status'] === 'OK') ? 0 : 1;
-                            $bOk = ($b['status'] === 'OK') ? 0 : 1;
+                            // 1. Status Non-OK (selain OK & FS 1) terlempar ke bawah
+                            $aOk = in_array($a['status'], ['OK', 'FS 1', 'FS']) ? 0 : 1;
+                            $bOk = in_array($b['status'], ['OK', 'FS 1', 'FS']) ? 0 : 1;
                             if ($aOk !== $bOk) return $aOk - $bOk;
                             
                             // 2. Rank manual penentu utama
@@ -304,8 +342,8 @@ class RollResultController extends Controller {
 
                         $currentRank = 1;
                         foreach ($rows as $row) {
-                            // Jika status bukan OK, simpan rank mutlaknya (dari eliminasi bottom-up) agar tidak hilang
-                            $finalRank = ($row['status'] === 'OK') ? $currentRank++ : ($row['rank'] !== '' ? (int)$row['rank'] : null);
+                            // Jika status OK atau FS 1, berikan rank urutan yang sah
+                            $finalRank = in_array($row['status'], ['OK', 'FS 1', 'FS']) ? $currentRank++ : ($row['rank'] !== '' ? (int)$row['rank'] : null);
                             
                             // Enforce strict MM.SS.ms format server-side
                             if ($row['time'] === '' || $row['time'] === '00.00.000' || $row['time'] === '00:00.000') {
@@ -1138,12 +1176,18 @@ class RollResultController extends Controller {
         $results = $stmtResults->fetchAll(PDO::FETCH_ASSOC);
 
         if ($isRaceBook) {
-            $stmtPrevTime = $db->prepare("SELECT print_round_name, time FROM roll_event_results WHERE event_id = ? AND race_class_id = ? AND skater_id = ? AND round != ? AND time IS NOT NULL AND time != '' AND status = 'OK' ORDER BY id DESC LIMIT 1");
+            $stmtPrevTime = $db->prepare("SELECT print_round_name, time, status FROM roll_event_results WHERE event_id = ? AND race_class_id = ? AND skater_id = ? AND round != ? AND time IS NOT NULL AND time != '' AND status IN ('OK', 'FS 1', 'FS') ORDER BY id DESC LIMIT 1");
+            $stmtCheckFS = $db->prepare("SELECT COUNT(*) FROM roll_event_results WHERE event_id = ? AND race_class_id = ? AND skater_id = ? AND status IN ('FS 1', 'FS')");
             foreach ($results as &$res) {
                 $stmtPrevTime->execute([$eventId, $classId, $res['skater_id'] ?? 0, $round]);
                 $prev = $stmtPrevTime->fetch(PDO::FETCH_ASSOC);
                 $res['prev_round'] = $prev ? $prev['print_round_name'] : '';
                 $res['prev_time'] = $prev ? $prev['time'] : '';
+                $res['prev_status'] = $prev ? $prev['status'] : '';
+
+                $stmtCheckFS->execute([$eventId, $classId, $res['skater_id'] ?? 0]);
+                $fsCount = (int)$stmtCheckFS->fetchColumn();
+                $res['has_fs'] = ($fsCount > 0) || in_array($res['prev_status'], ['FS 1', 'FS']) || in_array($res['status'] ?? '', ['FS 1', 'FS']);
             }
             unset($res);
             
@@ -1172,6 +1216,14 @@ class RollResultController extends Controller {
                     $grid = 1;
                 }
                 $res['start_grid'] = $grid++;
+            }
+            unset($res);
+        } else {
+            $stmtCheckFS = $db->prepare("SELECT COUNT(*) FROM roll_event_results WHERE event_id = ? AND race_class_id = ? AND skater_id = ? AND status IN ('FS 1', 'FS')");
+            foreach ($results as &$res) {
+                $stmtCheckFS->execute([$eventId, $classId, $res['skater_id'] ?? 0]);
+                $fsCount = (int)$stmtCheckFS->fetchColumn();
+                $res['has_fs'] = ($fsCount > 0) || in_array($res['status'] ?? '', ['FS 1', 'FS']);
             }
             unset($res);
         }
@@ -1240,7 +1292,7 @@ class RollResultController extends Controller {
                         JOIN roll_skaters s ON r.skater_id = s.id
                         LEFT JOIN roll_clubs c ON s.club_id = c.id
                         WHERE r.event_id = ? AND r.race_class_id = ? AND r.round = ?
-                          AND r.status = 'OK'
+                          AND r.status IN ('OK', 'FS 1', 'FS')
                     ");
                     $stmtTimes->execute([$eventId, $classId, $current_round_name]);
                     $rawResults = $stmtTimes->fetchAll(PDO::FETCH_ASSOC);
@@ -1485,9 +1537,10 @@ class RollResultController extends Controller {
                         VALUES (?, ?, ?, ?, ?, ?)
                     ");
 
+                    $stmtCheckPriorFS = $db->prepare("SELECT COUNT(*) FROM roll_event_results WHERE event_id = ? AND race_class_id = ? AND skater_id = ? AND status IN ('FS 1', 'FS')");
                     $stmtInsertResult = $db->prepare("
                         INSERT INTO roll_event_results (event_id, race_class_id, round, print_round_name, skater_id, heat_name, time, status)
-                        VALUES (?, ?, ?, ?, ?, ?, NULL, 'OK')
+                        VALUES (?, ?, ?, ?, ?, ?, NULL, ?)
                     ");
 
                     foreach ($heatsAssigned as $heatNum => $skaters) {
@@ -1502,13 +1555,18 @@ class RollResultController extends Controller {
                                 $gridIdx + 1
                             ]);
 
+                            $stmtCheckPriorFS->execute([$eventId, $classId, $skaterId]);
+                            $hasPriorFS = ((int)$stmtCheckPriorFS->fetchColumn()) > 0;
+                            $initialStatus = $hasPriorFS ? 'FS 1' : 'OK';
+
                             $stmtInsertResult->execute([
                                 $eventId,
                                 $classId,
                                 $next_round,
                                 $next_round, // print round name
                                 $skaterId,
-                                $heatName
+                                $heatName,
+                                $initialStatus
                             ]);
                         }
                     }

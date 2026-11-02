@@ -328,6 +328,9 @@
                                                 <td style="text-align: center; border: 1px solid #000; padding: 4px; vertical-align: middle;">
                                                     <?php if(!empty($res['prev_time'])): ?>
                                                         <span style="font-weight: bold; font-size: 11pt;"><?= htmlspecialchars($res['prev_time']) ?></span>
+                                                        <?php if(!empty($res['has_fs'])): ?>
+                                                            <span style="font-size: 8pt; font-weight: bold; color: #dc2626; margin-left: 3px; vertical-align: baseline;">fs1</span>
+                                                        <?php endif; ?>
                                                     <?php else: ?>
                                                         <span style="color: #cbd5e1;">-</span>
                                                     <?php endif; ?>
@@ -399,17 +402,20 @@
                                         $globalRank = 0;
                                         foreach ($finalList as $res): 
                                             $globalRank++;
+                                            $isFS = in_array($res['status'], ['FS 1', 'FS']) || !empty($res['has_fs']);
                                             $displayRank = ($res['rank'] > 0) ? $res['rank'] : '-';
-                                            if ($res['status'] !== 'OK') {
+                                            if ($res['status'] !== 'OK' && !in_array($res['status'], ['FS 1', 'FS'])) {
                                                 $displayRank = $res['status'];
                                             }
 
                                             $displayTime = '-';
                                             if ($res['time']) {
-                                                $displayTime = $res['time'];
-                                            }
-                                            if ($res['status'] !== 'OK') {
-                                                $displayTime = $res['status'];
+                                                $displayTime = htmlspecialchars($res['time']);
+                                                if ($isFS) {
+                                                    $displayTime .= ' <span style="font-size: 8pt; font-weight: bold; color: #dc2626; margin-left: 2px;">fs1</span>';
+                                                }
+                                            } else if ($res['status'] !== 'OK') {
+                                                $displayTime = htmlspecialchars($res['status']);
                                             }
                                     ?>
                                     <tr>
@@ -508,16 +514,19 @@
                                         $displayRank = $globalRank;
                                         
                                         $statusStr = htmlspecialchars($res['status'] ?? 'OK');
+                                        $isFS = in_array($statusStr, ['FS 1', 'FS']) || !empty($res['has_fs']);
                                         
                                         $displayTime = htmlspecialchars($res['time'] ?? '00.00.000');
-                                        if ($statusStr !== 'OK') {
+                                        if ($isFS && !empty($res['time']) && $res['time'] !== '00.00.000') {
+                                            $displayTime .= ' <span style="font-size: 8pt; font-weight: bold; color: #dc2626; margin-left: 2px;">fs1</span>';
+                                        } elseif ($statusStr !== 'OK') {
                                             $displayTime = "<strong>" . strtoupper($statusStr) . "</strong>";
                                         }
 
-                                        $statusColor = $statusStr === 'OK' ? '#16a34a' : '#dc2626';
+                                        $statusColor = in_array($statusStr, ['OK', 'FS 1', 'FS']) ? '#16a34a' : '#dc2626';
                                         
                                         $advancementLabel = '';
-                                        if ($res['status'] === 'OK' && $adv_count > 0 && !empty($next_round)) {
+                                        if (in_array($res['status'], ['OK', 'FS 1', 'FS']) && $adv_count > 0 && !empty($next_round)) {
                                             if ($globalRank <= $adv_count) {
                                                 $advancementLabel = ' ' . strtoupper($next_round);
                                             } else {

@@ -300,8 +300,11 @@
                                 $rowspan = count($teamMembers);
                                 foreach($teamMembers as $r):
                             ?>
-                            <?php if(!$isTeamRace || $isFirstMember): ?>
-                            <tr class="hover:bg-blue-50/30 transition-colors <?= $r['status'] !== 'OK' ? 'bg-red-50/50' : 'bg-white' ?>" id="row_<?= $r['skater_id'] ?>" data-bib="<?= htmlspecialchars($r['bib_number'] ?? '') ?>">
+                            <?php if(!$isTeamRace || $isFirstMember): 
+                                $isRowFS = in_array($r['status'], ['FS 1', 'FS']);
+                                $hasPriorFS = in_array($r['skater_id'], $prevFSSkaters ?? []);
+                            ?>
+                            <tr class="hover:bg-blue-50/30 transition-colors <?= $isRowFS ? 'bg-amber-50/50' : ($r['status'] !== 'OK' ? 'bg-red-50/50' : 'bg-white') ?>" id="row_<?= $r['skater_id'] ?>" data-bib="<?= htmlspecialchars($r['bib_number'] ?? '') ?>" data-prev-fs="<?= $hasPriorFS ? 1 : 0 ?>">
                                 <?php if($isFirstMember): ?>
                                     <input type="hidden" name="heat_name[]" value="<?= htmlspecialchars($heatName) ?>">
                                 <?php endif; ?>
@@ -353,7 +356,12 @@
                                         </span>
                                     </td>
                                     <td class="p-4">
-                                        <div class="font-black text-slate-800 text-base leading-tight uppercase"><?= htmlspecialchars($r['skater_name']) ?></div>
+                                        <div class="font-black text-slate-800 text-base leading-tight uppercase flex items-center gap-1.5">
+                                            <span><?= htmlspecialchars($r['skater_name']) ?></span>
+                                            <?php if($hasPriorFS): ?>
+                                                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-black bg-amber-100 text-amber-800 border border-amber-300" title="Memiliki 1 catatan False Start dari babak sebelumnya">FS 1</span>
+                                            <?php endif; ?>
+                                        </div>
                                         <div class="text-[10px] text-slate-400 font-bold uppercase mt-1 tracking-widest">
                                             <?= htmlspecialchars($r['club_name'] ?? 'Independen') ?>
                                         </div>
@@ -399,9 +407,12 @@
 
                                 <!-- STATUS -->
                                 <td class="p-4 text-center relative align-middle" <?= !$isTeamRace || $isFirstMember ? '' : 'style="display:none;"' ?>>
-                                    <select name="status[]" class="input-status <?= $r['status']!=='OK' ? 'text-red-600 bg-red-100 border-red-200' : 'text-slate-500 bg-slate-100 hover:bg-slate-200' ?>" onchange="handleStatusChange(this, '<?= $r['skater_id'] ?>')">
-                                        <?php foreach(['OK', 'DNS', 'DNF', 'DQ', 'FS', 'ELIM'] as $s): ?>
-                                            <option value="<?= $s ?>" <?= $r['status'] === $s ? 'selected' : '' ?> <?= $s !== 'OK' ? 'class="text-red-600"' : '' ?>><?= $s ?></option>
+                                    <?php 
+                                        $statusClass = $isRowFS ? 'text-amber-700 bg-amber-100 border-amber-300 font-bold' : ($r['status']!=='OK' ? 'text-red-600 bg-red-100 border-red-200 font-bold' : 'text-slate-500 bg-slate-100 hover:bg-slate-200');
+                                    ?>
+                                    <select name="status[]" class="input-status <?= $statusClass ?>" onchange="handleStatusChange(this, '<?= $r['skater_id'] ?>')">
+                                        <?php foreach(['OK', 'FS 1', 'DNS', 'DNF', 'DQ', 'ELIM'] as $s): ?>
+                                            <option value="<?= $s ?>" <?= ($r['status'] === $s || ($s === 'FS 1' && $r['status'] === 'FS')) ? 'selected' : '' ?> <?= $s === 'FS 1' ? 'class="text-amber-600 font-bold"' : ($s !== 'OK' ? 'class="text-red-600"' : '') ?>><?= $s ?></option>
                                         <?php endforeach; ?>
                                     </select>
                                 </td>
@@ -525,24 +536,47 @@
             let pointInput = document.querySelector(`#row_${skaterId} .input-point`);
             let row = document.getElementById('row_' + skaterId);
 
-            if(val !== 'OK') {
+            // Deteksi jika memilih FS 1 pada atlet yang sudah memiliki FS sebelumnya
+            if (val === 'FS 1' || val === 'FS') {
+                let prevFS = parseInt(row ? (row.getAttribute('data-prev-fs') || '0') : '0');
+                if (prevFS >= 1) {
+                    alert('PERINGATAN ATURAN LOMBA:\nAtlet ini sudah memiliki 1 catatan False Start dari babak sebelumnya.\n\nAkumulasi 2 kali False Start = Otomatis DISKUALIFIKASI (DQ)!');
+                    selectObj.value = 'DQ';
+                    val = 'DQ';
+                }
+            }
+
+            if (val === 'FS 1' || val === 'FS') {
+                // False Start 1: atlet tetap bertanding, input waktu & rank tetap aktif!
+                if(timeInput) { timeInput.readOnly = false; timeInput.tabIndex = 1; timeInput.style.background = '#fefce8'; timeInput.classList.remove('opacity-50'); }
+                if(rankInput) { rankInput.style.background = '#fefce8'; }
+                if(pointInput) { pointInput.style.background = '#fffbeb'; }
+
+                if (row) {
+                    row.classList.remove('bg-red-50/80', 'row-eliminated');
+                    row.classList.add('bg-amber-50/50');
+                }
+                selectObj.className = 'input-status text-amber-700 bg-amber-100 border-amber-300 font-bold';
+            } else if (val !== 'OK') {
                 if(timeInput) { timeInput.readOnly = true; timeInput.tabIndex = -1; timeInput.style.background = '#f1f5f9'; timeInput.value = ''; timeInput.classList.add('opacity-50'); }
                 if(rankInput && val !== 'DNF') { rankInput.style.background = '#f1f5f9'; rankInput.value = ''; }
                 if(pointInput) { pointInput.style.background = '#f1f5f9'; pointInput.value = '0'; }
                 
-                row.classList.add('bg-red-50/80');
-                row.classList.remove('bg-white', 'row-eliminated');
-                selectObj.classList.add('text-red-600', 'bg-red-100', 'border-red-200');
-                selectObj.classList.remove('text-slate-500', 'bg-slate-100');
+                if (row) {
+                    row.classList.add('bg-red-50/80');
+                    row.classList.remove('bg-white', 'bg-amber-50/50', 'row-eliminated');
+                }
+                selectObj.className = 'input-status text-red-600 bg-red-100 border-red-200 font-bold';
             } else {
                 if(timeInput) { timeInput.readOnly = false; timeInput.tabIndex = 1; timeInput.style.background = '#f8fafc'; timeInput.classList.remove('opacity-50'); }
                 if(rankInput) { rankInput.style.background = '#fff'; }
                 if(pointInput) { pointInput.style.background = '#fffbeb'; }
                 
-                row.classList.remove('bg-red-50/80', 'row-eliminated');
-                row.classList.add('bg-white');
-                selectObj.classList.remove('text-red-600', 'bg-red-100', 'border-red-200');
-                selectObj.classList.add('text-slate-500', 'bg-slate-100');
+                if (row) {
+                    row.classList.remove('bg-red-50/80', 'bg-amber-50/50', 'row-eliminated');
+                    row.classList.add('bg-white');
+                }
+                selectObj.className = 'input-status text-slate-500 bg-slate-100 hover:bg-slate-200';
             }
         }
 
@@ -608,7 +642,11 @@
             // Trigger saat load for existing status
             document.querySelectorAll('.input-status').forEach(select => {
                 let val = select.value;
-                if(val !== 'OK' || select.closest('tr').classList.contains('bg-red-50/80')) {
+                if(val === 'FS 1' || val === 'FS') {
+                    let tr = select.closest('tr');
+                    if(tr) tr.classList.add('bg-amber-50/50');
+                    select.className = 'input-status text-amber-700 bg-amber-100 border-amber-300 font-bold';
+                } else if(val !== 'OK' || select.closest('tr').classList.contains('bg-red-50/80')) {
                     // Do not override values if it's already rendered as eliminated/DNF
                     if(val === 'DNF' && document.getElementById('rank_' + select.closest('tr').id.replace('row_', '')).value !== '') {
                         document.getElementById('rank_' + select.closest('tr').id.replace('row_', '')).style.background = '#fee2e2';
