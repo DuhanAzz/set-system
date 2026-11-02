@@ -75,7 +75,46 @@ class EventsController extends Controller {
             $kus->execute([$eventId]);
             $listKU = $kus->fetchAll(PDO::FETCH_ASSOC);
 
-            $events = $pdo->prepare("SELECT * FROM swim_event_numbers WHERE (event_id = ? OR (event_id IS NULL AND organizer_id = ?)) ORDER BY CAST(event_number AS UNSIGNED) ASC");
+            $sqlEvents = "
+                SELECT 
+                    en.*,
+                    CASE 
+                        WHEN en.is_relay = 1 THEN (
+                            SELECT COUNT(re.id) 
+                            FROM swim_relay_entries re 
+                            WHERE re.category_id = en.id AND re.status != 'Rejected'
+                        )
+                        ELSE (
+                            SELECT COUNT(ee.id) 
+                            FROM swim_event_entries ee 
+                            WHERE ee.category_id = en.id AND ee.status != 'Rejected'
+                        )
+                    END as total_participants,
+                    CASE 
+                        WHEN en.is_relay = 1 THEN (
+                            SELECT MAX(CASE 
+                                WHEN re.seed_time NOT IN ('99.99.99', 'NT', '00:00.00', '00.00.00', '') AND re.seed_time NOT LIKE '99%' 
+                                THEN re.seed_time 
+                                ELSE NULL 
+                            END)
+                            FROM swim_relay_entries re 
+                            WHERE re.category_id = en.id AND re.status != 'Rejected'
+                        )
+                        ELSE (
+                            SELECT MAX(CASE 
+                                WHEN ee.entry_time NOT IN ('99.99.99', 'NT', '00:00.00', '00.00.00', '') AND ee.entry_time NOT LIKE '99%' 
+                                THEN ee.entry_time 
+                                ELSE NULL 
+                            END)
+                            FROM swim_event_entries ee 
+                            WHERE ee.category_id = en.id AND ee.status != 'Rejected'
+                        )
+                    END as slowest_time_str
+                FROM swim_event_numbers en
+                WHERE (en.event_id = ? OR (en.event_id IS NULL AND en.organizer_id = ?))
+                ORDER BY CAST(en.event_number AS UNSIGNED) ASC
+            ";
+            $events = $pdo->prepare($sqlEvents);
             $events->execute([$eventId, $adminId]);
             $listEvents = $events->fetchAll(PDO::FETCH_ASSOC);
         }
@@ -305,6 +344,51 @@ class EventsController extends Controller {
         }
         $redirectUrl = getenv('APP_URL') . "/swim/admin/events/index" . ($requestedEventId > 0 ? "?event_id=" . $requestedEventId : "");
         header("Location: " . $redirectUrl);
+        exit;
+    }
+
+    public function batch_update_schedule() {
+        $pdo = Database::getInstance()->getConnection();
+        $adminId = $_SESSION['swim_user_id'];
+        $requestedEventId = (int)($_POST['event_id'] ?? 0);
+        list($activeEvent) = $this->resolveEvent($pdo, $adminId, $requestedEventId);
+
+        if (!$activeEvent) {
+            $_SESSION['toast'] = ['type' => 'error', 'msg' => 'Pilih atau Buat Event Terlebih Dahulu!'];
+            header("Location: " . getenv('APP_URL') . "/swim/admin/events/index");
+            exit;
+        }
+
+        $scheduleData = json_decode($_POST['schedule_json'] ?? '[]', true);
+        if (!empty($scheduleData) && is_array($scheduleData)) {
+            try {
+                $pdo->beginTransaction();
+                $stmt = $pdo->prepare("UPDATE swim_event_numbers SET schedule_date = ?, schedule_time = ? WHERE id = ? AND (event_id = ? OR organizer_id = ?)");
+                $count = 0;
+                foreach ($scheduleData as $item) {
+                    $id = (int)($item['id'] ?? 0);
+                    $tgl = !empty($item['schedule_date']) ? $item['schedule_date'] : null;
+                    $jam = !empty($item['schedule_time']) ? $item['schedule_time'] : null;
+                    if ($id > 0) {
+                        $stmt->execute([$tgl, $jam, $id, $activeEvent['id'], $adminId]);
+                        $count++;
+                    }
+                }
+                $pdo->commit();
+                $_SESSION['toast'] = ['type' => 'success', 'msg' => "Jadwal otomatis {$count} nomor lomba berhasil disimpan!"];
+                $_SESSION['flash_type'] = 'success';
+                $_SESSION['flash_message'] = "Jadwal otomatis {$count} nomor lomba berhasil disimpan!";
+            } catch (\Exception $e) {
+                $pdo->rollBack();
+                $_SESSION['toast'] = ['type' => 'error', 'msg' => 'Gagal memperbarui jadwal: ' . $e->getMessage()];
+                $_SESSION['flash_type'] = 'error';
+                $_SESSION['flash_message'] = 'Gagal memperbarui jadwal: ' . $e->getMessage();
+            }
+        } else {
+            $_SESSION['toast'] = ['type' => 'error', 'msg' => 'Tidak ada data jadwal yang diterima'];
+        }
+
+        header("Location: " . getenv('APP_URL') . "/swim/admin/events/index?event_id=" . $activeEvent['id']);
         exit;
     }
 

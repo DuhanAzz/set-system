@@ -892,14 +892,19 @@
                             <h3 class="font-black uppercase text-xs text-slate-500 tracking-widest">Database Nomor Lomba</h3>
                             <span class="text-[10px] font-bold text-slate-600 bg-slate-200 px-2.5 py-1 rounded-full">Total: <?= count($listEvents) ?></span>
                         </div>
-                        <?php if(!empty($listEvents)): ?>
-                        <form action="<?= getenv('APP_URL') ?>/swim/admin/events/delete_all" method="POST" onsubmit="return confirm('PERINGATAN: Apakah Anda yakin ingin MENGHAPUS SEMUA <?= count($listEvents) ?> nomor lomba pada event ini?\n\nTindakan ini tidak dapat dibatalkan.');">
-                            <input type="hidden" name="event_id" value="<?= $eventId ?>">
-                            <button type="submit" class="text-[10px] font-bold text-rose-600 hover:text-white bg-rose-50 hover:bg-rose-600 border border-rose-200 px-3 py-1.5 rounded-xl transition">
-                                🗑️ Kosongkan Semua Nomor
+                        <div class="flex items-center gap-2">
+                            <?php if(!empty($listEvents)): ?>
+                            <button type="button" onclick="openSmartScheduleModal()" class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-black text-xs uppercase px-4 py-2 rounded-xl shadow-md shadow-blue-200 transition flex items-center gap-1.5 transform hover:-translate-y-0.5">
+                                <span>🧠</span> Hitung Jadwal Otomatis
                             </button>
-                        </form>
-                        <?php endif; ?>
+                            <form action="<?= getenv('APP_URL') ?>/swim/admin/events/delete_all" method="POST" onsubmit="return confirm('PERINGATAN: Apakah Anda yakin ingin MENGHAPUS SEMUA <?= count($listEvents) ?> nomor lomba pada event ini?\n\nTindakan ini tidak dapat dibatalkan.');">
+                                <input type="hidden" name="event_id" value="<?= $eventId ?>">
+                                <button type="submit" class="text-[10px] font-bold text-rose-600 hover:text-white bg-rose-50 hover:bg-rose-600 border border-rose-200 px-3 py-1.5 rounded-xl transition">
+                                    🗑️ Kosongkan Semua Nomor
+                                </button>
+                            </form>
+                            <?php endif; ?>
+                        </div>
                     </div>
                     
                     <?php if(empty($listEvents)): ?>
@@ -911,19 +916,22 @@
                                            (($ev['jenis_kelamin'] == 'P') ? 'bg-pink-100 text-pink-700' : 'bg-purple-100 text-purple-700');
                                  
                                  // Format Tanggal untuk Tampilan
-                                 $tglShow = $ev['schedule_date'] ? date('d/m/Y', strtotime($ev['schedule_date'])) : '-';
-                                 $jamShow = $ev['schedule_time'] ? date('H:i', strtotime($ev['schedule_time'])) : '-';
+                                 $tglShow = $ev['schedule_date'] ? date('d/m/Y', strtotime($ev['schedule_date'])) : null;
+                                 $jamShow = $ev['schedule_time'] ? date('H:i', strtotime($ev['schedule_time'])) : null;
+                                 $pCount = (int)($ev['total_participants'] ?? 0);
+                                 $lanes = max(1, (int)($activeEvent['lane_count'] ?? 8));
+                                 $heatCount = $pCount > 0 ? ceil($pCount / $lanes) : 1;
                             ?>
                             <div class="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50 transition group">
                                 <div class="flex items-center gap-4 flex-1">
-                                    <div class="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center font-black text-xl text-slate-700 italic border border-slate-200 shadow-sm">
+                                    <div class="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center font-black text-xl text-slate-700 italic border border-slate-200 shadow-sm flex-shrink-0">
                                         <?= $ev['event_number'] ?>
                                     </div>
                                     <div class="flex-1">
                                         <h4 class="font-black text-sm text-slate-800 uppercase tracking-tight">
                                             <?= htmlspecialchars($ev['event_name']) ?>
                                         </h4>
-                                        <div class="flex flex-wrap gap-2 mt-1 items-center">
+                                        <div class="flex flex-wrap gap-2 mt-1.5 items-center">
                                             <?php if($ev['is_relay']): ?>
                                             <span class="text-[10px] font-black px-2 py-0.5 rounded bg-indigo-100 text-indigo-700 border border-indigo-200">
                                                 ESTAFET
@@ -935,14 +943,36 @@
                                             <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-200 text-slate-600">
                                                 <?= $ev['age_group'] ?>
                                             </span>
+
+                                            <!-- Badge Peserta & Heat -->
+                                            <span class="text-[10px] font-bold px-2 py-0.5 rounded <?= $pCount > 0 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-500' ?>">
+                                                👥 <?= $pCount ?> Atlet (<?= $heatCount ?> Heat)
+                                            </span>
                                             
-                                            <form action="<?= getenv('APP_URL') ?>/swim/admin/events/update" method="POST" class="flex gap-1 ml-2 opacity-50 group-hover:opacity-100 transition">
+                                            <?php if(!empty($ev['slowest_time_str'])): ?>
+                                            <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200" title="Waktu perenang terlama yang terdaftar">
+                                                ⏱️ Max: <?= htmlspecialchars($ev['slowest_time_str']) ?>
+                                            </span>
+                                            <?php endif; ?>
+
+                                            <!-- Badge Tanggal & Jam Terjadwal -->
+                                            <?php if($tglShow && $jamShow): ?>
+                                            <span class="text-[10px] font-mono font-black px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 shadow-sm flex items-center gap-1">
+                                                <span>📅</span> <?= $tglShow ?> <span>⏰</span> <?= $jamShow ?> WIB
+                                            </span>
+                                            <?php else: ?>
+                                            <span class="text-[10px] font-medium italic text-slate-400 px-2 py-0.5 rounded bg-slate-100">
+                                                Belum Dijadwalkan
+                                            </span>
+                                            <?php endif; ?>
+                                            
+                                            <form action="<?= getenv('APP_URL') ?>/swim/admin/events/update" method="POST" class="flex gap-1 ml-2 opacity-30 group-hover:opacity-100 transition items-center">
                                                 <input type="hidden" name="action" value="quick_update_schedule">
                                                 <input type="hidden" name="event_id" value="<?= $eventId ?>">
                                                 <input type="hidden" name="id" value="<?= $ev['id'] ?>">
                                                 <input type="date" name="schedule_date" value="<?= $ev['schedule_date'] ?>" class="w-24 text-[10px] bg-white border border-slate-200 rounded px-1 py-0.5">
                                                 <input type="time" name="schedule_time" value="<?= $ev['schedule_time'] ?>" class="w-16 text-[10px] bg-white border border-slate-200 rounded px-1 py-0.5">
-                                                <button type="submit" title="Simpan Jadwal" class="bg-blue-500 text-white text-[10px] px-2 rounded hover:bg-blue-600">💾</button>
+                                                <button type="submit" title="Simpan Jadwal Nomor Ini" class="bg-blue-500 hover:bg-blue-600 text-white text-[10px] px-2 py-0.5 rounded font-bold shadow-sm">💾</button>
                                             </form>
                                         </div>
                                     </div>
@@ -969,6 +999,211 @@
     <?php endif; ?>
 </div>
 
+<!-- MODAL KALKULATOR JADWAL CERDAS (SMART HEAT & PACE ENGINE) -->
+<div id="smartScheduleModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+    <!-- Backdrop -->
+    <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onclick="closeSmartScheduleModal()"></div>
+
+    <!-- Modal Dialog -->
+    <div class="relative bg-white rounded-[2rem] shadow-2xl w-full max-w-5xl overflow-hidden border border-slate-100 z-10 flex flex-col max-h-[92vh]">
+        
+        <!-- Header -->
+        <div class="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 p-6 text-white flex justify-between items-start flex-shrink-0">
+            <div>
+                <span class="text-[10px] font-black uppercase tracking-widest text-blue-200 block mb-1">Algoritma Cerdas (Smart Heat & Pace Engine)</span>
+                <h3 class="text-2xl font-black uppercase tracking-tight flex items-center gap-2">
+                    <span>🧠</span> Kalkulator Jadwal Lomba Otomatis
+                </h3>
+                <p class="text-xs text-blue-100 font-medium mt-1">
+                    Menghitung tanggal & jam nomor lomba otomatis berdasarkan jumlah peserta riil, lintasan kolam, dan waktu perenang terlama.
+                </p>
+            </div>
+            <button type="button" onclick="closeSmartScheduleModal()" class="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center font-bold text-lg transition">
+                &times;
+            </button>
+        </div>
+
+        <!-- Body Scrollable -->
+        <div class="p-6 overflow-y-auto space-y-6 flex-1 bg-slate-50/50">
+
+            <!-- CONFIGURATION GRID -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                
+                <!-- KARTU 1: Parameter Dasar -->
+                <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                    <h4 class="text-xs font-black uppercase tracking-wider text-slate-800 mb-3 flex items-center gap-1.5">
+                        <span>📅</span> Tanggal & Jam Mulai
+                    </h4>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Tanggal Mulai Lomba</label>
+                            <input type="date" id="schStartDate" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-blue-500" onchange="runSmartScheduleCalculation()">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Jam Mulai Sesi 1</label>
+                            <input type="time" id="schStartTime" value="08:00" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-blue-500 font-mono" onchange="runSmartScheduleCalculation()">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Kapasitas Lintasan Kolam</label>
+                            <div class="flex items-center gap-2">
+                                <input type="number" id="schLaneCount" min="1" max="12" class="w-20 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-black text-slate-700 outline-none focus:border-blue-500 text-center font-mono" onchange="runSmartScheduleCalculation()">
+                                <span class="text-xs font-bold text-slate-500">Lintasan Aktif</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- KARTU 2: Parameter Jeda Waktu (Buffer) -->
+                <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                    <h4 class="text-xs font-black uppercase tracking-wider text-slate-800 mb-3 flex items-center gap-1.5">
+                        <span>⏱️</span> Parameter Jeda & Wasit
+                    </h4>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Jeda Wasit Antar Seri (Heat)</label>
+                            <div class="flex items-center gap-2">
+                                <input type="number" id="schHeatTurnaround" min="10" max="120" value="30" class="w-20 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-black text-slate-700 outline-none focus:border-blue-500 text-center font-mono" onchange="runSmartScheduleCalculation()">
+                                <span class="text-xs font-bold text-slate-500">Detik / Heat</span>
+                            </div>
+                            <p class="text-[9px] text-slate-400 mt-0.5">Waktu atlet keluar, naik balok & peluit start</p>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Jeda Ganti Nomor Acara</label>
+                            <div class="flex items-center gap-2">
+                                <input type="number" id="schEventTransition" min="15" max="300" value="45" class="w-20 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-black text-slate-700 outline-none focus:border-blue-500 text-center font-mono" onchange="runSmartScheduleCalculation()">
+                                <span class="text-xs font-bold text-slate-500">Detik</span>
+                            </div>
+                        </div>
+                        <div class="pt-1">
+                            <label class="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-700">
+                                <input type="checkbox" id="schRoundToMinute" checked class="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300" onchange="runSmartScheduleCalculation()">
+                                <span>Bulatkan Durasi ke Menit Terdekat</span>
+                            </label>
+                            <p class="text-[9px] text-slate-400 pl-6">Agar jadwal mulai buku acara rapi (contoh: 08:00, 08:05)</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- KARTU 3: Pembagian Hari & ISHOMA -->
+                <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                    <h4 class="text-xs font-black uppercase tracking-wider text-slate-800 mb-3 flex items-center gap-1.5">
+                        <span>🏛️</span> Sesi & Multi-Hari
+                    </h4>
+                    <div class="space-y-3 text-xs">
+                        <div class="flex gap-4">
+                            <label class="flex items-center gap-1.5 font-bold text-slate-700 cursor-pointer">
+                                <input type="radio" name="schSessionMode" value="1day" checked onchange="toggleSessionMode(); runSmartScheduleCalculation();">
+                                <span>1 Hari Lomba</span>
+                            </label>
+                            <label class="flex items-center gap-1.5 font-bold text-slate-700 cursor-pointer">
+                                <input type="radio" name="schSessionMode" value="2days" onchange="toggleSessionMode(); runSmartScheduleCalculation();">
+                                <span>2 Hari (Multi-Day)</span>
+                            </label>
+                        </div>
+
+                        <!-- Opsi ISHOMA 1 Hari -->
+                        <div id="ishomaSection" class="p-3 bg-amber-50/60 rounded-xl border border-amber-200/80 space-y-2">
+                            <label class="flex items-center gap-2 cursor-pointer font-black text-amber-800 text-[11px]">
+                                <input type="checkbox" id="schHasIshoma" onchange="runSmartScheduleCalculation()">
+                                <span>Sisipkan Jeda Siang (ISHOMA)</span>
+                            </label>
+                            <div class="grid grid-cols-2 gap-2 text-[10px]">
+                                <div>
+                                    <span class="text-slate-500 font-bold block mb-0.5">Setelah No:</span>
+                                    <input type="number" id="schIshomaAfter" value="35" class="w-full bg-white border border-amber-200 rounded px-2 py-1 font-bold text-slate-800 text-center" onchange="runSmartScheduleCalculation()">
+                                </div>
+                                <div>
+                                    <span class="text-slate-500 font-bold block mb-0.5">Durasi Jeda:</span>
+                                    <input type="number" id="schIshomaDuration" value="60" class="w-full bg-white border border-amber-200 rounded px-2 py-1 font-bold text-slate-800 text-center" onchange="runSmartScheduleCalculation()">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Opsi 2 Hari -->
+                        <div id="multiDaySection" class="hidden p-3 bg-blue-50/60 rounded-xl border border-blue-200/80 space-y-2 text-[10px]">
+                            <div>
+                                <span class="text-slate-600 font-bold block mb-0.5">Hari 1 s/d Nomor Acara:</span>
+                                <input type="number" id="schSplitDay1" value="40" class="w-full bg-white border border-blue-200 rounded px-2 py-1 font-bold text-slate-800 text-center" onchange="runSmartScheduleCalculation()">
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <span class="text-slate-600 font-bold block mb-0.5">Tanggal Hari 2:</span>
+                                    <input type="date" id="schDay2Date" class="w-full bg-white border border-blue-200 rounded px-1.5 py-1 font-bold text-slate-800" onchange="runSmartScheduleCalculation()">
+                                </div>
+                                <div>
+                                    <span class="text-slate-600 font-bold block mb-0.5">Jam Mulai H2:</span>
+                                    <input type="time" id="schDay2Time" value="08:00" class="w-full bg-white border border-blue-200 rounded px-1.5 py-1 font-bold text-slate-800 text-center" onchange="runSmartScheduleCalculation()">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- SIMULATION PREVIEW TABLE -->
+            <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+                <div class="p-4 bg-slate-100/70 border-b border-slate-200 flex justify-between items-center">
+                    <div>
+                        <h4 class="font-black text-xs uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
+                            <span>📋</span> Pratinjau Jadwal Otomatis (Live Simulation)
+                        </h4>
+                        <p class="text-[10px] text-slate-500 mt-0.5">Tabel ini terhitung secara langsung dari parameter di atas.</p>
+                    </div>
+                    <div class="flex items-center gap-3 text-xs">
+                        <span class="bg-white px-3 py-1 rounded-lg border border-slate-200 font-bold text-slate-700">
+                            Total: <b class="text-blue-600" id="prevTotalCount">0</b> Nomor
+                        </span>
+                        <span class="bg-white px-3 py-1 rounded-lg border border-slate-200 font-bold text-slate-700">
+                            Heat: <b class="text-indigo-600" id="prevHeatCount">0</b> Seri
+                        </span>
+                        <span class="bg-emerald-50 px-3 py-1 rounded-lg border border-emerald-200 font-bold text-emerald-700" id="prevFinishTime">
+                            🏁 Selesai: 00:00 WIB
+                        </span>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto max-h-72 overflow-y-auto">
+                    <table class="w-full text-left text-xs border-collapse">
+                        <thead class="bg-slate-50 border-b border-slate-200 font-black uppercase text-[10px] text-slate-500 tracking-wider sticky top-0 bg-slate-50 z-10">
+                            <tr>
+                                <th class="p-3 w-14 text-center">No</th>
+                                <th class="p-3">Nama Nomor Acara</th>
+                                <th class="p-3 text-center">Peserta</th>
+                                <th class="p-3 text-center">Heat</th>
+                                <th class="p-3 text-center">Waktu Terlama</th>
+                                <th class="p-3 text-center">Durasi</th>
+                                <th class="p-3 text-center">Tanggal</th>
+                                <th class="p-3 text-center">Mulai</th>
+                                <th class="p-3 text-center">Selesai</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 font-medium" id="previewScheduleTableBody">
+                            <!-- Populated dynamically via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Footer Actions -->
+        <div class="p-4 bg-white border-t border-slate-100 flex justify-between items-center flex-shrink-0">
+            <button type="button" onclick="closeSmartScheduleModal()" class="px-6 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 font-black text-xs uppercase tracking-wider transition">
+                Batal
+            </button>
+            <form action="<?= getenv('APP_URL') ?>/swim/admin/events/batch_update_schedule" method="POST" id="smartScheduleForm" onsubmit="return submitSmartSchedule(event)">
+                <input type="hidden" name="event_id" value="<?= $eventId ?>">
+                <input type="hidden" name="schedule_json" id="schScheduleJsonInput">
+                <button type="submit" id="btnApplySchedule" class="px-8 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-black text-xs uppercase tracking-wider transition shadow-lg shadow-blue-200 flex items-center gap-2">
+                    <span>💾</span> Terapkan & Simpan Jadwal ke Database
+                </button>
+            </form>
+        </div>
+
+    </div>
+</div>
+
 <script>
 // ==========================================
 // DATA GLOBAL & EVENT GENERATOR LOGIC
@@ -980,7 +1215,293 @@ window.packagePrice = <?= (float)$pkgPrice ?>;
 window.packageLimit = <?= (int)$pkgLimit ?>;
 window.extraPrice = <?= (float)$pkgExtra ?>;
 window.savedSatuanPrice = <?= (float)$standardUnitPrice ?>;
+window.listDatabaseEvents = <?= json_encode($listEvents) ?>;
+window.eventDateStart = '<?= $activeEvent['event_date_start'] ?? date('Y-m-d') ?>';
+window.eventDateEnd = '<?= $activeEvent['event_date_end'] ?? ($activeEvent['event_date_start'] ?? date('Y-m-d')) ?>';
+window.laneCount = <?= max(1, (int)($activeEvent['lane_count'] ?? 8)) ?>;
 let currentDraftItems = [];
+let currentCalculatedSchedule = [];
+
+// ==========================================
+// SMART SCHEDULE FUNCTIONS
+// ==========================================
+function openSmartScheduleModal() {
+    if (!window.listDatabaseEvents || window.listDatabaseEvents.length === 0) {
+        alert("Belum ada nomor lomba yang terdaftar pada event ini.");
+        return;
+    }
+    
+    // Set initial values
+    const startDateInput = document.getElementById('schStartDate');
+    if (startDateInput && !startDateInput.value) {
+        startDateInput.value = window.eventDateStart || new Date().toISOString().substring(0, 10);
+    }
+    const day2DateInput = document.getElementById('schDay2Date');
+    if (day2DateInput && !day2DateInput.value) {
+        day2DateInput.value = window.eventDateEnd || startDateInput.value;
+    }
+    const laneInput = document.getElementById('schLaneCount');
+    if (laneInput && !laneInput.value) {
+        laneInput.value = window.laneCount || 8;
+    }
+    
+    const splitDay1Input = document.getElementById('schSplitDay1');
+    if (splitDay1Input) {
+        splitDay1Input.value = Math.ceil(window.listDatabaseEvents.length / 2);
+    }
+    const ishomaAfterInput = document.getElementById('schIshomaAfter');
+    if (ishomaAfterInput) {
+        ishomaAfterInput.value = Math.ceil(window.listDatabaseEvents.length / 2);
+    }
+
+    runSmartScheduleCalculation();
+    document.getElementById('smartScheduleModal').classList.remove('hidden');
+}
+
+function closeSmartScheduleModal() {
+    document.getElementById('smartScheduleModal').classList.add('hidden');
+}
+
+function toggleSessionMode() {
+    const mode = document.querySelector('input[name="schSessionMode"]:checked')?.value || '1day';
+    const ishomaSec = document.getElementById('ishomaSection');
+    const multiDaySec = document.getElementById('multiDaySection');
+    if (mode === '2days') {
+        if (ishomaSec) ishomaSec.classList.add('hidden');
+        if (multiDaySec) multiDaySec.classList.remove('hidden');
+    } else {
+        if (ishomaSec) ishomaSec.classList.remove('hidden');
+        if (multiDaySec) multiDaySec.classList.add('hidden');
+    }
+}
+
+function parseTimeToSeconds(timeStr, defaultSec) {
+    if (!timeStr || typeof timeStr !== 'string') return defaultSec;
+    let clean = timeStr.trim().replace(',', '.');
+    if (clean === '' || clean === 'NT' || clean.startsWith('99')) return defaultSec;
+    let parts = clean.split(/[:.]/);
+    if (parts.length >= 3) {
+        let m = parseInt(parts[0], 10) || 0;
+        let s = parseInt(parts[1], 10) || 0;
+        let c = parseInt(parts[2], 10) || 0;
+        return (m * 60) + s + (c / 100);
+    } else if (parts.length === 2) {
+        let m = parseInt(parts[0], 10) || 0;
+        let s = parseInt(parts[1], 10) || 0;
+        return (m * 60) + s;
+    }
+    let val = parseFloat(clean);
+    return isNaN(val) || val <= 0 ? defaultSec : val;
+}
+
+function getBenchmarkTime(distance, isRelay) {
+    let d = parseInt(distance, 10) || 50;
+    if (isRelay) {
+        return d <= 200 ? 180 : 360;
+    }
+    if (d <= 25) return 35;
+    if (d <= 50) return 60;
+    if (d <= 100) return 135;
+    if (d <= 200) return 270;
+    if (d <= 400) return 510;
+    if (d <= 800) return 1020;
+    return 1920;
+}
+
+function formatSecondsToTime(sec) {
+    let totalSec = Math.round(sec);
+    let m = Math.floor(totalSec / 60);
+    let s = totalSec % 60;
+    return (m < 10 ? '0' + m : m) + ':' + (s < 10 ? '0' + s : s);
+}
+
+function formatTimeHHMM(d) {
+    let hh = String(d.getHours()).padStart(2, '0');
+    let mm = String(d.getMinutes()).padStart(2, '0');
+    return hh + ':' + mm;
+}
+
+function formatDateYYYYMMDD(d) {
+    let y = d.getFullYear();
+    let m = String(d.getMonth() + 1).padStart(2, '0');
+    let day = String(d.getDate()).padStart(2, '0');
+    return y + '-' + m + '-' + day;
+}
+
+function runSmartScheduleCalculation() {
+    if (!window.listDatabaseEvents || window.listDatabaseEvents.length === 0) return;
+
+    let startDateVal = document.getElementById('schStartDate').value || window.eventDateStart || new Date().toISOString().substring(0, 10);
+    let startTimeVal = document.getElementById('schStartTime').value || '08:00';
+    let laneCountVal = parseInt(document.getElementById('schLaneCount').value, 10) || window.laneCount || 8;
+    let turnaroundVal = parseInt(document.getElementById('schHeatTurnaround').value, 10) || 30;
+    let transitionVal = parseInt(document.getElementById('schEventTransition').value, 10) || 45;
+    let roundToMin = document.getElementById('schRoundToMinute').checked;
+
+    let modeSession = document.querySelector('input[name="schSessionMode"]:checked')?.value || '1day';
+    let hasIshoma = document.getElementById('schHasIshoma')?.checked;
+    let ishomaAfter = parseInt(document.getElementById('schIshomaAfter')?.value, 10) || 35;
+    let ishomaDuration = parseInt(document.getElementById('schIshomaDuration')?.value, 10) || 60;
+
+    let splitDay1 = parseInt(document.getElementById('schSplitDay1')?.value, 10) || 40;
+    let day2DateVal = document.getElementById('schDay2Date')?.value || window.eventDateEnd || startDateVal;
+    let day2TimeVal = document.getElementById('schDay2Time')?.value || '08:00';
+
+    let curDate = new Date(startDateVal + 'T' + startTimeVal + ':00');
+    let totalHeats = 0;
+    let totalAthletes = 0;
+    let day1Finish = '';
+    let day2Finish = '';
+    let daySwitched = false;
+
+    currentCalculatedSchedule = [];
+
+    window.listDatabaseEvents.forEach((ev, idx) => {
+        let evNum = parseInt(ev.event_number, 10) || (idx + 1);
+
+        // Check Day 2 switch
+        if (modeSession === '2days' && evNum > splitDay1 && !daySwitched) {
+            day1Finish = formatTimeHHMM(curDate);
+            curDate = new Date(day2DateVal + 'T' + day2TimeVal + ':00');
+            daySwitched = true;
+        }
+
+        // Check ISHOMA break
+        if (modeSession === '1day' && hasIshoma && evNum === (ishomaAfter + 1)) {
+            curDate = new Date(curDate.getTime() + (ishomaDuration * 60 * 1000));
+        }
+
+        let parts = parseInt(ev.total_participants, 10) || 0;
+        totalAthletes += parts;
+        let heats = parts > 0 ? Math.ceil(parts / laneCountVal) : 1;
+        totalHeats += heats;
+
+        let benchmark = getBenchmarkTime(ev.distance, ev.is_relay == 1);
+        let slowestSec = parseTimeToSeconds(ev.slowest_time_str, benchmark);
+        let isEstimatedTime = (!ev.slowest_time_str || ev.slowest_time_str === 'NT');
+
+        let heatDur = slowestSec + turnaroundVal;
+        let eventDurSec = (heats * heatDur) + transitionVal;
+        if (roundToMin) {
+            eventDurSec = Math.ceil(eventDurSec / 60) * 60;
+        }
+
+        let startTgl = formatDateYYYYMMDD(curDate);
+        let startJam = formatTimeHHMM(curDate);
+
+        // Advance time
+        let nextDate = new Date(curDate.getTime() + (eventDurSec * 1000));
+        let endJam = formatTimeHHMM(nextDate);
+
+        currentCalculatedSchedule.push({
+            id: ev.id,
+            event_number: ev.event_number,
+            event_name: ev.event_name,
+            distance: ev.distance,
+            stroke: ev.stroke,
+            jenis_kelamin: ev.jenis_kelamin,
+            age_group: ev.age_group,
+            is_relay: ev.is_relay,
+            total_participants: parts,
+            heats: heats,
+            slowest_time_str: ev.slowest_time_str || (formatSecondsToTime(benchmark) + ' (Est)'),
+            is_estimated: isEstimatedTime,
+            duration_minutes: Math.max(1, Math.round(eventDurSec / 60)),
+            schedule_date: startTgl,
+            schedule_time: startJam + ':00',
+            start_time_display: startJam,
+            end_time_display: endJam
+        });
+
+        curDate = nextDate;
+    });
+
+    if (modeSession === '2days') {
+        day2Finish = formatTimeHHMM(curDate);
+    } else {
+        day1Finish = formatTimeHHMM(curDate);
+    }
+
+    // Render Preview Table
+    renderSchedulePreviewTable(currentCalculatedSchedule);
+
+    // Update Summary Stats
+    const prevTotal = document.getElementById('prevTotalCount');
+    if (prevTotal) prevTotal.innerText = currentCalculatedSchedule.length;
+    const prevHeat = document.getElementById('prevHeatCount');
+    if (prevHeat) prevHeat.innerText = totalHeats;
+    const finishEl = document.getElementById('prevFinishTime');
+    if (finishEl) {
+        if (modeSession === '2days') {
+            finishEl.innerHTML = `🏁 H1: <b>${day1Finish}</b> | H2: <b>${day2Finish}</b> WIB`;
+        } else {
+            finishEl.innerHTML = `🏁 Selesai: <b>${day1Finish}</b> WIB`;
+        }
+    }
+}
+
+function renderSchedulePreviewTable(items) {
+    const tbody = document.getElementById('previewScheduleTableBody');
+    if (!tbody) return;
+
+    if (items.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="9" class="p-8 text-center text-slate-400">Tidak ada nomor lomba.</td></tr>';
+        return;
+    }
+
+    let html = '';
+    items.forEach((item) => {
+        let bgGender = item.jenis_kelamin === 'L' ? 'bg-blue-100 text-blue-700' : (item.jenis_kelamin === 'P' ? 'bg-pink-100 text-pink-700' : 'bg-purple-100 text-purple-700');
+        let partsLabel = item.total_participants > 0 ? `<span class="font-bold text-emerald-600">${item.total_participants} Atlet</span>` : `<span class="text-slate-400 italic">0 (Est)</span>`;
+        let timeLabel = item.is_estimated ? `<span class="text-slate-400 font-mono text-[10px]">${item.slowest_time_str}</span>` : `<span class="text-amber-700 font-mono font-bold text-[10px]">${item.slowest_time_str}</span>`;
+
+        html += `
+            <tr class="hover:bg-blue-50/40 transition">
+                <td class="p-2.5 text-center font-black text-slate-700 bg-slate-50/50">#${item.event_number}</td>
+                <td class="p-2.5">
+                    <div class="font-bold text-slate-800 uppercase text-xs">${item.event_name}</div>
+                    <div class="flex gap-1.5 mt-0.5">
+                        ${item.is_relay == 1 ? '<span class="text-[9px] font-black px-1.5 py-0.2 rounded bg-indigo-100 text-indigo-700">ESTAFET</span>' : ''}
+                        <span class="text-[9px] font-bold px-1.5 py-0.2 rounded ${bgGender}">${item.jenis_kelamin}</span>
+                        <span class="text-[9px] font-medium text-slate-500">${item.age_group}</span>
+                    </div>
+                </td>
+                <td class="p-2.5 text-center">${partsLabel}</td>
+                <td class="p-2.5 text-center font-bold text-slate-700">${item.heats} Seri</td>
+                <td class="p-2.5 text-center">${timeLabel}</td>
+                <td class="p-2.5 text-center font-bold text-indigo-600">${item.duration_minutes}m</td>
+                <td class="p-2.5 text-center font-mono text-[10px] text-slate-600">${item.schedule_date}</td>
+                <td class="p-2.5 text-center font-mono font-black text-blue-600">${item.start_time_display}</td>
+                <td class="p-2.5 text-center font-mono text-slate-500">${item.end_time_display}</td>
+            </tr>
+        `;
+    });
+
+    tbody.innerHTML = html;
+}
+
+function submitSmartSchedule(e) {
+    if (!currentCalculatedSchedule || currentCalculatedSchedule.length === 0) {
+        alert("Belum ada data jadwal yang dapat diterapkan.");
+        e.preventDefault();
+        return false;
+    }
+
+    const payload = currentCalculatedSchedule.map(i => ({
+        id: i.id,
+        schedule_date: i.schedule_date,
+        schedule_time: i.schedule_time
+    }));
+
+    document.getElementById('schScheduleJsonInput').value = JSON.stringify(payload);
+    return confirm(`Apakah Anda yakin ingin menerapkan dan menyimpan jadwal tanggal & waktu untuk ${payload.length} nomor lomba ke database?`);
+}
+
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeSmartScheduleModal();
+    }
+});
 
 function setGenPrice(val) {
     const input = document.getElementById('genDefaultPrice');
