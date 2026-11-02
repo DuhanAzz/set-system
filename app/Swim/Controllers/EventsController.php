@@ -308,12 +308,167 @@ class EventsController extends Controller {
         exit;
     }
 
+    public function batch_store() {
+        $pdo = Database::getInstance()->getConnection();
+        $adminId = $_SESSION['swim_user_id'];
+        $requestedEventId = (int)($_POST['event_id'] ?? ($_GET['event_id'] ?? 0));
+        list($activeEvent) = $this->resolveEvent($pdo, $adminId, $requestedEventId);
+
+        if (!$activeEvent) {
+            $_SESSION['toast'] = ['type' => 'error', 'msg' => 'Pilih atau Buat Event Terlebih Dahulu!'];
+            header("Location: " . getenv('APP_URL') . "/swim/admin/events/index");
+            exit;
+        }
+
+        $eventId = (int)$activeEvent['id'];
+        $organizerId = (int)($activeEvent['user_id'] ?: $adminId);
+        $poolLabel = ($activeEvent['pool_type'] ?? 'LCM') === 'SCM' ? 'SCM' : 'LCM';
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            try {
+                $rawJson = $_POST['items_json'] ?? '';
+                $items = json_decode($rawJson, true);
+
+                if (!is_array($items) || empty($items)) {
+                    throw new Exception("Tidak ada nomor lomba yang dikirim untuk disimpan.");
+                }
+
+                // Preload semua Kelompok Umur untuk event ini
+                $stmtAllKU = $pdo->prepare("SELECT * FROM swim_event_age_groups WHERE event_id = ?");
+                $stmtAllKU->execute([$eventId]);
+                $dbKUs = $stmtAllKU->fetchAll(PDO::FETCH_ASSOC);
+                
+                $kuMapById = [];
+                $kuMapByName = [];
+                foreach ($dbKUs as $ku) {
+                    $kuMapById[(int)$ku['id']] = $ku;
+                    $kuMapByName[strtoupper(trim($ku['group_name']))] = $ku;
+                }
+
+                $pdo->beginTransaction();
+
+                $sql = "INSERT INTO swim_event_numbers 
+                        (organizer_id, event_id, event_number, event_name, distance, stroke, jenis_kelamin, 
+                        age_group, age_min, age_max, selected_ku_ids, price, schedule_date, schedule_time, is_relay, created_at) 
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
+                $stmt = $pdo->prepare($sql);
+
+                $insertedCount = 0;
+
+                foreach ($items as $item) {
+                    $nomor = trim($item['event_number'] ?? '');
+                    if ($nomor === '') continue;
+
+                    $jarak = (int)($item['distance'] ?? 50);
+                    $gaya = trim($item['stroke'] ?? 'Gaya Bebas');
+                    $jk = trim($item['jenis_kelamin'] ?? 'L');
+                    $harga = (float)($item['price'] ?? 0);
+                    $tgl = !empty($item['schedule_date']) ? $item['schedule_date'] : NULL;
+                    $jam = !empty($item['schedule_time']) ? $item['schedule_time'] : NULL;
+                    $is_relay = !empty($item['is_relay']) ? 1 : 0;
+
+                    // Resolve KUs
+                    $selectedKuIds = [];
+                    if (isset($item['selected_ku_ids']) && is_array($item['selected_ku_ids'])) {
+                        $selectedKuIds = array_map('intval', $item['selected_ku_ids']);
+                    } elseif (isset($item['selected_ku_ids']) && is_string($item['selected_ku_ids'])) {
+                        $selectedKuIds = array_filter(array_map('intval', explode(',', $item['selected_ku_ids'])));
+                    } elseif (!empty($item['age_group'])) {
+                        $groupNames = explode(',', $item['age_group']);
+                        foreach ($groupNames as $gn) {
+                            $cleanName = strtoupper(trim($gn));
+                            if (isset($kuMapByName[$cleanName])) {
+                                $selectedKuIds[] = (int)$kuMapByName[$cleanName]['id'];
+                            }
+                        }
+                    }
+
+                    $globalMin = 0;
+                    $globalMax = 99;
+                    $ageGroupString = $item['age_group'] ?? 'Umum';
+
+                    if (!empty($selectedKuIds)) {
+                        $minArr = [];
+                        $maxArr = [];
+                        $nameArr = [];
+                        foreach ($selectedKuIds as $kid) {
+                            if (isset($kuMapById[$kid])) {
+                                $minArr[] = (int)$kuMapById[$kid]['min_age'];
+                                $maxArr[] = (int)$kuMapById[$kid]['max_age'];
+                                $nameArr[] = $kuMapById[$kid]['group_name'];
+                            }
+                        }
+                        if (!empty($minArr)) {
+                            $globalMin = min($minArr);
+                            $globalMax = max($maxArr);
+                            $ageGroupString = implode(", ", $nameArr);
+                        }
+                    }
+
+                    $selectedIdsString = implode(",", $selectedKuIds);
+                    $labelJK = ($jk == 'L') ? 'PUTRA' : (($jk == 'P') ? 'PUTRI' : 'MIXED');
+                    $eventName = "$jarak M " . strtoupper($gaya) . " $labelJK - $poolLabel";
+
+                    $stmt->execute([
+                        $organizerId, $eventId, $nomor, $eventName, $jarak, $gaya, $jk,
+                        $ageGroupString, $globalMin, $globalMax, $selectedIdsString, $harga, $tgl, $jam, $is_relay
+                    ]);
+                    $insertedCount++;
+                }
+
+                $pdo->commit();
+                $_SESSION['toast'] = ['type' => 'success', 'msg' => "Berhasil menambahkan $insertedCount nomor lomba sekaligus!"];
+            } catch (Exception $e) {
+                if ($pdo->inTransaction()) {
+                    $pdo->rollBack();
+                }
+                $_SESSION['toast'] = ['type' => 'error', 'msg' => 'Gagal Batch Simpan: ' . $e->getMessage()];
+            }
+        }
+
+        header("Location: " . getenv('APP_URL') . "/swim/admin/events/index?event_id=" . $eventId);
+        exit;
+    }
+
+    public function delete_all() {
+        $pdo = Database::getInstance()->getConnection();
+        $adminId = $_SESSION['swim_user_id'];
+        $isMaster = ($_SESSION['swim_role'] ?? '') === 'master';
+        $requestedEventId = (int)($_POST['event_id'] ?? ($_GET['event_id'] ?? 0));
+        list($activeEvent) = $this->resolveEvent($pdo, $adminId, $requestedEventId);
+
+        if (!$activeEvent) {
+            $_SESSION['toast'] = ['type' => 'error', 'msg' => 'Event tidak ditemukan'];
+            header("Location: " . getenv('APP_URL') . "/swim/admin/events/index");
+            exit;
+        }
+
+        $eventId = (int)$activeEvent['id'];
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            try {
+                if ($isMaster) {
+                    $stmt = $pdo->prepare("DELETE FROM swim_event_numbers WHERE event_id = ?");
+                    $stmt->execute([$eventId]);
+                } else {
+                    $stmt = $pdo->prepare("DELETE FROM swim_event_numbers WHERE event_id = ? AND organizer_id = ?");
+                    $stmt->execute([$eventId, $adminId]);
+                }
+                $_SESSION['toast'] = ['type' => 'success', 'msg' => 'Semua nomor lomba pada event ini telah dikosongkan.'];
+            } catch (Exception $e) {
+                $_SESSION['toast'] = ['type' => 'error', 'msg' => 'Gagal menghapus nomor: ' . $e->getMessage()];
+            }
+        }
+
+        header("Location: " . getenv('APP_URL') . "/swim/admin/events/index?event_id=" . $eventId);
+        exit;
+    }
+
     private function getActiveEventId($pdo, $adminId) {
         list($activeEvent) = $this->resolveEvent($pdo, $adminId);
         return $activeEvent ? (int)$activeEvent['id'] : 0;
     }
 
-    // Optional methods that user requested for full CRUD but logic mostly done in modal index
     public function create() {
         header("Location: " . getenv('APP_URL') . "/swim/admin/events/index"); exit;
     }

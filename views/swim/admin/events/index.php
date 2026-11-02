@@ -228,117 +228,566 @@
 
             <div class="lg:col-span-8 space-y-8">
 
-                <div class="bg-white p-8 rounded-[2.5rem] shadow-xl shadow-blue-900/5 border border-slate-200 relative overflow-hidden">
-                    <div class="absolute top-0 right-0 p-4 opacity-5 text-8xl rotate-12">🏊</div>
-                    <h3 class="font-black uppercase text-xs text-blue-600 mb-6 tracking-widest relative z-10">2. Buat Nomor Lomba Baru</h3>
-                    
-                    <form action="<?= getenv('APP_URL') ?>/swim/admin/events/store" method="POST" class="relative z-10">
-                        <input type="hidden" name="action" value="add_event">
-                        <input type="hidden" name="event_id" value="<?= $eventId ?>">
-                        
-                        <div class="grid grid-cols-12 gap-4 mb-4">
-                            <div class="col-span-3">
-                                <label class="block text-[9px] font-bold text-slate-400 uppercase mb-1">No. Acara</label>
-                                <input type="text" name="nomor_acara" placeholder="101" class="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 py-3 font-black text-xl text-center focus:border-blue-500 outline-none" required>
+                <?php
+                $maxEventNum = 0;
+                foreach ($listEvents as $evItem) {
+                    $numVal = (int)preg_replace('/[^0-9]/', '', $evItem['event_number']);
+                    if ($numVal > $maxEventNum) $maxEventNum = $numVal;
+                }
+                $suggestedStartNo = ($maxEventNum > 0) ? ($maxEventNum + 1) : 101;
+                ?>
+
+                <!-- CARD 2: SMART MULTI-MODE GENERATOR NOMOR LOMBA -->
+                <div class="bg-white p-6 md:p-8 rounded-[2.5rem] shadow-xl shadow-blue-900/5 border border-slate-200 relative">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-100">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-xl">🏊</span>
+                                <h3 class="font-black uppercase text-sm text-blue-600 tracking-wider">2. Buat Nomor Lomba Baru</h3>
                             </div>
-                            <div class="col-span-3">
-                                <label class="block text-[9px] font-bold text-slate-400 uppercase mb-1">Jarak</label>
-                                <select name="jarak" class="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-3 py-3 font-bold text-sm outline-none">
-                                    <option value="25">25 m</option>
-                                    <option value="50" selected>50 m</option>
-                                    <option value="100">100 m</option>
-                                    <option value="200">200 m</option>
-                                    <option value="400">400 m</option>
-                                    <option value="800">800 m</option>
-                                    <option value="1500">1500 m</option>
-                                </select>
-                            </div>
-                            <div class="col-span-6">
-                                <label class="block text-[9px] font-bold text-slate-400 uppercase mb-1">Gaya</label>
-                                <select name="gaya" class="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-3 py-3 font-bold text-sm outline-none uppercase">
-                                    <option value="Gaya Bebas">Gaya Bebas</option>
-                                    <option value="Gaya Dada">Gaya Dada</option>
-                                    <option value="Gaya Punggung">Gaya Punggung</option>
-                                    <option value="Gaya Kupu-kupu">Gaya Kupu-kupu</option>
-                                    <option value="Gaya Ganti">Gaya Ganti</option>
-                                    <option value="Kick Bebas">Kick Bebas</option>
-                                </select>
-                            </div>
+                            <p class="text-xs text-slate-500 font-medium mt-1">Susun nomor lomba sekaligus secara cepat, fleksibel, dan otomatis</p>
                         </div>
 
-                        <div class="grid grid-cols-2 gap-4 mb-6">
+                        <!-- TAB NAVIGATION -->
+                        <div class="flex flex-wrap gap-1.5 bg-slate-100 p-1.5 rounded-2xl border border-slate-200 text-xs font-bold">
+                            <button type="button" onclick="switchEventTab('wizard')" id="tabBtnWizard" class="px-3.5 py-2 rounded-xl transition font-black flex items-center gap-1.5 bg-blue-600 text-white shadow-sm">
+                                <span>⚡</span> Wizard Cepat
+                            </button>
+                            <button type="button" onclick="switchEventTab('matrix')" id="tabBtnMatrix" class="px-3.5 py-2 rounded-xl transition font-black flex items-center gap-1.5 text-slate-600 hover:text-slate-900">
+                                <span>📊</span> Matriks Grid
+                            </button>
+                            <button type="button" onclick="switchEventTab('excel')" id="tabBtnExcel" class="px-3.5 py-2 rounded-xl transition font-black flex items-center gap-1.5 text-slate-600 hover:text-slate-900">
+                                <span>📋</span> Salin Excel
+                            </button>
+                            <button type="button" onclick="switchEventTab('manual')" id="tabBtnManual" class="px-3.5 py-2 rounded-xl transition font-black flex items-center gap-1.5 text-slate-600 hover:text-slate-900">
+                                <span>✏️</span> Manual
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- GLOBAL GENERATOR SETTINGS (Untuk Wizard & Matriks) -->
+                    <div id="globalGenSettings" class="bg-gradient-to-r from-blue-50/70 to-indigo-50/70 p-5 rounded-2xl border border-blue-100 mb-6 space-y-4">
+                        <div class="flex items-center justify-between text-blue-900 font-black text-xs uppercase tracking-wider">
+                            <span class="flex items-center gap-2">⚙️ Parameter Urutan & Penomoran Masal</span>
+                            <span class="text-[10px] text-blue-600 font-bold bg-white px-2.5 py-1 rounded-full border border-blue-200">No. Terakhir: #<?= $maxEventNum ?: 'Belum Ada' ?></span>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                             <div>
-                                <label class="block text-[9px] font-bold text-slate-400 uppercase mb-1">Jenis Kelamin</label>
+                                <label class="block text-[10px] font-black uppercase tracking-wider text-slate-600 mb-1">
+                                    No. Acara Awal <span class="text-rose-500">*</span>
+                                </label>
+                                <input type="number" id="genStartNo" value="<?= $suggestedStartNo ?>" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-black text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="101" min="1">
+                                <p class="text-[9px] text-slate-400 mt-1">Nomor acara pertama yang akan dibuat</p>
+                            </div>
+
+                            <div>
+                                <label class="block text-[10px] font-black uppercase tracking-wider text-slate-600 mb-1">
+                                    Pola Penomoran <span class="text-rose-500">*</span>
+                                </label>
+                                <select id="genPattern" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <option value="fina" selected>PA Ganjil, PI Genap (101 PA, 102 PI)</option>
+                                    <option value="sequential">Berurutan Murni (101, 102, 103...)</option>
+                                    <option value="gender_group">Semua Putra Dulu, Lalu Semua Putri</option>
+                                </select>
+                                <p class="text-[9px] text-slate-400 mt-1">Standar FINA / Akuatik: Putra ganjil</p>
+                            </div>
+
+                            <div>
+                                <label class="block text-[10px] font-black uppercase tracking-wider text-slate-600 mb-1">
+                                    Biaya Default (Rp)
+                                </label>
+                                <div class="relative">
+                                    <span class="absolute left-3 top-2 text-xs font-bold text-slate-400">Rp</span>
+                                    <input type="number" id="genDefaultPrice" value="50000" class="w-full bg-white border border-slate-300 rounded-xl pl-9 pr-3 py-2 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500" step="1000" min="0">
+                                </div>
+                                <p class="text-[9px] text-slate-400 mt-1">Biaya per nomor (0 jika sistem paket)</p>
+                            </div>
+
+                            <div>
+                                <label class="block text-[10px] font-black uppercase tracking-wider text-slate-600 mb-1">
+                                    📅 Jadwal (Opsional)
+                                </label>
                                 <div class="flex gap-2">
-                                    <label class="cursor-pointer">
-                                        <input type="radio" name="jenis_kelamin" value="L" class="peer sr-only" checked>
-                                        <div class="px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-500 peer-checked:bg-blue-600 peer-checked:text-white transition">Putra</div>
-                                    </label>
-                                    <label class="cursor-pointer">
-                                        <input type="radio" name="jenis_kelamin" value="P" class="peer sr-only">
-                                        <div class="px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-500 peer-checked:bg-pink-500 peer-checked:text-white transition">Putri</div>
-                                    </label>
-                                    <label class="cursor-pointer">
-                                        <input type="radio" name="jenis_kelamin" value="Campuran" class="peer sr-only">
-                                        <div class="px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-500 peer-checked:bg-purple-600 peer-checked:text-white transition">Mixed</div>
-                                    </label>
+                                    <input type="date" id="genScheduleDate" class="w-2/3 bg-white border border-slate-300 rounded-xl px-2 py-2 text-[11px] font-bold text-slate-800 outline-none">
+                                    <input type="time" id="genScheduleTime" class="w-1/3 bg-white border border-slate-300 rounded-xl px-1.5 py-2 text-[11px] font-bold text-slate-800 outline-none">
+                                </div>
+                                <p class="text-[9px] text-slate-400 mt-1">Tgl & jam default lomba</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ========================================== -->
+                    <!-- TAB 1: WIZARD CEPAT (KOMBINATOR OTOMATIS) -->
+                    <!-- ========================================== -->
+                    <div id="tabContentWizard" class="space-y-6">
+                        
+                        <!-- 1. Presets & Disiplin -->
+                        <div class="space-y-3">
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                <label class="block text-[10px] font-black uppercase tracking-wider text-slate-500">
+                                    1. Pilih Jarak & Gaya Lomba
+                                </label>
+                                <div class="flex flex-wrap gap-1.5 text-[10px] font-bold">
+                                    <button type="button" onclick="applyWizardPreset('50m_4gaya')" class="bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 px-2.5 py-1 rounded-lg transition">
+                                        ⚡ 50m 4 Gaya
+                                    </button>
+                                    <button type="button" onclick="applyWizardPreset('100m_4gaya')" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 px-2.5 py-1 rounded-lg transition">
+                                        ⚡ 100m 4 Gaya
+                                    </button>
+                                    <button type="button" onclick="applyWizardPreset('25m_sprint')" class="bg-teal-50 hover:bg-teal-100 text-teal-700 border border-teal-200 px-2.5 py-1 rounded-lg transition">
+                                        ⚡ 25m Sprint
+                                    </button>
+                                    <button type="button" onclick="applyWizardPreset('all')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 px-2.5 py-1 rounded-lg transition">
+                                        Pilih Semua
+                                    </button>
+                                    <button type="button" onclick="applyWizardPreset('reset')" class="text-rose-600 hover:text-rose-700 px-2 py-1 transition">
+                                        Reset
+                                    </button>
                                 </div>
                             </div>
-                            <div>
-                                <label class="block text-[9px] font-bold text-slate-400 uppercase mb-1">Biaya</label>
-                                <input type="number" name="biaya_pendaftaran" value="50000" class="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 py-2 font-bold text-sm outline-none">
+
+                            <!-- Grid Pills Disiplin -->
+                            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5" id="wizardDisciplineList">
+                                <!-- 50m -->
+                                <label class="cursor-pointer">
+                                    <input type="checkbox" name="wizard_disciplines" value="50|Gaya Bebas|0" class="peer sr-only" checked>
+                                    <div class="p-3 bg-slate-50 border-2 border-slate-200 rounded-xl hover:bg-white peer-checked:border-blue-600 peer-checked:bg-blue-50/60 transition">
+                                        <span class="inline-block text-[9px] font-black px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 mb-1">50 M</span>
+                                        <p class="text-xs font-black text-slate-800">Gaya Bebas</p>
+                                    </div>
+                                </label>
+                                <label class="cursor-pointer">
+                                    <input type="checkbox" name="wizard_disciplines" value="50|Gaya Dada|0" class="peer sr-only" checked>
+                                    <div class="p-3 bg-slate-50 border-2 border-slate-200 rounded-xl hover:bg-white peer-checked:border-blue-600 peer-checked:bg-blue-50/60 transition">
+                                        <span class="inline-block text-[9px] font-black px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 mb-1">50 M</span>
+                                        <p class="text-xs font-black text-slate-800">Gaya Dada</p>
+                                    </div>
+                                </label>
+                                <label class="cursor-pointer">
+                                    <input type="checkbox" name="wizard_disciplines" value="50|Gaya Punggung|0" class="peer sr-only" checked>
+                                    <div class="p-3 bg-slate-50 border-2 border-slate-200 rounded-xl hover:bg-white peer-checked:border-blue-600 peer-checked:bg-blue-50/60 transition">
+                                        <span class="inline-block text-[9px] font-black px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 mb-1">50 M</span>
+                                        <p class="text-xs font-black text-slate-800">Gaya Punggung</p>
+                                    </div>
+                                </label>
+                                <label class="cursor-pointer">
+                                    <input type="checkbox" name="wizard_disciplines" value="50|Gaya Kupu-kupu|0" class="peer sr-only" checked>
+                                    <div class="p-3 bg-slate-50 border-2 border-slate-200 rounded-xl hover:bg-white peer-checked:border-blue-600 peer-checked:bg-blue-50/60 transition">
+                                        <span class="inline-block text-[9px] font-black px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 mb-1">50 M</span>
+                                        <p class="text-xs font-black text-slate-800">Gaya Kupu-kupu</p>
+                                    </div>
+                                </label>
+
+                                <!-- 100m -->
+                                <label class="cursor-pointer">
+                                    <input type="checkbox" name="wizard_disciplines" value="100|Gaya Bebas|0" class="peer sr-only">
+                                    <div class="p-3 bg-slate-50 border-2 border-slate-200 rounded-xl hover:bg-white peer-checked:border-blue-600 peer-checked:bg-blue-50/60 transition">
+                                        <span class="inline-block text-[9px] font-black px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-700 mb-1">100 M</span>
+                                        <p class="text-xs font-black text-slate-800">Gaya Bebas</p>
+                                    </div>
+                                </label>
+                                <label class="cursor-pointer">
+                                    <input type="checkbox" name="wizard_disciplines" value="100|Gaya Dada|0" class="peer sr-only">
+                                    <div class="p-3 bg-slate-50 border-2 border-slate-200 rounded-xl hover:bg-white peer-checked:border-blue-600 peer-checked:bg-blue-50/60 transition">
+                                        <span class="inline-block text-[9px] font-black px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-700 mb-1">100 M</span>
+                                        <p class="text-xs font-black text-slate-800">Gaya Dada</p>
+                                    </div>
+                                </label>
+                                <label class="cursor-pointer">
+                                    <input type="checkbox" name="wizard_disciplines" value="100|Gaya Punggung|0" class="peer sr-only">
+                                    <div class="p-3 bg-slate-50 border-2 border-slate-200 rounded-xl hover:bg-white peer-checked:border-blue-600 peer-checked:bg-blue-50/60 transition">
+                                        <span class="inline-block text-[9px] font-black px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-700 mb-1">100 M</span>
+                                        <p class="text-xs font-black text-slate-800">Gaya Punggung</p>
+                                    </div>
+                                </label>
+                                <label class="cursor-pointer">
+                                    <input type="checkbox" name="wizard_disciplines" value="100|Gaya Kupu-kupu|0" class="peer sr-only">
+                                    <div class="p-3 bg-slate-50 border-2 border-slate-200 rounded-xl hover:bg-white peer-checked:border-blue-600 peer-checked:bg-blue-50/60 transition">
+                                        <span class="inline-block text-[9px] font-black px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-700 mb-1">100 M</span>
+                                        <p class="text-xs font-black text-slate-800">Gaya Kupu-kupu</p>
+                                    </div>
+                                </label>
+
+                                <!-- 25m -->
+                                <label class="cursor-pointer">
+                                    <input type="checkbox" name="wizard_disciplines" value="25|Gaya Bebas|0" class="peer sr-only">
+                                    <div class="p-3 bg-slate-50 border-2 border-slate-200 rounded-xl hover:bg-white peer-checked:border-blue-600 peer-checked:bg-blue-50/60 transition">
+                                        <span class="inline-block text-[9px] font-black px-1.5 py-0.5 rounded bg-teal-100 text-teal-700 mb-1">25 M</span>
+                                        <p class="text-xs font-black text-slate-800">Gaya Bebas</p>
+                                    </div>
+                                </label>
+                                <label class="cursor-pointer">
+                                    <input type="checkbox" name="wizard_disciplines" value="25|Gaya Dada|0" class="peer sr-only">
+                                    <div class="p-3 bg-slate-50 border-2 border-slate-200 rounded-xl hover:bg-white peer-checked:border-blue-600 peer-checked:bg-blue-50/60 transition">
+                                        <span class="inline-block text-[9px] font-black px-1.5 py-0.5 rounded bg-teal-100 text-teal-700 mb-1">25 M</span>
+                                        <p class="text-xs font-black text-slate-800">Gaya Dada</p>
+                                    </div>
+                                </label>
+                                <label class="cursor-pointer">
+                                    <input type="checkbox" name="wizard_disciplines" value="25|Kick Bebas|0" class="peer sr-only">
+                                    <div class="p-3 bg-slate-50 border-2 border-slate-200 rounded-xl hover:bg-white peer-checked:border-blue-600 peer-checked:bg-blue-50/60 transition">
+                                        <span class="inline-block text-[9px] font-black px-1.5 py-0.5 rounded bg-teal-100 text-teal-700 mb-1">25 M</span>
+                                        <p class="text-xs font-black text-slate-800">Kick Bebas</p>
+                                    </div>
+                                </label>
+                                <label class="cursor-pointer">
+                                    <input type="checkbox" name="wizard_disciplines" value="200|Gaya Ganti|0" class="peer sr-only">
+                                    <div class="p-3 bg-slate-50 border-2 border-slate-200 rounded-xl hover:bg-white peer-checked:border-blue-600 peer-checked:bg-blue-50/60 transition">
+                                        <span class="inline-block text-[9px] font-black px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 mb-1">200 M</span>
+                                        <p class="text-xs font-black text-slate-800">Gaya Ganti</p>
+                                    </div>
+                                </label>
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-2 gap-4 mb-6 bg-slate-50 p-4 rounded-xl border border-slate-100">
-                            <div>
-                                <label class="block text-[9px] font-bold text-slate-400 uppercase mb-1">📅 Tgl Lomba</label>
-                                <input type="date" name="schedule_date" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold outline-none focus:border-blue-500">
+                        <!-- 2. Gender & Kelompok Umur -->
+                        <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+                            <!-- Gender -->
+                            <div class="md:col-span-4 space-y-2">
+                                <label class="block text-[10px] font-black uppercase tracking-wider text-slate-500">
+                                    2. Kategori Gender
+                                </label>
+                                <div class="flex flex-col gap-2">
+                                    <label class="cursor-pointer flex items-center justify-between p-3 rounded-xl border-2 border-slate-200 has-[:checked]:border-blue-600 has-[:checked]:bg-blue-50/50 transition">
+                                        <span class="text-xs font-black text-slate-800">🏊‍♂️ Putra (L)</span>
+                                        <input type="checkbox" id="wzGenderL" value="L" class="w-4 h-4 rounded text-blue-600 focus:ring-0" checked>
+                                    </label>
+                                    <label class="cursor-pointer flex items-center justify-between p-3 rounded-xl border-2 border-slate-200 has-[:checked]:border-pink-500 has-[:checked]:bg-pink-50/50 transition">
+                                        <span class="text-xs font-black text-slate-800">🏊‍♀️ Putri (P)</span>
+                                        <input type="checkbox" id="wzGenderP" value="P" class="w-4 h-4 rounded text-pink-600 focus:ring-0" checked>
+                                    </label>
+                                </div>
                             </div>
-                            <div>
-                                <label class="block text-[9px] font-bold text-slate-400 uppercase mb-1">⏰ Jam Mulai</label>
-                                <input type="time" name="schedule_time" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold outline-none focus:border-blue-500">
+
+                            <!-- Kelompok Umur -->
+                            <div class="md:col-span-8 space-y-2">
+                                <div class="flex items-center justify-between">
+                                    <label class="block text-[10px] font-black uppercase tracking-wider text-slate-500">
+                                        3. Terapkan ke Kelompok Umur (KU)
+                                    </label>
+                                    <div class="flex gap-2 text-[10px] font-bold">
+                                        <button type="button" onclick="toggleAllKUs(true)" class="text-blue-600 hover:underline">Pilih Semua</button>
+                                        <span class="text-slate-300">|</span>
+                                        <button type="button" onclick="toggleAllKUs(false)" class="text-slate-400 hover:underline">Batal</button>
+                                    </div>
+                                </div>
+
+                                <?php if(empty($listKU)): ?>
+                                    <div class="p-4 bg-amber-50 rounded-2xl border border-amber-200 text-xs font-bold text-amber-800 flex items-center gap-2">
+                                        <span>⚠️</span>
+                                        <span>Event ini belum memiliki Kelompok Umur. Silakan buat KU pada form sebelah kiri terlebih dahulu.</span>
+                                    </div>
+                                <?php else: ?>
+                                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-44 overflow-y-auto p-1" id="wizardKuContainer">
+                                        <?php foreach($listKU as $ku): ?>
+                                        <label class="cursor-pointer block relative">
+                                            <input type="checkbox" name="wizard_kus" value="<?= $ku['id'] ?>" class="peer sr-only" checked>
+                                            <div class="p-2.5 rounded-xl border-2 border-slate-200 bg-slate-50 peer-checked:border-blue-600 peer-checked:bg-blue-50/60 hover:bg-white transition text-center">
+                                                <span class="block text-xs font-black text-slate-800"><?= htmlspecialchars($ku['group_name']) ?></span>
+                                                <span class="text-[9px] font-bold text-slate-400"><?= $ku['min_age'] ?>-<?= $ku['max_age'] ?> Th</span>
+                                            </div>
+                                        </label>
+                                        <?php endforeach; ?>
+                                    </div>
+                                <?php endif; ?>
                             </div>
                         </div>
 
-                        <div class="mb-6">
-                            <label class="flex items-center gap-3 cursor-pointer p-4 bg-indigo-50 border border-indigo-100 rounded-xl hover:bg-indigo-100 transition shadow-sm">
-                                <input type="checkbox" name="is_relay" value="1" class="w-5 h-5 rounded border-indigo-300 text-indigo-600 focus:ring-indigo-500 focus:ring-offset-0">
-                                <div>
-                                    <span class="block font-black text-sm text-indigo-900">Estafet (Relay Event)</span>
-                                    <span class="block text-[10px] text-indigo-600 font-medium">Tandai jika ini adalah perlombaan beregu (mis. 4x50m)</span>
-                                </div>
+                        <!-- Action Button Wizard -->
+                        <div class="pt-2">
+                            <button type="button" onclick="generateFromWizard()" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-black py-4 px-6 rounded-2xl shadow-lg shadow-blue-500/25 transition flex items-center justify-center gap-2 text-xs uppercase tracking-widest">
+                                <span>⚡</span> Buat Pratinjau Draft Nomor (Wizard)
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- ========================================== -->
+                    <!-- TAB 2: MATRIKS GRID INTERAKTIF             -->
+                    <!-- ========================================== -->
+                    <div id="tabContentMatrix" class="hidden space-y-4">
+                        <?php if(empty($listKU)): ?>
+                            <div class="p-6 bg-amber-50 rounded-2xl border border-amber-200 text-xs font-bold text-amber-800 flex items-center gap-2">
+                                <span>⚠️</span>
+                                <span>Event ini belum memiliki Kelompok Umur. Buat minimal satu KU pada form sebelah kiri untuk mengaktifkan Matriks Grid.</span>
+                            </div>
+                        <?php else: ?>
+                            <div class="flex items-center justify-between text-xs text-slate-500 pb-2 border-b border-slate-100">
+                                <p class="font-medium">Centang sel persilangan <b class="text-blue-600">PA</b> (Putra) dan <b class="text-pink-600">PI</b> (Putri) yang ingin dilombakan:</p>
+                                <button type="button" onclick="resetMatrixGrid()" class="text-rose-500 font-bold hover:underline text-[11px]">Reset Pilihan</button>
+                            </div>
+
+                            <!-- Matrix Table Responsive -->
+                            <div class="overflow-x-auto border border-slate-200 rounded-2xl">
+                                <table class="w-full text-left text-xs border-collapse" id="matrixGridTable">
+                                    <thead class="bg-slate-50 border-b border-slate-200 font-black uppercase text-[10px] text-slate-500 tracking-wider">
+                                        <tr>
+                                            <th class="p-3 sticky left-0 bg-slate-50 min-w-[160px] border-r border-slate-200 z-10">Jarak & Gaya</th>
+                                            <?php foreach($listKU as $ku): ?>
+                                            <th class="p-3 text-center border-r border-slate-200 min-w-[100px]">
+                                                <div><?= htmlspecialchars($ku['group_name']) ?></div>
+                                                <button type="button" onclick="toggleMatrixColumn(<?= $ku['id'] ?>)" class="text-[9px] text-blue-600 hover:underline font-bold mt-0.5 lowercase">+semua</button>
+                                            </th>
+                                            <?php endforeach; ?>
+                                            <th class="p-3 text-center min-w-[70px]">Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-100">
+                                        <?php 
+                                        $matrixDisciplines = [
+                                            ['distance' => 50, 'stroke' => 'Gaya Bebas', 'relay' => 0],
+                                            ['distance' => 50, 'stroke' => 'Gaya Dada', 'relay' => 0],
+                                            ['distance' => 50, 'stroke' => 'Gaya Punggung', 'relay' => 0],
+                                            ['distance' => 50, 'stroke' => 'Gaya Kupu-kupu', 'relay' => 0],
+                                            ['distance' => 100, 'stroke' => 'Gaya Bebas', 'relay' => 0],
+                                            ['distance' => 100, 'stroke' => 'Gaya Dada', 'relay' => 0],
+                                            ['distance' => 100, 'stroke' => 'Gaya Punggung', 'relay' => 0],
+                                            ['distance' => 100, 'stroke' => 'Gaya Kupu-kupu', 'relay' => 0],
+                                            ['distance' => 200, 'stroke' => 'Gaya Ganti', 'relay' => 0],
+                                            ['distance' => 25, 'stroke' => 'Gaya Bebas', 'relay' => 0],
+                                            ['distance' => 25, 'stroke' => 'Gaya Dada', 'relay' => 0],
+                                            ['distance' => 25, 'stroke' => 'Kick Bebas', 'relay' => 0],
+                                        ];
+                                        foreach($matrixDisciplines as $idx => $md):
+                                        ?>
+                                        <tr class="hover:bg-slate-50/70 transition" data-row-idx="<?= $idx ?>">
+                                            <td class="p-3 font-bold text-slate-800 sticky left-0 bg-white border-r border-slate-200 shadow-sm z-10">
+                                                <span class="inline-block text-[9px] font-black px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 mr-1.5"><?= $md['distance'] ?>m</span>
+                                                <span><?= $md['stroke'] ?></span>
+                                            </td>
+                                            <?php foreach($listKU as $ku): 
+                                                $keyPA = "m_{$md['distance']}_{$md['stroke']}_{$ku['id']}_L";
+                                                $keyPI = "m_{$md['distance']}_{$md['stroke']}_{$ku['id']}_P";
+                                            ?>
+                                            <td class="p-2 text-center border-r border-slate-100">
+                                                <div class="inline-flex gap-1">
+                                                    <label class="cursor-pointer">
+                                                        <input type="checkbox" class="matrix-cell-cb sr-only" data-distance="<?= $md['distance'] ?>" data-stroke="<?= $md['stroke'] ?>" data-ku-id="<?= $ku['id'] ?>" data-gender="L">
+                                                        <span class="inline-block px-1.5 py-1 rounded text-[10px] font-black border border-slate-200 text-slate-400 bg-white hover:border-blue-400 matrix-label-pa transition">PA</span>
+                                                    </label>
+                                                    <label class="cursor-pointer">
+                                                        <input type="checkbox" class="matrix-cell-cb sr-only" data-distance="<?= $md['distance'] ?>" data-stroke="<?= $md['stroke'] ?>" data-ku-id="<?= $ku['id'] ?>" data-gender="P">
+                                                        <span class="inline-block px-1.5 py-1 rounded text-[10px] font-black border border-slate-200 text-slate-400 bg-white hover:border-pink-400 matrix-label-pi transition">PI</span>
+                                                    </label>
+                                                </div>
+                                            </td>
+                                            <?php endforeach; ?>
+                                            <td class="p-2 text-center">
+                                                <button type="button" onclick="toggleMatrixRow(<?= $idx ?>)" class="text-[10px] font-bold text-blue-600 hover:underline">+semua</button>
+                                            </td>
+                                        </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <button type="button" onclick="generateFromMatrix()" class="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black py-4 px-6 rounded-2xl shadow-lg shadow-emerald-500/25 transition flex items-center justify-center gap-2 text-xs uppercase tracking-widest">
+                                <span>📊</span> Buat Pratinjau Draft dari Matriks
+                            </button>
+                        <?php endif; ?>
+                    </div>
+
+                    <!-- ========================================== -->
+                    <!-- TAB 3: SALIN / PASTE DARI EXCEL           -->
+                    <!-- ========================================== -->
+                    <div id="tabContentExcel" class="hidden space-y-4">
+                        <div class="bg-indigo-50/60 p-4 rounded-2xl border border-indigo-100 text-xs text-indigo-900 space-y-2">
+                            <p class="font-bold flex items-center gap-1.5">
+                                <span>📋</span> Petunjuk Format Salin dari Excel / Spreadsheet:
+                            </p>
+                            <p class="text-[11px] leading-relaxed text-indigo-800">
+                                Blok dan salin tabel susunan acara Anda di Excel (dengan atau tanpa baris judul), lalu tempelkan langsung ke kotak teks di bawah. Sistem mendukung pemisah Kolom Tab (standar copy Excel) atau Koma (CSV).
+                            </p>
+                            <p class="font-mono text-[10px] bg-white/80 p-2 rounded-lg border border-indigo-200 text-indigo-950">
+                                Format Kolom: [No Acara] &nbsp; [Jarak] &nbsp; [Gaya] &nbsp; [Gender: L/P] &nbsp; [Nama KU] &nbsp; [Biaya: Opsional]
+                            </p>
+                        </div>
+
+                        <div>
+                            <label class="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1.5">
+                                Tempelkan Teks Excel / CSV Di Sini:
                             </label>
+                            <textarea id="excelPasteArea" rows="6" class="w-full bg-slate-50 border border-slate-300 rounded-2xl p-4 font-mono text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="101	50	Gaya Bebas	L	KU 1	50000
+102	50	Gaya Bebas	P	KU 1	50000
+103	50	Gaya Dada	L	KU 1	50000
+104	50	Gaya Dada	P	KU 1	50000"></textarea>
                         </div>
 
-                        <div class="mb-6">
-                            <label class="block text-[9px] font-bold text-slate-400 uppercase mb-2">Pilih Kelompok Umur</label>
-                            <?php if(empty($listKU)): ?>
-                                <div class="p-4 bg-red-50 text-red-600 text-xs font-bold rounded-xl border border-red-100 flex items-center gap-2">⚠️ Buat KU dulu!</div>
-                            <?php else: ?>
-                                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                                    <?php foreach($listKU as $ku): ?>
-                                    <label class="cursor-pointer relative group">
-                                        <input type="checkbox" name="selected_kus[]" value="<?= $ku['id'] ?>" class="peer sr-only">
-                                        <div class="p-3 bg-slate-50 border-2 border-slate-100 rounded-xl text-center hover:bg-white hover:shadow-sm transition peer-checked:border-blue-600 peer-checked:bg-blue-50">
-                                            <span class="block text-xs font-black text-slate-700 peer-checked:text-blue-700"><?= htmlspecialchars($ku['group_name']) ?></span>
-                                            <span class="text-[9px] text-slate-400 font-bold peer-checked:text-blue-400"><?= $ku['min_age'] ?>-<?= $ku['max_age'] ?> Th</span>
-                                        </div>
-                                        <div class="absolute top-1 right-1 w-2 h-2 bg-blue-600 rounded-full opacity-0 peer-checked:opacity-100 transition"></div>
-                                    </label>
-                                    <?php endforeach; ?>
+                        <button type="button" onclick="parseFromExcel()" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-black py-4 px-6 rounded-2xl shadow-lg shadow-blue-500/25 transition flex items-center justify-center gap-2 text-xs uppercase tracking-widest">
+                            <span>📋</span> Parse Data Excel & Buat Pratinjau
+                        </button>
+                    </div>
+
+                    <!-- ========================================== -->
+                    <!-- TAB 4: MANUAL SATUAN (SINGLE ENTRY FORM)   -->
+                    <!-- ========================================== -->
+                    <div id="tabContentManual" class="hidden">
+                        <form action="<?= getenv('APP_URL') ?>/swim/admin/events/store" method="POST" class="space-y-4">
+                            <input type="hidden" name="action" value="add_event">
+                            <input type="hidden" name="event_id" value="<?= $eventId ?>">
+
+                            <div class="grid grid-cols-12 gap-4">
+                                <div class="col-span-3">
+                                    <label class="block text-[9px] font-bold text-slate-400 uppercase mb-1">No. Acara</label>
+                                    <input type="text" name="nomor_acara" value="<?= $suggestedStartNo ?>" class="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 py-3 font-black text-xl text-center focus:border-blue-500 outline-none" required>
                                 </div>
-                            <?php endif; ?>
+                                <div class="col-span-3">
+                                    <label class="block text-[9px] font-bold text-slate-400 uppercase mb-1">Jarak</label>
+                                    <select name="jarak" class="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-3 py-3 font-bold text-sm outline-none">
+                                        <option value="25">25 m</option>
+                                        <option value="50" selected>50 m</option>
+                                        <option value="100">100 m</option>
+                                        <option value="200">200 m</option>
+                                        <option value="400">400 m</option>
+                                        <option value="800">800 m</option>
+                                        <option value="1500">1500 m</option>
+                                    </select>
+                                </div>
+                                <div class="col-span-6">
+                                    <label class="block text-[9px] font-bold text-slate-400 uppercase mb-1">Gaya</label>
+                                    <select name="gaya" class="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-3 py-3 font-bold text-sm outline-none uppercase">
+                                        <option value="Gaya Bebas">Gaya Bebas</option>
+                                        <option value="Gaya Dada">Gaya Dada</option>
+                                        <option value="Gaya Punggung">Gaya Punggung</option>
+                                        <option value="Gaya Kupu-kupu">Gaya Kupu-kupu</option>
+                                        <option value="Gaya Ganti">Gaya Ganti</option>
+                                        <option value="Kick Bebas">Kick Bebas</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-[9px] font-bold text-slate-400 uppercase mb-1">Jenis Kelamin</label>
+                                    <div class="flex gap-2">
+                                        <label class="cursor-pointer">
+                                            <input type="radio" name="jenis_kelamin" value="L" class="peer sr-only" checked>
+                                            <div class="px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-500 peer-checked:bg-blue-600 peer-checked:text-white transition">Putra</div>
+                                        </label>
+                                        <label class="cursor-pointer">
+                                            <input type="radio" name="jenis_kelamin" value="P" class="peer sr-only">
+                                            <div class="px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-500 peer-checked:bg-pink-500 peer-checked:text-white transition">Putri</div>
+                                        </label>
+                                        <label class="cursor-pointer">
+                                            <input type="radio" name="jenis_kelamin" value="Campuran" class="peer sr-only">
+                                            <div class="px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-500 peer-checked:bg-purple-600 peer-checked:text-white transition">Mixed</div>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-[9px] font-bold text-slate-400 uppercase mb-1">Biaya</label>
+                                    <input type="number" name="biaya_pendaftaran" value="50000" class="w-full bg-slate-50 border-2 border-slate-100 rounded-xl px-4 py-2 font-bold text-sm outline-none">
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                <div>
+                                    <label class="block text-[9px] font-bold text-slate-400 uppercase mb-1">📅 Tgl Lomba</label>
+                                    <input type="date" name="schedule_date" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold outline-none focus:border-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-[9px] font-bold text-slate-400 uppercase mb-1">⏰ Jam Mulai</label>
+                                    <input type="time" name="schedule_time" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold outline-none focus:border-blue-500">
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="flex items-center gap-3 cursor-pointer p-4 bg-indigo-50 border border-indigo-100 rounded-xl hover:bg-indigo-100 transition shadow-sm">
+                                    <input type="checkbox" name="is_relay" value="1" class="w-5 h-5 rounded border-indigo-300 text-indigo-600 focus:ring-indigo-500 focus:ring-offset-0">
+                                    <div>
+                                        <span class="block font-black text-sm text-indigo-900">Estafet (Relay Event)</span>
+                                        <span class="block text-[10px] text-indigo-600 font-medium">Tandai jika ini adalah perlombaan beregu (mis. 4x50m)</span>
+                                    </div>
+                                </label>
+                            </div>
+
+                            <div>
+                                <label class="block text-[9px] font-bold text-slate-400 uppercase mb-2">Pilih Kelompok Umur</label>
+                                <?php if(empty($listKU)): ?>
+                                    <div class="p-4 bg-red-50 text-red-600 text-xs font-bold rounded-xl border border-red-100 flex items-center gap-2">⚠️ Buat KU dulu!</div>
+                                <?php else: ?>
+                                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                                        <?php foreach($listKU as $ku): ?>
+                                        <label class="cursor-pointer relative group">
+                                            <input type="checkbox" name="selected_kus[]" value="<?= $ku['id'] ?>" class="peer sr-only">
+                                            <div class="p-3 bg-slate-50 border-2 border-slate-100 rounded-xl text-center hover:bg-white hover:shadow-sm transition peer-checked:border-blue-600 peer-checked:bg-blue-50">
+                                                <span class="block text-xs font-black text-slate-700 peer-checked:text-blue-700"><?= htmlspecialchars($ku['group_name']) ?></span>
+                                                <span class="text-[9px] text-slate-400 font-bold peer-checked:text-blue-400"><?= $ku['min_age'] ?>-<?= $ku['max_age'] ?> Th</span>
+                                            </div>
+                                            <div class="absolute top-1 right-1 w-2 h-2 bg-blue-600 rounded-full opacity-0 peer-checked:opacity-100 transition"></div>
+                                        </label>
+                                        <?php endforeach; ?>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+
+                            <button type="submit" class="w-full py-4 bg-blue-600 text-white font-black uppercase tracking-widest rounded-2xl shadow-lg shadow-blue-200 hover:bg-blue-700 transition transform text-sm">Simpan Nomor Lomba Manual</button>
+                        </form>
+                    </div>
+
+                    <!-- ========================================== -->
+                    <!-- LIVE PREVIEW CONTAINER & BATCH SAVE        -->
+                    <!-- ========================================== -->
+                    <div id="draftPreviewPanel" class="hidden mt-8 pt-6 border-t-2 border-dashed border-slate-200 space-y-4">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-900 text-white p-4 rounded-2xl">
+                            <div>
+                                <h4 class="font-black text-sm uppercase flex items-center gap-2">
+                                    <span>📋</span> Pratinjau Draft Nomor Lomba
+                                </h4>
+                                <p class="text-xs text-slate-400 mt-0.5">
+                                    Total: <b class="text-emerald-400" id="draftTotalCount">0</b> nomor siap disimpan sekaligus
+                                </p>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button type="button" onclick="clearDraftPreview()" class="text-xs font-bold text-slate-400 hover:text-white px-3 py-2 rounded-xl border border-slate-700 transition">
+                                    Bersihkan
+                                </button>
+                                <form action="<?= getenv('APP_URL') ?>/swim/admin/events/batch_store" method="POST" id="batchStoreForm" onsubmit="return confirmBatchStore()">
+                                    <input type="hidden" name="event_id" value="<?= $eventId ?>">
+                                    <input type="hidden" name="items_json" id="batchItemsJson">
+                                    <button type="submit" class="bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-black px-5 py-2.5 rounded-xl text-xs uppercase tracking-wider shadow-lg shadow-emerald-950/40 transition flex items-center gap-1.5">
+                                        <span>💾</span> SIMPAN SEMUA (<span id="btnSaveCount">0</span> NOMOR)
+                                    </button>
+                                </form>
+                            </div>
                         </div>
 
-                        <button type="submit" class="w-full py-4 bg-blue-600 text-white font-black uppercase tracking-widest rounded-2xl shadow-lg shadow-blue-200 hover:bg-blue-700 transition transform text-sm">Simpan Nomor Lomba</button>
-                    </form>
+                        <!-- Table Scrollable Draft -->
+                        <div class="overflow-x-auto border border-slate-200 rounded-2xl max-h-[420px] overflow-y-auto">
+                            <table class="w-full text-left text-xs border-collapse">
+                                <thead class="bg-slate-50 border-b border-slate-200 font-black uppercase text-[10px] text-slate-500 tracking-wider sticky top-0 bg-slate-50 z-10">
+                                    <tr>
+                                        <th class="p-3 w-16 text-center">No</th>
+                                        <th class="p-3">Nama Nomor Acara</th>
+                                        <th class="p-3">Gender</th>
+                                        <th class="p-3">Kelompok Umur</th>
+                                        <th class="p-3 text-right">Biaya</th>
+                                        <th class="p-3 w-12 text-center">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100" id="draftTableBody">
+                                    <!-- Dynamic rows from JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
                 </div>
 
                 <div class="bg-white rounded-[2.5rem] shadow-sm border border-slate-200 overflow-hidden">
-                    <div class="p-6 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
-                        <h3 class="font-black uppercase text-xs text-slate-500 tracking-widest">Database Nomor Lomba</h3>
-                        <span class="text-[10px] font-bold text-slate-400 bg-slate-200 px-2 py-1 rounded">Total: <?= count($listEvents) ?></span>
+                    <div class="p-6 border-b border-slate-100 bg-slate-50/50 flex flex-wrap gap-3 justify-between items-center">
+                        <div class="flex items-center gap-3">
+                            <h3 class="font-black uppercase text-xs text-slate-500 tracking-widest">Database Nomor Lomba</h3>
+                            <span class="text-[10px] font-bold text-slate-600 bg-slate-200 px-2.5 py-1 rounded-full">Total: <?= count($listEvents) ?></span>
+                        </div>
+                        <?php if(!empty($listEvents)): ?>
+                        <form action="<?= getenv('APP_URL') ?>/swim/admin/events/delete_all" method="POST" onsubmit="return confirm('PERINGATAN: Apakah Anda yakin ingin MENGHAPUS SEMUA <?= count($listEvents) ?> nomor lomba pada event ini?\n\nTindakan ini tidak dapat dibatalkan.');">
+                            <input type="hidden" name="event_id" value="<?= $eventId ?>">
+                            <button type="submit" class="text-[10px] font-bold text-rose-600 hover:text-white bg-rose-50 hover:bg-rose-600 border border-rose-200 px-3 py-1.5 rounded-xl transition">
+                                🗑️ Kosongkan Semua Nomor
+                            </button>
+                        </form>
+                        <?php endif; ?>
                     </div>
                     
                     <?php if(empty($listEvents)): ?>
@@ -409,6 +858,413 @@
 </div>
 
 <script>
+// ==========================================
+// DATA GLOBAL & EVENT GENERATOR LOGIC
+// ==========================================
+window.eventKUs = <?= json_encode($listKU) ?>;
+window.poolLabel = '<?= $poolLabel ?>';
+let currentDraftItems = [];
+
+function switchEventTab(tab) {
+    const tabs = ['wizard', 'matrix', 'excel', 'manual'];
+    tabs.forEach(t => {
+        const btn = document.getElementById('tabBtn' + t.charAt(0).toUpperCase() + t.slice(1));
+        const content = document.getElementById('tabContent' + t.charAt(0).toUpperCase() + t.slice(1));
+        if (t === tab) {
+            if (btn) {
+                btn.className = 'px-3.5 py-2 rounded-xl transition font-black flex items-center gap-1.5 bg-blue-600 text-white shadow-sm';
+            }
+            if (content) content.classList.remove('hidden');
+        } else {
+            if (btn) {
+                btn.className = 'px-3.5 py-2 rounded-xl transition font-black flex items-center gap-1.5 text-slate-600 hover:text-slate-900';
+            }
+            if (content) content.classList.add('hidden');
+        }
+    });
+
+    const globalGen = document.getElementById('globalGenSettings');
+    if (globalGen) {
+        if (tab === 'manual') {
+            globalGen.classList.add('hidden');
+        } else {
+            globalGen.classList.remove('hidden');
+        }
+    }
+}
+
+function applyWizardPreset(type) {
+    const cbs = document.querySelectorAll('#wizardDisciplineList input[type="checkbox"]');
+    cbs.forEach(cb => {
+        const val = cb.value; // distance|stroke|relay
+        const [dist, stroke] = val.split('|');
+        if (type === '50m_4gaya') {
+            cb.checked = (dist === '50');
+        } else if (type === '100m_4gaya') {
+            cb.checked = (dist === '100');
+        } else if (type === '25m_sprint') {
+            cb.checked = (dist === '25');
+        } else if (type === 'all') {
+            cb.checked = true;
+        } else if (type === 'reset') {
+            cb.checked = false;
+        }
+    });
+}
+
+function toggleAllKUs(selectAll) {
+    const cbs = document.querySelectorAll('#wizardKuContainer input[type="checkbox"]');
+    cbs.forEach(cb => cb.checked = selectAll);
+}
+
+// Matrix cell visual toggle
+document.addEventListener('change', function(e) {
+    if (e.target && e.target.classList.contains('matrix-cell-cb')) {
+        const cb = e.target;
+        const gender = cb.getAttribute('data-gender');
+        const span = cb.nextElementSibling;
+        if (gender === 'L') {
+            if (cb.checked) {
+                span.className = 'inline-block px-1.5 py-1 rounded text-[10px] font-black border border-blue-500 bg-blue-600 text-white shadow-sm transition';
+            } else {
+                span.className = 'inline-block px-1.5 py-1 rounded text-[10px] font-black border border-slate-200 text-slate-400 bg-white hover:border-blue-400 matrix-label-pa transition';
+            }
+        } else if (gender === 'P') {
+            if (cb.checked) {
+                span.className = 'inline-block px-1.5 py-1 rounded text-[10px] font-black border border-pink-500 bg-pink-500 text-white shadow-sm transition';
+            } else {
+                span.className = 'inline-block px-1.5 py-1 rounded text-[10px] font-black border border-slate-200 text-slate-400 bg-white hover:border-pink-400 matrix-label-pi transition';
+            }
+        }
+    }
+});
+
+function toggleMatrixRow(rowIdx) {
+    const row = document.querySelector(`tr[data-row-idx="${rowIdx}"]`);
+    if (!row) return;
+    const cbs = row.querySelectorAll('.matrix-cell-cb');
+    const allChecked = Array.from(cbs).every(c => c.checked);
+    cbs.forEach(cb => {
+        cb.checked = !allChecked;
+        cb.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+}
+
+function toggleMatrixColumn(kuId) {
+    const cbs = document.querySelectorAll(`.matrix-cell-cb[data-ku-id="${kuId}"]`);
+    const allChecked = Array.from(cbs).every(c => c.checked);
+    cbs.forEach(cb => {
+        cb.checked = !allChecked;
+        cb.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+}
+
+function resetMatrixGrid() {
+    const cbs = document.querySelectorAll('.matrix-cell-cb');
+    cbs.forEach(cb => {
+        cb.checked = false;
+        cb.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+}
+
+// GENERATOR WIZARD
+function generateFromWizard() {
+    const disciplines = [];
+    document.querySelectorAll('#wizardDisciplineList input[type="checkbox"]:checked').forEach(cb => {
+        const [dist, stroke, relay] = cb.value.split('|');
+        disciplines.push({ distance: parseInt(dist, 10), stroke: stroke, relay: parseInt(relay, 10) });
+    });
+
+    if (disciplines.length === 0) {
+        alert('Pilih minimal satu Jarak & Gaya lomba!');
+        return;
+    }
+
+    const genders = [];
+    if (document.getElementById('wzGenderL')?.checked) genders.push('L');
+    if (document.getElementById('wzGenderP')?.checked) genders.push('P');
+
+    if (genders.length === 0) {
+        alert('Pilih minimal satu Gender (Putra atau Putri)!');
+        return;
+    }
+
+    const selectedKuIds = [];
+    document.querySelectorAll('#wizardKuContainer input[type="checkbox"]:checked').forEach(cb => {
+        selectedKuIds.push(parseInt(cb.value, 10));
+    });
+
+    if (selectedKuIds.length === 0) {
+        alert('Pilih minimal satu Kelompok Umur (KU)!');
+        return;
+    }
+
+    const startNo = parseInt(document.getElementById('genStartNo')?.value, 10) || 101;
+    const pattern = document.getElementById('genPattern')?.value || 'fina';
+    const defaultPrice = parseFloat(document.getElementById('genDefaultPrice')?.value) || 0;
+    const date = document.getElementById('genScheduleDate')?.value || '';
+    const time = document.getElementById('genScheduleTime')?.value || '';
+
+    const items = [];
+    let currentNo = startNo;
+
+    // Pattern: fina (per Disiplin, per KU, PA ganjil lalu PI genap)
+    if (pattern === 'fina' || pattern === 'sequential') {
+        disciplines.forEach(d => {
+            selectedKuIds.forEach(kuId => {
+                const kuObj = window.eventKUs.find(k => parseInt(k.id, 10) === kuId);
+                const kuName = kuObj ? kuObj.group_name : `KU #${kuId}`;
+
+                genders.forEach(g => {
+                    const labelJK = (g === 'L') ? 'PUTRA' : (g === 'P' ? 'PUTRI' : 'MIXED');
+                    const eventName = `${d.distance} M ${d.stroke.toUpperCase()} ${labelJK} - ${window.poolLabel}`;
+                    items.push({
+                        event_number: currentNo.toString(),
+                        distance: d.distance,
+                        stroke: d.stroke,
+                        jenis_kelamin: g,
+                        selected_ku_ids: [kuId],
+                        age_group: kuName,
+                        event_name: eventName,
+                        price: defaultPrice,
+                        schedule_date: date,
+                        schedule_time: time,
+                        is_relay: d.relay
+                    });
+                    currentNo++;
+                });
+            });
+        });
+    } else if (pattern === 'gender_group') {
+        genders.forEach(g => {
+            disciplines.forEach(d => {
+                selectedKuIds.forEach(kuId => {
+                    const kuObj = window.eventKUs.find(k => parseInt(k.id, 10) === kuId);
+                    const kuName = kuObj ? kuObj.group_name : `KU #${kuId}`;
+                    const labelJK = (g === 'L') ? 'PUTRA' : (g === 'P' ? 'PUTRI' : 'MIXED');
+                    const eventName = `${d.distance} M ${d.stroke.toUpperCase()} ${labelJK} - ${window.poolLabel}`;
+                    items.push({
+                        event_number: currentNo.toString(),
+                        distance: d.distance,
+                        stroke: d.stroke,
+                        jenis_kelamin: g,
+                        selected_ku_ids: [kuId],
+                        age_group: kuName,
+                        event_name: eventName,
+                        price: defaultPrice,
+                        schedule_date: date,
+                        schedule_time: time,
+                        is_relay: d.relay
+                    });
+                    currentNo++;
+                });
+            });
+        });
+    }
+
+    renderDraftPreview(items);
+}
+
+// GENERATOR MATRIKS
+function generateFromMatrix() {
+    const selectedCells = [];
+    document.querySelectorAll('.matrix-cell-cb:checked').forEach(cb => {
+        selectedCells.push({
+            distance: parseInt(cb.getAttribute('data-distance'), 10),
+            stroke: cb.getAttribute('data-stroke'),
+            kuId: parseInt(cb.getAttribute('data-ku-id'), 10),
+            gender: cb.getAttribute('data-gender')
+        });
+    });
+
+    if (selectedCells.length === 0) {
+        alert('Pilih minimal satu sel pada Matriks Grid!');
+        return;
+    }
+
+    const startNo = parseInt(document.getElementById('genStartNo')?.value, 10) || 101;
+    const defaultPrice = parseFloat(document.getElementById('genDefaultPrice')?.value) || 0;
+    const date = document.getElementById('genScheduleDate')?.value || '';
+    const time = document.getElementById('genScheduleTime')?.value || '';
+
+    const items = [];
+    let currentNo = startNo;
+
+    selectedCells.forEach(cell => {
+        const kuObj = window.eventKUs.find(k => parseInt(k.id, 10) === cell.kuId);
+        const kuName = kuObj ? kuObj.group_name : `KU #${cell.kuId}`;
+        const labelJK = (cell.gender === 'L') ? 'PUTRA' : (cell.gender === 'P' ? 'PUTRI' : 'MIXED');
+        const eventName = `${cell.distance} M ${cell.stroke.toUpperCase()} ${labelJK} - ${window.poolLabel}`;
+
+        items.push({
+            event_number: currentNo.toString(),
+            distance: cell.distance,
+            stroke: cell.stroke,
+            jenis_kelamin: cell.gender,
+            selected_ku_ids: [cell.kuId],
+            age_group: kuName,
+            event_name: eventName,
+            price: defaultPrice,
+            schedule_date: date,
+            schedule_time: time,
+            is_relay: 0
+        });
+        currentNo++;
+    });
+
+    renderDraftPreview(items);
+}
+
+// PARSER EXCEL
+function parseFromExcel() {
+    const raw = document.getElementById('excelPasteArea')?.value.trim();
+    if (!raw) {
+        alert('Silakan tempelkan teks dari Excel / CSV terlebih dahulu.');
+        return;
+    }
+
+    const lines = raw.split(/\r?\n/);
+    const defaultPrice = parseFloat(document.getElementById('genDefaultPrice')?.value) || 0;
+    const date = document.getElementById('genScheduleDate')?.value || '';
+    const time = document.getElementById('genScheduleTime')?.value || '';
+
+    const items = [];
+    lines.forEach((line, idx) => {
+        const trimmed = line.trim();
+        if (!trimmed) return;
+
+        let cols = trimmed.split('\t');
+        if (cols.length === 1 && trimmed.includes(',')) {
+            cols = trimmed.split(',');
+        }
+        cols = cols.map(c => c.trim().replace(/^["']|["']$/g, ''));
+
+        const first = cols[0].toLowerCase();
+        if (first.includes('no') || first.includes('acara') || first.includes('nomor')) {
+            return;
+        }
+
+        const nomor = cols[0] || (101 + idx).toString();
+        const distance = parseInt(cols[1], 10) || 50;
+        const stroke = cols[2] || 'Gaya Bebas';
+        let rawGender = (cols[3] || 'L').toUpperCase();
+        let gender = 'L';
+        if (rawGender.includes('P') || rawGender.includes('PUTRI') || rawGender === 'PI') gender = 'P';
+        else if (rawGender.includes('CAMPURAN') || rawGender.includes('MIX')) gender = 'Campuran';
+
+        const kuName = cols[4] || 'Umum';
+        const price = cols[5] ? parseFloat(cols[5]) : defaultPrice;
+
+        const labelJK = (gender === 'L') ? 'PUTRA' : (gender === 'P' ? 'PUTRI' : 'MIXED');
+        const eventName = `${distance} M ${stroke.toUpperCase()} ${labelJK} - ${window.poolLabel}`;
+
+        const matchedKU = window.eventKUs.find(k => k.group_name.toUpperCase() === kuName.toUpperCase());
+        const selectedKuIds = matchedKU ? [parseInt(matchedKU.id, 10)] : [];
+
+        items.push({
+            event_number: nomor,
+            distance: distance,
+            stroke: stroke,
+            jenis_kelamin: gender,
+            selected_ku_ids: selectedKuIds,
+            age_group: kuName,
+            event_name: eventName,
+            price: price,
+            schedule_date: date,
+            schedule_time: time,
+            is_relay: 0
+        });
+    });
+
+    if (items.length === 0) {
+        alert('Gagal membaca data dari teks. Pastikan format kolom sesuai petunjuk.');
+        return;
+    }
+
+    renderDraftPreview(items);
+}
+
+// RENDER PREVIEW
+function renderDraftPreview(items) {
+    currentDraftItems = items;
+    const panel = document.getElementById('draftPreviewPanel');
+    const tbody = document.getElementById('draftTableBody');
+    const totalCount = document.getElementById('draftTotalCount');
+    const btnSaveCount = document.getElementById('btnSaveCount');
+
+    if (!panel || !tbody) return;
+
+    if (items.length === 0) {
+        panel.classList.add('hidden');
+        return;
+    }
+
+    totalCount.textContent = items.length;
+    btnSaveCount.textContent = items.length;
+
+    let html = '';
+    items.forEach((item, index) => {
+        const bgBadge = (item.jenis_kelamin === 'L') ? 'bg-blue-100 text-blue-700' : 
+                       (item.jenis_kelamin === 'P' ? 'bg-pink-100 text-pink-700' : 'bg-purple-100 text-purple-700');
+        const jkLabel = (item.jenis_kelamin === 'L') ? 'PUTRA' : (item.jenis_kelamin === 'P' ? 'PUTRI' : 'MIXED');
+
+        html += `
+        <tr class="hover:bg-slate-50 transition">
+            <td class="p-3 text-center font-black text-slate-800">
+                <input type="text" value="${item.event_number}" class="w-14 text-center font-black bg-slate-100 rounded border border-slate-200 py-1 text-xs outline-none focus:border-blue-500" onchange="updateDraftNumber(${index}, this.value)">
+            </td>
+            <td class="p-3 font-bold text-slate-800">
+                ${item.event_name}
+            </td>
+            <td class="p-3">
+                <span class="text-[9px] font-black px-2 py-0.5 rounded ${bgBadge}">
+                    ${jkLabel}
+                </span>
+            </td>
+            <td class="p-3 font-bold text-slate-600">
+                ${item.age_group}
+            </td>
+            <td class="p-3 text-right font-bold text-slate-700">
+                Rp ${formatRupiah(item.price)}
+            </td>
+            <td class="p-3 text-center">
+                <button type="button" onclick="removeDraftRow(${index})" class="text-slate-300 hover:text-rose-600 font-black text-lg px-2 py-0.5 rounded transition" title="Hapus Nomor Ini">&times;</button>
+            </td>
+        </tr>
+        `;
+    });
+
+    tbody.innerHTML = html;
+    panel.classList.remove('hidden');
+    panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function updateDraftNumber(index, newNo) {
+    if (currentDraftItems[index]) {
+        currentDraftItems[index].event_number = newNo.trim();
+    }
+}
+
+function removeDraftRow(index) {
+    currentDraftItems.splice(index, 1);
+    renderDraftPreview(currentDraftItems);
+}
+
+function clearDraftPreview() {
+    currentDraftItems = [];
+    const panel = document.getElementById('draftPreviewPanel');
+    if (panel) panel.classList.add('hidden');
+}
+
+function confirmBatchStore() {
+    if (currentDraftItems.length === 0) {
+        alert('Tidak ada draft nomor lomba yang akan disimpan.');
+        return false;
+    }
+    document.getElementById('batchItemsJson').value = JSON.stringify(currentDraftItems);
+    return confirm(`Simpan ${currentDraftItems.length} nomor lomba ini ke dalam database?`);
+}
+
 function togglePricingMode(mode) {
     const packageConfig = document.getElementById('packageConfig');
     const satuanConfig = document.getElementById('satuanConfig');
