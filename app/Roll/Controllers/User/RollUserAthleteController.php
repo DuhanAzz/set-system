@@ -13,6 +13,55 @@ class RollUserAthleteController extends Controller {
             header("Location: " . getenv('APP_URL') . "/roll/login");
             exit;
         }
+
+        // Self-healing migration for new columns
+        $db = Database::getInstance()->getConnection();
+        try {
+            $db->query("SELECT asal_sekolah FROM roll_skaters LIMIT 1");
+        } catch (\Exception $e) {
+            try {
+                $db->exec("ALTER TABLE roll_skaters 
+                    ADD COLUMN asal_sekolah VARCHAR(150) NULL AFTER birth_date,
+                    ADD COLUMN provinsi VARCHAR(100) NULL AFTER asal_sekolah,
+                    ADD COLUMN kota_kabupaten VARCHAR(100) NULL AFTER provinsi,
+                    ADD COLUMN status_bpjs ENUM('sudah', 'belum') DEFAULT 'belum' AFTER kota_kabupaten");
+            } catch (\Exception $ex) {}
+        }
+    }
+
+    private function generateSkaterUID($db, $nama_atlet, $tanggal_lahir, $jenis_kelamin) {
+        $nama_bersih = preg_replace('/[^A-Za-z\s]/', '', strtoupper(trim($nama_atlet)));
+        $kata = explode(' ', $nama_bersih);
+        
+        $huruf1 = isset($kata[0][0]) ? $kata[0][0] : 'A';
+        $kode1 = str_pad(ord($huruf1) - 64, 2, '0', STR_PAD_LEFT); 
+        
+        if (isset($kata[1]) && !empty($kata[1])) {
+            $huruf2 = $kata[1][0];
+        } else {
+            $huruf2 = isset($kata[0][1]) ? $kata[0][1] : 'X'; 
+        }
+        $kode2 = str_pad(ord($huruf2) - 64, 2, '0', STR_PAD_LEFT);
+        
+        $tahun = date('Y', strtotime($tanggal_lahir));
+        $kode_jk = (strtoupper($jenis_kelamin) == 'L' || strtoupper($jenis_kelamin) == 'M' || strtoupper($jenis_kelamin) == 'PUTRA' || strtoupper($jenis_kelamin) == 'MALE') ? '1' : '9';
+        
+        $base_uid = $kode1 . $kode2 . $tahun . $kode_jk;
+        
+        $stmt = $db->prepare("SELECT uid FROM roll_skaters WHERE uid LIKE ? ORDER BY uid DESC LIMIT 1");
+        $stmt->execute([$base_uid . '%']);
+        $last_uid = $stmt->fetchColumn();
+        
+        $digit_akhir = 0;
+        if ($last_uid) {
+            $last_digit = (int) substr($last_uid, -1);
+            $digit_akhir = $last_digit + 1;
+            if ($digit_akhir > 9) {
+                $digit_akhir = 9; 
+            }
+        }
+        
+        return $base_uid . $digit_akhir;
     }
 
     public function index() {
@@ -21,13 +70,33 @@ class RollUserAthleteController extends Controller {
 
         $search = $_GET['search'] ?? '';
 
+        $params = [$club_id];
+        $searchSql = "";
         if (!empty($search)) {
-            $stmt = $db->prepare("SELECT * FROM roll_skaters WHERE club_id = ? AND skater_name LIKE ? ORDER BY id DESC");
-            $stmt->execute([$club_id, "%$search%"]);
-        } else {
-            $stmt = $db->prepare("SELECT * FROM roll_skaters WHERE club_id = ? ORDER BY id DESC");
-            $stmt->execute([$club_id]);
+            $searchSql = " AND (s.skater_name LIKE ? OR s.asal_sekolah LIKE ? OR s.kota_kabupaten LIKE ?)";
+            $params[] = "%$search%";
+            $params[] = "%$search%";
+            $params[] = "%$search%";
         }
+
+        $sql = "
+            SELECT 
+                s.*,
+                COUNT(e.id) as total_events,
+                CASE 
+                    WHEN COUNT(e.id) > 0 THEN 'sudah_event'
+                    WHEN s.status_bpjs = 'sudah' THEN 'sudah_mandiri'
+                    ELSE 'belum'
+                END as bpjs_badge
+            FROM roll_skaters s
+            LEFT JOIN roll_entries e ON s.id = e.skater_id
+            WHERE s.club_id = ? $searchSql
+            GROUP BY s.id
+            ORDER BY s.id DESC
+        ";
+
+        $stmt = $db->prepare($sql);
+        $stmt->execute($params);
         $athletes = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         $currentYear = (int)date('Y');
@@ -35,15 +104,15 @@ class RollUserAthleteController extends Controller {
             if (!empty($s['birth_date'])) {
                 $year = (int)date('Y', strtotime($s['birth_date']));
                 $age = $currentYear - $year;
-                
-                $age_group_str = $age . " Thn";
-                $s['age_group'] = $age_group_str;
+                $s['age_group'] = $age . " Thn";
             }
+            $s['is_data_incomplete'] = empty($s['asal_sekolah']) || empty($s['provinsi']) || empty($s['kota_kabupaten']);
         }
         unset($s);
 
         return $this->view('roll/user/athletes/index', [
-            'athletes' => $athletes
+            'athletes' => $athletes,
+            'search' => $search
         ]);
     }
 
@@ -52,19 +121,38 @@ class RollUserAthleteController extends Controller {
             $db = Database::getInstance()->getConnection();
             $club_id = $_SESSION['roll_club_id'];
 
-            $skater_name = $_POST['skater_name'] ?? '';
+            $skater_name = strtoupper(trim($_POST['skater_name'] ?? ''));
             $gender = $_POST['gender'] ?? '';
             $birth_date = $_POST['birth_date'] ?? '';
+            $asal_sekolah = trim($_POST['asal_sekolah'] ?? '');
+            $provinsi = trim($_POST['provinsi'] ?? '');
+            $kota_kabupaten = trim($_POST['kota_kabupaten'] ?? '');
+            $status_bpjs = (isset($_POST['status_bpjs']) && $_POST['status_bpjs'] === 'sudah') ? 'sudah' : 'belum';
 
-            // Hitung KU berdasarkan birth_date (default perhitungan sederhana, bisa diperbarui nanti)
+            // Hitung KU berdasarkan birth_date
             $year = (int)date('Y', strtotime($birth_date));
             $currentYear = (int)date('Y');
             $age = $currentYear - $year;
-            
             $age_group_str = $age . " Thn";
 
-            $stmt = $db->prepare("INSERT INTO roll_skaters (club_id, skater_name, gender, birth_date, age_group) VALUES (?, ?, ?, ?, ?)");
-            $stmt->execute([$club_id, $skater_name, $gender, $birth_date, $age_group_str]);
+            $uid = $this->generateSkaterUID($db, $skater_name, $birth_date, $gender);
+
+            $stmt = $db->prepare("
+                INSERT INTO roll_skaters (uid, club_id, skater_name, gender, birth_date, asal_sekolah, provinsi, kota_kabupaten, status_bpjs, age_group) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ");
+            $stmt->execute([
+                $uid,
+                $club_id,
+                $skater_name,
+                $gender,
+                $birth_date,
+                $asal_sekolah ?: null,
+                $provinsi ?: null,
+                $kota_kabupaten ?: null,
+                $status_bpjs,
+                $age_group_str
+            ]);
 
             $_SESSION['flash_message'] = "Atlet berhasil ditambahkan.";
             $_SESSION['flash_type'] = "success";
@@ -77,24 +165,51 @@ class RollUserAthleteController extends Controller {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $db = Database::getInstance()->getConnection();
             $club_id = $_SESSION['roll_club_id'];
-            $id = $_POST['id'];
+            $id = $_POST['id'] ?? null;
 
             // Pastikan atlet ini milik club yang login
-            $check = $db->prepare("SELECT id FROM roll_skaters WHERE id = ? AND club_id = ?");
+            $check = $db->prepare("SELECT id, uid FROM roll_skaters WHERE id = ? AND club_id = ?");
             $check->execute([$id, $club_id]);
-            if ($check->rowCount() > 0) {
-                $skater_name = $_POST['skater_name'] ?? '';
+            $current = $check->fetch(PDO::FETCH_ASSOC);
+
+            if ($current) {
+                $skater_name = strtoupper(trim($_POST['skater_name'] ?? ''));
                 $gender = $_POST['gender'] ?? '';
                 $birth_date = $_POST['birth_date'] ?? '';
+                $asal_sekolah = trim($_POST['asal_sekolah'] ?? '');
+                $provinsi = trim($_POST['provinsi'] ?? '');
+                $kota_kabupaten = trim($_POST['kota_kabupaten'] ?? '');
+                $status_bpjs = (isset($_POST['status_bpjs']) && $_POST['status_bpjs'] === 'sudah') ? 'sudah' : 'belum';
 
                 $year = (int)date('Y', strtotime($birth_date));
                 $currentYear = (int)date('Y');
                 $age = $currentYear - $year;
-                
                 $age_group_str = $age . " Thn";
 
-                $stmt = $db->prepare("UPDATE roll_skaters SET skater_name = ?, gender = ?, birth_date = ?, age_group = ? WHERE id = ?");
-                $stmt->execute([$skater_name, $gender, $birth_date, $age_group_str, $id]);
+                // Generate UID jika belum ada
+                $uid = $current['uid'];
+                if (empty($uid)) {
+                    $uid = $this->generateSkaterUID($db, $skater_name, $birth_date, $gender);
+                }
+
+                $stmt = $db->prepare("
+                    UPDATE roll_skaters 
+                    SET uid = ?, skater_name = ?, gender = ?, birth_date = ?, asal_sekolah = ?, provinsi = ?, kota_kabupaten = ?, status_bpjs = ?, age_group = ? 
+                    WHERE id = ? AND club_id = ?
+                ");
+                $stmt->execute([
+                    $uid,
+                    $skater_name,
+                    $gender,
+                    $birth_date,
+                    $asal_sekolah ?: null,
+                    $provinsi ?: null,
+                    $kota_kabupaten ?: null,
+                    $status_bpjs,
+                    $age_group_str,
+                    $id,
+                    $club_id
+                ]);
 
                 $_SESSION['flash_message'] = "Data atlet berhasil diperbarui.";
                 $_SESSION['flash_type'] = "success";

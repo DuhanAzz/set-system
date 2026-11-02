@@ -565,6 +565,10 @@ CREATE TABLE `roll_skaters` (
   `skater_name` varchar(255) NOT NULL,
   `gender` enum('M','F') NOT NULL,
   `birth_date` date NOT NULL,
+  `asal_sekolah` varchar(150) DEFAULT NULL,
+  `provinsi` varchar(100) DEFAULT NULL,
+  `kota_kabupaten` varchar(100) DEFAULT NULL,
+  `status_bpjs` enum('sudah','belum') DEFAULT 'belum',
   `age_group` varchar(50) NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `is_pon_veteran` tinyint(1) DEFAULT 0 COMMENT '1 jika atlet pernah ikut PON (Wajib Senior)'
