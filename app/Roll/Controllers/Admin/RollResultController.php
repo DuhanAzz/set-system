@@ -148,6 +148,7 @@ class RollResultController extends Controller {
             } elseif (strpos($dn, 'ptp') !== false || strpos($dn, 'point') !== false) {
                 $raceFormat = 'PTP';
             }
+            $isRelay = stripos($raceInfo['distance_name'] ?? '', 'Relay') !== false || stripos($raceInfo['distance_name'] ?? '', 'Pair') !== false;
 
             if ($raceFormat === 'ELIMINASI') {
                 $orderBy = "ORDER BY CAST(REPLACE(p.heat_name, 'Heat ', '') AS UNSIGNED) ASC, p.heat_name ASC, CASE WHEN COALESCE(r.status, 'OK') IN ('OK', 'FS 1', 'FS') THEN 0 ELSE 1 END ASC, CASE WHEN r.rank IS NULL OR CAST(r.rank AS CHAR) = '0' OR CAST(r.rank AS CHAR) = '' THEN 1 ELSE 0 END ASC, r.rank ASC, CASE WHEN r.time IS NULL OR r.time = '' OR r.time = '00.00.000' OR r.time = '00:00.000' THEN '99:99.999' ELSE r.time END ASC, p.start_grid ASC";
@@ -155,24 +156,48 @@ class RollResultController extends Controller {
                 $orderBy = "ORDER BY CAST(REPLACE(p.heat_name, 'Heat ', '') AS UNSIGNED) ASC, p.heat_name ASC, CASE WHEN COALESCE(r.status, 'OK') IN ('OK', 'FS 1', 'FS') THEN 0 ELSE 1 END ASC, CASE WHEN r.rank IS NULL OR CAST(r.rank AS CHAR) = '0' OR CAST(r.rank AS CHAR) = '' THEN 1 ELSE 0 END ASC, r.rank ASC, r.point DESC, CASE WHEN r.time IS NULL OR r.time = '' OR r.time = '00.00.000' OR r.time = '00:00.000' THEN '99:99.999' ELSE r.time END ASC, p.start_grid ASC";
             }
 
-            $stmtRes = $db->prepare("
-                SELECT r.id as result_id, p.skater_id, s.skater_name, c.club_name, s.asal_sekolah, s.kota_kabupaten, s.provinsi, p.start_grid, e.bib_number,
-                       r.time, r.rank, r.point, COALESCE(r.status, 'OK') as status, COALESCE(r.is_official, 0) as is_official,
-                       p.heat_name, e.team_name, p.race_class_id, r.print_round_name
-                FROM roll_pelotons p
-                JOIN roll_skaters s ON p.skater_id = s.id
-                LEFT JOIN roll_clubs c ON s.club_id = c.id
-                LEFT JOIN roll_event_results r ON p.skater_id = r.skater_id AND p.race_class_id = r.race_class_id AND p.event_id = r.event_id AND p.heat_name = r.heat_name AND p.round = r.round
-                LEFT JOIN roll_entries e ON p.skater_id = e.skater_id AND p.race_class_id = e.race_class_id AND p.event_id = e.event_id
-                WHERE p.event_id = ? AND p.race_class_id = ? AND p.round = ?
-                $orderBy
-            ");
-            $stmtRes->execute([$eventId, $filter_class_id, $current_round_name]);
-            $raw_results = $stmtRes->fetchAll(PDO::FETCH_ASSOC);
+            $raw_results = [];
+            try {
+                $stmtRes = $db->prepare("
+                    SELECT r.id as result_id, p.skater_id, s.skater_name, c.club_name, s.asal_sekolah, s.kota_kabupaten, s.provinsi, p.start_grid, e.bib_number,
+                           r.time, r.rank, r.point, COALESCE(r.status, 'OK') as status, COALESCE(r.is_official, 0) as is_official,
+                           p.heat_name, e.team_name, p.race_class_id, r.print_round_name
+                    FROM roll_pelotons p
+                    JOIN roll_skaters s ON p.skater_id = s.id
+                    LEFT JOIN roll_clubs c ON s.club_id = c.id
+                    LEFT JOIN roll_event_results r ON p.skater_id = r.skater_id AND p.race_class_id = r.race_class_id AND p.event_id = r.event_id AND p.heat_name = r.heat_name AND p.round = r.round
+                    LEFT JOIN roll_entries e ON p.skater_id = e.skater_id AND p.race_class_id = e.race_class_id AND p.event_id = e.event_id
+                    WHERE p.event_id = ? AND p.race_class_id = ? AND p.round = ?
+                    $orderBy
+                ");
+                $stmtRes->execute([$eventId, $filter_class_id, $current_round_name]);
+                $raw_results = $stmtRes->fetchAll(PDO::FETCH_ASSOC);
+            } catch (\Exception $e) {
+                // Defensive fallback jika kolom puspernas belum ada
+                $stmtRes = $db->prepare("
+                    SELECT r.id as result_id, p.skater_id, s.skater_name, c.club_name, '' as asal_sekolah, '' as kota_kabupaten, '' as provinsi, p.start_grid, e.bib_number,
+                           r.time, r.rank, r.point, COALESCE(r.status, 'OK') as status, 0 as is_official,
+                           p.heat_name, e.team_name, p.race_class_id, '' as print_round_name
+                    FROM roll_pelotons p
+                    JOIN roll_skaters s ON p.skater_id = s.id
+                    LEFT JOIN roll_clubs c ON s.club_id = c.id
+                    LEFT JOIN roll_event_results r ON p.skater_id = r.skater_id AND p.race_class_id = r.race_class_id AND p.event_id = r.event_id AND p.heat_name = r.heat_name AND p.round = r.round
+                    LEFT JOIN roll_entries e ON p.skater_id = e.skater_id AND p.race_class_id = e.race_class_id AND p.event_id = e.event_id
+                    WHERE p.event_id = ? AND p.race_class_id = ? AND p.round = ?
+                    $orderBy
+                ");
+                $stmtRes->execute([$eventId, $filter_class_id, $current_round_name]);
+                $raw_results = $stmtRes->fetchAll(PDO::FETCH_ASSOC);
+            }
 
-            $stmtEv = $db->prepare("SELECT participation_type FROM roll_events WHERE id = ?");
-            $stmtEv->execute([$eventId]);
-            $evtPartType = $stmtEv->fetchColumn() ?: 'club';
+            $evtPartType = 'club';
+            try {
+                $stmtEv = $db->prepare("SELECT participation_type FROM roll_events WHERE id = ?");
+                $stmtEv->execute([$eventId]);
+                $evtPartType = $stmtEv->fetchColumn() ?: 'club';
+            } catch (\Exception $e) {
+                $evtPartType = 'club';
+            }
 
             foreach ($raw_results as &$rRow) {
                 if ($evtPartType === 'school' && !empty($rRow['asal_sekolah'])) {
@@ -193,38 +218,40 @@ class RollResultController extends Controller {
             $stmtCountElim->execute([$eventId, $filter_class_id]);
             $elimData = $stmtCountElim->fetchAll(PDO::FETCH_ASSOC);
             foreach ($elimData as $ed) {
-                // Untuk Relay, jika 3 anak dalam 1 tim tereliminasi, hitung sbg 1 tim
-                // Saat ini cukup biarkan total cnt atau bagi 3 jika relay, namun since elimination count di front-end is mostly for display, it's fine.
-                // Idealnya: if ($isRelay) $ed['cnt'] = ceil($ed['cnt']/3);
                 $totalEliminatedByHeat[$ed['heat_name']] = $isRelay ? (int)ceil($ed['cnt']/3) : (int)$ed['cnt'];
             }
         }
 
         $prevFSSkaters = [];
         if ($eventId > 0 && $filter_class_id > 0) {
-            $stmtFS = $db->prepare("SELECT DISTINCT skater_id FROM roll_event_results WHERE event_id = ? AND race_class_id = ? AND status IN ('FS 1', 'FS') AND round != ?");
-            $stmtFS->execute([$eventId, $filter_class_id, $current_round_name]);
-            $prevFSSkaters = $stmtFS->fetchAll(PDO::FETCH_COLUMN) ?: [];
+            try {
+                $stmtFS = $db->prepare("SELECT DISTINCT skater_id FROM roll_event_results WHERE event_id = ? AND race_class_id = ? AND status IN ('FS 1', 'FS') AND round != ?");
+                $stmtFS->execute([$eventId, $filter_class_id, $current_round_name]);
+                $prevFSSkaters = $stmtFS->fetchAll(PDO::FETCH_COLUMN) ?: [];
 
-            // Jika atlet ada di prevFSSkaters dan pada babak ini status masih OK dan belum input waktu,
-            // sinkronkan statusnya agar otomatis muncul FS 1
-            if (!empty($prevFSSkaters)) {
-                $stmtSyncFS = $db->prepare("UPDATE roll_event_results SET status = 'FS 1' WHERE event_id = ? AND race_class_id = ? AND round = ? AND skater_id = ? AND status = 'OK' AND (time IS NULL OR time = '' OR time = '00.00.000')");
-                foreach ($prevFSSkaters as $fsSkaterId) {
-                    $stmtSyncFS->execute([$eventId, $filter_class_id, $current_round_name, $fsSkaterId]);
-                }
-                foreach ($heatsData as &$hRows) {
-                    foreach ($hRows as &$hRow) {
-                        if (in_array($hRow['skater_id'], $prevFSSkaters) && $hRow['status'] === 'OK' && (empty($hRow['time']) || $hRow['time'] === '00.00.000')) {
-                            $hRow['status'] = 'FS 1';
+                // Jika atlet ada di prevFSSkaters dan pada babak ini status masih OK dan belum input waktu,
+                // sinkronkan statusnya agar otomatis muncul FS 1
+                if (!empty($prevFSSkaters)) {
+                    $stmtSyncFS = $db->prepare("UPDATE roll_event_results SET status = 'FS 1' WHERE event_id = ? AND race_class_id = ? AND round = ? AND skater_id = ? AND status = 'OK' AND (time IS NULL OR time = '' OR time = '00.00.000')");
+                    foreach ($prevFSSkaters as $fsSkaterId) {
+                        $stmtSyncFS->execute([$eventId, $filter_class_id, $current_round_name, $fsSkaterId]);
+                    }
+                    foreach ($heatsData as &$hRows) {
+                        foreach ($hRows as &$hRow) {
+                            if (in_array($hRow['skater_id'], $prevFSSkaters) && $hRow['status'] === 'OK' && (empty($hRow['time']) || $hRow['time'] === '00.00.000')) {
+                                $hRow['status'] = 'FS 1';
+                            }
                         }
                     }
+                    unset($hRows, $hRow);
                 }
-                unset($hRows, $hRow);
-            }
+            } catch (\Exception $e) {}
         }
 
-        $dqRules = $db->query("SELECT id, kode_dq, deskripsi as description FROM roll_dq_rules ORDER BY kode_dq ASC")->fetchAll(PDO::FETCH_ASSOC);
+        $dqRules = [];
+        try {
+            $dqRules = $db->query("SELECT id, kode_dq, deskripsi as description FROM roll_dq_rules ORDER BY kode_dq ASC")->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Exception $e) {}
 
         $print_round_name = $current_round_name;
         if (!empty($raw_results)) {
@@ -1153,9 +1180,21 @@ class RollResultController extends Controller {
 
     public function print_result() {
         $db = Database::getInstance()->getConnection();
-        $eventId = $_SESSION['roll_admin_active_event_id'] ?? 0;
-        $classId = $_GET['race_class_id'] ?? 0;
+        $this->ensureSchema($db);
+
+        $classId = (int)($_GET['race_class_id'] ?? 0);
+        $eventId = (int)($_SESSION['roll_admin_active_event_id'] ?? 0);
         
+        if ($classId > 0) {
+            $stmtCekEv = $db->prepare("SELECT event_id FROM roll_event_details WHERE id = ?");
+            $stmtCekEv->execute([$classId]);
+            $realEvId = (int)$stmtCekEv->fetchColumn();
+            if ($realEvId > 0 && $realEvId !== $eventId) {
+                $eventId = $realEvId;
+                $_SESSION['roll_admin_active_event_id'] = $eventId;
+            }
+        }
+
         if ($eventId == 0 || $classId == 0) {
             die("Invalid Event or Class.");
         }
@@ -1205,23 +1244,45 @@ class RollResultController extends Controller {
         }
 
         // Ambil semua hasil, lalu urutkan secara global
-        $stmtResults = $db->prepare("
-            SELECT p.skater_id, e.bib_number, e.team_name, s.skater_name, s.gender, s.asal_sekolah, s.kota_kabupaten, s.provinsi, c.city_province as city, c.club_name, p.heat_name, p.start_grid,
-                   r.rank as heat_rank, r.rank, r.point, r.time, r.status, r.is_official, r.round, r.print_round_name
-            FROM roll_pelotons p
-            JOIN roll_entries e ON p.skater_id = e.skater_id AND p.race_class_id = e.race_class_id AND p.event_id = e.event_id
-            JOIN roll_skaters s ON p.skater_id = s.id
-            LEFT JOIN roll_clubs c ON s.club_id = c.id
-            LEFT JOIN roll_event_results r ON p.event_id = r.event_id AND p.race_class_id = r.race_class_id AND p.skater_id = r.skater_id AND p.heat_name = r.heat_name AND p.round = r.round
-            WHERE p.event_id = ? AND p.race_class_id = ? AND p.round = ?
-            $orderBy
-        ");
-        $stmtResults->execute([$eventId, $classId, $round]);
-        $results = $stmtResults->fetchAll(PDO::FETCH_ASSOC);
+        $results = [];
+        try {
+            $stmtResults = $db->prepare("
+                SELECT p.skater_id, e.bib_number, e.team_name, s.skater_name, s.gender, s.asal_sekolah, s.kota_kabupaten, s.provinsi, c.city_province as city, c.club_name, p.heat_name, p.start_grid,
+                       r.rank as heat_rank, r.rank, r.point, r.time, r.status, r.is_official, r.round, r.print_round_name
+                FROM roll_pelotons p
+                JOIN roll_entries e ON p.skater_id = e.skater_id AND p.race_class_id = e.race_class_id AND p.event_id = e.event_id
+                JOIN roll_skaters s ON p.skater_id = s.id
+                LEFT JOIN roll_clubs c ON s.club_id = c.id
+                LEFT JOIN roll_event_results r ON p.event_id = r.event_id AND p.race_class_id = r.race_class_id AND p.skater_id = r.skater_id AND p.heat_name = r.heat_name AND p.round = r.round
+                WHERE p.event_id = ? AND p.race_class_id = ? AND p.round = ?
+                $orderBy
+            ");
+            $stmtResults->execute([$eventId, $classId, $round]);
+            $results = $stmtResults->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Exception $e) {
+            $stmtResults = $db->prepare("
+                SELECT p.skater_id, e.bib_number, e.team_name, s.skater_name, s.gender, '' as asal_sekolah, '' as kota_kabupaten, '' as provinsi, c.city_province as city, c.club_name, p.heat_name, p.start_grid,
+                       r.rank as heat_rank, r.rank, r.point, r.time, r.status, 0 as is_official, r.round, '' as print_round_name
+                FROM roll_pelotons p
+                JOIN roll_entries e ON p.skater_id = e.skater_id AND p.race_class_id = e.race_class_id AND p.event_id = e.event_id
+                JOIN roll_skaters s ON p.skater_id = s.id
+                LEFT JOIN roll_clubs c ON s.club_id = c.id
+                LEFT JOIN roll_event_results r ON p.event_id = r.event_id AND p.race_class_id = r.race_class_id AND p.skater_id = r.skater_id AND p.heat_name = r.heat_name AND p.round = r.round
+                WHERE p.event_id = ? AND p.race_class_id = ? AND p.round = ?
+                $orderBy
+            ");
+            $stmtResults->execute([$eventId, $classId, $round]);
+            $results = $stmtResults->fetchAll(PDO::FETCH_ASSOC);
+        }
 
-        $stmtEv = $db->prepare("SELECT participation_type FROM roll_events WHERE id = ?");
-        $stmtEv->execute([$eventId]);
-        $evtPartType = $stmtEv->fetchColumn() ?: 'club';
+        $evtPartType = 'club';
+        try {
+            $stmtEv = $db->prepare("SELECT participation_type FROM roll_events WHERE id = ?");
+            $stmtEv->execute([$eventId]);
+            $evtPartType = $stmtEv->fetchColumn() ?: 'club';
+        } catch (\Exception $e) {
+            $evtPartType = 'club';
+        }
 
         foreach ($results as &$resItem) {
             if ($evtPartType === 'school' && !empty($resItem['asal_sekolah'])) {
