@@ -176,11 +176,17 @@ class RollAuthController extends Controller {
             if ($ins->execute([$username, $nama, $email, $phone, $hash, $userType, $newClubId])) {
                 $pdo->commit();
                 
-                $waNumber = '6281993189787'; // Default admin number
-                // Attempt to get contact_wa from universal_settings
+                $waNumber = '6281993189787'; // Default fallback
                 try {
                     $waDb = $pdo->query("SELECT contact_wa FROM universal_settings WHERE id=1")->fetchColumn();
-                    if ($waDb) $waNumber = $waDb;
+                    if (empty($waDb)) {
+                        $waDb = $pdo->query("SELECT phone FROM roll_users WHERE role='master' LIMIT 1")->fetchColumn();
+                    }
+                    if ($waDb) {
+                        $digits = preg_replace('/[^0-9]/', '', $waDb);
+                        if (substr($digits, 0, 2) === '08') $digits = '62' . substr($digits, 1);
+                        $waNumber = $digits;
+                    }
                 } catch(\Exception $e) {}
                 
                 $_SESSION['success_register'] = true;

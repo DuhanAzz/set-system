@@ -25,8 +25,9 @@ class RollProfileController extends Controller {
             $action = $_POST['action'] ?? '';
             
             if ($action === 'update_profile') {
-                $nama = $_POST['nama_lengkap'] ?? '';
-                $email = $_POST['email'] ?? '';
+                $nama = trim($_POST['nama_lengkap'] ?? '');
+                $email = trim($_POST['email'] ?? '');
+                $phone = trim($_POST['phone'] ?? '');
                 
                 try {
                     $db->beginTransaction();
@@ -40,9 +41,28 @@ class RollProfileController extends Controller {
                         }
                     }
 
-                    $stmt = $db->prepare("UPDATE roll_users SET nama_lengkap = ?, email = ? WHERE id = ?");
-                    $stmt->execute([$nama, $email, $userId]);
+                    $stmt = $db->prepare("UPDATE roll_users SET nama_lengkap = ?, email = ?, phone = ? WHERE id = ?");
+                    $stmt->execute([$nama, $email, $phone, $userId]);
                     $_SESSION['nama_lengkap'] = $nama;
+
+                    // Jika role adalah master, sinkronkan kontak person ini ke pengaturan website
+                    if (strtolower($role) === 'master') {
+                        $digitsOnly = preg_replace('/[^0-9]/', '', $phone);
+                        if (substr($digitsOnly, 0, 2) === '08') {
+                            $waDigits = '62' . substr($digitsOnly, 1);
+                        } else {
+                            $waDigits = $digitsOnly;
+                        }
+
+                        if (!empty($waDigits)) {
+                            try {
+                                $db->prepare("UPDATE universal_settings SET contact_wa = ? WHERE id = 1")->execute([$waDigits]);
+                            } catch (\Exception $e) {}
+                            try {
+                                $db->prepare("UPDATE roll_site_settings SET contact_wa = ? WHERE id = 1")->execute(['+' . $waDigits]);
+                            } catch (\Exception $e) {}
+                        }
+                    }
 
                     $db->commit();
                     $_SESSION['flash_msg'] = "Profil berhasil diperbarui.";
@@ -93,6 +113,12 @@ class RollProfileController extends Controller {
         $stmt = $db->prepare("SELECT * FROM roll_users WHERE id = ?");
         $stmt->execute([$userId]);
         $user = $stmt->fetch();
+
+        if (empty($user['phone']) && strtolower($role) === 'master') {
+            try {
+                $user['phone'] = $db->query("SELECT contact_wa FROM universal_settings WHERE id = 1")->fetchColumn() ?: '';
+            } catch (\Exception $e) {}
+        }
 
         return $this->view('roll/profile/edit', [
             'u' => $user,

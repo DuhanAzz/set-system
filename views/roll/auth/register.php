@@ -9,7 +9,21 @@ try {
     $sliders = [];
 }
 
-$waNumber = $_SESSION['wa_number'] ?? '6281993189787';
+$waNumber = $_SESSION['wa_number'] ?? null;
+if (empty($waNumber)) {
+    try {
+        $waDb = $pdo->query("SELECT contact_wa FROM universal_settings WHERE id = 1")->fetchColumn();
+        if (empty($waDb)) {
+            $waDb = $pdo->query("SELECT phone FROM roll_users WHERE role = 'master' LIMIT 1")->fetchColumn();
+        }
+        if ($waDb) {
+            $digits = preg_replace('/[^0-9]/', '', $waDb);
+            if (substr($digits, 0, 2) === '08') $digits = '62' . substr($digits, 1);
+            $waNumber = $digits;
+        }
+    } catch (\Exception $e) {}
+}
+$waNumber = $waNumber ?: '6281993189787';
 $email = $_SESSION['register_email'] ?? '';
 $success = isset($_SESSION['success_register']);
 unset($_SESSION['success_register']);

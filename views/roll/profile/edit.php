@@ -60,6 +60,24 @@
                             </div>
                         </div>
 
+                        <div>
+                            <label class="block text-slate-600 font-bold mb-2 text-sm flex items-center justify-between">
+                                <span>No. HP / WhatsApp Kontak Person</span>
+                                <?php if(strtolower($role) === 'master'): ?>
+                                    <span class="text-[10px] font-black uppercase tracking-wider text-blue-600 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded">Kontak Resmi Website</span>
+                                <?php endif; ?>
+                            </label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">📱</span>
+                                <input type="text" name="phone" value="<?= htmlspecialchars($u['phone'] ?? '') ?>" class="w-full pl-9 border border-slate-300 rounded-lg px-4 py-2.5 focus:ring-blue-500 font-medium text-slate-800" placeholder="Contoh: 081993189787 atau 6281993189787">
+                            </div>
+                            <?php if(strtolower($role) === 'master'): ?>
+                                <p class="text-[11px] text-slate-400 mt-1.5 flex items-center gap-1">
+                                    <span>💡</span> Nomor ini akan disinkronkan ke seluruh sistem sebagai kontak WhatsApp resmi bantuan dan pendaftaran.
+                                </p>
+                            <?php endif; ?>
+                        </div>
+
                         <div class="flex justify-end">
                             <button type="submit" class="bg-blue-600 text-white font-bold py-2.5 px-6 rounded-lg shadow hover:bg-blue-700 transition">Simpan Perubahan</button>
                         </div>
