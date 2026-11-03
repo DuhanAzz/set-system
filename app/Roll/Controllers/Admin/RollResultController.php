@@ -16,9 +16,39 @@ class RollResultController extends Controller {
         }
     }
 
+    private function ensureSchema($db) {
+        static $migrated = false;
+        if ($migrated) return;
+
+        try { $db->exec("ALTER TABLE roll_events ADD COLUMN participation_type ENUM('club','school','contingent_province','contingent_city') DEFAULT 'club'"); } catch (\Exception $e) {}
+        try { $db->exec("ALTER TABLE roll_events MODIFY COLUMN status ENUM('Draft','Published','Open Registration','Official Registration','Close Registration','Running','Finished') DEFAULT 'Draft'"); } catch (\Exception $e) {}
+        try { $db->exec("ALTER TABLE roll_skaters ADD COLUMN asal_sekolah VARCHAR(150) NULL"); } catch (\Exception $e) {}
+        try { $db->exec("ALTER TABLE roll_skaters ADD COLUMN kota_kabupaten VARCHAR(100) NULL"); } catch (\Exception $e) {}
+        try { $db->exec("ALTER TABLE roll_skaters ADD COLUMN provinsi VARCHAR(100) NULL"); } catch (\Exception $e) {}
+        try { $db->exec("ALTER TABLE roll_event_results ADD COLUMN print_round_name VARCHAR(100) NULL"); } catch (\Exception $e) {}
+        try { $db->exec("ALTER TABLE roll_event_results ADD COLUMN is_official TINYINT(1) DEFAULT 0"); } catch (\Exception $e) {}
+        try { $db->exec("CREATE TABLE IF NOT EXISTS roll_dq_rules (id INT AUTO_INCREMENT PRIMARY KEY, kode_dq VARCHAR(50) NOT NULL, deskripsi TEXT NULL)"); } catch (\Exception $e) {}
+
+        $migrated = true;
+    }
+
     public function index() {
         $db = Database::getInstance()->getConnection();
-        $eventId = $_SESSION['roll_admin_active_event_id'] ?? 0;
+        $this->ensureSchema($db);
+
+        $filter_class_id = (int)($_GET['race_class_id'] ?? 0);
+        $eventId = (int)($_SESSION['roll_admin_active_event_id'] ?? 0);
+
+        // Jika race_class_id diberikan di URL, sinkronkan active event jika berbeda atau belum terpilih
+        if ($filter_class_id > 0) {
+            $stmtCekEv = $db->prepare("SELECT event_id FROM roll_event_details WHERE id = ?");
+            $stmtCekEv->execute([$filter_class_id]);
+            $realEvId = (int)$stmtCekEv->fetchColumn();
+            if ($realEvId > 0 && $realEvId !== $eventId) {
+                $eventId = $realEvId;
+                $_SESSION['roll_admin_active_event_id'] = $eventId;
+            }
+        }
 
         if ($eventId == 0) {
             $_SESSION['flash_message'] = "Pilih Event terlebih dahulu!";
@@ -27,7 +57,6 @@ class RollResultController extends Controller {
             exit;
         }
         
-        $filter_class_id = $_GET['race_class_id'] ?? 0;
         $filter_heat = $_GET['heat_name'] ?? '';
         $current_round_name = $_GET['round'] ?? null;
 
