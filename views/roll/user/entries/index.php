@@ -43,6 +43,11 @@
                 <a href="<?= getenv('APP_URL') ?>/roll/user/checkout/detail/<?= $event['id'] ?>" class="bg-slate-900 text-white px-6 py-3 rounded-xl font-black text-xs shadow-lg hover:bg-blue-600 transition">LIHAT STATUS BAYAR</a>
             <?php else: ?>
                 <div class="flex flex-col md:flex-row gap-2">
+                    <?php if(($_SESSION['roll_club_type'] ?? '') === 'contingent'): ?>
+                        <a href="<?= getenv('APP_URL') ?>/roll/user/athletes" class="bg-purple-600 text-white px-4 py-3 rounded-xl font-black text-xs shadow-lg hover:bg-purple-700 transition flex items-center justify-center gap-1.5">
+                            <span>🏛️</span> TARIK ATLET DAERAH
+                        </a>
+                    <?php endif; ?>
                     <button onclick="document.getElementById('modal-entry').classList.remove('hidden')" class="bg-blue-600 text-white px-4 py-3 rounded-xl font-black text-xs shadow-lg hover:bg-blue-700 transition">+ DAFTAR INDIVIDU</button>
                     <button onclick="document.getElementById('modal-relay').classList.remove('hidden')" class="bg-indigo-600 text-white px-4 py-3 rounded-xl font-black text-xs shadow-lg hover:bg-indigo-700 transition">+ DAFTAR RELAY</button>
                 </div>

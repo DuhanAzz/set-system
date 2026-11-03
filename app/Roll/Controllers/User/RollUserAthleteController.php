@@ -244,4 +244,111 @@ class RollUserAthleteController extends Controller {
         header("Location: " . getenv('APP_URL') . "/roll/user/athletes");
         exit;
     }
+
+    public function search_pool() {
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        $db = Database::getInstance()->getConnection();
+        $club_id = (int)($_SESSION['roll_club_id'] ?? 0);
+        
+        $q = trim($_GET['q'] ?? '');
+        if (empty($q) || strlen($q) < 2) {
+            header('Content-Type: application/json');
+            echo json_encode(['status' => 'success', 'data' => []]);
+            exit;
+        }
+
+        // Cari atlet dari klub lain yang cocok dengan keyword
+        $query = "
+            SELECT s.id, s.uid, s.skater_name, s.gender, s.birth_date, s.asal_sekolah, s.kota_kabupaten, s.provinsi, s.status_bpjs,
+                   c.club_name as origin_club, c.city_province as club_city
+            FROM roll_skaters s
+            LEFT JOIN roll_clubs c ON s.club_id = c.id
+            WHERE s.club_id != ? 
+              AND (s.skater_name LIKE ? OR s.uid LIKE ? OR s.asal_sekolah LIKE ? OR s.kota_kabupaten LIKE ? OR s.provinsi LIKE ?)
+            ORDER BY s.skater_name ASC
+            LIMIT 25
+        ";
+        $wildcard = "%$q%";
+        $stmt = $db->prepare($query);
+        $stmt->execute([$club_id, $wildcard, $wildcard, $wildcard, $wildcard, $wildcard]);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Tandai apakah sudah ada di roster kontingen
+        foreach ($rows as &$r) {
+            $stmtCek = $db->prepare("SELECT id FROM roll_skaters WHERE club_id = ? AND (uid = ? OR (skater_name = ? AND birth_date = ?))");
+            $stmtCek->execute([$club_id, $r['uid'], $r['skater_name'], $r['birth_date']]);
+            $r['already_drafted'] = $stmtCek->fetchColumn() ? true : false;
+        }
+
+        header('Content-Type: application/json');
+        echo json_encode(['status' => 'success', 'data' => $rows]);
+        exit;
+    }
+
+    public function draft_athlete() {
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        $db = Database::getInstance()->getConnection();
+        $club_id = (int)($_SESSION['roll_club_id'] ?? 0);
+        $source_id = (int)($_POST['skater_id'] ?? 0);
+
+        if (!$club_id || !$source_id) {
+            $_SESSION['flash_message'] = "Permintaan tidak valid.";
+            $_SESSION['flash_type'] = "error";
+            header("Location: " . getenv('APP_URL') . "/roll/user/athletes");
+            exit;
+        }
+
+        // Ambil data atlet sumber
+        $stmtSource = $db->prepare("SELECT * FROM roll_skaters WHERE id = ?");
+        $stmtSource->execute([$source_id]);
+        $skater = $stmtSource->fetch(PDO::FETCH_ASSOC);
+
+        if (!$skater) {
+            $_SESSION['flash_message'] = "Data atlet sumber tidak ditemukan.";
+            $_SESSION['flash_type'] = "error";
+            header("Location: " . getenv('APP_URL') . "/roll/user/athletes");
+            exit;
+        }
+
+        // Cek apakah sudah pernah ditarik ke kontingen ini
+        $stmtCheck = $db->prepare("SELECT id FROM roll_skaters WHERE club_id = ? AND (uid = ? OR (skater_name = ? AND birth_date = ?))");
+        $stmtCheck->execute([$club_id, $skater['uid'], $skater['skater_name'], $skater['birth_date']]);
+        if ($stmtCheck->fetch()) {
+            $_SESSION['flash_message'] = "Atlet '" . htmlspecialchars($skater['skater_name']) . "' sudah ada di dalam roster kontingen Anda.";
+            $_SESSION['flash_type'] = "warning";
+            header("Location: " . getenv('APP_URL') . "/roll/user/athletes");
+            exit;
+        }
+
+        // Ambil provinsi kontingen jika provinsi atlet kosong
+        $provinsi = $skater['provinsi'];
+        if (empty($provinsi) && !empty($_SESSION['roll_province'])) {
+            $provinsi = $_SESSION['roll_province'];
+        }
+
+        // Insert ke roster kontingen dengan UID dan data yang terintegrasi penuh
+        $ins = $db->prepare("
+            INSERT INTO roll_skaters 
+            (uid, club_id, skater_name, gender, birth_date, asal_sekolah, provinsi, kota_kabupaten, status_bpjs, is_pon_veteran, age_group)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ");
+        $ins->execute([
+            $skater['uid'],
+            $club_id,
+            $skater['skater_name'],
+            $skater['gender'],
+            $skater['birth_date'],
+            $skater['asal_sekolah'],
+            $provinsi,
+            $skater['kota_kabupaten'],
+            $skater['status_bpjs'],
+            $skater['is_pon_veteran'],
+            $skater['age_group']
+        ]);
+
+        $_SESSION['flash_message'] = "Atlet '" . htmlspecialchars($skater['skater_name']) . "' berhasil ditarik ke dalam roster kontingen!";
+        $_SESSION['flash_type'] = "success";
+        header("Location: " . getenv('APP_URL') . "/roll/user/athletes");
+        exit;
+    }
 }

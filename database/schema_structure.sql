@@ -83,7 +83,9 @@ CREATE TABLE `record_packages` (
 CREATE TABLE `roll_clubs` (
   `id` int(11) NOT NULL,
   `club_name` varchar(255) NOT NULL,
+  `club_type` enum('club','contingent','school') DEFAULT 'club',
   `city_province` varchar(255) DEFAULT NULL,
+  `province` varchar(100) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -143,7 +145,8 @@ CREATE TABLE `roll_events` (
   `event_name` varchar(255) NOT NULL,
   `location` varchar(255) DEFAULT NULL,
   `race_format` enum('DTT','SPRINT','PTP','ELIMINATION','TIME_TRIAL') NOT NULL,
-  `status` enum('Draft','Published','Open Registration','Close Registration','Running','Finished') DEFAULT 'Draft',
+  `status` enum('Draft','Published','Open Registration','Official Registration','Close Registration','Running','Finished') DEFAULT 'Draft',
+  `participation_type` enum('club','school','contingent_province','contingent_city') DEFAULT 'club',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `event_date_start` date DEFAULT NULL,
   `event_date_end` date DEFAULT NULL,

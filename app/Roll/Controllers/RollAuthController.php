@@ -61,10 +61,15 @@ class RollAuthController extends Controller {
                 $_SESSION['nama_lengkap'] = $user['nama_lengkap'] ?? $user['username'];
                 unset($_SESSION['roll_admin_active_event_id']);
                 
-                // Khusus klub (user) set club_id
+                // Khusus klub (user) set club_id & tipe organisasi
                 if ($user['role'] === 'user') {
-                    // Cari club_id dari tabel roll_users itu sendiri (karena skema roll_users memiliki club_id)
                     $_SESSION['roll_club_id'] = $user['club_id'] ?? 0;
+                    $stmtClub = $db->prepare("SELECT club_name, club_type, city_province, province FROM roll_clubs WHERE id = ?");
+                    $stmtClub->execute([$user['club_id'] ?? 0]);
+                    $clubData = $stmtClub->fetch(PDO::FETCH_ASSOC);
+                    $_SESSION['roll_club_name'] = $clubData['club_name'] ?? '';
+                    $_SESSION['roll_club_type'] = $clubData['club_type'] ?? 'club';
+                    $_SESSION['roll_province']  = $clubData['province'] ?? $clubData['city_province'] ?? '';
                 }
 
                 // Redirect sesuai role

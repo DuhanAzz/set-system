@@ -38,6 +38,17 @@ class RollRegistrationController extends Controller {
         $stmtEvent->execute([$event_id]);
         $event = $stmtEvent->fetch(PDO::FETCH_ASSOC);
 
+        if ($event) {
+            $eventStatus = $event['status'] ?? '';
+            $isContingent = (($_SESSION['roll_club_type'] ?? '') === 'contingent');
+            if ($eventStatus === 'Official Registration' && !$isContingent) {
+                $_SESSION['flash_message'] = "Pendaftaran event ini berstatus Official Registration (khusus Official Kontingen Resmi Daerah).";
+                $_SESSION['flash_type'] = "error";
+                header("Location: " . getenv('APP_URL') . "/roll/user/explore/detail/" . $event_id);
+                exit;
+            }
+        }
+
         $classes = [];
         if ($event) {
             $stmtClasses = $db->prepare("
@@ -272,10 +283,20 @@ class RollRegistrationController extends Controller {
         $db = Database::getInstance()->getConnection();
         
         // Cek status event
-        $stmtEventStat = $db->prepare("SELECT status FROM roll_events WHERE id = ?");
+        $stmtEventStat = $db->prepare("SELECT status, participation_type FROM roll_events WHERE id = ?");
         $stmtEventStat->execute([$event_id]);
-        $eventStatus = $stmtEventStat->fetchColumn();
-        if ($eventStatus !== 'Open Registration') {
+        $evtRow = $stmtEventStat->fetch(PDO::FETCH_ASSOC);
+        $eventStatus = $evtRow['status'] ?? '';
+        $isContingent = (($_SESSION['roll_club_type'] ?? '') === 'contingent');
+
+        if ($eventStatus === 'Official Registration') {
+            if (!$isContingent) {
+                $_SESSION['flash_message'] = "Pendaftaran event ini khusus untuk Official Kontingen Daerah.";
+                $_SESSION['flash_type'] = "error";
+                header("Location: " . getenv('APP_URL') . "/roll/user/explore/detail/" . $event_id);
+                exit;
+            }
+        } elseif ($eventStatus !== 'Open Registration') {
             $_SESSION['flash_message'] = "Pendaftaran untuk event ini sedang ditutup.";
             $_SESSION['flash_type'] = "error";
             header("Location: " . getenv('APP_URL') . "/roll/user/registration/index/" . $event_id);

@@ -22,11 +22,42 @@
                         <span class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-50 text-xs font-black text-emerald-600 border border-emerald-200 uppercase tracking-widest shadow-sm">
                             STATUS: <?= htmlspecialchars($event['status'] ?? 'Active') ?>
                         </span>
+                        <?php
+                            $pType = $event['participation_type'] ?? 'club';
+                            $pLabel = match($pType) {
+                                'school' => '🏫 Antar Sekolah',
+                                'contingent_province' => '🏛️ Antar Provinsi',
+                                'contingent_city' => '🏛️ Antar Kota/Kabupaten',
+                                default => '⛸️ Antar Club'
+                            };
+                        ?>
+                        <span class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-50 text-xs font-black text-indigo-700 border border-indigo-200 uppercase tracking-widest shadow-sm">
+                            TIPE: <?= $pLabel ?>
+                        </span>
                     </div>
                 </div>
 
-                                <div class="mt-8 pt-6 border-t border-slate-100 flex flex-col md:flex-row gap-3">
-                    <?php if(($event['status'] ?? '') === 'Open Registration'): ?>
+                <div class="mt-8 pt-6 border-t border-slate-100 flex flex-col md:flex-row gap-3">
+                    <?php 
+                        $eventStatus = $event['status'] ?? '';
+                        $isContingent = (($_SESSION['roll_club_type'] ?? '') === 'contingent');
+                    ?>
+                    <?php if ($eventStatus === 'Official Registration'): ?>
+                        <?php if ($isContingent): ?>
+                            <a href="<?= getenv('APP_URL') ?>/roll/user/registration/index/<?= $event['id'] ?>" class="bg-purple-600 hover:bg-purple-700 text-white font-black uppercase text-sm px-10 py-4 rounded-xl shadow-xl shadow-purple-200 hover:shadow-purple-300 hover:-translate-y-1 transition duration-300 flex-1 text-center">
+                                Mulai Pendaftaran Kontingen Resmi 🏛️
+                            </a>
+                        <?php else: ?>
+                            <div class="flex-1 bg-purple-50 border border-purple-200 rounded-xl p-4 text-purple-900">
+                                <div class="flex items-center gap-2 font-black text-sm uppercase tracking-wide">
+                                    <span>🔒</span> Official Registration (Khusus Kontingen Resmi)
+                                </div>
+                                <p class="text-xs font-medium text-purple-700 mt-1">
+                                    Pendaftaran event ini bersifat tertutup dan hanya dapat dilakukan oleh akun <strong>Official Kontingen Daerah</strong> yang ditunjuk oleh Pengprov / Pengkab / Pengkot. Akun klub biasa tidak dapat mendaftarkan atlet ke event ini.
+                                </p>
+                            </div>
+                        <?php endif; ?>
+                    <?php elseif ($eventStatus === 'Open Registration'): ?>
                         <a href="<?= getenv('APP_URL') ?>/roll/user/registration/index/<?= $event['id'] ?>" class="bg-blue-600 hover:bg-blue-700 text-white font-black uppercase text-sm px-10 py-4 rounded-xl shadow-xl shadow-blue-200 hover:shadow-blue-300 hover:-translate-y-1 transition duration-300 flex-1 text-center">
                             Mulai Pendaftaran Tim 🚀
                         </a>

@@ -324,23 +324,38 @@ class RollExportController extends Controller {
         $stmtEvt->execute([$eventId]);
         $event = $stmtEvt->fetch(PDO::FETCH_ASSOC);
 
+        $partType = $event['participation_type'] ?? 'club';
+        if ($partType === 'school') {
+            $selectEntity = "COALESCE(NULLIF(s.asal_sekolah, ''), 'Tanpa Sekolah') as club_name";
+            $groupByClause = "club_name";
+        } elseif ($partType === 'contingent_province') {
+            $selectEntity = "COALESCE(NULLIF(s.provinsi, ''), NULLIF(c.city_province, ''), 'Tanpa Provinsi') as club_name";
+            $groupByClause = "club_name";
+        } elseif ($partType === 'contingent_city') {
+            $selectEntity = "COALESCE(NULLIF(s.kota_kabupaten, ''), NULLIF(c.city_province, ''), 'Tanpa Kota/Kab') as club_name";
+            $groupByClause = "club_name";
+        } else {
+            $selectEntity = "c.club_name";
+            $groupByClause = "c.id, c.club_name";
+        }
+
         // Tally
         $stmtTally = $db->prepare("
-            SELECT c.id, c.club_name,
+            SELECT $selectEntity,
                 SUM(CASE WHEN r.rank = 1 THEN 1 ELSE 0 END) as gold,
                 SUM(CASE WHEN r.rank = 2 THEN 1 ELSE 0 END) as silver,
                 SUM(CASE WHEN r.rank = 3 THEN 1 ELSE 0 END) as bronze
             FROM roll_event_results r
             JOIN roll_skaters s ON r.skater_id = s.id
-            JOIN roll_clubs c ON s.club_id = c.id
+            LEFT JOIN roll_clubs c ON s.club_id = c.id
             JOIN roll_event_details ed ON r.race_class_id = ed.id
             JOIN roll_entries e ON r.skater_id = e.skater_id AND r.race_class_id = e.race_class_id
             WHERE r.event_id = ? 
               AND (ed.category_name != 'EKSEBISI' OR ed.category_name IS NULL)
               AND r.rank IN (1, 2, 3) 
               AND r.status = 'OK'
-            GROUP BY c.id
-            ORDER BY gold DESC, silver DESC, bronze DESC, c.club_name ASC
+            GROUP BY $groupByClause
+            ORDER BY gold DESC, silver DESC, bronze DESC, club_name ASC
         ");
         $stmtTally->execute([$eventId]);
         $medalTally = $stmtTally->fetchAll(PDO::FETCH_ASSOC);
@@ -849,7 +864,7 @@ class RollExportController extends Controller {
             }
 
             $stmtResults = $db->prepare("
-                SELECT p.skater_id, e.bib_number, e.team_name, s.skater_name, s.gender, c.city_province as city, c.club_name, p.heat_name, p.start_grid,
+                SELECT p.skater_id, e.bib_number, e.team_name, s.skater_name, s.gender, s.asal_sekolah, s.kota_kabupaten, s.provinsi, c.city_province as city, c.club_name, p.heat_name, p.start_grid,
                        r.rank as heat_rank, r.rank, r.point, r.time, r.status, r.is_official, r.round, r.print_round_name
                 FROM roll_pelotons p
                 JOIN roll_entries e ON p.skater_id = e.skater_id AND p.race_class_id = e.race_class_id AND p.event_id = e.event_id
@@ -861,6 +876,18 @@ class RollExportController extends Controller {
             ");
             $stmtResults->execute([$eventId, $classId, $targetRound]);
             $roundResults = $stmtResults->fetchAll(PDO::FETCH_ASSOC);
+
+            $partType = $event['participation_type'] ?? 'club';
+            foreach ($roundResults as &$rRes) {
+                if ($partType === 'school' && !empty($rRes['asal_sekolah'])) {
+                    $rRes['club_name'] = $rRes['asal_sekolah'];
+                } elseif ($partType === 'contingent_province' && !empty($rRes['provinsi'])) {
+                    $rRes['club_name'] = $rRes['provinsi'];
+                } elseif ($partType === 'contingent_city' && !empty($rRes['kota_kabupaten'])) {
+                    $rRes['club_name'] = $rRes['kota_kabupaten'];
+                }
+            }
+            unset($rRes);
 
             if (empty($roundResults)) {
                 continue;
@@ -1152,6 +1179,7 @@ class RollExportController extends Controller {
                     'time' => $timeStr,
                     'point' => $res['point'] ?? '-',
                     'status' => $statusStr,
+                    'participation_type' => $event['participation_type'] ?? 'club',
                     'event_name' => $event['event_name'] ?? '',
                     'event_date' => $event['event_date_start'] ?? '',
                     'location' => $event['location'] ?? ''

@@ -76,12 +76,23 @@
             <h1 class="font-bold text-lg text-slate-800">REKAPITULASI MEDALI</h1>
             <p class="text-xs text-slate-500">Pilih mode tampilan:</p>
         </div>
-        <div class="flex gap-2 bg-slate-100 p-1 rounded-lg">
-            <a href="<?= getenv('APP_URL') ?>/roll/admin/medal_tally" class="bg-white shadow text-blue-700 px-4 py-1.5 rounded text-xs font-bold uppercase transition">
-                🏆 Juara Umum (Klub)
+        <div class="flex flex-wrap gap-2 bg-slate-100 p-1 rounded-lg">
+            <?php $currGrp = $groupBy ?? 'club'; ?>
+            <a href="<?= getenv('APP_URL') ?>/roll/admin/medal_tally?group_by=club" class="<?= $currGrp == 'club' ? 'bg-white shadow text-blue-700 font-black' : 'text-slate-500 hover:text-slate-700' ?> px-3 py-1.5 rounded text-xs uppercase transition">
+                🏆 Per Klub
             </a>
-            <a href="<?= getenv('APP_URL') ?>/roll/admin/medal_tally/best_skater" class="text-gray-500 hover:text-gray-700 px-4 py-1.5 rounded text-xs font-bold uppercase transition">
-                🛼 Pesepatu Roda Terbaik
+            <a href="<?= getenv('APP_URL') ?>/roll/admin/medal_tally?group_by=school" class="<?= $currGrp == 'school' ? 'bg-white shadow text-blue-700 font-black' : 'text-slate-500 hover:text-slate-700' ?> px-3 py-1.5 rounded text-xs uppercase transition">
+                🏫 Per Sekolah
+            </a>
+            <a href="<?= getenv('APP_URL') ?>/roll/admin/medal_tally?group_by=province" class="<?= $currGrp == 'province' ? 'bg-white shadow text-blue-700 font-black' : 'text-slate-500 hover:text-slate-700' ?> px-3 py-1.5 rounded text-xs uppercase transition">
+                🏛️ Per Provinsi
+            </a>
+            <a href="<?= getenv('APP_URL') ?>/roll/admin/medal_tally?group_by=city" class="<?= $currGrp == 'city' ? 'bg-white shadow text-blue-700 font-black' : 'text-slate-500 hover:text-slate-700' ?> px-3 py-1.5 rounded text-xs uppercase transition">
+                📍 Per Kota/Kab
+            </a>
+            <span class="border-l border-slate-300 my-1 mx-1"></span>
+            <a href="<?= getenv('APP_URL') ?>/roll/admin/medal_tally/best_skater" class="text-gray-500 hover:text-gray-700 px-3 py-1.5 rounded text-xs font-bold uppercase transition">
+                🛼 Best Skater
             </a>
         </div>
     </div>
@@ -160,7 +171,7 @@ $sponsors = !empty($eventInfo['sponsor_logos']) ? json_decode($eventInfo['sponso
                         <div class="block-tabel">
                             <div class="event-header">
                                 <div class="eh-left-group">
-                                    <div class="eh-number">REKAP KLUB / TIM</div>
+                                    <div class="eh-number"><?= htmlspecialchars($labelTitle ?? 'REKAP KLUB / TIM') ?></div>
                                     <div class="eh-date"><?= htmlspecialchars($eventInfo['start_date'] ?? '') ?></div>
                                 </div>
                                 <div class="eh-center"><div class="eh-title">KLASEMEN JUARA UMUM</div></div>
@@ -171,7 +182,7 @@ $sponsors = !empty($eventInfo['sponsor_logos']) ? json_decode($eventInfo['sponso
                                 <thead>
                                     <tr>
                                         <th class="col-rank">RANK</th>
-                                        <th class="col-nama" style="width: 65%;">NAMA KLUB / TIM</th>
+                                        <th class="col-nama" style="width: 65%;"><?= htmlspecialchars($labelTitle ?? 'NAMA KLUB / TIM') ?></th>
                                         <th class="col-med bg-gold">E</th>
                                         <th class="col-med bg-silver">P</th>
                                         <th class="col-med bg-bronze">P</th>

@@ -87,10 +87,21 @@
                             <select name="status" class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-800 focus:ring-2 focus:ring-blue-500 font-bold">
                                 <option value="Draft" <?= (($row['status'] ?? 'Draft') == 'Draft') ? 'selected' : '' ?>>Draft (Sembunyikan)</option>
                                 <option value="Published" <?= (($row['status'] ?? '') == 'Published') ? 'selected' : '' ?>>Published</option>
-                                <option value="Open Registration" <?= (($row['status'] ?? '') == 'Open Registration') ? 'selected' : '' ?>>Open Registration</option>
+                                <option value="Open Registration" <?= (($row['status'] ?? '') == 'Open Registration') ? 'selected' : '' ?>>Open Registration (Terbuka Umum)</option>
+                                <option value="Official Registration" <?= (($row['status'] ?? '') == 'Official Registration') ? 'selected' : '' ?>>Official Registration (Khusus Kontingen Resmi)</option>
                                 <option value="Close Registration" <?= (($row['status'] ?? '') == 'Close Registration') ? 'selected' : '' ?>>Close Registration</option>
                                 <option value="Running" <?= (($row['status'] ?? '') == 'Running') ? 'selected' : '' ?>>Running</option>
                                 <option value="Finished" <?= (($row['status'] ?? '') == 'Finished') ? 'selected' : '' ?>>Finished</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Model Partisipasi (Tipe Kejuaraan)</label>
+                            <?php $partType = $row['participation_type'] ?? 'club'; ?>
+                            <select name="participation_type" class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-800 focus:ring-2 focus:ring-blue-500 font-bold">
+                                <option value="club" <?= ($partType == 'club') ? 'selected' : '' ?>>Antar Club (Kejurklub / Terbuka)</option>
+                                <option value="school" <?= ($partType == 'school') ? 'selected' : '' ?>>Antar Sekolah (Puspernas / O2SN / Pelajar)</option>
+                                <option value="contingent_province" <?= ($partType == 'contingent_province') ? 'selected' : '' ?>>Antar Provinsi (Pra-PON / PON / Kejurnas)</option>
+                                <option value="contingent_city" <?= ($partType == 'contingent_city') ? 'selected' : '' ?>>Antar Kota/Kabupaten (Porprov / Kejurda)</option>
                             </select>
                         </div>
                     </div>

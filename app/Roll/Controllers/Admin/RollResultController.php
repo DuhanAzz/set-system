@@ -127,7 +127,7 @@ class RollResultController extends Controller {
             }
 
             $stmtRes = $db->prepare("
-                SELECT r.id as result_id, p.skater_id, s.skater_name, c.club_name, p.start_grid, e.bib_number,
+                SELECT r.id as result_id, p.skater_id, s.skater_name, c.club_name, s.asal_sekolah, s.kota_kabupaten, s.provinsi, p.start_grid, e.bib_number,
                        r.time, r.rank, r.point, COALESCE(r.status, 'OK') as status, COALESCE(r.is_official, 0) as is_official,
                        p.heat_name, e.team_name, p.race_class_id, r.print_round_name
                 FROM roll_pelotons p
@@ -140,6 +140,21 @@ class RollResultController extends Controller {
             ");
             $stmtRes->execute([$eventId, $filter_class_id, $current_round_name]);
             $raw_results = $stmtRes->fetchAll(PDO::FETCH_ASSOC);
+
+            $stmtEv = $db->prepare("SELECT participation_type FROM roll_events WHERE id = ?");
+            $stmtEv->execute([$eventId]);
+            $evtPartType = $stmtEv->fetchColumn() ?: 'club';
+
+            foreach ($raw_results as &$rRow) {
+                if ($evtPartType === 'school' && !empty($rRow['asal_sekolah'])) {
+                    $rRow['club_name'] = $rRow['asal_sekolah'];
+                } elseif ($evtPartType === 'contingent_province' && !empty($rRow['provinsi'])) {
+                    $rRow['club_name'] = $rRow['provinsi'];
+                } elseif ($evtPartType === 'contingent_city' && !empty($rRow['kota_kabupaten'])) {
+                    $rRow['club_name'] = $rRow['kota_kabupaten'];
+                }
+            }
+            unset($rRow);
             
             foreach ($raw_results as $row) {
                 $heatsData[$row['heat_name']][] = $row;
@@ -1162,7 +1177,7 @@ class RollResultController extends Controller {
 
         // Ambil semua hasil, lalu urutkan secara global
         $stmtResults = $db->prepare("
-            SELECT p.skater_id, e.bib_number, e.team_name, s.skater_name, s.gender, c.city_province as city, c.club_name, p.heat_name, p.start_grid,
+            SELECT p.skater_id, e.bib_number, e.team_name, s.skater_name, s.gender, s.asal_sekolah, s.kota_kabupaten, s.provinsi, c.city_province as city, c.club_name, p.heat_name, p.start_grid,
                    r.rank as heat_rank, r.rank, r.point, r.time, r.status, r.is_official, r.round, r.print_round_name
             FROM roll_pelotons p
             JOIN roll_entries e ON p.skater_id = e.skater_id AND p.race_class_id = e.race_class_id AND p.event_id = e.event_id
@@ -1174,6 +1189,21 @@ class RollResultController extends Controller {
         ");
         $stmtResults->execute([$eventId, $classId, $round]);
         $results = $stmtResults->fetchAll(PDO::FETCH_ASSOC);
+
+        $stmtEv = $db->prepare("SELECT participation_type FROM roll_events WHERE id = ?");
+        $stmtEv->execute([$eventId]);
+        $evtPartType = $stmtEv->fetchColumn() ?: 'club';
+
+        foreach ($results as &$resItem) {
+            if ($evtPartType === 'school' && !empty($resItem['asal_sekolah'])) {
+                $resItem['club_name'] = $resItem['asal_sekolah'];
+            } elseif ($evtPartType === 'contingent_province' && !empty($resItem['provinsi'])) {
+                $resItem['club_name'] = $resItem['provinsi'];
+            } elseif ($evtPartType === 'contingent_city' && !empty($resItem['kota_kabupaten'])) {
+                $resItem['club_name'] = $resItem['kota_kabupaten'];
+            }
+        }
+        unset($resItem);
 
         if ($isRaceBook) {
             $stmtPrevTime = $db->prepare("SELECT print_round_name, time, status FROM roll_event_results WHERE event_id = ? AND race_class_id = ? AND skater_id = ? AND round != ? AND time IS NOT NULL AND time != '' AND status IN ('OK', 'FS 1', 'FS') ORDER BY id DESC LIMIT 1");

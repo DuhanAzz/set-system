@@ -20,6 +20,12 @@
         
         <div class="w-full md:w-auto flex flex-col sm:flex-row items-center gap-2">
             
+            <?php if(($_SESSION['roll_club_type'] ?? '') === 'contingent'): ?>
+                <button onclick="document.getElementById('modal-draft-pool').classList.remove('hidden')" class="w-full sm:w-auto justify-center bg-purple-600 hover:bg-purple-700 text-white px-4 py-2.5 rounded-lg shadow-sm text-xs font-bold tracking-wide transition flex items-center gap-2 whitespace-nowrap">
+                    <span>🏛️</span> Tarik Atlet Daerah (Pool)
+                </button>
+            <?php endif; ?>
+
             <button onclick="document.getElementById('modal-add').classList.remove('hidden')" style="background-color: #3b82f6; color: white;" class="w-full sm:w-auto justify-center hover:opacity-80 px-4 py-2.5 rounded-lg shadow-sm text-xs font-bold tracking-wide transition flex items-center gap-2 whitespace-nowrap">
                 <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
@@ -350,4 +356,106 @@ function openEditModal(data) {
 
     document.getElementById('modal-edit').classList.remove('hidden');
 }
+
+let poolSearchTimer = null;
+function searchPoolAthletes() {
+    clearTimeout(poolSearchTimer);
+    const q = document.getElementById('pool_search_input').value.trim();
+    const container = document.getElementById('pool_results_container');
+
+    if (q.length < 2) {
+        container.innerHTML = '<div class="text-center py-12 text-slate-400 text-xs font-bold">Ketik minimal 2 karakter untuk mencari atlet...</div>';
+        return;
+    }
+
+    container.innerHTML = '<div class="text-center py-12 text-purple-600 text-xs font-bold animate-pulse">Sedang mencari data atlet di database daerah...</div>';
+
+    poolSearchTimer = setTimeout(() => {
+        fetch('<?= getenv("APP_URL") ?>/roll/user/athletes/search_pool?q=' + encodeURIComponent(q))
+            .then(res => res.json())
+            .then(res => {
+                if (!res.data || res.data.length === 0) {
+                    container.innerHTML = '<div class="text-center py-12 text-slate-400 text-xs font-bold">Tidak ada atlet yang cocok dengan kata kunci "' + q + '".</div>';
+                    return;
+                }
+                let html = '';
+                res.data.forEach(item => {
+                    const dob = item.birth_date ? item.birth_date : '-';
+                    const jk = (item.gender === 'M' || item.gender === 'L') ? 'Laki-laki' : 'Perempuan';
+                    const sekolah = item.asal_sekolah ? item.asal_sekolah : 'Sekolah Belum Diisi';
+                    const kota = item.kota_kabupaten || item.club_city || '-';
+                    const prov = item.provinsi || '-';
+                    const klub = item.origin_club || 'Klub Asal';
+
+                    html += `
+                        <div class="bg-white p-3.5 rounded-xl border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-3 hover:border-purple-300 transition shadow-sm">
+                            <div class="flex-1">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <span class="font-black text-slate-800 text-sm">${item.skater_name}</span>
+                                    <span class="text-[9px] font-black px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200">UID: ${item.uid || '-'}</span>
+                                    <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-50 text-blue-600 border border-blue-100">${jk} • ${dob}</span>
+                                </div>
+                                <div class="text-[11px] text-slate-500 font-medium mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
+                                    <span>🏫 ${sekolah}</span>
+                                    <span>📍 ${kota}, ${prov}</span>
+                                    <span class="text-purple-600 font-bold">🏠 Asal: ${klub}</span>
+                                </div>
+                            </div>
+                            <div class="shrink-0">
+                                ${item.already_drafted 
+                                    ? '<span class="inline-block px-3 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-bold">✓ Sudah Ada di Roster</span>'
+                                    : `<form action="<?= getenv('APP_URL') ?>/roll/user/athletes/draft_athlete" method="POST" onsubmit="return confirm('Tarik atlet ${item.skater_name} ke dalam kontingen Anda?')">
+                                         <input type="hidden" name="skater_id" value="${item.id}">
+                                         <button type="submit" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-bold shadow-sm transition flex items-center gap-1.5">
+                                             <span>📥</span> Tarik ke Kontingen
+                                         </button>
+                                       </form>`
+                                }
+                            </div>
+                        </div>
+                    `;
+                });
+                container.innerHTML = html;
+            })
+            .catch(err => {
+                container.innerHTML = '<div class="text-center py-12 text-red-500 text-xs font-bold">Gagal memuat data atlet. Silakan coba lagi.</div>';
+            });
+    }, 300);
+}
 </script>
+
+<!-- Modal Draft Pool (Khusus Official Kontingen) -->
+<div id="modal-draft-pool" class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-3xl w-full p-6 shadow-2xl border border-purple-100 flex flex-col max-h-[90vh]">
+        <div class="flex justify-between items-center pb-4 border-b border-slate-100">
+            <div class="flex items-center gap-2">
+                <span class="text-2xl">🏛️</span>
+                <div>
+                    <h3 class="text-base font-black text-slate-800 uppercase tracking-tight">Tarik Atlet dari Database Daerah (Pool Drafting)</h3>
+                    <p class="text-xs text-purple-600 font-bold">Klaim atlet dari klub-klub di daerah Anda ke dalam roster resmi kontingen</p>
+                </div>
+            </div>
+            <button type="button" onclick="document.getElementById('modal-draft-pool').classList.add('hidden')" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
+        </div>
+
+        <div class="py-4">
+            <div class="relative">
+                <input type="text" id="pool_search_input" onkeyup="searchPoolAthletes()" placeholder="Ketik nama atlet, UID, atau sekolah..." 
+                       class="w-full pl-10 pr-4 py-3 bg-purple-50/50 border border-purple-200 rounded-xl text-sm font-bold text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:bg-white transition">
+                <span class="absolute left-3.5 top-3.5 text-slate-400">🔍</span>
+            </div>
+        </div>
+
+        <div id="pool_results_container" class="flex-1 overflow-y-auto min-h-[250px] max-h-[400px] border border-slate-100 rounded-xl p-3 bg-slate-50 space-y-2">
+            <div class="text-center py-12 text-slate-400 text-xs font-bold">
+                Ketik minimal 2 karakter untuk mencari atlet dari database daerah...
+            </div>
+        </div>
+
+        <div class="pt-4 border-t border-slate-100 flex justify-end">
+            <button type="button" onclick="document.getElementById('modal-draft-pool').classList.add('hidden')" class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-bold transition">
+                Tutup
+            </button>
+        </div>
+    </div>
+</div>

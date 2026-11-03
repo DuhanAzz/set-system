@@ -139,19 +139,34 @@ $sponsors = !empty($event['sponsor_logos']) ? json_decode($event['sponsor_logos'
     <?php if(!empty($event['medal_tally_pdf'])): ?>
                         <div id="pdf-medal" class="pdf-container"></div>
                     <?php else: ?>
+                        <?php
+                            $partType = $event['participation_type'] ?? 'club';
+                            $labelMedalHeader = match($partType) {
+                                'school' => 'REKAPITULASI JUARA UMUM (SEKOLAH)',
+                                'contingent_province' => 'KLASEMEN MEDALI KONTINGEN PROVINSI',
+                                'contingent_city' => 'KLASEMEN MEDALI KONTINGEN KOTA/KAB',
+                                default => 'REKAPITULASI JUARA UMUM (KLUB)'
+                            };
+                            $colEntityHeader = match($partType) {
+                                'school' => 'NAMA SEKOLAH',
+                                'contingent_province' => 'KONTINGEN PROVINSI',
+                                'contingent_city' => 'KONTINGEN KOTA / KAB',
+                                default => 'NAMA KLUB / TIM'
+                            };
+                        ?>
                         <div class="event-header">
                             <div class="eh-left-group">
-                                <div class="eh-number" style="font-size: 11pt;">REKAP KLUB / TIM</div>
+                                <div class="eh-number" style="font-size: 11pt;"><?= htmlspecialchars($colEntityHeader) ?></div>
                                 <div class="eh-date">KLASEMEN AKHIR</div>
                             </div>
-                            <div class="eh-center"><div class="eh-title">REKAPITULASI JUARA UMUM (KLUB)</div></div>
+                            <div class="eh-center"><div class="eh-title"><?= htmlspecialchars($labelMedalHeader) ?></div></div>
                             <div class="eh-right"></div>
                         </div>
                         <table class="data-table" style="margin-bottom: 30px;">
                             <thead>
                                 <tr>
                                     <th class="col-rank">RANK</th>
-                                    <th class="col-nama" style="width: 65%;">NAMA KLUB / TIM</th>
+                                    <th class="col-nama" style="width: 65%;"><?= htmlspecialchars($colEntityHeader) ?></th>
                                     <th class="col-med bg-gold">E</th>
                                     <th class="col-med bg-silver">P</th>
                                     <th class="col-med bg-bronze">P</th>

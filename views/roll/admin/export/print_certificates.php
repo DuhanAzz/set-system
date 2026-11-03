@@ -291,13 +291,32 @@
                         <div class="given-to">Piagam ini diberikan dengan bangga dan hormat kepada:</div>
                         <div class="athlete-name"><?= htmlspecialchars($c['skater_name']) ?></div>
                         
-                        <!-- Satu Kesatuan Sekolah & Daerah Puspernas -->
+                        <!-- Afiliasi Sesuai Model Event -->
                         <div class="institution-box">
-                            <div class="institution-puspernas">
-                                🏫 <?= htmlspecialchars($c['institusi_puspernas']) ?>
-                            </div>
-                            <?php if (!empty($c['club_name']) && $c['club_name'] !== '-'): ?>
-                                <div class="club-sub">Afiliasi Klub: <?= htmlspecialchars($c['club_name']) ?></div>
+                            <?php 
+                                $pType = $c['participation_type'] ?? 'club'; 
+                                if ($pType === 'contingent_province'):
+                            ?>
+                                <div class="institution-puspernas" style="color: #4338ca;">
+                                    🏛️ KONTINGEN PROVINSI: <?= htmlspecialchars(!empty($c['provinsi']) && $c['provinsi'] !== '-' ? $c['provinsi'] : $c['club_name']) ?>
+                                </div>
+                                <?php if (!empty($c['institusi_puspernas']) && $c['institusi_puspernas'] !== '-'): ?>
+                                    <div class="club-sub">Asal Sekolah: <?= htmlspecialchars($c['institusi_puspernas']) ?></div>
+                                <?php endif; ?>
+                            <?php elseif ($pType === 'contingent_city'): ?>
+                                <div class="institution-puspernas" style="color: #4338ca;">
+                                    🏛️ KONTINGEN DAERAH: <?= htmlspecialchars(!empty($c['kota_kabupaten']) && $c['kota_kabupaten'] !== '-' ? $c['kota_kabupaten'] : $c['club_name']) ?>
+                                </div>
+                                <?php if (!empty($c['institusi_puspernas']) && $c['institusi_puspernas'] !== '-'): ?>
+                                    <div class="club-sub">Asal Sekolah: <?= htmlspecialchars($c['institusi_puspernas']) ?></div>
+                                <?php endif; ?>
+                            <?php else: ?>
+                                <div class="institution-puspernas">
+                                    🏫 <?= htmlspecialchars($c['institusi_puspernas']) ?>
+                                </div>
+                                <?php if (!empty($c['club_name']) && $c['club_name'] !== '-'): ?>
+                                    <div class="club-sub">Afiliasi Klub: <?= htmlspecialchars($c['club_name']) ?></div>
+                                <?php endif; ?>
                             <?php endif; ?>
                         </div>
                     </div>

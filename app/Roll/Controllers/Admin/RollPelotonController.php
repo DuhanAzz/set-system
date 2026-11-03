@@ -762,7 +762,7 @@ class RollPelotonController extends Controller {
 
         // Fetch heats/entries
         $stmtEntries = $db->prepare("
-            SELECT e.skater_id, s.skater_name, s.gender, c.club_name, e.bib_number, p.heat_name, p.start_grid, p.round, e.team_name, a.group_name
+            SELECT e.skater_id, s.skater_name, s.gender, c.club_name, s.asal_sekolah, s.kota_kabupaten, s.provinsi, e.bib_number, p.heat_name, p.start_grid, p.round, e.team_name, a.group_name
             FROM roll_entries e
             JOIN roll_skaters s ON e.skater_id = s.id
             LEFT JOIN roll_clubs c ON s.club_id = c.id
@@ -776,6 +776,10 @@ class RollPelotonController extends Controller {
         ");
         $stmtEntries->execute([$eventId, $classId]);
         
+        $stmtEv = $db->prepare("SELECT participation_type FROM roll_events WHERE id = ?");
+        $stmtEv->execute([$eventId]);
+        $evtPartType = $stmtEv->fetchColumn() ?: 'club';
+
         $heatsByRound = [
             'Kualifikasi' => [],
             'Perempat Final' => [],
@@ -785,6 +789,14 @@ class RollPelotonController extends Controller {
         $unseeded = [];
         
         foreach ($stmtEntries->fetchAll(PDO::FETCH_ASSOC) as $ent) {
+            if ($evtPartType === 'school') {
+                $ent['club_name'] = !empty($ent['asal_sekolah']) ? $ent['asal_sekolah'] : $ent['club_name'];
+            } elseif ($evtPartType === 'contingent_province') {
+                $ent['club_name'] = !empty($ent['provinsi']) ? $ent['provinsi'] : $ent['club_name'];
+            } elseif ($evtPartType === 'contingent_city') {
+                $ent['club_name'] = !empty($ent['kota_kabupaten']) ? $ent['kota_kabupaten'] : $ent['club_name'];
+            }
+
             if (empty($ent['heat_name'])) {
                 $unseeded[$ent['skater_id']] = $ent;
             } else {

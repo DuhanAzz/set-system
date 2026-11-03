@@ -102,12 +102,22 @@
                                 </div>
                             <?php else: ?>
                                 <div class="space-y-1">
-                                    <div class="text-xs font-black text-slate-700 uppercase">
+                                    <div class="text-xs font-black text-slate-700 uppercase flex items-center gap-1.5 flex-wrap">
                                         <?= htmlspecialchars($u['club_name'] ?? '-') ?>
+                                        <?php if(($u['club_type'] ?? '') == 'contingent'): ?>
+                                            <span class="bg-purple-100 text-purple-700 border border-purple-200 px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider">🏛️ Kontingen Resmi</span>
+                                        <?php endif; ?>
                                     </div>
-                                    <span class="bg-slate-100 px-1.5 py-0.5 rounded text-[9px] font-bold text-slate-500 border border-slate-200 inline-block">
-                                        🏠 <?= htmlspecialchars($u['kota'] ?? '-') ?>
-                                    </span>
+                                    <div class="flex flex-wrap gap-1">
+                                        <span class="bg-slate-100 px-1.5 py-0.5 rounded text-[9px] font-bold text-slate-500 border border-slate-200 inline-block">
+                                            🏠 <?= htmlspecialchars($u['kota'] ?? '-') ?>
+                                        </span>
+                                        <?php if(!empty($u['province'])): ?>
+                                            <span class="bg-indigo-50 px-1.5 py-0.5 rounded text-[9px] font-bold text-indigo-600 border border-indigo-100 inline-block">
+                                                🗺️ <?= htmlspecialchars($u['province']) ?>
+                                            </span>
+                                        <?php endif; ?>
+                                    </div>
                                 </div>
                             <?php endif; ?>
                         </td>
@@ -249,8 +259,21 @@
 
                 <?php if($targetRole == 'user'): ?>
                     <div>
-                        <label class="text-[10px] font-bold text-slate-500 uppercase">Kota Asal Klub</label>
-                        <input type="text" name="kota" id="form-kota" class="w-full px-4 py-3 border border-slate-200 bg-slate-50 rounded-xl text-sm font-bold focus:bg-white focus:border-blue-500 outline-none" placeholder="Cth: Yogyakarta (Boleh Kosong)">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase">Tipe Organisasi / Kepesertaan</label>
+                        <select name="club_type" id="form-club-type" class="w-full px-4 py-3 border border-slate-200 bg-slate-50 rounded-xl text-sm font-bold focus:bg-white focus:border-blue-500 outline-none">
+                            <option value="club">Klub Sepatu Roda (Biasa / Open)</option>
+                            <option value="contingent">Official Kontingen Resmi Daerah (Pengprov / Pengkab / Pengkot)</option>
+                        </select>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 mt-3">
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-500 uppercase">Kota / Kabupaten</label>
+                            <input type="text" name="kota" id="form-kota" class="w-full px-4 py-3 border border-slate-200 bg-slate-50 rounded-xl text-sm font-bold focus:bg-white focus:border-blue-500 outline-none" placeholder="Cth: Kota Yogyakarta">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-500 uppercase">Provinsi</label>
+                            <input type="text" name="province" id="form-province" class="w-full px-4 py-3 border border-slate-200 bg-slate-50 rounded-xl text-sm font-bold focus:bg-white focus:border-blue-500 outline-none" placeholder="Cth: D.I. Yogyakarta">
+                        </div>
                     </div>
                 <?php endif; ?>
             </div>
@@ -283,6 +306,8 @@ function openModal() {
     if(document.getElementById('form-date')) document.getElementById('form-date').value = ""; 
     if(document.getElementById('form-mode')) document.getElementById('form-mode').selectedIndex = 0;
     if(document.getElementById('form-kota')) document.getElementById('form-kota').value = "";
+    if(document.getElementById('form-province')) document.getElementById('form-province').value = "";
+    if(document.getElementById('form-club-type')) document.getElementById('form-club-type').value = "club";
     
     modal.classList.remove('hidden');
 }
@@ -320,6 +345,12 @@ function editAdmin(buttonElement) {
         
         if(document.getElementById('form-kota')) {
             document.getElementById('form-kota').value = data.kota || '';
+        }
+        if(document.getElementById('form-province')) {
+            document.getElementById('form-province').value = data.province || '';
+        }
+        if(document.getElementById('form-club-type')) {
+            document.getElementById('form-club-type').value = data.club_type || 'club';
         }
 
         modal.classList.remove('hidden');

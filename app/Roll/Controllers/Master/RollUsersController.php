@@ -39,7 +39,7 @@ class RollUsersController extends Controller {
             $params[] = $searchWildcard;
         }
         
-        $query = "SELECT u.*, c.club_name, c.city_province as kota,
+        $query = "SELECT u.*, c.club_name, c.club_type, c.city_province as kota, c.province,
                          (SELECT COUNT(*) FROM roll_skaters WHERE club_id = c.id) as total_atlet,
                          (SELECT event_name FROM roll_events WHERE user_id = u.id ORDER BY id DESC LIMIT 1) as event_name,
                          (SELECT event_date_start FROM roll_events WHERE user_id = u.id ORDER BY id DESC LIMIT 1) as event_date_start,
@@ -96,9 +96,11 @@ class RollUsersController extends Controller {
                         $stmtEvent = $db->prepare("UPDATE roll_events SET event_name=?, event_date_start=?, event_location=? WHERE user_id=?");
                         $stmtEvent->execute([$nama_detail, $event_date_start, $event_location, $user_id]);
                     } elseif ($role === 'user') {
-                        // Assuming the user has a club
-                        $stmtClub = $db->prepare("UPDATE roll_clubs c JOIN roll_users u ON c.id = u.club_id SET c.club_name=? WHERE u.id=?");
-                        $stmtClub->execute([$nama_detail, $user_id]);
+                        $clubType = $_POST['club_type'] ?? 'club';
+                        $kota = $_POST['kota'] ?? '';
+                        $province = $_POST['province'] ?? '';
+                        $stmtClub = $db->prepare("UPDATE roll_clubs c JOIN roll_users u ON c.id = u.club_id SET c.club_name=?, c.club_type=?, c.city_province=?, c.province=? WHERE u.id=?");
+                        $stmtClub->execute([$nama_detail, $clubType, $kota, $province, $user_id]);
                     }
                     
                     $_SESSION['flash_message'] = "Pengguna berhasil diperbarui.";
@@ -115,8 +117,11 @@ class RollUsersController extends Controller {
                         $stmtEvent = $db->prepare("INSERT INTO roll_events (user_id, event_name, event_date_start, event_location, status, race_format) VALUES (?, ?, ?, ?, 'Published', 'SPRINT')");
                         $stmtEvent->execute([$newUserId, $nama_detail, $event_date_start, $event_location]);
                     } elseif ($role === 'user') {
-                        $stmtClub = $db->prepare("INSERT INTO roll_clubs (club_name) VALUES (?)");
-                        $stmtClub->execute([$nama_detail]);
+                        $clubType = $_POST['club_type'] ?? 'club';
+                        $kota = $_POST['kota'] ?? '';
+                        $province = $_POST['province'] ?? '';
+                        $stmtClub = $db->prepare("INSERT INTO roll_clubs (club_name, club_type, city_province, province) VALUES (?, ?, ?, ?)");
+                        $stmtClub->execute([$nama_detail, $clubType, $kota, $province]);
                         $newClubId = $db->lastInsertId();
                         
                         $stmtUpdateUser = $db->prepare("UPDATE roll_users SET club_id = ? WHERE id = ?");

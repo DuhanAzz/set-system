@@ -101,11 +101,13 @@ if (!empty($headerLogos['right'][0])) {
 
 $sponsors = !empty($eventInfo['sponsor_logos']) ? json_decode($eventInfo['sponsor_logos'], true) : [];
 
+$partType = $eventInfo['participation_type'] ?? 'club';
+
 // Ambil seluruh data perlombaan & peloton yang berpartisipasi
 $sqlAll = "SELECT 
             c.id as class_id, a.group_name, a.id as age_group_id, c.custom_name, sc.class_name as roller_name, d.distance_name, c.gender, c.race_number, c.race_time,
             p.round, p.heat_name, p.start_grid, 
-            e.bib_number, s.skater_name, cl.club_name, e.team_name
+            e.bib_number, s.skater_name, cl.club_name, s.asal_sekolah, s.kota_kabupaten, s.provinsi, e.team_name
            FROM roll_event_details c
            LEFT JOIN roll_ref_age_groups a ON c.age_group_id = a.id
            LEFT JOIN roll_ref_skate_classes sc ON c.skate_class_id = sc.id
@@ -198,11 +200,20 @@ foreach ($rawData as $row) {
         $fullBook[$cid]['rounds'][$rnd][$heat] = [];
     }
     
+    $affiliation = $row['club_name'] ?? '-';
+    if ($partType === 'school' && !empty($row['asal_sekolah'])) {
+        $affiliation = $row['asal_sekolah'];
+    } elseif ($partType === 'contingent_province' && !empty($row['provinsi'])) {
+        $affiliation = $row['provinsi'];
+    } elseif ($partType === 'contingent_city' && !empty($row['kota_kabupaten'])) {
+        $affiliation = $row['kota_kabupaten'];
+    }
+
     $fullBook[$cid]['rounds'][$rnd][$heat][] = [
         'start_grid' => $row['start_grid'],
         'bib_number' => $row['bib_number'],
         'skater_name' => $row['skater_name'],
-        'club_name' => $row['club_name'],
+        'club_name' => $affiliation,
         'team_name' => $row['team_name'],
         'group_name' => $row['group_name']
     ];

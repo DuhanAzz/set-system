@@ -31,8 +31,16 @@
             <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-xl transition-all flex flex-col md:flex-row group">
                 
                 <div class="w-full md:w-56 bg-slate-900 relative shrink-0 aspect-[4/3] md:aspect-auto md:min-h-[220px]">
-                    <div class="absolute top-3 left-3 z-20 bg-emerald-500 text-white px-2 py-1 rounded text-[8px] font-black uppercase tracking-widest shadow-md">
-                        <?= htmlspecialchars($statusLomba) ?>
+                    <?php 
+                        $statusBadgeClass = 'bg-emerald-500 text-white';
+                        if ($comp['status'] === 'Official Registration') {
+                            $statusBadgeClass = 'bg-purple-600 text-white';
+                        } elseif ($comp['status'] === 'Close Registration') {
+                            $statusBadgeClass = 'bg-rose-500 text-white';
+                        }
+                    ?>
+                    <div class="absolute top-3 left-3 z-20 <?= $statusBadgeClass ?> px-2 py-1 rounded text-[8px] font-black uppercase tracking-widest shadow-md">
+                        <?= htmlspecialchars($comp['status'] ?? 'UPCOMING') ?>
                     </div>
                     <?php if(!empty($comp['poster_image'])): ?>
                         <img src="<?= getenv('APP_URL') ?>/uploads/logos/<?= htmlspecialchars($comp['poster_image']) ?>" alt="Poster" class="w-full h-full object-cover">
@@ -43,6 +51,20 @@
 
                 <div class="p-5 md:p-6 flex-1 flex flex-col justify-between">
                     <div>
+                        <div class="flex items-center gap-2 mb-2 flex-wrap">
+                            <?php
+                                $pType = $comp['participation_type'] ?? 'club';
+                                $pLabel = match($pType) {
+                                    'school' => '🏫 Antar Sekolah',
+                                    'contingent_province' => '🏛️ Antar Provinsi',
+                                    'contingent_city' => '🏛️ Antar Kota/Kabupaten',
+                                    default => '⛸️ Antar Club'
+                                };
+                            ?>
+                            <span class="inline-flex items-center gap-1 text-[10px] font-black px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-100 uppercase tracking-wide">
+                                <?= $pLabel ?>
+                            </span>
+                        </div>
                         <h2 class="text-xl font-black uppercase text-slate-800 italic leading-tight mb-2"><?= htmlspecialchars($comp['event_name']) ?></h2>
                         <div class="flex flex-wrap gap-4 text-xs font-bold text-slate-500 uppercase tracking-wide mb-4">
                             <div class="flex items-center gap-1.5"><span class="text-sm">📅</span> Mulai: <?= $tgl ?></div>

@@ -27,9 +27,43 @@ class RollMedalTallyController extends Controller {
             exit;
         }
 
-        // Rekap Medali Klub
+        $stmtEvt = $db->prepare("SELECT * FROM roll_events WHERE id = ?");
+        $stmtEvt->execute([$eventId]);
+        $eventInfo = $stmtEvt->fetch(PDO::FETCH_ASSOC) ?: [];
+
+        $partType = $eventInfo['participation_type'] ?? 'club';
+
+        // Tentukan default grouping berdasarkan model event
+        $defaultGroup = match($partType) {
+            'school' => 'school',
+            'contingent_province' => 'province',
+            'contingent_city' => 'city',
+            default => 'club'
+        };
+
+        $groupBy = $_GET['group_by'] ?? $defaultGroup;
+
+        if ($groupBy === 'school') {
+            $selectEntity = "COALESCE(NULLIF(s.asal_sekolah, ''), 'TANPA SEKOLAH') as entity_name, COALESCE(NULLIF(s.kota_kabupaten, ''), '-') as region_name";
+            $groupByClause = "entity_name";
+            $labelTitle = "NAMA SEKOLAH";
+        } elseif ($groupBy === 'province') {
+            $selectEntity = "COALESCE(NULLIF(s.provinsi, ''), NULLIF(c.city_province, ''), 'TANPA PROVINSI') as entity_name, '' as region_name";
+            $groupByClause = "entity_name";
+            $labelTitle = "KONTINGEN PROVINSI";
+        } elseif ($groupBy === 'city') {
+            $selectEntity = "COALESCE(NULLIF(s.kota_kabupaten, ''), NULLIF(c.city_province, ''), 'TANPA KOTA/KAB') as entity_name, COALESCE(NULLIF(s.provinsi, ''), '-') as region_name";
+            $groupByClause = "entity_name";
+            $labelTitle = "KONTINGEN KOTA / KABUPATEN";
+        } else {
+            $selectEntity = "c.club_name as entity_name, COALESCE(NULLIF(c.city_province, ''), '-') as region_name";
+            $groupByClause = "c.id, c.club_name";
+            $labelTitle = "NAMA KLUB / TIM";
+        }
+
+        // Rekap Medali Dinamis
         $stmtTally = $db->prepare("
-            SELECT c.id, c.club_name,
+            SELECT $selectEntity,
                 SUM(CASE WHEN ranked_r.global_rank = 1 THEN 1 ELSE 0 END) as gold,
                 SUM(CASE WHEN ranked_r.global_rank = 2 THEN 1 ELSE 0 END) as silver,
                 SUM(CASE WHEN ranked_r.global_rank = 3 THEN 1 ELSE 0 END) as bronze
@@ -77,22 +111,25 @@ class RollMedalTallyController extends Controller {
                   AND LOWER(d.distance_name) NOT LIKE '%pair%'
             ) as ranked_r
             JOIN roll_skaters s ON ranked_r.skater_id = s.id
-            JOIN roll_clubs c ON s.club_id = c.id
+            LEFT JOIN roll_clubs c ON s.club_id = c.id
             WHERE ranked_r.global_rank IN (1, 2, 3)
-            GROUP BY c.id, c.club_name
-            ORDER BY gold DESC, silver DESC, bronze DESC, c.club_name ASC
+            GROUP BY $groupByClause
+            ORDER BY gold DESC, silver DESC, bronze DESC, entity_name ASC
         ");
-        // Catatan: e.status dihapus karena di sistem sepatu roda tidak semua kelas menggunakan fitur Finished.
         $stmtTally->execute([$eventId]);
         $medalTally = $stmtTally->fetchAll(PDO::FETCH_ASSOC);
 
-        $stmtEvt = $db->prepare("SELECT * FROM roll_events WHERE id = ?");
-        $stmtEvt->execute([$eventId]);
-        $eventInfo = $stmtEvt->fetch(PDO::FETCH_ASSOC) ?: [];
+        // Kompatibilitas dengan view eksisting yang membaca club_name
+        foreach ($medalTally as &$m) {
+            $m['club_name'] = $m['entity_name'];
+        }
 
         return $this->view('roll/admin/medal_tally/index', [
             'medalTally' => $medalTally,
             'eventInfo' => $eventInfo,
+            'labelTitle' => $labelTitle,
+            'groupBy' => $groupBy,
+            'partType' => $partType
             'eventId' => $eventId
         ]);
     }
