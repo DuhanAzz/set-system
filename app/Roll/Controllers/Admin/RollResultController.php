@@ -27,6 +27,7 @@ class RollResultController extends Controller {
         try { $db->exec("ALTER TABLE roll_skaters ADD COLUMN provinsi VARCHAR(100) NULL"); } catch (\Exception $e) {}
         try { $db->exec("ALTER TABLE roll_event_results ADD COLUMN print_round_name VARCHAR(100) NULL"); } catch (\Exception $e) {}
         try { $db->exec("ALTER TABLE roll_event_results ADD COLUMN is_official TINYINT(1) DEFAULT 0"); } catch (\Exception $e) {}
+        try { $db->exec("ALTER TABLE roll_event_details ADD COLUMN web_published_modes TEXT NULL"); } catch (\Exception $e) {}
         try { $db->exec("CREATE TABLE IF NOT EXISTS roll_dq_rules (id INT AUTO_INCREMENT PRIMARY KEY, kode_dq VARCHAR(50) NOT NULL, deskripsi TEXT NULL)"); } catch (\Exception $e) {}
 
         $migrated = true;
@@ -529,6 +530,65 @@ class RollResultController extends Controller {
                 }
                 exit; 
             }
+
+            if ($_POST['action'] === 'toggle_web_mode') {
+                $classId = (int)($_POST['class_id'] ?? 0);
+                $round = trim($_POST['round'] ?? 'Kualifikasi');
+                $field = $_POST['field'] ?? ''; // 'result_mode' or 'show_racebook'
+                $value = $_POST['value'] ?? ''; // for result_mode: 'all', 'per_heat', or ''; for show_racebook: 1 or 0
+                
+                try {
+                    try {
+                        $db->exec("ALTER TABLE roll_event_details ADD COLUMN web_published_modes TEXT NULL");
+                    } catch (\Exception $ex) {}
+                    
+                    $stmt = $db->prepare("SELECT web_published_modes, result_status FROM roll_event_details WHERE id = ?");
+                    $stmt->execute([$classId]);
+                    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+                    
+                    $currModes = !empty($row['web_published_modes']) ? json_decode($row['web_published_modes'], true) : [];
+                    if (!is_array($currModes)) $currModes = [];
+                    
+                    if (!isset($currModes[$round])) {
+                        $currModes[$round] = [
+                            'result_mode' => '',
+                            'show_racebook' => 0
+                        ];
+                    }
+                    
+                    if ($field === 'result_mode') {
+                        $currModes[$round]['result_mode'] = in_array($value, ['all', 'per_heat']) ? $value : '';
+                    } elseif ($field === 'show_racebook') {
+                        $currModes[$round]['show_racebook'] = !empty($value) ? 1 : 0;
+                    }
+                    
+                    // Jika round ini tidak memiliki mode aktif apapun, hapus kuncinya agar JSON bersih
+                    if (empty($currModes[$round]['result_mode']) && empty($currModes[$round]['show_racebook'])) {
+                        unset($currModes[$round]);
+                    }
+                    
+                    $jsonModes = !empty($currModes) ? json_encode($currModes) : null;
+                    
+                    // Cek jika ada mode aktif, otomatis published
+                    $newStatus = $row['result_status'] ?? 'Draft';
+                    if (!empty($currModes) && $newStatus === 'Draft') {
+                        $newStatus = 'Published';
+                    }
+                    
+                    $stmtUp = $db->prepare("UPDATE roll_event_details SET web_published_modes = ?, result_status = ? WHERE id = ?");
+                    $stmtUp->execute([$jsonModes, $newStatus, $classId]);
+                    
+                    echo json_encode([
+                        'success' => true,
+                        'message' => 'Pengaturan Live Web berhasil diperbarui!',
+                        'is_published' => ($newStatus === 'Published'),
+                        'modes' => $currModes
+                    ]);
+                } catch (\Exception $e) {
+                    echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
+                }
+                exit;
+            }
             
             if ($_POST['action'] === 'upload_pdf') {
                 $classId = $_POST['class_id'] ?? 0;
@@ -694,7 +754,7 @@ class RollResultController extends Controller {
         $eventInfo = $stmtEv->fetch(PDO::FETCH_ASSOC);
 
         try {
-            $stmtClasses = $db->prepare("SELECT ed.id, ed.race_number, d.distance_name, a.group_name, ed.category_name, ed.gender, sc.class_name, ed.result_status, ed.result_pdf 
+            $stmtClasses = $db->prepare("SELECT ed.id, ed.race_number, d.distance_name, a.group_name, ed.category_name, ed.gender, sc.class_name, ed.result_status, ed.result_pdf, ed.web_published_modes 
                                          FROM roll_event_details ed 
                                          LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id 
                                          LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id 
@@ -705,8 +765,9 @@ class RollResultController extends Controller {
         } catch (\Exception $e) {
             try { $db->exec("ALTER TABLE roll_event_details ADD COLUMN result_status ENUM('Draft', 'Published') NOT NULL DEFAULT 'Draft'"); } catch (\Exception $ex) {}
             try { $db->exec("ALTER TABLE roll_event_details ADD COLUMN result_pdf TEXT NULL DEFAULT NULL"); } catch (\Exception $ex) {}
+            try { $db->exec("ALTER TABLE roll_event_details ADD COLUMN web_published_modes TEXT NULL DEFAULT NULL"); } catch (\Exception $ex) {}
             
-            $stmtClasses = $db->prepare("SELECT ed.id, ed.race_number, d.distance_name, a.group_name, ed.category_name, ed.gender, sc.class_name, ed.result_status, ed.result_pdf 
+            $stmtClasses = $db->prepare("SELECT ed.id, ed.race_number, d.distance_name, a.group_name, ed.category_name, ed.gender, sc.class_name, ed.result_status, ed.result_pdf, ed.web_published_modes 
                                          FROM roll_event_details ed 
                                          LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id 
                                          LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id 
@@ -729,6 +790,9 @@ class RollResultController extends Controller {
                 $pdfs = ['Kualifikasi' => $c['result_pdf']];
             }
             $c['pdfs'] = $pdfs ?: [];
+
+            $webModes = !empty($c['web_published_modes']) ? json_decode($c['web_published_modes'], true) : [];
+            $c['web_modes'] = is_array($webModes) ? $webModes : [];
         }
         unset($c);
 

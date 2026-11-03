@@ -61,3 +61,4 @@ assert(strlen($htmlPrint) > 0, "Print result must render HTML output");
 echo "✓ Test 3 Passed: print_result renders cleanly for race_class_id=105\n";
 
 echo "All 3 verification tests passed successfully!\n";
+

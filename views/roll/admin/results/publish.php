@@ -114,6 +114,7 @@
                         <th class="px-6 py-4">Kategori Lomba</th>
                         <th class="px-6 py-4 text-center w-32">Gender</th>
                         <th class="px-6 py-4 text-center w-32">Status Data</th>
+                        <th class="px-6 py-4 text-center w-80">Live Web & Race Book 🌐</th>
                         <th class="px-6 py-4 text-right w-48">Unggah PDF Hasil</th>
                     </tr>
                 </thead>
@@ -141,10 +142,65 @@
                         </td>
                         <td class="px-6 py-4 text-center">
                             <?php if($isPublished): ?>
-                                <span class="px-2 py-1 bg-emerald-100 text-emerald-700 rounded text-[9px] font-black uppercase tracking-widest">✅ Published</span>
+                                <span id="status_badge_<?= $c['id'] ?>" class="px-2 py-1 bg-emerald-100 text-emerald-700 rounded text-[9px] font-black uppercase tracking-widest">✅ Published</span>
                             <?php else: ?>
-                                <span class="px-2 py-1 bg-amber-100 text-amber-700 rounded text-[9px] font-black uppercase tracking-widest">⏳ Draft</span>
+                                <span id="status_badge_<?= $c['id'] ?>" class="px-2 py-1 bg-amber-100 text-amber-700 rounded text-[9px] font-black uppercase tracking-widest">⏳ Draft</span>
                             <?php endif; ?>
+                        </td>
+                        <!-- KOLOM BARU: LIVE WEB & RACE BOOK -->
+                        <td class="px-6 py-4" id="web_col_<?= $c['id'] ?>">
+                            <div class="flex flex-col gap-2.5">
+                                <?php foreach ($c['available_rounds'] as $roundName): 
+                                    $modeCfg = $c['web_modes'][$roundName] ?? [];
+                                    $resMode = $modeCfg['result_mode'] ?? '';
+                                    $showRb = !empty($modeCfg['show_racebook']);
+                                ?>
+                                    <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-2">
+                                        <div class="flex items-center justify-between border-b border-slate-200/60 pb-1.5">
+                                            <span class="text-[10px] font-black text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200 uppercase tracking-wider">
+                                                <?= htmlspecialchars($roundName) ?>
+                                            </span>
+                                            <div class="flex items-center gap-1.5">
+                                                <?php if ($resMode): ?>
+                                                    <a href="<?= getenv('APP_URL') ?>/roll/liveresult/view/<?= $c['id'] ?>?round=<?= urlencode($roundName) ?>&mode=<?= urlencode($resMode) ?>" target="_blank" class="px-2 py-0.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 rounded text-[9px] font-black uppercase tracking-wider transition inline-flex items-center gap-1 shadow-xs" title="Preview Hasil Web">
+                                                        <span>👁️</span> Hasil
+                                                    </a>
+                                                <?php endif; ?>
+                                                <?php if ($showRb): ?>
+                                                    <a href="<?= getenv('APP_URL') ?>/roll/liveresult/view/<?= $c['id'] ?>?round=<?= urlencode($roundName) ?>&mode=racebook" target="_blank" class="px-2 py-0.5 bg-purple-100 hover:bg-purple-200 text-purple-800 rounded text-[9px] font-black uppercase tracking-wider transition inline-flex items-center gap-1 shadow-xs" title="Preview Race Book">
+                                                        <span>👁️</span> RaceBook
+                                                    </a>
+                                                <?php endif; ?>
+                                            </div>
+                                        </div>
+
+                                        <!-- Kontrol Mode Hasil & Race Book -->
+                                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-0.5">
+                                            <!-- Dropdown Hasil Lomba -->
+                                            <div>
+                                                <label class="block text-[8px] font-black uppercase text-slate-400 mb-0.5 tracking-wider">Mode Hasil</label>
+                                                <select onchange="updateWebMode(<?= $c['id'] ?>, '<?= htmlspecialchars($roundName, ENT_QUOTES) ?>', 'result_mode', this.value)" class="w-full text-[10px] font-black rounded-lg border-slate-200 bg-white py-1 px-2 focus:ring-1 focus:ring-blue-500 cursor-pointer <?= $resMode ? 'text-emerald-700 border-emerald-300 bg-emerald-50/50' : 'text-slate-500' ?>">
+                                                    <option value="" <?= empty($resMode) ? 'selected' : '' ?>>🚫 Nonaktif</option>
+                                                    <option value="all" <?= $resMode === 'all' ? 'selected' : '' ?>>🖨️ All Heat</option>
+                                                    <option value="per_heat" <?= $resMode === 'per_heat' ? 'selected' : '' ?>>🖨️ Per Heat</option>
+                                                </select>
+                                            </div>
+
+                                            <!-- Toggle Race Book -->
+                                            <div>
+                                                <label class="block text-[8px] font-black uppercase text-slate-400 mb-0.5 tracking-wider">Race Book</label>
+                                                <label class="inline-flex items-center gap-1.5 cursor-pointer mt-1">
+                                                    <input type="checkbox" class="sr-only peer" onchange="updateWebMode(<?= $c['id'] ?>, '<?= htmlspecialchars($roundName, ENT_QUOTES) ?>', 'show_racebook', this.checked ? 1 : 0)" <?= $showRb ? 'checked' : '' ?>>
+                                                    <div class="relative w-8 h-4 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-purple-600 shadow-inner"></div>
+                                                    <span class="text-[9px] font-black uppercase tracking-wider <?= $showRb ? 'text-purple-700' : 'text-slate-400' ?>">
+                                                        <?= $showRb ? 'Tayang' : 'Off' ?>
+                                                    </span>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
                         </td>
                         <td class="px-6 py-4">
                             <div class="flex flex-col gap-2">
@@ -211,6 +267,48 @@
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
+function updateWebMode(classId, round, field, value) {
+    const formData = new FormData();
+    formData.append('action', 'toggle_web_mode');
+    formData.append('class_id', classId);
+    formData.append('round', round);
+    formData.append('field', field);
+    formData.append('value', value);
+
+    fetch('<?= getenv('APP_URL') ?>/roll/admin/results/publish', {
+        method: 'POST',
+        body: formData
+    })
+    .then(r => r.json())
+    .then(data => {
+        if(data.success) {
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'success',
+                title: data.message || 'Pengaturan Live Web Disimpan',
+                showConfirmButton: false,
+                timer: 1500
+            });
+            if (data.is_published) {
+                const badge = document.getElementById('status_badge_' + classId);
+                if (badge) {
+                    badge.innerHTML = '✅ Published';
+                    badge.className = 'px-2 py-1 bg-emerald-100 text-emerald-700 rounded text-[9px] font-black uppercase tracking-widest';
+                }
+            }
+            // Auto reload after slight delay to refresh preview links if mode changed
+            setTimeout(() => {
+                location.reload();
+            }, 800);
+        } else {
+            Swal.fire('Gagal!', data.message, 'error');
+        }
+    })
+    .catch(err => {
+        Swal.fire('Error!', 'Gagal menghubungi server.', 'error');
+    });
+}
 function toggleEventPublish(checkboxElem, eventId) {
     const isChecked = checkboxElem.checked ? 1 : 0;
     const formData = new FormData();

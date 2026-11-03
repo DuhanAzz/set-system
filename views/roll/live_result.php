@@ -109,7 +109,7 @@ $siteDesc     = $s['site_description'] ?? 'Platform manajemen lomba sepatu roda 
             <div class="bg-slate-900/60 p-12 text-center rounded-3xl border border-slate-800 shadow-xl">
                 <span class="text-5xl block mb-5 opacity-20">⏳</span>
                 <p class="text-sm font-bold text-slate-400 uppercase tracking-widest">Hasil Belum Tersedia</p>
-                <p class="text-[10px] text-slate-500 mt-2">Panitia belum mengunggah PDF hasil perlombaan di event ini.</p>
+                <p class="text-[10px] text-slate-500 mt-2">Panitia belum mempublikasikan hasil perlombaan di event ini.</p>
             </div>
         <?php else: ?>
             <div id="resultContainer" class="space-y-4">
@@ -126,12 +126,33 @@ $siteDesc     = $s['site_description'] ?? 'Platform manajemen lomba sepatu roda 
                                 <?= htmlspecialchars($className) ?>
                             </h2>
                             <div class="flex items-center gap-2 flex-wrap justify-end">
-                                <?php foreach ($c['pdfs'] as $roundName => $pdfFile): ?>
-                                    <a href="<?= getenv('APP_URL') ?>/uploads/results/<?= htmlspecialchars($pdfFile) ?>" target="_blank" class="px-3 py-1.5 bg-blue-500/20 text-blue-400 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-blue-500 hover:text-white transition-colors flex items-center gap-2 whitespace-nowrap border border-blue-500/30">
-                                        <?= htmlspecialchars($roundName) ?>
-                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
-                                    </a>
-                                <?php endforeach; ?>
+                                <?php if (!empty($c['web_modes'])): ?>
+                                    <?php foreach ($c['web_modes'] as $roundName => $wConfig): ?>
+                                        <?php if (!empty($wConfig['show_racebook'])): ?>
+                                            <a href="<?= getenv('APP_URL') ?>/roll/liveresult/view/<?= $c['id'] ?>?round=<?= urlencode($roundName) ?>&mode=racebook" class="px-3 py-1.5 bg-emerald-500/20 text-emerald-400 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-emerald-500 hover:text-white transition-all flex items-center gap-1.5 whitespace-nowrap border border-emerald-500/30 shadow-sm">
+                                                <span>📖</span> Race Book: <?= htmlspecialchars($roundName) ?>
+                                            </a>
+                                        <?php endif; ?>
+                                        <?php if (!empty($wConfig['result_mode'])): ?>
+                                            <?php 
+                                                $resMode = $wConfig['result_mode'];
+                                                $modeBadge = ($resMode === 'per_heat') ? 'Per Heat' : 'All Heat';
+                                            ?>
+                                            <a href="<?= getenv('APP_URL') ?>/roll/liveresult/view/<?= $c['id'] ?>?round=<?= urlencode($roundName) ?>&mode=<?= urlencode($resMode) ?>" class="px-3 py-1.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:from-orange-600 hover:to-amber-600 transition-all flex items-center gap-1.5 whitespace-nowrap shadow-md shadow-orange-500/20">
+                                                <span>⚡</span> Hasil <?= htmlspecialchars($roundName) ?> <span class="text-[9px] opacity-80 font-normal">(<?= $modeBadge ?>)</span>
+                                            </a>
+                                        <?php endif; ?>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+
+                                <?php if (!empty($c['pdfs'])): ?>
+                                    <?php foreach ($c['pdfs'] as $roundName => $pdfFile): ?>
+                                        <a href="<?= getenv('APP_URL') ?>/uploads/results/<?= htmlspecialchars($pdfFile) ?>" target="_blank" class="px-3 py-1.5 bg-blue-500/20 text-blue-400 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-blue-500 hover:text-white transition-colors flex items-center gap-1.5 whitespace-nowrap border border-blue-500/30">
+                                            <span>📄</span> PDF: <?= htmlspecialchars($roundName) ?>
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                                        </a>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
                             </div>
                         </div>
                     </div>

@@ -254,7 +254,10 @@ switch ($module) {
             if (class_exists($controllerClass)) {
                 $controller = new $controllerClass();
                 if ($page === 'home') $controller->index();
-                elseif (method_exists($controller, $page)) $controller->$page();
+                elseif (method_exists($controller, $page)) {
+                    $params = array_slice($url, 2);
+                    $controller->$page(...$params);
+                }
                 break;
             }
         }
