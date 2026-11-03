@@ -776,9 +776,14 @@ class RollPelotonController extends Controller {
         ");
         $stmtEntries->execute([$eventId, $classId]);
         
-        $stmtEv = $db->prepare("SELECT participation_type FROM roll_events WHERE id = ?");
-        $stmtEv->execute([$eventId]);
-        $evtPartType = $stmtEv->fetchColumn() ?: 'club';
+        $evtPartType = 'club';
+        try {
+            $stmtEv = $db->prepare("SELECT participation_type FROM roll_events WHERE id = ?");
+            $stmtEv->execute([$eventId]);
+            $evtPartType = $stmtEv->fetchColumn() ?: 'club';
+        } catch (\Exception $e) {
+            $evtPartType = 'club';
+        }
 
         $heatsByRound = [
             'Kualifikasi' => [],

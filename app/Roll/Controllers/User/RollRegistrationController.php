@@ -283,9 +283,16 @@ class RollRegistrationController extends Controller {
         $db = Database::getInstance()->getConnection();
         
         // Cek status event
-        $stmtEventStat = $db->prepare("SELECT status, participation_type FROM roll_events WHERE id = ?");
-        $stmtEventStat->execute([$event_id]);
-        $evtRow = $stmtEventStat->fetch(PDO::FETCH_ASSOC);
+        $evtRow = [];
+        try {
+            $stmtEventStat = $db->prepare("SELECT status, participation_type FROM roll_events WHERE id = ?");
+            $stmtEventStat->execute([$event_id]);
+            $evtRow = $stmtEventStat->fetch(PDO::FETCH_ASSOC) ?: [];
+        } catch (\Exception $e) {
+            $stmtEventStat = $db->prepare("SELECT status FROM roll_events WHERE id = ?");
+            $stmtEventStat->execute([$event_id]);
+            $evtRow = $stmtEventStat->fetch(PDO::FETCH_ASSOC) ?: [];
+        }
         $eventStatus = $evtRow['status'] ?? '';
         $isContingent = (($_SESSION['roll_club_type'] ?? '') === 'contingent');
 

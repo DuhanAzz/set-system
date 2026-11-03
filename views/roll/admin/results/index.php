@@ -105,8 +105,8 @@
             $isDTT = false;
             $isSprint = false;
             if(!empty($heatsData)): 
-                $firstHeat = array_key_first($heatsData);
-                $is_official = !empty($heatsData[$firstHeat]) ? $heatsData[$firstHeat][0]['is_official'] : 0; 
+                $firstHeat = !empty($heatsData) ? array_key_first($heatsData) : null;
+                $is_official = (!empty($firstHeat) && !empty($heatsData[$firstHeat][0])) ? ($heatsData[$firstHeat][0]['is_official'] ?? 0) : 0; 
                 
                 $isDTT = ($raceFormat !== 'PTP' && $raceFormat !== 'ELIMINASI' && count($heatsData) <= 1);
                 $isSprint = ($raceFormat !== 'PTP' && $raceFormat !== 'ELIMINASI' && count($heatsData) > 1);
@@ -284,7 +284,7 @@
                             if ($isTeamRace) {
                                 $groupedTeams = [];
                                 foreach ($results as $r) {
-                                    $teamKey = $r['heat_name'] . '_' . ($r['team_name'] ?: $r['club_name'] ?: $r['bib_number']);
+                                    $teamKey = $r['heat_name'] . '_' . (!empty($r['team_name']) ? $r['team_name'] : (!empty($r['club_name']) ? $r['club_name'] : ($r['bib_number'] ?? '')));
                                     if (!isset($groupedTeams[$teamKey])) {
                                         $groupedTeams[$teamKey] = [];
                                     }
