@@ -303,11 +303,13 @@ class RegistrationController extends Controller {
             $isKick = (strpos($rawStroke, 'KICK') !== false || strpos($rawStroke, 'PAPAN') !== false);
 
             if ($isKick) {
-                $cleanStrokeName = trim(str_replace(['KICK', 'PAPAN'], '', $rawStroke));
+                $cleanStrokeName = trim(str_replace(['KICK', 'PAPAN', '25M', '25 M'], '', $rawStroke));
             } else {
                 $cleanStrokeName = trim(str_replace(['GAYA ', 'GAYA'], '', $rawStroke));
             }
             $cleanStrokeName = trim(str_replace(['GAYA ', 'GAYA'], '', $cleanStrokeName));
+            if ($cleanStrokeName === 'LUNCUR' || empty($cleanStrokeName)) $cleanStrokeName = 'BEBAS';
+            if ($cleanStrokeName === 'KUPU') $cleanStrokeName = 'KUPU-KUPU';
 
             if ($cleanStrokeName !== '' && strpos($cleanStrokeName, 'GAYA') === false) {
                 $cleanStrokeName = 'GAYA ' . $cleanStrokeName;
@@ -348,7 +350,10 @@ class RegistrationController extends Controller {
 
                 $isKickPop = (strpos(strtoupper($ev['stroke'] ?? ''), 'KICK') !== false || strpos(strtoupper($ev['stroke'] ?? ''), 'PAPAN') !== false);
                 $normS = strtoupper(str_replace(['Gaya ', 'GAYA '], '', $ev['stroke'] ?? ''));
-                $displayName = $isKickPop ? "PAPAN " . trim(str_replace(['KICK ', 'PAPAN '], '', $normS)) : "{$ev['distance']}M " . $normS;
+                $cleanKickName = trim(str_replace(['KICK ', 'PAPAN ', '25M ', '25 M '], '', $normS));
+                if ($cleanKickName === 'LUNCUR' || empty($cleanKickName)) $cleanKickName = 'BEBAS';
+                if ($cleanKickName === 'KUPU') $cleanKickName = 'KUPU-KUPU';
+                $displayName = $isKickPop ? "25M PAPAN " . $cleanKickName : "{$ev['distance']}M " . $normS;
 
                 $myEvents[] = [
                     'id' => $ev['id'], 

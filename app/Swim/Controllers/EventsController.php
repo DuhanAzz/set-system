@@ -279,7 +279,13 @@ class EventsController extends Controller {
                 $selectedIdsString = implode(",", $selected_kus);
 
                 $labelJK = ($jk == 'L') ? 'PUTRA' : (($jk == 'P') ? 'PUTRI' : 'MIXED');
-                $eventName = "$jarak M " . strtoupper($gaya) . " $labelJK - $poolLabel";
+                if (strpos(strtoupper($gaya), 'PAPAN') !== false || strpos(strtoupper($gaya), 'KICK') !== false) {
+                    $normGaya = trim(str_ireplace(['25m', '25 m', 'kick', 'papan', 'gaya'], '', $gaya));
+                    if (strtoupper($normGaya) === 'LUNCUR' || empty($normGaya)) $normGaya = 'Bebas';
+                    $eventName = "25 M PAPAN " . strtoupper($normGaya) . " $labelJK - $poolLabel";
+                } else {
+                    $eventName = "$jarak M " . strtoupper($gaya) . " $labelJK - $poolLabel";
+                }
 
                 $sql = "INSERT INTO swim_event_numbers 
                         (organizer_id, event_id, event_number, event_name, distance, stroke, jenis_kelamin, 
@@ -502,7 +508,13 @@ class EventsController extends Controller {
 
                     $selectedIdsString = implode(",", $selectedKuIds);
                     $labelJK = ($jk == 'L') ? 'PUTRA' : (($jk == 'P') ? 'PUTRI' : 'MIXED');
-                    $eventName = "$jarak M " . strtoupper($gaya) . " $labelJK - $poolLabel";
+                    if (strpos(strtoupper($gaya), 'PAPAN') !== false || strpos(strtoupper($gaya), 'KICK') !== false) {
+                        $normGaya = trim(str_ireplace(['25m', '25 m', 'kick', 'papan', 'gaya'], '', $gaya));
+                        if (strtoupper($normGaya) === 'LUNCUR' || empty($normGaya)) $normGaya = 'Bebas';
+                        $eventName = "25 M PAPAN " . strtoupper($normGaya) . " $labelJK - $poolLabel";
+                    } else {
+                        $eventName = "$jarak M " . strtoupper($gaya) . " $labelJK - $poolLabel";
+                    }
 
                     $stmt->execute([
                         $organizerId, $eventId, $nomor, $eventName, $jarak, $gaya, $jk,
@@ -606,7 +618,20 @@ class EventsController extends Controller {
         // Generate data baris contoh terstruktur Juknis
         $paNo = 1;
         $piNo = 2;
-        $strokes = ['50 M GAYA BEBAS', '50 M GAYA DADA', '50 M GAYA PUNGGUNG', '50 M GAYA KUPU-KUPU'];
+        $strokes = [
+            '25M PAPAN BEBAS',
+            '25 M GAYA BEBAS',
+            '50 M GAYA BEBAS',
+            '25M PAPAN DADA',
+            '25 M GAYA DADA',
+            '50 M GAYA DADA',
+            '25M PAPAN PUNGGUNG',
+            '25 M GAYA PUNGGUNG',
+            '50 M GAYA PUNGGUNG',
+            '25M PAPAN KUPU-KUPU',
+            '25 M GAYA KUPU-KUPU',
+            '50 M GAYA KUPU-KUPU'
+        ];
 
         foreach ($kus as $ku) {
             foreach ($strokes as $stroke) {

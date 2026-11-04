@@ -372,18 +372,18 @@
                                         <tbody class="divide-y divide-slate-100 font-mono text-[11px] text-slate-700">
                                             <tr class="hover:bg-indigo-50/40">
                                                 <td class="py-2 px-4 font-black text-blue-600">1</td>
-                                                <td class="py-2 px-4 font-sans font-bold text-slate-900">PAPAN BEBAS KU 2020</td>
+                                                <td class="py-2 px-4 font-sans font-bold text-slate-900">25M PAPAN BEBAS KU 2020</td>
                                                 <td class="py-2 px-4 font-black text-pink-600">2</td>
                                             </tr>
                                             <tr class="hover:bg-indigo-50/40">
                                                 <td class="py-2 px-4 font-black text-blue-600">3</td>
-                                                <td class="py-2 px-4 font-sans font-bold text-slate-900">PAPAN BEBAS KU 2019</td>
+                                                <td class="py-2 px-4 font-sans font-bold text-slate-900">25M GAYA BEBAS KU 2020</td>
                                                 <td class="py-2 px-4 font-black text-pink-600">4</td>
                                             </tr>
                                             <tr class="hover:bg-indigo-50/40">
-                                                <td class="py-2 px-4 font-black text-blue-600">9</td>
-                                                <td class="py-2 px-4 font-sans font-bold text-slate-900">GAYA BEBAS KU 2016</td>
-                                                <td class="py-2 px-4 font-black text-pink-600">10</td>
+                                                <td class="py-2 px-4 font-black text-blue-600">5</td>
+                                                <td class="py-2 px-4 font-sans font-bold text-slate-900">50M GAYA BEBAS KU 2016</td>
+                                                <td class="py-2 px-4 font-black text-pink-600">6</td>
                                             </tr>
                                             <tr class="hover:bg-indigo-50/40 bg-purple-50/30">
                                                 <td class="py-2 px-4 font-black text-blue-600">41</td>
@@ -415,7 +415,7 @@
                                 </label>
                                 <span class="text-[10px] text-slate-400 font-medium">Mendukung pemisah Tab (copy dari Excel), Koma (CSV), atau Titik-Koma (;)</span>
                             </div>
-                            <textarea id="excelPasteArea" rows="8" class="w-full bg-slate-50 border border-slate-300 rounded-2xl p-4 font-mono text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition placeholder:text-slate-400" placeholder="PUTRA	NOMOR	PUTRI&#10;1	PAPAN BEBAS KU 2020	2&#10;3	PAPAN BEBAS KU 2019	4&#10;5	GAYA BEBAS KU 2018	6&#10;7	GAYA DADA KU 2017	8&#10;9	GAYA BEBAS KU 2016	10"></textarea>
+                            <textarea id="excelPasteArea" rows="8" class="w-full bg-slate-50 border border-slate-300 rounded-2xl p-4 font-mono text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition placeholder:text-slate-400" placeholder="PUTRA	NOMOR	PUTRI&#10;1	25M PAPAN BEBAS KU 2020	2&#10;3	25M GAYA BEBAS KU 2020	4&#10;5	50M GAYA BEBAS KU 2020	6&#10;7	25M PAPAN DADA KU 2020	8&#10;9	25M GAYA DADA KU 2020	10&#10;11	50M GAYA DADA KU 2020	12"></textarea>
                         </div>
 
                         <button type="button" onclick="parseFromExcel()" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-black py-4 px-6 rounded-2xl shadow-lg shadow-blue-500/25 transition flex items-center justify-center gap-2 text-xs uppercase tracking-widest">
@@ -456,7 +456,10 @@
                                         <option value="Gaya Punggung">Gaya Punggung</option>
                                         <option value="Gaya Kupu-kupu">Gaya Kupu-kupu</option>
                                         <option value="Gaya Ganti">Gaya Ganti</option>
-                                        <option value="Kick Bebas">Kick Bebas</option>
+                                        <option value="Papan Bebas">25M Papan Bebas</option>
+                                        <option value="Papan Dada">25M Papan Dada</option>
+                                        <option value="Papan Punggung">25M Papan Punggung</option>
+                                        <option value="Papan Kupu-kupu">25M Papan Kupu-kupu</option>
                                     </select>
                                 </div>
                             </div>
@@ -1391,7 +1394,8 @@ function parseJuknisAcara(acaraText) {
     else if (upper.includes('PAPAN DADA')) stroke = 'Papan Dada';
     else if (upper.includes('PAPAN PUNGGUNG')) stroke = 'Papan Punggung';
     else if (upper.includes('PAPAN KUPU')) stroke = 'Papan Kupu-kupu';
-    else if (upper.includes('PAPAN LUNCUR') || upper.includes('KICKING')) stroke = 'Papan Luncur';
+    else if (upper.includes('PAPAN LUNCUR') || upper.includes('KICKING') || upper.includes('KICK BEBAS')) stroke = 'Papan Bebas';
+    else if (upper.includes('PAPAN')) stroke = 'Papan Bebas';
     else if (upper.includes('GAYA GANTI') || upper.includes('INDIVIDUAL MEDLEY') || upper.includes(' IM ')) stroke = 'Gaya Ganti Perorangan';
     else if (upper.includes('GAYA BEBAS') || upper.includes(' BEBAS') || upper.startsWith('BEBAS')) stroke = 'Gaya Bebas';
     else if (upper.includes('GAYA DADA') || upper.includes(' DADA') || upper.startsWith('DADA') || upper.includes('BREAST')) stroke = 'Gaya Dada';
@@ -1402,14 +1406,14 @@ function parseJuknisAcara(acaraText) {
     // 3. Deteksi Jarak
     let distance = 50;
     const matchRelayDist = upper.match(/4\s*[xX]\s*(\d{2,3})\s*M?/);
-    const matchDist = upper.match(/\b(25|50|100|200|400|800|1500)\s*M?\b/);
+    const matchDist = upper.match(/(?:^|\D)(25|50|100|200|400|800|1500)\s*M?(?:\D|$)/);
 
     if (matchRelayDist) {
         distance = parseInt(matchRelayDist[1], 10) * 4; // e.g. 4x25 = 100m
     } else if (matchDist) {
         distance = parseInt(matchDist[1], 10);
     } else if (stroke.includes('Papan')) {
-        distance = 25; // nomor papan pemula biasanya 25m
+        distance = 25; // nomor papan pemula selalu 25m
     } else {
         distance = 50; // default nomor lomba
     }
@@ -1454,13 +1458,18 @@ function parseJuknisAcara(acaraText) {
         }
     }
 
+    let cleanTitle = raw;
+    if (stroke.includes('Papan') && !upper.includes('25M') && !upper.includes('25 M')) {
+        cleanTitle = '25M ' + raw;
+    }
+
     return {
         distance: distance,
         stroke: stroke,
         kuName: kuName,
         selectedKuIds: selectedKuIds,
         isRelay: isRelay,
-        cleanTitle: raw
+        cleanTitle: cleanTitle
     };
 }
 
@@ -1475,7 +1484,20 @@ function downloadTemplateCSV() {
     let csvContent = "\uFEFFPUTRA,NOMOR ACARA,PUTRI\r\n";
     let paNo = 1;
     let piNo = 2;
-    const strokes = ['50 M GAYA BEBAS', '50 M GAYA DADA', '50 M GAYA PUNGGUNG', '50 M GAYA KUPU-KUPU'];
+    const strokes = [
+        '25M PAPAN BEBAS',
+        '25 M GAYA BEBAS',
+        '50 M GAYA BEBAS',
+        '25M PAPAN DADA',
+        '25 M GAYA DADA',
+        '50 M GAYA DADA',
+        '25M PAPAN PUNGGUNG',
+        '25 M GAYA PUNGGUNG',
+        '50 M GAYA PUNGGUNG',
+        '25M PAPAN KUPU-KUPU',
+        '25 M GAYA KUPU-KUPU',
+        '50 M GAYA KUPU-KUPU'
+    ];
     
     kus.forEach(ku => {
         strokes.forEach(stroke => {
@@ -1523,47 +1545,63 @@ function readFileToTextarea(file) {
 function loadSampleToTextarea() {
     const sample = 
 `PUTRA\tNOMOR\tPUTRI
-1\tPAPAN BEBAS KU 2020\t2
-3\tPAPAN BEBAS KU 2019\t4
-5\tPAPAN BEBAS KU 2018\t6
-7\tPAPAN BEBAS KU 2017\t8
-9\tGAYA BEBAS KU 2016\t10
-11\tGAYA BEBAS KU 2017\t12
-13\tGAYA BEBAS KU 2018\t14
-15\tGAYA BEBAS KU 2019\t16
-17\tGAYA BEBAS KU 2020\t18
-19\tGAYA PUNGGUNG 2016 20\t0
-21\tPAPAN DADA KU 2020\t22
-23\tPAPAN DADA KU 2019\t24
-25\tPAPAN DADA KU 2018\t26
-27\tPAPAN DADA KU 2017\t28
-29\tGAYA DADA KU 2016\t30
-31\tGAYA DADA KU 2017\t32
-33\tGAYA DADA KU 2018\t34
-35\tGAYA DADA KU 2019\t36
-37\tGAYA DADA KU 2020\t38
-39\tGAYA KUPU-KUPU 2016 40\t0
-41\tESTAFET 4X25M GAYA BEBAS\t42
-43\tPAPAN PUNGGUNG KU 2020\t44
-45\tPAPAN PUNGGUNG KU 2019\t46
-47\tPAPAN PUNGGUNG KU 2018\t48
-49\tPAPAN PUNGGUNG KU 2017\t50
-51\tPUNGGUNG KU 2016 52\t0
-53\tPUNGGUNG KU 2017 54\t0
-55\tPUNGGUNG KU 2018 56\t0
-57\tPUNGGUNG KU 2019 58\t0
-59\tPUNGGUNG KU 2020 60\t0
-61\tGAYA DADA KU 2016\t62
-63\tPAPAN KUPU-KUPU KU 2020\t64
-65\tPAPAN KUPU-KUPU KU 2019\t66
-67\tPAPAN KUPU-KUPU KU 2018\t68
-69\tPAPAN KUPU-KUPU KU 2017\t70
-71\tKUPU-KUPU KU 2016 72\t0
-73\tKUPU-KUPU KU 2017 74\t0
-75\tKUPU-KUPU KU 2018 76\t0
-77\tKUPU-KUPU KU 2019 78\t0
-79\tKUPU-KUPU KU 2020 80\t0
-81\tGAYA BEBAS KU 2016\t82`;
+1\t25M PAPAN BEBAS KU 2020\t2
+3\t25M PAPAN BEBAS KU 2019\t4
+5\t25M PAPAN BEBAS KU 2018\t6
+7\t25M PAPAN BEBAS KU 2017\t8
+9\t25M GAYA BEBAS KU 2020\t10
+11\t25M GAYA BEBAS KU 2019\t12
+13\t25M GAYA BEBAS KU 2018\t14
+15\t25M GAYA BEBAS KU 2017\t16
+17\t25M GAYA BEBAS KU 2016\t18
+19\t50M GAYA BEBAS KU 2020\t20
+21\t50M GAYA BEBAS KU 2019\t22
+23\t50M GAYA BEBAS KU 2018\t24
+25\t50M GAYA BEBAS KU 2017\t26
+27\t50M GAYA BEBAS KU 2016\t28
+29\t25M PAPAN DADA KU 2020\t30
+31\t25M PAPAN DADA KU 2019\t32
+33\t25M PAPAN DADA KU 2018\t34
+35\t25M PAPAN DADA KU 2017\t36
+37\t25M GAYA DADA KU 2020\t38
+39\t25M GAYA DADA KU 2019\t40
+41\t25M GAYA DADA KU 2018\t42
+43\t25M GAYA DADA KU 2017\t44
+45\t25M GAYA DADA KU 2016\t46
+47\t50M GAYA DADA KU 2020\t48
+49\t50M GAYA DADA KU 2019\t50
+51\t50M GAYA DADA KU 2018\t52
+53\t50M GAYA DADA KU 2017\t54
+55\t50M GAYA DADA KU 2016\t56
+57\t25M PAPAN PUNGGUNG KU 2020\t58
+59\t25M PAPAN PUNGGUNG KU 2019\t60
+61\t25M PAPAN PUNGGUNG KU 2018\t62
+63\t25M PAPAN PUNGGUNG KU 2017\t64
+65\t25M GAYA PUNGGUNG KU 2020\t66
+67\t25M GAYA PUNGGUNG KU 2019\t68
+69\t25M GAYA PUNGGUNG KU 2018\t70
+71\t25M GAYA PUNGGUNG KU 2017\t72
+73\t25M GAYA PUNGGUNG KU 2016\t74
+75\t50M GAYA PUNGGUNG KU 2020\t76
+77\t50M GAYA PUNGGUNG KU 2019\t78
+79\t50M GAYA PUNGGUNG KU 2018\t80
+81\t50M GAYA PUNGGUNG KU 2017\t82
+83\t50M GAYA PUNGGUNG KU 2016\t84
+85\t25M PAPAN KUPU-KUPU KU 2020\t86
+87\t25M PAPAN KUPU-KUPU KU 2019\t88
+89\t25M PAPAN KUPU-KUPU KU 2018\t90
+91\t25M PAPAN KUPU-KUPU KU 2017\t92
+93\t25M GAYA KUPU-KUPU KU 2020\t94
+95\t25M GAYA KUPU-KUPU KU 2019\t96
+97\t25M GAYA KUPU-KUPU KU 2018\t98
+99\t25M GAYA KUPU-KUPU KU 2017\t100
+101\t25M GAYA KUPU-KUPU KU 2016\t102
+103\t50M GAYA KUPU-KUPU KU 2020\t104
+105\t50M GAYA KUPU-KUPU KU 2019\t106
+107\t50M GAYA KUPU-KUPU KU 2018\t108
+109\t50M GAYA KUPU-KUPU KU 2017\t110
+111\t50M GAYA KUPU-KUPU KU 2016\t112
+113\tESTAFET 4X25M GAYA BEBAS\t114`;
 
     const textarea = document.getElementById('excelPasteArea');
     if (textarea) {

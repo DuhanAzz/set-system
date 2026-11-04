@@ -62,7 +62,7 @@
                 <?php foreach ($tableStructure as $strokeName => $distances): ?>
                     <?php foreach ($distances as $distKey => $eventsInDist): ?>
                         <th scope="col" class="sticky-top-2 px-1 py-2 text-center border-l border-slate-200 min-w-[70px] bg-white font-bold text-slate-600">
-                            <?= ($distKey === 0) ? "PAPAN" : htmlspecialchars($distKey) . " M" ?>
+                            <?= ($distKey === 0) ? "25M PAPAN" : htmlspecialchars($distKey) . " M" ?>
                         </th>
                     <?php endforeach; ?>
                 <?php endforeach; ?>
@@ -218,8 +218,11 @@
                 <label class="block text-slate-700 font-bold mb-2 text-xs uppercase tracking-wide">Pilih Nomor Perlombaan</label>
                 <select name="category_id" class="w-full text-sm p-3 border rounded-xl font-bold focus:ring-2 focus:ring-violet-500" required>
                     <option value="">-- Pilih Nomor --</option>
-                    <?php foreach ($allEvents as $ev): ?>
-                        <option value="<?= $ev['id'] ?>">[#<?= $ev['event_number'] ?>] <?= $ev['distance'] ?>M <?= strtoupper($ev['stroke']) ?> <?= strtoupper($ev['jenis_kelamin']) ?> <?= strtoupper($ev['age_group']) ?></option>
+                    <?php foreach ($allEvents as $ev): 
+                        $isKickEv = (strpos(strtoupper($ev['stroke'] ?? ''), 'PAPAN') !== false || strpos(strtoupper($ev['stroke'] ?? ''), 'KICK') !== false);
+                        $evStrokeDisplay = $isKickEv ? ('25M PAPAN ' . trim(str_ireplace(['papan', 'kick', 'gaya', '25m', '25 m'], '', $ev['stroke']))) : ($ev['distance'] . 'M ' . strtoupper($ev['stroke']));
+                    ?>
+                        <option value="<?= $ev['id'] ?>">[#<?= $ev['event_number'] ?>] <?= $evStrokeDisplay ?> <?= strtoupper($ev['jenis_kelamin']) ?> <?= strtoupper($ev['age_group']) ?></option>
                     <?php endforeach; ?>
                 </select>
             </div>

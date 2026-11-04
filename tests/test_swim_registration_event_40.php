@@ -94,6 +94,45 @@ foreach ($testCases as $tc) {
 }
 
 echo "\nResult: $passed / " . count($testCases) . " passed.\n";
+
+// Test Table Structure Keys for 25M Papan vs 25M vs 50M
+$dummyEvents = [
+    ['stroke' => 'Papan Bebas', 'distance' => 25],
+    ['stroke' => 'Gaya Bebas', 'distance' => 25],
+    ['stroke' => 'Gaya Bebas', 'distance' => 50],
+    ['stroke' => 'Papan Dada', 'distance' => 25],
+    ['stroke' => 'Gaya Dada', 'distance' => 25],
+];
+
+$testStructure = [];
+foreach ($dummyEvents as $ev) {
+    $rawStroke = strtoupper($ev['stroke'] ?? '');
+    $isKick = (strpos($rawStroke, 'KICK') !== false || strpos($rawStroke, 'PAPAN') !== false);
+
+    if ($isKick) {
+        $cleanStrokeName = trim(str_replace(['KICK', 'PAPAN', '25M', '25 M'], '', $rawStroke));
+    } else {
+        $cleanStrokeName = trim(str_replace(['GAYA ', 'GAYA'], '', $rawStroke));
+    }
+    $cleanStrokeName = trim(str_replace(['GAYA ', 'GAYA'], '', $cleanStrokeName));
+    if ($cleanStrokeName === 'LUNCUR' || empty($cleanStrokeName)) $cleanStrokeName = 'BEBAS';
+    if ($cleanStrokeName === 'KUPU') $cleanStrokeName = 'KUPU-KUPU';
+
+    if ($cleanStrokeName !== '' && strpos($cleanStrokeName, 'GAYA') === false) {
+        $cleanStrokeName = 'GAYA ' . $cleanStrokeName;
+    }
+
+    $jarakKey = $isKick ? 0 : (int)$ev['distance'];
+    $testStructure[$cleanStrokeName][$jarakKey][] = $ev;
+}
+
+assert(isset($testStructure['GAYA BEBAS'][0]), "GAYA BEBAS must have key 0 (25M PAPAN)");
+assert(isset($testStructure['GAYA BEBAS'][25]), "GAYA BEBAS must have key 25 (25 M)");
+assert(isset($testStructure['GAYA BEBAS'][50]), "GAYA BEBAS must have key 50 (50 M)");
+assert(isset($testStructure['GAYA DADA'][0]), "GAYA DADA must have key 0 (25M PAPAN)");
+assert(isset($testStructure['GAYA DADA'][25]), "GAYA DADA must have key 25 (25 M)");
+echo "PASS: Table Structure cleanly separates 25M PAPAN (key 0), 25 M (key 25), and 50 M (key 50)!\n";
+
 if ($passed !== count($testCases)) {
     exit(1);
 }
