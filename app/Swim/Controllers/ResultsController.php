@@ -434,7 +434,7 @@ class ResultsController extends Controller {
 
         // --- 🚀 HANDLER UPLOAD DOKUMEN ---
         $uploadMsg = '';
-        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['upload_doc'])) {
+        if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['upload_doc'])) {
             $evId = $_POST['event_id'];
             $kategori = $_POST['kategori'];
             $judul_file = $_POST['judul_file'];

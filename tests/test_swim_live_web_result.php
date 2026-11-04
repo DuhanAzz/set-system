@@ -67,6 +67,8 @@ echo "[INFO] Using test event ID: {$testEventId}, Event Number ID: {$testNumberI
 $db->prepare("UPDATE swim_events SET is_result_published = 1 WHERE id = ?")->execute([$testEventId]);
 $db->prepare("UPDATE swim_event_numbers SET is_published = 1 WHERE id = ?")->execute([$testNumberId]);
 
+$_SERVER['REQUEST_METHOD'] = 'GET';
+
 // 1. Verify print_input.php A4 .sheet layout
 $_GET['category_id'] = $testNumberId;
 $_GET['print'] = '1';
