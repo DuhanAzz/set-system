@@ -232,7 +232,10 @@ switch ($module) {
             
             if (class_exists($controllerClass)) {
                 $controller = new $controllerClass();
-                if (method_exists($controller, $method)) {
+                if ($page === 'live_result' && ($method === 'view' || $method === 'sheet')) {
+                    $params = array_slice($url, 3);
+                    $controller->view_sheet(...$params);
+                } elseif (method_exists($controller, $method) && $method !== 'view') {
                     $params = array_slice($url, 3);
                     $controller->$method(...$params);
                 } else {

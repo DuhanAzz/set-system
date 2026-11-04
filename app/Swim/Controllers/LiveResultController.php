@@ -78,7 +78,11 @@ class LiveResultController extends Controller {
         ]);
     }
 
-    public function view($categoryId = 0) {
+    public function sheet($categoryId = 0) {
+        return $this->view_sheet($categoryId);
+    }
+
+    public function view_sheet($categoryId = 0) {
         $db = Database::getInstance()->getConnection();
         $categoryId = (int)($categoryId ?: ($_GET['category_id'] ?? 0));
 

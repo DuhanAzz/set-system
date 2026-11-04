@@ -69,18 +69,34 @@ $db->prepare("UPDATE swim_event_numbers SET is_published = 1 WHERE id = ?")->exe
 
 $_SERVER['REQUEST_METHOD'] = 'GET';
 
-// 1. Verify print_input.php A4 .sheet layout
-$_GET['category_id'] = $testNumberId;
-$_GET['print'] = '1';
-$_SESSION['swim_role'] = 'admin';
-$_SESSION['swim_user_id'] = 60;
+// 1. Verify print_input.php A4 .sheet layout via isolated PHP process
+$test1Script = '
+session_start();
+$_SESSION["swim_role"] = "admin";
+$_SESSION["swim_user_id"] = 60;
+$_GET["category_id"] = ' . $testNumberId . ';
+$_GET["print"] = "1";
+$_SERVER["REQUEST_METHOD"] = "GET";
+foreach (file("/Applications/XAMPP/xamppfiles/htdocs/set-system/.env", FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {
+    if (strpos(trim($line), "#") === 0) continue;
+    list($k, $v) = explode("=", $line, 2);
+    putenv(trim($k) . "=" . trim($v, " \'\""));
+}
+spl_autoload_register(function ($class) {
+    $prefix = "App\\\\";
+    $base_dir = "/Applications/XAMPP/xamppfiles/htdocs/set-system/app/";
+    $len = strlen($prefix);
+    if (strncmp($prefix, $class, $len) !== 0) return;
+    $relative_class = substr($class, $len);
+    $file = $base_dir . str_replace("\\\\", "/", $relative_class) . ".php";
+    if (file_exists($file)) require_once $file;
+});
+require_once "/Applications/XAMPP/xamppfiles/htdocs/set-system/app/Core/Database.php";
+$c = new \\App\\Swim\\Controllers\\ResultsController();
+$c->input();
+';
 
-ob_start();
-$resultsController = new \App\Swim\Controllers\ResultsController();
-try {
-    $resultsController->input();
-} catch (\Exception $e) {}
-$outputPrint = ob_get_clean();
+$outputPrint = shell_exec('/Applications/XAMPP/xamppfiles/bin/php -r ' . escapeshellarg($test1Script));
 
 assert(strpos($outputPrint, 'class="sheet"') !== false, "print_input must render .sheet container");
 assert(strpos($outputPrint, 'master-layout') !== false, "print_input must use official master-layout table");
@@ -91,8 +107,10 @@ assert(strpos($outputPrint, '@media print') !== false, "print_input must include
 echo "[PASS] Test 1: print_input.php renders as realistic A4 .sheet layout.\n";
 
 // 2. Verify swim/admin/results/ (index.php)
-unset($_GET['print']);
-unset($_GET['category_id']);
+$_SESSION['swim_role'] = 'admin';
+$_SESSION['swim_user_id'] = 60;
+$resultsController = new \App\Swim\Controllers\ResultsController();
+
 ob_start();
 $resultsController->index();
 $outputIndex = ob_get_clean();
@@ -100,17 +118,37 @@ $outputIndex = ob_get_clean();
 assert(strpos($outputIndex, 'Publikasi Live Result') !== false, "Results index must link to Publikasi Live Result");
 assert(strpos($outputIndex, 'Preview A4') !== false, "Results index must have direct Preview A4 button");
 assert(strpos($outputIndex, 'LIVE') !== false || strpos($outputIndex, 'DRAFT') !== false, "Results index must show publication status badge");
-echo "[PASS] Test 2: swim/admin/results/ includes navigation and direct A4 preview.\n";
+echo "[PASS] Test 2: swim/admin/results/ includes navigation, publication status, and direct A4 preview.\n";
 
-// 3. Verify swim/admin/results/publish toggle_rank_mode AJAX
-$_SERVER['REQUEST_METHOD'] = 'POST';
-$_POST['action'] = 'toggle_rank_mode';
-$_POST['event_number_id'] = $testNumberId;
-$_POST['rank_mode'] = 'overall';
+// 3. Verify swim/admin/results/publish toggle_rank_mode AJAX via isolated process
+$test3Script = '
+session_start();
+$_SESSION["swim_role"] = "admin";
+$_SESSION["swim_user_id"] = 60;
+$_SERVER["REQUEST_METHOD"] = "POST";
+$_POST["action"] = "toggle_rank_mode";
+$_POST["event_number_id"] = ' . $testNumberId . ';
+$_POST["rank_mode"] = "overall";
+foreach (file("/Applications/XAMPP/xamppfiles/htdocs/set-system/.env", FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {
+    if (strpos(trim($line), "#") === 0) continue;
+    list($k, $v) = explode("=", $line, 2);
+    putenv(trim($k) . "=" . trim($v, " \'\""));
+}
+spl_autoload_register(function ($class) {
+    $prefix = "App\\\\";
+    $base_dir = "/Applications/XAMPP/xamppfiles/htdocs/set-system/app/";
+    $len = strlen($prefix);
+    if (strncmp($prefix, $class, $len) !== 0) return;
+    $relative_class = substr($class, $len);
+    $file = $base_dir . str_replace("\\\\", "/", $relative_class) . ".php";
+    if (file_exists($file)) require_once $file;
+});
+require_once "/Applications/XAMPP/xamppfiles/htdocs/set-system/app/Core/Database.php";
+$c = new \\App\\Swim\\Controllers\\ResultsController();
+$c->publish();
+';
 
-ob_start();
-$resultsController->publish();
-$ajaxRes = ob_get_clean();
+$ajaxRes = shell_exec('/Applications/XAMPP/xamppfiles/bin/php -r ' . escapeshellarg($test3Script));
 $json = json_decode($ajaxRes, true);
 assert($json['success'] === true, "toggle_rank_mode must succeed");
 assert($json['rank_mode'] === 'overall', "rank_mode must be updated to 'overall'");
@@ -136,7 +174,7 @@ echo "[PASS] Test 4: swim/live_result/index renders fast catalog without Race Bo
 
 // 5. Verify public Live Result A4 sheet (/swim/live_result/view/{id})
 ob_start();
-$liveResultController->view($testNumberId);
+$liveResultController->view_sheet($testNumberId);
 $outputViewSheet = ob_get_clean();
 
 assert(strpos($outputViewSheet, 'class="sheet"') !== false, "Viewer must render .sheet container");
