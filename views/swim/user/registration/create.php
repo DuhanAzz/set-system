@@ -43,7 +43,25 @@
                             
                             <div>
                                 <p class="text-xs font-black text-slate-400 uppercase tracking-widest mb-0.5">Lomba #<?= $ev['event_number'] ?></p>
-                                <p class="text-sm md:text-base font-black text-slate-800 uppercase italic"><?= $ev['distance'] ?>M <?= $ev['stroke'] ?></p>
+                                <?php
+                                $rawStroke = strtoupper(trim($ev['stroke'] ?? ''));
+                                $rawName   = strtoupper(trim($ev['event_name'] ?? ''));
+                                $fullText  = $rawStroke . ' ' . $rawName;
+                                $isKickEv  = (strpos($fullText, 'PAPAN') !== false || strpos($fullText, 'KICK') !== false);
+                                if (strpos($fullText, 'DADA') !== false || strpos($fullText, 'BREAST') !== false) $sName = 'DADA';
+                                elseif (strpos($fullText, 'PUNGGUNG') !== false || strpos($fullText, 'BACK') !== false) $sName = 'PUNGGUNG';
+                                elseif (strpos($fullText, 'KUPU') !== false || strpos($fullText, 'FLY') !== false) $sName = 'KUPU-KUPU';
+                                elseif (strpos($fullText, 'GANTI') !== false || strpos($fullText, 'MEDLEY') !== false || strpos($fullText, ' IM ') !== false) $sName = 'GAYA GANTI';
+                                else $sName = 'BEBAS';
+
+                                $dist = (int)($ev['distance'] ?? 0);
+                                if ($dist <= 0) {
+                                    if (preg_match('/(?:^|\D)(25|50|100|200|400|800|1500)\s*M?(?:\D|$)/', $fullText, $dm)) $dist = (int)$dm[1];
+                                    else $dist = $isKickEv ? 25 : 50;
+                                }
+                                $displayLine = $isKickEv ? ("25M PAPAN " . $sName) : ("{$dist}M " . $sName);
+                                ?>
+                                <p class="text-sm md:text-base font-black text-slate-800 uppercase italic"><?= htmlspecialchars($displayLine) ?></p>
                             </div>
                         </div>
                         

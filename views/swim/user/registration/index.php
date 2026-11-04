@@ -219,8 +219,24 @@
                 <select name="category_id" class="w-full text-sm p-3 border rounded-xl font-bold focus:ring-2 focus:ring-violet-500" required>
                     <option value="">-- Pilih Nomor --</option>
                     <?php foreach ($allEvents as $ev): 
-                        $isKickEv = (strpos(strtoupper($ev['stroke'] ?? ''), 'PAPAN') !== false || strpos(strtoupper($ev['stroke'] ?? ''), 'KICK') !== false);
-                        $evStrokeDisplay = $isKickEv ? ('25M PAPAN ' . trim(str_ireplace(['papan', 'kick', 'gaya', '25m', '25 m'], '', $ev['stroke']))) : ($ev['distance'] . 'M ' . strtoupper($ev['stroke']));
+                        $rawStroke = strtoupper(trim($ev['stroke'] ?? ''));
+                        $rawName   = strtoupper(trim($ev['event_name'] ?? ''));
+                        $fullText  = $rawStroke . ' ' . $rawName;
+                        $isKickEv  = (strpos($fullText, 'PAPAN') !== false || strpos($fullText, 'KICK') !== false);
+
+                        if (strpos($fullText, 'DADA') !== false || strpos($fullText, 'BREAST') !== false) $sName = 'DADA';
+                        elseif (strpos($fullText, 'PUNGGUNG') !== false || strpos($fullText, 'BACK') !== false) $sName = 'PUNGGUNG';
+                        elseif (strpos($fullText, 'KUPU') !== false || strpos($fullText, 'FLY') !== false) $sName = 'KUPU-KUPU';
+                        elseif (strpos($fullText, 'GANTI') !== false || strpos($fullText, 'MEDLEY') !== false || strpos($fullText, ' IM ') !== false) $sName = 'GAYA GANTI';
+                        else $sName = 'BEBAS';
+
+                        $dist = (int)($ev['distance'] ?? 0);
+                        if ($dist <= 0) {
+                            if (preg_match('/(?:^|\D)(25|50|100|200|400|800|1500)\s*M?(?:\D|$)/', $fullText, $dm)) $dist = (int)$dm[1];
+                            else $dist = $isKickEv ? 25 : 50;
+                        }
+
+                        $evStrokeDisplay = $isKickEv ? ("25M PAPAN " . $sName) : ("{$dist}M " . $sName);
                     ?>
                         <option value="<?= $ev['id'] ?>">[#<?= $ev['event_number'] ?>] <?= $evStrokeDisplay ?> <?= strtoupper($ev['jenis_kelamin']) ?> <?= strtoupper($ev['age_group']) ?></option>
                     <?php endforeach; ?>

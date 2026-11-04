@@ -67,8 +67,10 @@ class RegistrationController extends Controller {
         // 3. Check selected_ku_ids from admin configuration first (Most authoritative)
         $kuIds = !empty($ev['selected_ku_ids']) ? array_filter(array_map('intval', explode(',', (string)$ev['selected_ku_ids']))) : [];
         if (!empty($kuIds)) {
+            $hasRecognizedRule = false;
             foreach ($kuIds as $kid) {
                 if (isset($ageRules[$kid])) {
+                    $hasRecognizedRule = true;
                     $min = (int)$ageRules[$kid]['min_age'];
                     $max = (int)$ageRules[$kid]['max_age'];
                     if ($age >= $min && ($max == 0 || $age <= $max)) {
@@ -76,7 +78,10 @@ class RegistrationController extends Controller {
                     }
                 }
             }
-            return false;
+            if ($hasRecognizedRule) {
+                return false;
+            }
+            // If none of selected_ku_ids exist in this event's ageRules, fall through to name/year matching
         }
 
         // 4. Check if event age_group matches any group_name in ageRules
@@ -87,7 +92,8 @@ class RegistrationController extends Controller {
                 $arName = strtoupper(trim($ar['group_name'] ?? ''));
                 if ($arName !== '') {
                     $isMatch = ($groupName === $arName) || 
-                               (preg_match('/\b' . preg_quote($arName, '/') . '\b/i', $groupName) === 1);
+                               (stripos($groupName, $arName) !== false) ||
+                               (stripos($arName, $groupName) !== false);
                     if ($isMatch) {
                         $matchedAgeRule = true;
                         $min = (int)$ar['min_age'];
@@ -103,7 +109,7 @@ class RegistrationController extends Controller {
             }
         }
 
-        // 5. Check Year-based patterns in age_group (e.g. "2014-2016", "2017 & LEBIH MUDA", "KU 2016")
+        // 5. Check Year-based patterns in age_group (e.g. "2014-2016", "2017 & LEBIH MUDA", "KU 2016", "KU 2020")
         // Filter out event year (e.g. >= 2026) to prevent false matches with competition year
         if (preg_match_all('/\b(19\d{2}|20\d{2})\b/', $groupName, $m)) {
             $candidateYears = array_filter(array_map('intval', $m[1]), fn($y) => $y < $compYear);
@@ -136,8 +142,28 @@ class RegistrationController extends Controller {
             return ($age >= $min && ($max == 0 || $age <= $max));
         }
 
-        // 7. If "OPEN" or "UMUM", all ages are eligible
-        if (strpos($groupName, 'OPEN') !== false || strpos($groupName, 'UMUM') !== false) {
+        // 7. Standard Indonesian Swimming (PRSI) Kelompok Umur fallback
+        if (preg_match('/\bKU\s*5\b|\bKU\s*V\b|\bPEMULA\b/i', $groupName)) {
+            return ($age <= 9);
+        }
+        if (preg_match('/\bKU\s*4\b|\bKU\s*IV\b/i', $groupName)) {
+            return ($age >= 10 && $age <= 11);
+        }
+        if (preg_match('/\bKU\s*3\b|\bKU\s*III\b/i', $groupName)) {
+            return ($age >= 12 && $age <= 13);
+        }
+        if (preg_match('/\bKU\s*2\b|\bKU\s*II\b/i', $groupName)) {
+            return ($age >= 14 && $age <= 15);
+        }
+        if (preg_match('/\bKU\s*1\b|\bKU\s*I\b/i', $groupName)) {
+            return ($age >= 16 && $age <= 18);
+        }
+        if (preg_match('/\bSENIOR\b/i', $groupName)) {
+            return ($age >= 19);
+        }
+
+        // 8. If "OPEN" or "UMUM" or empty, all ages are eligible
+        if (empty($groupName) || strpos($groupName, 'OPEN') !== false || strpos($groupName, 'UMUM') !== false) {
             return true;
         }
 
@@ -223,7 +249,7 @@ class RegistrationController extends Controller {
             } catch (\Exception $ex) {}
         }
 
-        $stmtEn = $this->db->prepare("SELECT * FROM swim_event_numbers WHERE (event_id = ? OR (event_id IS NULL AND organizer_id = ?)) AND is_relay = 0 ORDER BY CAST(event_number AS UNSIGNED) ASC, distance ASC");
+        $stmtEn = $this->db->prepare("SELECT * FROM swim_event_numbers WHERE (event_id = ? OR (event_id IS NULL AND organizer_id = ?)) AND (is_relay = 0 OR is_relay IS NULL) ORDER BY CAST(event_number AS UNSIGNED) ASC, distance ASC");
         $stmtEn->execute([$event_id, $organizerId]);
         $allEvents = $stmtEn->fetchAll(PDO::FETCH_ASSOC);
 
@@ -299,23 +325,37 @@ class RegistrationController extends Controller {
 
         $tableStructure = []; 
         foreach ($allEvents as $ev) { 
-            $rawStroke = strtoupper($ev['stroke'] ?? '');
-            $isKick = (strpos($rawStroke, 'KICK') !== false || strpos($rawStroke, 'PAPAN') !== false);
+            $rawStroke = strtoupper(trim($ev['stroke'] ?? ''));
+            $rawName   = strtoupper(trim($ev['event_name'] ?? ''));
+            $fullText  = $rawStroke . ' ' . $rawName;
+            $isKick    = (strpos($fullText, 'PAPAN') !== false || strpos($fullText, 'KICK') !== false);
+
+            if (strpos($fullText, 'DADA') !== false || strpos($fullText, 'BREAST') !== false) {
+                $cleanStrokeName = 'GAYA DADA';
+            } elseif (strpos($fullText, 'PUNGGUNG') !== false || strpos($fullText, 'BACK') !== false) {
+                $cleanStrokeName = 'GAYA PUNGGUNG';
+            } elseif (strpos($fullText, 'KUPU') !== false || strpos($fullText, 'FLY') !== false) {
+                $cleanStrokeName = 'GAYA KUPU-KUPU';
+            } elseif (strpos($fullText, 'GANTI') !== false || strpos($fullText, 'MEDLEY') !== false || strpos($fullText, ' IM ') !== false) {
+                $cleanStrokeName = 'GAYA GANTI';
+            } else {
+                $cleanStrokeName = 'GAYA BEBAS';
+            }
 
             if ($isKick) {
-                $cleanStrokeName = trim(str_replace(['KICK', 'PAPAN', '25M', '25 M'], '', $rawStroke));
+                $jarakKey = 0;
             } else {
-                $cleanStrokeName = trim(str_replace(['GAYA ', 'GAYA'], '', $rawStroke));
+                $dist = (int)($ev['distance'] ?? 0);
+                if ($dist <= 0) {
+                    if (preg_match('/(?:^|\D)(25|50|100|200|400|800|1500)\s*M?(?:\D|$)/', $fullText, $dm)) {
+                        $dist = (int)$dm[1];
+                    } else {
+                        $dist = 50;
+                    }
+                }
+                $jarakKey = $dist;
             }
-            $cleanStrokeName = trim(str_replace(['GAYA ', 'GAYA'], '', $cleanStrokeName));
-            if ($cleanStrokeName === 'LUNCUR' || empty($cleanStrokeName)) $cleanStrokeName = 'BEBAS';
-            if ($cleanStrokeName === 'KUPU') $cleanStrokeName = 'KUPU-KUPU';
 
-            if ($cleanStrokeName !== '' && strpos($cleanStrokeName, 'GAYA') === false) {
-                $cleanStrokeName = 'GAYA ' . $cleanStrokeName;
-            }
-
-            $jarakKey = $isKick ? 0 : (int)$ev['distance'];
             $tableStructure[$cleanStrokeName][$jarakKey][] = $ev; 
         }
 
@@ -348,12 +388,36 @@ class RegistrationController extends Controller {
                     continue;
                 }
 
-                $isKickPop = (strpos(strtoupper($ev['stroke'] ?? ''), 'KICK') !== false || strpos(strtoupper($ev['stroke'] ?? ''), 'PAPAN') !== false);
-                $normS = strtoupper(str_replace(['Gaya ', 'GAYA '], '', $ev['stroke'] ?? ''));
-                $cleanKickName = trim(str_replace(['KICK ', 'PAPAN ', '25M ', '25 M '], '', $normS));
-                if ($cleanKickName === 'LUNCUR' || empty($cleanKickName)) $cleanKickName = 'BEBAS';
-                if ($cleanKickName === 'KUPU') $cleanKickName = 'KUPU-KUPU';
-                $displayName = $isKickPop ? "25M PAPAN " . $cleanKickName : "{$ev['distance']}M " . $normS;
+                $rawStroke = strtoupper(trim($ev['stroke'] ?? ''));
+                $rawName   = strtoupper(trim($ev['event_name'] ?? ''));
+                $fullText  = $rawStroke . ' ' . $rawName;
+                $isKickPop = (strpos($fullText, 'PAPAN') !== false || strpos($fullText, 'KICK') !== false);
+
+                if (strpos($fullText, 'DADA') !== false || strpos($fullText, 'BREAST') !== false) {
+                    $shortStroke = 'DADA';
+                } elseif (strpos($fullText, 'PUNGGUNG') !== false || strpos($fullText, 'BACK') !== false) {
+                    $shortStroke = 'PUNGGUNG';
+                } elseif (strpos($fullText, 'KUPU') !== false || strpos($fullText, 'FLY') !== false) {
+                    $shortStroke = 'KUPU-KUPU';
+                } elseif (strpos($fullText, 'GANTI') !== false || strpos($fullText, 'MEDLEY') !== false || strpos($fullText, ' IM ') !== false) {
+                    $shortStroke = 'GAYA GANTI';
+                } else {
+                    $shortStroke = 'BEBAS';
+                }
+
+                if ($isKickPop) {
+                    $displayName = "25M PAPAN " . $shortStroke;
+                } else {
+                    $dist = (int)($ev['distance'] ?? 0);
+                    if ($dist <= 0) {
+                        if (preg_match('/(?:^|\D)(25|50|100|200|400|800|1500)\s*M?(?:\D|$)/', $fullText, $dm)) {
+                            $dist = (int)$dm[1];
+                        } else {
+                            $dist = 50;
+                        }
+                    }
+                    $displayName = "{$dist}M " . $shortStroke;
+                }
 
                 $myEvents[] = [
                     'id' => $ev['id'], 
@@ -361,7 +425,7 @@ class RegistrationController extends Controller {
                     'name' => $displayName,
                     'group' => $ev['age_group'],
                     'time' => $savedData[$sid][$ev['id']] ?? '', 
-                    'best_time' => $recordMap[$sid][$ev['distance']][$normS] ?? null
+                    'best_time' => $recordMap[$sid][$ev['distance']][$shortStroke] ?? ($recordMap[$sid][$ev['distance']]['GAYA ' . $shortStroke] ?? null)
                 ];
             }
             
@@ -436,7 +500,7 @@ class RegistrationController extends Controller {
         $ageRules = $stmtGroups->fetchAll(PDO::FETCH_UNIQUE|PDO::FETCH_ASSOC);
 
         $organizerId = (int)($event['user_id'] ?? 0);
-        $stmtEn = $this->db->prepare("SELECT * FROM swim_event_numbers WHERE (event_id = ? OR (event_id IS NULL AND organizer_id = ?)) AND is_relay = 0 ORDER BY CAST(event_number AS UNSIGNED) ASC, distance ASC");
+        $stmtEn = $this->db->prepare("SELECT * FROM swim_event_numbers WHERE (event_id = ? OR (event_id IS NULL AND organizer_id = ?)) AND (is_relay = 0 OR is_relay IS NULL) ORDER BY CAST(event_number AS UNSIGNED) ASC, distance ASC");
         $stmtEn->execute([$event['id'], $organizerId]);
         $allEvents = $stmtEn->fetchAll(PDO::FETCH_ASSOC);
 
@@ -627,7 +691,7 @@ class RegistrationController extends Controller {
         $ageRules = $stmtGroups->fetchAll(PDO::FETCH_UNIQUE|PDO::FETCH_ASSOC);
 
         $organizerId = (int)($event['user_id'] ?? 0);
-        $stmtEn = $this->db->prepare("SELECT * FROM swim_event_numbers WHERE (event_id = ? OR (event_id IS NULL AND organizer_id = ?)) AND is_relay = 0 ORDER BY CAST(event_number AS UNSIGNED) ASC, distance ASC");
+        $stmtEn = $this->db->prepare("SELECT * FROM swim_event_numbers WHERE (event_id = ? OR (event_id IS NULL AND organizer_id = ?)) AND (is_relay = 0 OR is_relay IS NULL) ORDER BY CAST(event_number AS UNSIGNED) ASC, distance ASC");
         $stmtEn->execute([$event_id, $organizerId]);
         $allEvents = $stmtEn->fetchAll(PDO::FETCH_ASSOC);
 
@@ -923,7 +987,7 @@ class RegistrationController extends Controller {
         $ageRules = $stmtGroups->fetchAll(PDO::FETCH_UNIQUE|PDO::FETCH_ASSOC);
 
         $organizerId = (int)($event['user_id'] ?? 0);
-        $stmtEn = $this->db->prepare("SELECT * FROM swim_event_numbers WHERE (event_id = ? OR (event_id IS NULL AND organizer_id = ?)) AND is_relay = 0 ORDER BY CAST(event_number AS UNSIGNED) ASC, distance ASC");
+        $stmtEn = $this->db->prepare("SELECT * FROM swim_event_numbers WHERE (event_id = ? OR (event_id IS NULL AND organizer_id = ?)) AND (is_relay = 0 OR is_relay IS NULL) ORDER BY CAST(event_number AS UNSIGNED) ASC, distance ASC");
         $stmtEn->execute([$event_id, $organizerId]);
         $allEvents = $stmtEn->fetchAll(PDO::FETCH_ASSOC);
 

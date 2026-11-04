@@ -80,6 +80,27 @@ $testCases = [
         'expected' => false,
         'label' => 'Male swimmer cannot enter Putri event'
     ],
+    // Case 8: Event with unmapped / orphaned selected_ku_ids (e.g. from template/clone) falls through to name matching
+    [
+        'sw' => ['tanggal_lahir' => '2018-01-01', 'jenis_kelamin' => 'L'], // Age 8
+        'ev' => ['age_group' => 'KU 5', 'age_min' => 0, 'age_max' => 99, 'selected_ku_ids' => '999,998', 'jenis_kelamin' => 'L'],
+        'expected' => true,
+        'label' => 'Orphaned selected_ku_ids falls through to match KU 5'
+    ],
+    // Case 9: PRSI fallback for PEMULA / KU 5 when ageRules is empty
+    [
+        'sw' => ['tanggal_lahir' => '2018-01-01', 'jenis_kelamin' => 'L'], // Age 8
+        'ev' => ['age_group' => 'PEMULA', 'age_min' => 0, 'age_max' => 0, 'selected_ku_ids' => '', 'jenis_kelamin' => 'L'],
+        'expected' => true,
+        'label' => 'PRSI fallback allows age 8 in PEMULA'
+    ],
+    // Case 10: Discrete year matching for 25m event e.g. "KU 2019"
+    [
+        'sw' => ['tanggal_lahir' => '2019-05-10', 'jenis_kelamin' => 'P'], // Age 7
+        'ev' => ['age_group' => 'KU 2019', 'age_min' => 0, 'age_max' => 0, 'selected_ku_ids' => '', 'jenis_kelamin' => 'P'],
+        'expected' => true,
+        'label' => 'Swimmer born in 2019 matches KU 2019'
+    ],
 ];
 
 $passed = 0;
@@ -95,43 +116,71 @@ foreach ($testCases as $tc) {
 
 echo "\nResult: $passed / " . count($testCases) . " passed.\n";
 
-// Test Table Structure Keys for 25M Papan vs 25M vs 50M
+// Test Table Structure Normalization for ALL stroke and distance variants
 $dummyEvents = [
-    ['stroke' => 'Papan Bebas', 'distance' => 25],
-    ['stroke' => 'Gaya Bebas', 'distance' => 25],
-    ['stroke' => 'Gaya Bebas', 'distance' => 50],
-    ['stroke' => 'Papan Dada', 'distance' => 25],
-    ['stroke' => 'Gaya Dada', 'distance' => 25],
+    ['stroke' => '25M Papan Bebas', 'distance' => 25, 'event_name' => '25 M PAPAN BEBAS PUTRA - LCM'],
+    ['stroke' => '25 M Gaya Bebas', 'distance' => 25, 'event_name' => '25 M GAYA BEBAS PUTRA - LCM'],
+    ['stroke' => 'Gaya Bebas', 'distance' => 50, 'event_name' => '50 M GAYA BEBAS PUTRA - LCM'],
+    ['stroke' => 'Papan Dada', 'distance' => 25, 'event_name' => '25 M PAPAN DADA PUTRI - LCM'],
+    ['stroke' => 'Gaya Dada', 'distance' => 25, 'event_name' => '25 M GAYA DADA PUTRI - LCM'],
+    ['stroke' => 'Gaya Dada', 'distance' => 50, 'event_name' => '50 M GAYA DADA PUTRI - LCM'],
+    ['stroke' => 'Papan Punggung', 'distance' => 25, 'event_name' => '25 M PAPAN PUNGGUNG PUTRA - LCM'],
+    ['stroke' => '25M Punggung', 'distance' => 25, 'event_name' => '25 M GAYA PUNGGUNG PUTRA - LCM'],
+    ['stroke' => 'Papan Kupu-kupu', 'distance' => 25, 'event_name' => '25 M PAPAN KUPU-KUPU PUTRA - LCM'],
+    ['stroke' => '25M Gaya Kupu-kupu', 'distance' => 25, 'event_name' => '25 M GAYA KUPU-KUPU PUTRA - LCM'],
 ];
 
 $testStructure = [];
 foreach ($dummyEvents as $ev) {
-    $rawStroke = strtoupper($ev['stroke'] ?? '');
-    $isKick = (strpos($rawStroke, 'KICK') !== false || strpos($rawStroke, 'PAPAN') !== false);
+    $rawStroke = strtoupper(trim($ev['stroke'] ?? ''));
+    $rawName   = strtoupper(trim($ev['event_name'] ?? ''));
+    $fullText  = $rawStroke . ' ' . $rawName;
+    $isKick    = (strpos($fullText, 'PAPAN') !== false || strpos($fullText, 'KICK') !== false);
+
+    if (strpos($fullText, 'DADA') !== false || strpos($fullText, 'BREAST') !== false) {
+        $cleanStrokeName = 'GAYA DADA';
+    } elseif (strpos($fullText, 'PUNGGUNG') !== false || strpos($fullText, 'BACK') !== false) {
+        $cleanStrokeName = 'GAYA PUNGGUNG';
+    } elseif (strpos($fullText, 'KUPU') !== false || strpos($fullText, 'FLY') !== false) {
+        $cleanStrokeName = 'GAYA KUPU-KUPU';
+    } elseif (strpos($fullText, 'GANTI') !== false || strpos($fullText, 'MEDLEY') !== false || strpos($fullText, ' IM ') !== false) {
+        $cleanStrokeName = 'GAYA GANTI';
+    } else {
+        $cleanStrokeName = 'GAYA BEBAS';
+    }
 
     if ($isKick) {
-        $cleanStrokeName = trim(str_replace(['KICK', 'PAPAN', '25M', '25 M'], '', $rawStroke));
+        $jarakKey = 0;
     } else {
-        $cleanStrokeName = trim(str_replace(['GAYA ', 'GAYA'], '', $rawStroke));
+        $dist = (int)($ev['distance'] ?? 0);
+        if ($dist <= 0) {
+            if (preg_match('/(?:^|\D)(25|50|100|200|400|800|1500)\s*M?(?:\D|$)/', $fullText, $dm)) {
+                $dist = (int)$dm[1];
+            } else {
+                $dist = 50;
+            }
+        }
+        $jarakKey = $dist;
     }
-    $cleanStrokeName = trim(str_replace(['GAYA ', 'GAYA'], '', $cleanStrokeName));
-    if ($cleanStrokeName === 'LUNCUR' || empty($cleanStrokeName)) $cleanStrokeName = 'BEBAS';
-    if ($cleanStrokeName === 'KUPU') $cleanStrokeName = 'KUPU-KUPU';
 
-    if ($cleanStrokeName !== '' && strpos($cleanStrokeName, 'GAYA') === false) {
-        $cleanStrokeName = 'GAYA ' . $cleanStrokeName;
-    }
-
-    $jarakKey = $isKick ? 0 : (int)$ev['distance'];
     $testStructure[$cleanStrokeName][$jarakKey][] = $ev;
 }
 
 assert(isset($testStructure['GAYA BEBAS'][0]), "GAYA BEBAS must have key 0 (25M PAPAN)");
 assert(isset($testStructure['GAYA BEBAS'][25]), "GAYA BEBAS must have key 25 (25 M)");
 assert(isset($testStructure['GAYA BEBAS'][50]), "GAYA BEBAS must have key 50 (50 M)");
+
 assert(isset($testStructure['GAYA DADA'][0]), "GAYA DADA must have key 0 (25M PAPAN)");
 assert(isset($testStructure['GAYA DADA'][25]), "GAYA DADA must have key 25 (25 M)");
-echo "PASS: Table Structure cleanly separates 25M PAPAN (key 0), 25 M (key 25), and 50 M (key 50)!\n";
+assert(isset($testStructure['GAYA DADA'][50]), "GAYA DADA must have key 50 (50 M)");
+
+assert(isset($testStructure['GAYA PUNGGUNG'][0]), "GAYA PUNGGUNG must have key 0 (25M PAPAN)");
+assert(isset($testStructure['GAYA PUNGGUNG'][25]), "GAYA PUNGGUNG must have key 25 (25 M)");
+
+assert(isset($testStructure['GAYA KUPU-KUPU'][0]), "GAYA KUPU-KUPU must have key 0 (25M PAPAN)");
+assert(isset($testStructure['GAYA KUPU-KUPU'][25]), "GAYA KUPU-KUPU must have key 25 (25 M)");
+
+echo "PASS: Table Structure cleanly groups ALL stroke variants into canonical headers with 25M PAPAN (key 0), 25 M (key 25), and 50 M (key 50)!\n";
 
 if ($passed !== count($testCases)) {
     exit(1);
