@@ -111,7 +111,7 @@
                     <div class="md:col-span-7">
                         
                         <!-- Panel Satuan -->
-                        <div id="satuanConfig" class="<?= ($activeEvent['pricing_mode'] ?? 'per_item') === 'package' ? 'hidden' : '' ?> bg-indigo-950/70 p-5 rounded-2xl border border-indigo-500/40 space-y-3">
+                        <div id="satuanConfig" class="<?= ($activeEvent['pricing_mode'] ?? 'per_item') === 'package' ? 'hidden' : '' ?> bg-indigo-950/70 p-5 rounded-2xl border border-indigo-500/40 space-y-4">
                             <div class="flex items-center gap-2 text-indigo-200 font-bold text-xs uppercase tracking-wider border-b border-indigo-800/80 pb-2">
                                 <span>📋</span>
                                 <span>Ketentuan Metode Satuan</span>
@@ -119,9 +119,24 @@
                             <p class="text-xs text-indigo-200/90 leading-relaxed">
                                 Pada metode <strong class="text-white">Satuan</strong>, total tagihan atlet dihitung dari akumulasi biaya tiap nomor lomba yang diikuti (misal: 50m Bebas Rp 50.000 + 100m Dada Rp 50.000 = Rp 100.000).
                             </p>
+                            
+                            <div>
+                                <label class="block text-[10px] font-black uppercase tracking-wider text-indigo-300 mb-1.5">
+                                    Tarif Standar Per Nomor (Rp) <span class="text-rose-400">*</span>
+                                </label>
+                                <div class="relative">
+                                    <span class="absolute left-3 top-2.5 text-xs font-bold text-indigo-400">Rp</span>
+                                    <input type="number" id="perItemPriceInput" name="price_per_item" value="<?= (int)($activeEvent['price_per_item'] ?? ($suggestedDefaultPrice ?: 50000)) ?>" class="w-full bg-indigo-900/80 border border-indigo-600 rounded-xl pl-9 pr-3 py-2 text-xs font-bold text-white focus:outline-none focus:ring-2 focus:ring-blue-400" placeholder="50000" min="0" step="1000">
+                                </div>
+                                <div class="flex items-center gap-2 mt-2">
+                                    <input type="checkbox" id="syncNumbersPrice" name="sync_numbers_price" value="1" checked class="rounded bg-indigo-900 border-indigo-600 text-blue-500 focus:ring-blue-500 cursor-pointer">
+                                    <label for="syncNumbersPrice" class="text-[10px] text-indigo-200 cursor-pointer">Terapkan tarif ini ke seluruh nomor lomba perorangan di event ini</label>
+                                </div>
+                            </div>
+
                             <div class="bg-indigo-900/80 p-3.5 rounded-xl border border-indigo-700/50 text-[11px] text-indigo-200 space-y-1">
                                 <p class="font-bold text-amber-300">💡 Pengaturan Biaya Per Nomor:</p>
-                                <p class="leading-relaxed">Besaran biaya tiap nomor lomba ditentukan langsung saat Anda membuat nomor acara baru di formulir <b>"2. Buat Nomor Lomba Baru"</b> di bawah.</p>
+                                <p class="leading-relaxed">Tarif standar di atas akan digunakan untuk menghitung tagihan per nomor di checkout, dan dapat otomatis disinkronkan ke seluruh nomor lomba di bawah.</p>
                             </div>
                         </div>
 
@@ -1748,7 +1763,7 @@ function togglePricingMode(mode) {
         }
 
         // Sinkronisasi Biaya Default ke Skema Satuan
-        const defaultSatuan = window.savedSatuanPrice || 50000;
+        const defaultSatuan = parseFloat(document.getElementById('perItemPriceInput')?.value) || window.savedSatuanPrice || 50000;
         if (genDefaultPrice) {
             genDefaultPrice.value = defaultSatuan;
         }

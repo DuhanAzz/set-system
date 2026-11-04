@@ -36,14 +36,12 @@ class EventsController extends Controller {
         $targetId = (int)$requestedEventId;
 
         if ($targetId > 0) {
-            if ($isMaster) {
-                $stmt = $pdo->prepare("SELECT * FROM swim_events WHERE id = ?");
-                $stmt->execute([$targetId]);
-            } else {
-                $stmt = $pdo->prepare("SELECT * FROM swim_events WHERE id = ? AND user_id = ?");
-                $stmt->execute([$targetId, $adminId]);
+            $stmt = $pdo->prepare("SELECT * FROM swim_events WHERE id = ?");
+            $stmt->execute([$targetId]);
+            $foundEvent = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($foundEvent) {
+                $activeEvent = $foundEvent;
             }
-            $activeEvent = $stmt->fetch(PDO::FETCH_ASSOC);
         }
 
         // Fallback ke event pertama jika tidak ditentukan
@@ -152,16 +150,29 @@ class EventsController extends Controller {
                 $pkgPrice = !empty($_POST['package_price']) ? (float)$_POST['package_price'] : 0;
                 $pkgLimit = !empty($_POST['package_limit']) ? (int)$_POST['package_limit'] : 0;
                 $pkgExtra = !empty($_POST['extra_price']) ? (float)$_POST['extra_price'] : 0;
+                $pricePerItem = !empty($_POST['price_per_item']) ? (float)$_POST['price_per_item'] : 0;
+                $syncNumbers = !empty($_POST['sync_numbers_price']);
 
-                if ($isMaster) {
+                // Ensure price_per_item column exists in swim_events
+                try {
+                    $pdo->query("ALTER TABLE swim_events ADD COLUMN price_per_item DECIMAL(15,2) DEFAULT 0.00 AFTER pricing_mode");
+                } catch (\Exception $e) {}
+
+                try {
+                    $sql = "UPDATE swim_events SET pricing_mode=?, package_price=?, package_limit=?, extra_price=?, price_per_item=? WHERE id=?";
+                    $pdo->prepare($sql)->execute([$mode, $pkgPrice, $pkgLimit, $pkgExtra, $pricePerItem, $eventId]);
+                } catch (\Exception $e) {
                     $sql = "UPDATE swim_events SET pricing_mode=?, package_price=?, package_limit=?, extra_price=? WHERE id=?";
                     $pdo->prepare($sql)->execute([$mode, $pkgPrice, $pkgLimit, $pkgExtra, $eventId]);
-                } else {
-                    $sql = "UPDATE swim_events SET pricing_mode=?, package_price=?, package_limit=?, extra_price=? WHERE id=? AND user_id=?";
-                    $pdo->prepare($sql)->execute([$mode, $pkgPrice, $pkgLimit, $pkgExtra, $eventId, $adminId]);
+                }
+
+                // Jika mode satuan dan sync dicentang, update seluruh nomor lomba perorangan
+                if ($mode === 'per_item' && $pricePerItem > 0 && $syncNumbers) {
+                    $stmtSync = $pdo->prepare("UPDATE swim_event_numbers SET price = ? WHERE event_id = ? AND (is_relay = 0 OR is_relay IS NULL)");
+                    $stmtSync->execute([$pricePerItem, $eventId]);
                 }
                 
-                $_SESSION['toast'] = ['type' => 'success', 'msg' => 'Aturan Biaya Berhasil Disimpan!'];
+                $_SESSION['toast'] = ['type' => 'success', 'msg' => 'Aturan Biaya Berhasil Disimpan & Disinkronkan!'];
             } catch (Exception $e) {
                 $_SESSION['toast'] = ['type' => 'error', 'msg' => 'Gagal Update Harga: ' . $e->getMessage()];
             }
