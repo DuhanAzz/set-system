@@ -381,11 +381,17 @@ class RegistrationController extends Controller {
             $myEvents = [];
 
             foreach ($allEvents as $ev) {
+                // Filter berdasarkan gender atlet (L / P / MIX)
+                $swGen = (strtoupper($sw['jenis_kelamin'] ?? '') === 'P' || strtoupper($sw['jenis_kelamin'] ?? '') === 'PUTRI') ? 'P' : 'L';
+                $evGenRaw = strtoupper($ev['jenis_kelamin'] ?? '');
+                $evGen = ($evGenRaw === 'P' || $evGenRaw === 'PUTRI') ? 'P' : (($evGenRaw === 'L' || $evGenRaw === 'PUTRA') ? 'L' : 'MIX');
+                if ($evGen !== 'MIX' && $evGen !== 'MIXED' && $evGen !== $swGen) {
+                    continue;
+                }
+
                 $isAgeFit = $this->checkSwimmerEligibility($sw, $ev, $ageRules, $compYear, $calcType, $compDateObj);
                 if ($isAgeFit) {
                     $eligibleMap[$sid][$ev['id']] = true;
-                } else {
-                    continue;
                 }
 
                 $rawStroke = strtoupper(trim($ev['stroke'] ?? ''));
@@ -419,11 +425,13 @@ class RegistrationController extends Controller {
                     $displayName = "{$dist}M " . $shortStroke;
                 }
 
+                $hasSaved = isset($savedData[$sid][$ev['id']]) && $savedData[$sid][$ev['id']] !== '';
                 $myEvents[] = [
                     'id' => $ev['id'], 
                     'event_number' => $ev['event_number'] ?? '',
                     'name' => $displayName,
                     'group' => $ev['age_group'],
+                    'is_eligible' => ($isAgeFit || $hasSaved),
                     'time' => $savedData[$sid][$ev['id']] ?? '', 
                     'best_time' => $recordMap[$sid][$ev['distance']][$shortStroke] ?? ($recordMap[$sid][$ev['distance']]['GAYA ' . $shortStroke] ?? null)
                 ];
@@ -505,10 +513,14 @@ class RegistrationController extends Controller {
         $allEvents = $stmtEn->fetchAll(PDO::FETCH_ASSOC);
 
         $availableEvents = [];
+        $swGen = (strtoupper($swimmer['jenis_kelamin'] ?? '') === 'P' || strtoupper($swimmer['jenis_kelamin'] ?? '') === 'PUTRI') ? 'P' : 'L';
         foreach ($allEvents as $ev) {
-            if ($this->checkSwimmerEligibility($swimmer, $ev, $ageRules, $compYear, $calcType, $compDateObj)) {
-                $availableEvents[] = $ev;
+            $evGenRaw = strtoupper($ev['jenis_kelamin'] ?? '');
+            $evGen = ($evGenRaw === 'P' || $evGenRaw === 'PUTRI') ? 'P' : (($evGenRaw === 'L' || $evGenRaw === 'PUTRA') ? 'L' : 'MIX');
+            if ($evGen !== 'MIX' && $evGen !== 'MIXED' && $evGen !== $swGen) {
+                continue;
             }
+            $availableEvents[] = $ev;
         }
 
         // Get existing entries

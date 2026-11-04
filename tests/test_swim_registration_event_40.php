@@ -182,6 +182,37 @@ assert(isset($testStructure['GAYA KUPU-KUPU'][25]), "GAYA KUPU-KUPU must have ke
 
 echo "PASS: Table Structure cleanly groups ALL stroke variants into canonical headers with 25M PAPAN (key 0), 25 M (key 25), and 50 M (key 50)!\n";
 
+// Test Swimmer Event List: All events of the swimmer's gender are available in the modal
+$swimmerMale = ['id' => 99, 'nama_atlet' => 'Tester Putra', 'tanggal_lahir' => '2015-05-10', 'jenis_kelamin' => 'L']; // Age 11
+$sampleAllEvents = [
+    ['id' => 1, 'event_number' => '1', 'stroke' => '25M Papan Bebas', 'distance' => 25, 'event_name' => '25 M PAPAN BEBAS PUTRA - LCM', 'jenis_kelamin' => 'L', 'age_group' => 'KU 2020'],
+    ['id' => 2, 'event_number' => '2', 'stroke' => '25M Papan Bebas', 'distance' => 25, 'event_name' => '25 M PAPAN BEBAS PUTRI - LCM', 'jenis_kelamin' => 'P', 'age_group' => 'KU 2020'],
+    ['id' => 3, 'event_number' => '3', 'stroke' => '25 M Gaya Bebas', 'distance' => 25, 'event_name' => '25 M GAYA BEBAS PUTRA - LCM', 'jenis_kelamin' => 'L', 'age_group' => 'KU 2020'],
+    ['id' => 5, 'event_number' => '5', 'stroke' => '50 M Gaya Bebas', 'distance' => 50, 'event_name' => '50 M GAYA BEBAS PUTRA - LCM', 'jenis_kelamin' => 'L', 'age_group' => 'KU 2016'],
+];
+
+$myEventsTest = [];
+$swGen = (strtoupper($swimmerMale['jenis_kelamin'] ?? '') === 'P' || strtoupper($swimmerMale['jenis_kelamin'] ?? '') === 'PUTRI') ? 'P' : 'L';
+foreach ($sampleAllEvents as $ev) {
+    $evGenRaw = strtoupper($ev['jenis_kelamin'] ?? '');
+    $evGen = ($evGenRaw === 'P' || $evGenRaw === 'PUTRI') ? 'P' : (($evGenRaw === 'L' || $evGenRaw === 'PUTRA') ? 'L' : 'MIX');
+    if ($evGen !== 'MIX' && $evGen !== 'MIXED' && $evGen !== $swGen) {
+        continue;
+    }
+    $isAgeFit = $method->invoke($instance, $swimmerMale, $ev, $ageRules, $event_year, "Dec 31", $compDateObj);
+    $myEventsTest[] = [
+        'id' => $ev['id'],
+        'event_number' => $ev['event_number'],
+        'is_eligible' => $isAgeFit
+    ];
+}
+
+assert(count($myEventsTest) === 3, "Male swimmer must receive all 3 male events (25M Papan, 25M, 50M)");
+assert($myEventsTest[0]['id'] === 1, "Event #1 (25M Papan Bebas) must be in modal list");
+assert($myEventsTest[1]['id'] === 3, "Event #3 (25M Bebas) must be in modal list");
+assert($myEventsTest[2]['id'] === 5, "Event #5 (50M Bebas) must be in modal list");
+echo "PASS: All male events are complete and accessible in the swimmer modal!\n";
+
 if ($passed !== count($testCases)) {
     exit(1);
 }

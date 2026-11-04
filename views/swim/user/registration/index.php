@@ -98,28 +98,44 @@
                             $matchedEvents = [];
                             $foundEvent = null;
                             $registeredTime = null;
+                            $swGen = (strtoupper($gender ?? '') === 'P' || strtoupper($gender ?? '') === 'PUTRI') ? 'P' : 'L';
 
+                            // 1. Cek nomor yang sudah terisi waktu pendaftarannya
                             foreach ($eventsInDist as $ev) {
-                                if (!empty($eligibleMap[$sid][$ev['id']])) {
-                                    $matchedEvents[] = $ev;
+                                if (isset($savedData[$sid][$ev['id']]) && $savedData[$sid][$ev['id']] !== '') {
+                                    $foundEvent = $ev;
+                                    $registeredTime = $savedData[$sid][$ev['id']];
+                                    break;
+                                }
+                            }
+
+                            // 2. Jika belum terisi, prioritaskan nomor yang sesuai KU & gender
+                            if (!$foundEvent) {
+                                foreach ($eventsInDist as $ev) {
+                                    if (!empty($eligibleMap[$sid][$ev['id']])) {
+                                        $foundEvent = $ev;
+                                        break;
+                                    }
+                                }
+                            }
+
+                            // 3. Fallback: nomor pertama di jarak/gaya ini yang sesuai gender atlet
+                            if (!$foundEvent) {
+                                foreach ($eventsInDist as $ev) {
+                                    $evGenRaw = strtoupper($ev['jenis_kelamin'] ?? '');
+                                    $evGen = ($evGenRaw === 'P' || $evGenRaw === 'PUTRI') ? 'P' : (($evGenRaw === 'L' || $evGenRaw === 'PUTRA') ? 'L' : 'MIX');
+                                    if ($evGen === 'MIX' || $evGen === 'MIXED' || $evGen === $swGen) {
+                                        $foundEvent = $ev;
+                                        break;
+                                    }
                                 }
                             }
 
                             $cellContent = '';
                             $cellClass = 'cell-blocked'; 
 
-                            if (!empty($matchedEvents)) {
-                                $foundEvent = $matchedEvents[0]; 
-
-                                foreach ($matchedEvents as $mev) {
-                                    if (isset($savedData[$sid][$mev['id']]) && $savedData[$sid][$mev['id']] !== '') {
-                                        $foundEvent = $mev;
-                                        break;
-                                    }
-                                }
-
-                                if (isset($savedData[$sid][$foundEvent['id']]) && $savedData[$sid][$foundEvent['id']] !== '') {
-                                    $registeredTime = $savedData[$sid][$foundEvent['id']];
+                            if ($foundEvent) {
+                                if ($registeredTime !== null && $registeredTime !== '') {
                                     $cellContent = htmlspecialchars($registeredTime);
                                     $cellClass = 'cell-filled';
                                 } else {
@@ -322,9 +338,10 @@ function openModal(sid, targetEventId = null) {
             let btnRec = ev.best_time ? `<button type="button" onclick="copyTime('${ev.best_time}', '${ev.id}')" class="bg-emerald-50 text-emerald-600 border border-emerald-200 px-2 py-1 rounded text-[9px] font-bold hover:bg-emerald-100 transition flex items-center gap-1">⚡ ${ev.best_time}</button>` : `<span class="text-[9px] text-slate-300 font-bold italic">No Record</span>`;
             let noPrefix = ev.event_number ? `<span class="text-blue-500 font-mono text-xs mr-1">#${ev.event_number}</span>` : '';
             let isTarget = (targetEventId && ev.id == targetEventId);
+            let badgeKu = ev.is_eligible ? `<span class="bg-emerald-100 text-emerald-700 text-[9px] font-black px-2 py-0.5 rounded-full uppercase ml-2 tracking-wide">SESUAI KU</span>` : '';
             body.insertAdjacentHTML('beforeend', `
                 <div id="card_ev_${ev.id}" class="bg-white p-3 rounded-xl border ${isTarget ? 'border-blue-500 ring-2 ring-blue-200 bg-blue-50/20' : 'border-slate-200'} shadow-sm mb-3 hover:border-blue-300 transition-colors group">
-                    <div class="flex justify-between items-center mb-2"><div class="font-black text-slate-700 text-sm italic uppercase tracking-tight group-hover:text-blue-600 transition-colors">${noPrefix}${ev.name}</div>${btnRec}</div>
+                    <div class="flex justify-between items-center mb-2"><div class="font-black text-slate-700 text-sm italic uppercase tracking-tight group-hover:text-blue-600 transition-colors flex items-center">${noPrefix}${ev.name}${badgeKu}</div>${btnRec}</div>
                     <div class="relative"><input type="text" id="input_${ev.id}" name="entries[${ev.id}]" value="${ev.time}" placeholder="00.00.00" maxlength="8" oninput="handleTimeInput(this)" class="w-full text-center font-mono font-bold text-xl text-slate-700 bg-slate-50 border border-slate-200 rounded-lg py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition shadow-inner placeholder:text-slate-200"><div class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 text-[10px] font-bold pointer-events-none">WAKTU</div></div>
                 </div>
             `);
