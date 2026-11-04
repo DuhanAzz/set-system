@@ -12,9 +12,10 @@ class LiveResultController extends Controller {
         $db = Database::getInstance()->getConnection();
         $uid = $_SESSION['swim_user_id'] ?? 0;
         
-        if ($event_id == 0) {
+        $event_id = (int)$event_id;
+        if ($event_id === 0) {
             $stmtFind = $db->query("SELECT e.id FROM swim_events e JOIN swim_event_numbers en ON e.id = en.event_id WHERE en.is_published = 1 ORDER BY e.event_date_start DESC LIMIT 1");
-            $event_id = $stmtFind->fetchColumn() ?: 0;
+            $event_id = (int)($stmtFind->fetchColumn() ?: 0);
         }
         
         $s = [];
@@ -46,140 +47,102 @@ class LiveResultController extends Controller {
         $isSchoolEvent = (strpos($partType, 'school') !== false || strpos($partType, 'sekolah') !== false);
         $teamHeaderLabel = $isSchoolEvent ? 'SEKOLAH' : 'KLUB / TIM';
 
-        $stmtAge = $db->prepare("SELECT group_name, min_age, max_age FROM swim_event_age_groups WHERE event_id = ?");
-        $stmtAge->execute([$event_id]);
-        $ageGroups = $stmtAge->fetchAll(PDO::FETCH_ASSOC);
-        $eventYear = date('Y', strtotime($event['event_date_start']));
+        // Ambil daftar nomor acara yang dipublikasikan
+        $sqlNumbers = "
+            SELECT en.*,
+                   IF(en.is_relay = 1,
+                       (SELECT COUNT(*) FROM swim_relay_entries re JOIN swim_event_seeding es ON re.id = es.entry_id WHERE re.category_id = en.id AND (es.time_final IS NOT NULL OR es.is_dq_final = 1)),
+                       (SELECT COUNT(*) FROM swim_event_entries ee JOIN swim_event_seeding es ON ee.id = es.entry_id WHERE ee.category_id = en.id AND (es.time_final IS NOT NULL OR es.is_dq_final = 1))
+                   ) as count_results
+            FROM swim_event_numbers en
+            WHERE en.event_id = ? AND en.is_published = 1
+            ORDER BY CAST(en.event_number AS UNSIGNED) ASC
+        ";
+        $stmtNumbers = $db->prepare($sqlNumbers);
+        $stmtNumbers->execute([$event_id]);
+        $publishedNumbers = $stmtNumbers->fetchAll(PDO::FETCH_ASSOC);
 
-        if (!function_exists('getAgeGroupLabel')) {
-            function getAgeGroupLabel($dob, $evtYear, $groups) {
-                if(!$dob || $dob == '0000-00-00') return '-';
-                $age = $evtYear - (int)date('Y', strtotime($dob));
-                foreach($groups as $g) {
-                    if ($age >= $g['min_age'] && $age <= $g['max_age']) return $g['group_name'];
-                }
-                return "DILUAR KATEGORI ($age TH)";
-            }
-        }
-
-        $sql = "SELECT en.event_number, en.distance, en.stroke, en.jenis_kelamin, en.age_group, en.rank_mode,
-                       s.nama_atlet, c.nama_klub, s.asal_sekolah, s.user_id as swimmer_owner_id, s.tanggal_lahir,
-                       ee.entry_time, 
-                       es.time_final, es.rank_final, es.is_dq_final, es.dq_reason_final
-                FROM swim_event_numbers en
-                JOIN swim_event_entries ee ON en.id = ee.category_id
-                JOIN swim_event_seeding es ON ee.id = es.entry_id
-                JOIN swim_swimmers s ON ee.swimmer_id = s.id
-                LEFT JOIN swim_clubs c ON ee.club_id = c.id
-                WHERE en.event_id = ? 
-                  AND en.is_published = 1  
-                  AND (es.time_final IS NOT NULL OR es.is_dq_final = 1)
-                UNION
-                SELECT en.event_number, en.distance, en.stroke, en.jenis_kelamin, en.age_group, en.rank_mode,
-                       c.nama_klub as nama_atlet, c.nama_klub, NULL as asal_sekolah, 0 as swimmer_owner_id, '0000-00-00' as tanggal_lahir,
-                       re.seed_time as entry_time, 
-                       es.time_final, es.rank_final, es.is_dq_final, es.dq_reason_final
-                FROM swim_event_numbers en
-                JOIN swim_relay_entries re ON en.id = re.category_id
-                JOIN swim_event_seeding es ON re.id = es.entry_id
-                LEFT JOIN swim_clubs c ON re.club_id = c.id
-                WHERE en.event_id = ? 
-                  AND en.is_published = 1  
-                  AND (es.time_final IS NOT NULL OR es.is_dq_final = 1)
-                ORDER BY 
-                    CAST(event_number AS UNSIGNED) ASC,
-                    is_dq_final ASC,
-                    rank_final ASC";
-
-        $stmtRes = $db->prepare($sql);
-        $stmtRes->execute([$event_id, $event_id]);
-        $results = $stmtRes->fetchAll(PDO::FETCH_ASSOC);
-
-        $stmtDqRules = $db->query("SELECT pasal, deskripsi FROM swim_dq_rules");
-        $dqRulesArray = [];
-        while ($row = $stmtDqRules->fetch(PDO::FETCH_ASSOC)) {
-            $dqRulesArray[$row['pasal']] = $row['deskripsi'];
-        }
-        $dqRulesJson = json_encode($dqRulesArray);
-
-        if (!function_exists('timeToMs')) {
-            function timeToMs($time) {
-                $time = trim($time);
-                if (empty($time) || strtoupper($time) == 'NT' || $time == '99:99.99' || $time == '99.99.99' || $time == '-') return 9999999999; 
-                $parts = preg_split('/[:.]/', $time);
-                $menit = 0; $detik = 0; $ms = 0;
-                if (count($parts) == 3) { $menit = (int)$parts[0]; $detik = (int)$parts[1]; $ms = (int)$parts[2]; } 
-                elseif (count($parts) == 2) { $detik = (int)$parts[0]; $ms = (int)$parts[1]; } 
-                elseif (count($parts) == 1) { $detik = (int)$parts[0]; }
-                return ($menit * 60000) + ($detik * 1000) + ($ms * 10);
-            }
-        }
-
-
-
-        $groupedResults = [];
-        foreach ($results as $r) {
-            $r['ms_sort'] = 9999999999;
-            if ($r['is_dq_final'] == 1) { $r['ms_sort'] = 9999999999 + 100; }
-            elseif (!empty($r['time_final']) && strtoupper($r['time_final']) != 'NT' && $r['time_final'] != '99:99.99' && $r['time_final'] != '99.99.99') { $r['ms_sort'] = timeToMs($r['time_final']); }
-            
-            $isSplit = ($r['rank_mode'] === 'split');
-            $is_gabungan = (stripos($r['age_group'], 'GABUNG') !== false || strpos($r['age_group'], ',') !== false || strpos($r['age_group'], '/') !== false);
-            
-            if (!$isSplit) {
-                $label = ($is_gabungan) ? 'OVERALL' : $r['age_group'];
-                $judulAcara = "ACARA #" . $r['event_number'] . " - " . $r['distance'] . "M " . strtoupper($r['stroke']) . " " . strtoupper($r['jenis_kelamin']) . " (" . $label . ")";
-            } else {
-                $realKU = getAgeGroupLabel($r['tanggal_lahir'], $eventYear, $ageGroups);
-                $judulAcara = "ACARA #" . $r['event_number'] . " - " . $r['distance'] . "M " . strtoupper($r['stroke']) . " " . strtoupper($r['jenis_kelamin']) . " (" . $realKU . ")";
-            }
-
-            $groupedResults[$judulAcara][] = $r;
-        }
-
-        foreach ($groupedResults as &$rows) {
-            usort($rows, function($a, $b) {
-                if ($a['ms_sort'] == $b['ms_sort']) return 0;
-                return ($a['ms_sort'] < $b['ms_sort']) ? -1 : 1;
-            });
-            
-            $rank = 1; $real_rank = 1; $prev_time = null;
-            foreach ($rows as &$atlet) {
-                $isDQ = ($atlet['is_dq_final'] == 1);
-                $isValid = (!$isDQ && !empty($atlet['time_final']) && strtoupper($atlet['time_final']) != 'NT' && $atlet['time_final'] != '99:99.99' && $atlet['time_final'] != '99.99.99');
-                $atlet['dynamic_rank'] = null;
-                if ($isValid) {
-                    if ($atlet['ms_sort'] !== $prev_time) { $real_rank = $rank; }
-                    $atlet['dynamic_rank'] = $real_rank;
-                    $prev_time = $atlet['ms_sort'];
-                    $rank++;
-                }
-            }
-        }
-        unset($rows);
-        
-        uksort($groupedResults, function($a, $b) {
-            preg_match('/ACARA #(\d+)/', $a, $matchA);
-            preg_match('/ACARA #(\d+)/', $b, $matchB);
-            $numA = isset($matchA[1]) ? (int)$matchA[1] : 9999;
-            $numB = isset($matchB[1]) ? (int)$matchB[1] : 9999;
-            
-            if ($numA === $numB) {
-                return strcmp($a, $b); 
-            }
-            return $numA < $numB ? -1 : 1;
-        });
+        // Ambil dokumen publik terkait event (misal Rekap Juara Umum, dsb)
+        $stmtDocs = $db->prepare("SELECT * FROM swim_documents WHERE event_id = ? ORDER BY id DESC");
+        $stmtDocs->execute([$event_id]);
+        $documents = $stmtDocs->fetchAll(PDO::FETCH_ASSOC);
 
         return $this->view('swim/live_result', [
             's' => $s,
             'event' => $event,
             'teamHeaderLabel' => $teamHeaderLabel,
-            'eventYear' => $eventYear,
-            'ageGroups' => $ageGroups,
-            'dqRulesJson' => $dqRulesJson,
-            'groupedResults' => $groupedResults,
             'isSchoolEvent' => $isSchoolEvent,
+            'publishedNumbers' => $publishedNumbers,
+            'documents' => $documents,
             'user_id' => $uid
+        ]);
+    }
+
+    public function view($categoryId = 0) {
+        $db = Database::getInstance()->getConnection();
+        $categoryId = (int)($categoryId ?: ($_GET['category_id'] ?? 0));
+
+        if ($categoryId <= 0) {
+            header("Location: " . getenv('APP_URL') . "/swim/results");
+            exit;
+        }
+
+        $stmtRace = $db->prepare("SELECT * FROM swim_event_numbers WHERE id = ?");
+        $stmtRace->execute([$categoryId]);
+        $raceInfo = $stmtRace->fetch(PDO::FETCH_ASSOC);
+
+        if (!$raceInfo) {
+            header("Location: " . getenv('APP_URL') . "/swim/results");
+            exit;
+        }
+
+        $eventId = (int)$raceInfo['event_id'];
+        $stmtEvt = $db->prepare("SELECT * FROM swim_events WHERE id = ?");
+        $stmtEvt->execute([$eventId]);
+        $eventProfile = $stmtEvt->fetch(PDO::FETCH_ASSOC) ?: [];
+
+        $isRelay = isset($raceInfo['is_relay']) && $raceInfo['is_relay'] == 1;
+
+        // Ambil data seeding/hasil
+        if ($isRelay) {
+            $sql = "SELECT es.id, es.heat_prelim as heat, es.lane_prelim as lane, es.time_final as final_time, es.is_dq_final as is_dq, es.dq_reason_final as dq_reason, es.time_prelim as entry_time,
+                    NULL as uid, COALESCE(NULLIF(re.team_name, ''), c.nama_klub) as nama_atlet, '0000-00-00' as tanggal_lahir, NULL as asal_sekolah, c.nama_klub as club_name, es.rank_final
+                    FROM swim_relay_entries re 
+                    JOIN swim_event_seeding es ON re.id = es.entry_id 
+                    LEFT JOIN swim_clubs c ON re.club_id = c.id 
+                    WHERE re.category_id = ? AND es.heat_prelim IS NOT NULL ORDER BY es.heat_prelim ASC, es.lane_prelim ASC";
+        } else {
+            $sql = "SELECT es.id, es.heat_prelim as heat, es.lane_prelim as lane, es.time_final as final_time, es.is_dq_final as is_dq, es.dq_reason_final as dq_reason, es.time_prelim as entry_time,
+                    s.uid, s.nama_atlet, s.tanggal_lahir, s.asal_sekolah, c.nama_klub as club_name, es.rank_final
+                    FROM swim_event_entries ee JOIN swim_event_seeding es ON ee.id = es.entry_id JOIN swim_swimmers s ON ee.swimmer_id = s.id LEFT JOIN swim_clubs c ON ee.club_id = c.id 
+                    WHERE ee.category_id = ? AND es.heat_prelim IS NOT NULL ORDER BY es.heat_prelim ASC, es.lane_prelim ASC";
+        }
+        $stmt = $db->prepare($sql);
+        $stmt->execute([$categoryId]);
+        $rawData = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $heats = [];
+        foreach ($rawData as $row) { $heats[$row['heat']][$row['lane']] = $row; }
+
+        $stmtAge = $db->prepare("SELECT group_name, min_age, max_age FROM swim_event_age_groups WHERE event_id = ?");
+        $stmtAge->execute([$eventId]);
+        $ageGroups = $stmtAge->fetchAll(PDO::FETCH_ASSOC);
+
+        // Ambil daftar nomor acara yang dipublikasikan untuk navigasi cepat
+        $stmtAllPub = $db->prepare("SELECT id, event_number, distance, stroke, jenis_kelamin, age_group FROM swim_event_numbers WHERE event_id = ? AND is_published = 1 ORDER BY CAST(event_number AS UNSIGNED) ASC");
+        $stmtAllPub->execute([$eventId]);
+        $allPublishedNumbers = $stmtAllPub->fetchAll(PDO::FETCH_ASSOC);
+
+        return $this->view('swim/live_result_sheet', [
+            'raceInfo' => $raceInfo,
+            'eventProfile' => $eventProfile,
+            'eventId' => $eventId,
+            'cat_id' => $categoryId,
+            'rawData' => $rawData,
+            'heats' => $heats,
+            'ageGroups' => $ageGroups,
+            'allPublishedNumbers' => $allPublishedNumbers,
+            'pdo' => $db
         ]);
     }
 }

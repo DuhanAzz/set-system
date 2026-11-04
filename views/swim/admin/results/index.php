@@ -6,6 +6,9 @@
         </div>
 
         <div class="flex flex-col md:flex-row gap-3 w-full md:w-auto">
+            <a href="<?= getenv('APP_URL') ?>/swim/admin/results/publish" class="px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs uppercase tracking-wider shadow-lg hover:shadow-blue-200 transition flex items-center justify-center gap-2 group">
+                <span>🌐</span> Publikasi Live Result
+            </a>
             <a href="<?= getenv('APP_URL') ?>/swim/admin/export" class="px-5 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs uppercase tracking-wider shadow-lg hover:shadow-emerald-200 transition flex items-center justify-center gap-2 group">
                 <span class="group-hover:translate-y-0.5 transition-transform">📥</span> Download Full Hasil
             </a>
@@ -54,9 +57,21 @@
                     <span class="text-[10px] font-bold text-slate-500 bg-slate-100 px-3 py-1 rounded-lg border border-slate-200">
                         KU: <?= $ev['age_group'] ?>
                     </span>
+                    <span class="text-[10px] font-bold <?= ($ev['rank_mode'] ?? 'split') === 'overall' ? 'text-indigo-600 bg-indigo-50 border-indigo-200' : 'text-slate-600 bg-slate-100 border-slate-200' ?> px-2.5 py-1 rounded-lg border">
+                        <?= ($ev['rank_mode'] ?? 'split') === 'overall' ? 'OVERALL' : 'SPLIT KU' ?>
+                    </span>
                     <?php if($is_completed): ?>
                         <span class="text-[10px] font-bold text-emerald-600 bg-emerald-100 px-2 py-1 rounded-lg flex items-center gap-1 border border-emerald-200">
                             ✅ SELESAI
+                        </span>
+                    <?php endif; ?>
+                    <?php if(($ev['is_published'] ?? 0) == 1): ?>
+                        <span class="text-[10px] font-black text-blue-700 bg-blue-100 px-2 py-1 rounded-lg flex items-center gap-1 border border-blue-200">
+                            🔴 LIVE
+                        </span>
+                    <?php else: ?>
+                        <span class="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded-lg border border-slate-200">
+                            ⚪ DRAFT
                         </span>
                     <?php endif; ?>
                 </div>
@@ -69,19 +84,13 @@
                 </p>
             </div>
 
-            <div class="w-full md:w-auto flex flex-col items-center md:items-end gap-3 px-4 relative z-10">
-                <div class="text-right hidden md:block">
-                    <span class="block text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Data Masuk</span>
-                    <div class="flex items-center gap-2 justify-end">
-                        <span class="text-2xl font-black <?= $is_completed ? 'text-emerald-500' : 'text-slate-700' ?>">
-                            <?= $ev['total_finished'] ?>
-                        </span>
-                        <span class="text-xs font-bold text-slate-400">/ <?= $ev['count_seeded'] ?></span>
-                    </div>
-                </div>
-
+            <div class="w-full md:w-auto flex flex-col md:flex-row items-center md:items-center gap-2 relative z-10">
+                <a href="<?= getenv('APP_URL') ?>/swim/admin/results/input?category_id=<?= $ev['id'] ?>&print=1" target="_blank"
+                   class="w-full md:w-auto px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 rounded-xl font-bold text-xs uppercase tracking-wider shadow-sm transition flex items-center justify-center gap-1.5" title="Buka Lembar Cetak A4">
+                    🖨️ Preview A4
+                </a>
                 <a href="<?= getenv('APP_URL') ?>/swim/admin/results/input?category_id=<?= $ev['id'] ?>" 
-                   class="w-full md:w-auto px-8 py-3 
+                   class="w-full md:w-auto px-6 py-3 
                    <?= $is_completed ? 'bg-slate-800 hover:bg-slate-700 shadow-slate-200' : 'bg-blue-600 hover:bg-blue-700 shadow-blue-200' ?> 
                    text-white rounded-xl font-bold text-xs uppercase tracking-wider shadow-lg transition flex items-center justify-center gap-2 transform active:scale-95">
                     <?= $is_completed ? '📝 Edit Hasil' : '⏱️ Input Waktu' ?>

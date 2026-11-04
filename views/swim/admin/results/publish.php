@@ -15,6 +15,13 @@
 <div class="max-w-5xl mx-auto">
     <div class="mb-8 flex flex-col lg:flex-row lg:items-end justify-between gap-6 border-b border-slate-200 pb-6">
         <div>
+            <div class="flex items-center gap-3 mb-1">
+                <a href="<?= getenv('APP_URL') ?>/swim/admin/results" class="text-xs font-bold text-slate-400 hover:text-blue-600 transition flex items-center gap-1">
+                    &larr; Input Hasil
+                </a>
+                <span class="text-slate-300">/</span>
+                <span class="text-xs font-bold text-slate-600">Publikasi</span>
+            </div>
             <h1 class="text-3xl font-black text-slate-800 uppercase italic tracking-tighter">Publikasi Live Result</h1>
             <p class="text-sm text-slate-500 font-bold mt-1">Kelola dokumen dan Live Result untuk pengguna.</p>
         </div>
@@ -84,10 +91,12 @@
             <table class="w-full text-left border-collapse">
                 <thead>
                     <tr class="bg-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-200">
-                        <th class="px-6 py-4 w-24 text-center">No.</th>
+                        <th class="px-6 py-4 w-20 text-center">No.</th>
                         <th class="px-6 py-4">Nomor Lomba</th>
                         <th class="px-6 py-4 text-center w-32">Status Data</th>
-                        <th class="px-6 py-4 text-right w-40">Live Result?</th>
+                        <th class="px-6 py-4 text-center w-48">Mode Ranking</th>
+                        <th class="px-6 py-4 text-center w-36">Live Result?</th>
+                        <th class="px-6 py-4 text-right w-36">Aksi A4</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
@@ -107,16 +116,27 @@
                         </td>
                         <td class="px-6 py-4 text-center">
                             <?php if($hasResult): ?>
-                                <span class="px-2 py-1 bg-emerald-100 text-emerald-700 rounded text-[9px] font-black uppercase tracking-widest">✅ Siap</span>
+                                <span class="px-2 py-1 bg-emerald-100 text-emerald-700 rounded text-[9px] font-black uppercase tracking-widest">✅ Siap (<?= $race['count_results'] ?>)</span>
                             <?php else: ?>
                                 <span class="px-2 py-1 bg-amber-100 text-amber-700 rounded text-[9px] font-black uppercase tracking-widest">⏳ Kosong</span>
                             <?php endif; ?>
                         </td>
-                        <td class="px-6 py-4 text-right">
+                        <td class="px-6 py-4 text-center">
+                            <select onchange="updateRankMode(<?= $race['id'] ?>, this.value)" class="text-[10px] font-black border border-slate-200 rounded-lg px-2.5 py-1.5 bg-slate-50 text-slate-700 cursor-pointer focus:border-blue-500 focus:outline-none uppercase tracking-wider">
+                                <option value="split" <?= ($race['rank_mode'] ?? 'split') === 'split' ? 'selected' : '' ?>>📊 Per KU (Split)</option>
+                                <option value="overall" <?= ($race['rank_mode'] ?? 'split') === 'overall' ? 'selected' : '' ?>>🏆 Gabungan (Overall)</option>
+                            </select>
+                        </td>
+                        <td class="px-6 py-4 text-center">
                             <label class="inline-flex items-center cursor-pointer <?= !$hasResult ? 'opacity-50' : '' ?>" <?= !$hasResult ? 'title="Input hasil terlebih dahulu!"' : '' ?>>
                                 <input type="checkbox" class="sr-only peer" onchange="togglePublish(this, <?= $race['id'] ?>)" <?= $isPublished ? 'checked' : '' ?> <?= !$hasResult ? 'disabled' : '' ?>>
-                                <div class="relative w-14 h-7 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-blue-600 shadow-inner"></div>
+                                <div class="relative w-12 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600 shadow-inner"></div>
                             </label>
+                        </td>
+                        <td class="px-6 py-4 text-right">
+                            <a href="<?= getenv('APP_URL') ?>/swim/admin/results/input?category_id=<?= $race['id'] ?>&print=1" target="_blank" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold rounded-lg border border-slate-300 uppercase tracking-wider transition">
+                                🖨️ A4
+                            </a>
                         </td>
                     </tr>
                     <?php endforeach; ?>
@@ -190,6 +210,36 @@ function togglePublish(checkboxElem, eventNumberId) {
     })
     .catch(error => {
         checkboxElem.checked = !isChecked;
+        Swal.fire('Gagal!', 'Terjadi kesalahan sistem.', 'error');
+    });
+}
+
+function updateRankMode(eventNumberId, mode) {
+    const formData = new FormData();
+    formData.append('action', 'toggle_rank_mode');
+    formData.append('event_number_id', eventNumberId);
+    formData.append('rank_mode', mode);
+
+    fetch('<?= getenv('APP_URL') ?>/swim/admin/results/publish', {
+        method: 'POST',
+        body: formData
+    })
+    .then(r => r.json())
+    .then(data => {
+        if(data.success) {
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'success',
+                title: data.message,
+                showConfirmButton: false,
+                timer: 1500
+            });
+        } else {
+            Swal.fire('Gagal!', data.message, 'error');
+        }
+    })
+    .catch(() => {
         Swal.fire('Gagal!', 'Terjadi kesalahan sistem.', 'error');
     });
 }

@@ -399,6 +399,24 @@ class ResultsController extends Controller {
                 }
                 exit; 
             }
+
+            if ($_POST['action'] === 'toggle_rank_mode') {
+                $numId = (int)($_POST['event_number_id'] ?? 0);
+                $mode = trim($_POST['rank_mode'] ?? 'split');
+                if (!in_array($mode, ['split', 'overall'])) $mode = 'split';
+                try {
+                    $stmt = $pdo->prepare("UPDATE swim_event_numbers SET rank_mode = ? WHERE id = ?");
+                    $stmt->execute([$mode, $numId]);
+                    echo json_encode([
+                        'success' => true,
+                        'message' => 'Mode ranking berhasil diubah ke ' . ($mode === 'overall' ? 'OVERALL (GABUNGAN)' : 'SPLIT (PER KU)'),
+                        'rank_mode' => $mode
+                    ]);
+                } catch (Exception $e) {
+                    echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
+                }
+                exit;
+            }
             
             if ($_POST['action'] === 'toggle_event_publish') {
                 $evId = $_POST['event_id'] ?? 0;
