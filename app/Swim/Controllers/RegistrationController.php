@@ -394,6 +394,12 @@ class RegistrationController extends Controller {
                     $eligibleMap[$sid][$ev['id']] = true;
                 }
 
+                $hasSaved = isset($savedData[$sid][$ev['id']]) && $savedData[$sid][$ev['id']] !== '';
+                // Hanya tampilkan nomor yang sesuai KU atlet (atau yang sudah terdaftar sebelumnya)
+                if (!$isAgeFit && !$hasSaved) {
+                    continue;
+                }
+
                 $rawStroke = strtoupper(trim($ev['stroke'] ?? ''));
                 $rawName   = strtoupper(trim($ev['event_name'] ?? ''));
                 $fullText  = $rawStroke . ' ' . $rawName;
@@ -693,7 +699,6 @@ class RegistrationController extends Controller {
             exit;
         }
 
-        $rule = $this->getActiveEventAgeRule($event['id']);
         $calcType = $event['age_calculation_type'] ?? 'Dec 31'; 
         $compYear = (int)date('Y', strtotime($event['event_date_start']));
         $compDateObj = new DateTime($event['event_date_start']);
@@ -718,45 +723,90 @@ class RegistrationController extends Controller {
             $savedData[$row['swimmer_id']][$row['category_id']] = $row['entry_time']; 
         }
 
+        $matrixIds = $_SESSION['matrix_list'][$event_id] ?? [];
+        $visibleSwimmers = array_values(array_filter($allSwimmers, fn($s) => in_array($s['id'], $matrixIds)));
+        $swimmersToExport = !empty($visibleSwimmers) ? $visibleSwimmers : $allSwimmers;
+
         header('Content-Type: text/csv; charset=utf-8');
-        header('Content-Disposition: attachment; filename=matrix_registrasi_'.$event_id.'.csv');
+        header('Content-Disposition: attachment; filename=FormA3_' . preg_replace('/[^A-Za-z0-9_-]/', '_', $event['event_name'] ?? 'Event') . '_' . $event_id . '.csv');
         $output = fopen('php://output', 'w');
 
-        // Headers
-        $headers = ['UID', 'NAMA ATLET', 'GENDER', 'TGL LAHIR'];
-        foreach ($allEvents as $ev) {
-            $headers[] = "[ID:" . $ev['id'] . "] " . $ev['distance'] . "M " . strtoupper($ev['stroke']) . " " . strtoupper($ev['jenis_kelamin']) . " " . strtoupper($ev['age_group']);
-        }
-        fputcsv($output, $headers);
+        // Form A3 2-row header
+        fputcsv($output, ['Nama', 'Sekolah', 'Tgl Lahir', 'Pa/Pi', 'Gaya Bebas', '', '', 'Gaya Dada', '', '', 'Gaya Punggung', '', '', 'Gaya Kupu-kupu', '', '']);
+        fputcsv($output, ['', '', '', '', 'Papan', '25M', '50M', 'Papan', '25M', '50M', 'Papan', '25M', '50M', 'Papan', '25M', '50M']);
 
-        foreach ($allSwimmers as $sw) {
+        $formA3Columns = [
+            4  => ['stroke' => 'BEBAS',     'distance' => 25, 'is_kick' => true],
+            5  => ['stroke' => 'BEBAS',     'distance' => 25, 'is_kick' => false],
+            6  => ['stroke' => 'BEBAS',     'distance' => 50, 'is_kick' => false],
+            7  => ['stroke' => 'DADA',      'distance' => 25, 'is_kick' => true],
+            8  => ['stroke' => 'DADA',      'distance' => 25, 'is_kick' => false],
+            9  => ['stroke' => 'DADA',      'distance' => 50, 'is_kick' => false],
+            10 => ['stroke' => 'PUNGGUNG',  'distance' => 25, 'is_kick' => true],
+            11 => ['stroke' => 'PUNGGUNG',  'distance' => 25, 'is_kick' => false],
+            12 => ['stroke' => 'PUNGGUNG',  'distance' => 50, 'is_kick' => false],
+            13 => ['stroke' => 'KUPU-KUPU', 'distance' => 25, 'is_kick' => true],
+            14 => ['stroke' => 'KUPU-KUPU', 'distance' => 25, 'is_kick' => false],
+            15 => ['stroke' => 'KUPU-KUPU', 'distance' => 50, 'is_kick' => false],
+        ];
+
+        foreach ($swimmersToExport as $sw) {
             $sid = $sw['id'];
-            $dobObj = new DateTime($sw['tanggal_lahir']);
-            $birthYear = (int)$dobObj->format('Y');
-            $age = (strcasecmp($calcType, 'Meet Start') === 0 && $compDateObj) ? $dobObj->diff($compDateObj)->y : ($compYear - $birthYear);
-            
-            $gender = ($sw['jenis_kelamin'] == 'L') ? 'L' : 'P';
-            
+            $swGen = (strtoupper($sw['jenis_kelamin'] ?? '') === 'P' || strtoupper($sw['jenis_kelamin'] ?? '') === 'PUTRI') ? 'P' : 'L';
+            $dobFormatted = !empty($sw['tanggal_lahir']) ? date('d/m/Y', strtotime($sw['tanggal_lahir'])) : '';
+
             $row = [
-                $sw['uid'],
                 $sw['nama_atlet'],
-                $sw['jenis_kelamin'],
-                $sw['tanggal_lahir']
+                $sw['asal_sekolah'] ?? '',
+                $dobFormatted,
+                $swGen
             ];
 
-            foreach ($allEvents as $ev) {
-                $isAgeFit = $this->checkSwimmerEligibility($sw, $ev, $ageRules, $compYear, $calcType, $compDateObj);
+            foreach ($formA3Columns as $colIdx => $spec) {
+                $cellVal = '';
+                foreach ($allEvents as $ev) {
+                    $rawStroke = strtoupper(trim($ev['stroke'] ?? ''));
+                    $rawName   = strtoupper(trim($ev['event_name'] ?? ''));
+                    $fullText  = $rawStroke . ' ' . $rawName;
+                    $isKick    = (strpos($fullText, 'PAPAN') !== false || strpos($fullText, 'KICK') !== false);
 
-                if ($isAgeFit) {
-                    if (isset($savedData[$sid][$ev['id']]) && $savedData[$sid][$ev['id']] !== '') {
-                        $row[] = $savedData[$sid][$ev['id']];
+                    if (strpos($fullText, 'DADA') !== false || strpos($fullText, 'BREAST') !== false) {
+                        $sName = 'DADA';
+                    } elseif (strpos($fullText, 'PUNGGUNG') !== false || strpos($fullText, 'BACK') !== false) {
+                        $sName = 'PUNGGUNG';
+                    } elseif (strpos($fullText, 'KUPU') !== false || strpos($fullText, 'FLY') !== false) {
+                        $sName = 'KUPU-KUPU';
                     } else {
-                        $row[] = ""; 
+                        $sName = 'BEBAS';
                     }
-                } else {
-                    $row[] = "-";
+
+                    $dist = (int)($ev['distance'] ?? 0);
+                    if ($dist <= 0) {
+                        if (preg_match('/(?:^|\D)(25|50|100|200|400|800|1500)\s*M?(?:\D|$)/', $fullText, $dm)) {
+                            $dist = (int)$dm[1];
+                        } else {
+                            $dist = $isKick ? 25 : 50;
+                        }
+                    }
+
+                    if ($sName !== $spec['stroke'] || $dist !== $spec['distance'] || $isKick !== $spec['is_kick']) {
+                        continue;
+                    }
+
+                    $evGenRaw = strtoupper($ev['jenis_kelamin'] ?? '');
+                    $evGen = ($evGenRaw === 'P' || $evGenRaw === 'PUTRI') ? 'P' : (($evGenRaw === 'L' || $evGenRaw === 'PUTRA') ? 'L' : 'MIX');
+                    if ($evGen !== 'MIX' && $evGen !== 'MIXED' && $evGen !== $swGen) {
+                        continue;
+                    }
+
+                    if (isset($savedData[$sid][$ev['id']]) && $savedData[$sid][$ev['id']] !== '') {
+                        $cellVal = $savedData[$sid][$ev['id']];
+                        break;
+                    }
                 }
+                $row[] = $cellVal;
             }
+
             fputcsv($output, $row);
         }
         fclose($output);
@@ -791,6 +841,11 @@ class RegistrationController extends Controller {
             exit;
         }
 
+        // Schema patch for swim_swimmers uid
+        try {
+            $this->db->query("ALTER TABLE swim_swimmers MODIFY uid VARCHAR(20) NULL");
+        } catch (\Exception $e) {}
+
         ini_set('auto_detect_line_endings', TRUE);
         $handle = fopen($file, "r");
         if ($handle !== FALSE) {
@@ -799,18 +854,20 @@ class RegistrationController extends Controller {
             rewind($handle);
 
             $headers = fgetcsv($handle, 10000, $delimiter);
-            
+            if ($headers === false) {
+                $_SESSION['flash_error'] = "File CSV kosong.";
+                header("Location: " . getenv('APP_URL') . "/swim/user/registration/index/" . $event_id);
+                exit;
+            }
+
+            // Check if legacy CSV format with [ID:xxx]
+            $isLegacy = false;
             $eventCols = [];
             foreach ($headers as $index => $colName) {
                 if (preg_match('/\[ID:(\d+)\]/', $colName, $matches)) {
                     $eventCols[$index] = (int)$matches[1];
+                    $isLegacy = true;
                 }
-            }
-
-            if (empty($eventCols)) {
-                $_SESSION['flash_error'] = "Format CSV tidak sesuai. Pastikan Anda mengunduh format dari tombol Export terlebih dahulu.";
-                header("Location: " . getenv('APP_URL') . "/swim/user/registration/index/" . $event_id);
-                exit;
             }
 
             $stmtC = $this->db->prepare("SELECT id FROM swim_clubs WHERE user_id = ? LIMIT 1");
@@ -819,77 +876,268 @@ class RegistrationController extends Controller {
             $club_id = !empty($club_id) ? (int)$club_id : 0;
 
             $organizerId = (int)($event['user_id'] ?? 0);
-            $stmtValid = $this->db->prepare("SELECT id FROM swim_event_numbers WHERE (event_id = ? OR (event_id IS NULL AND organizer_id = ?))");
+            $stmtValid = $this->db->prepare("SELECT * FROM swim_event_numbers WHERE (event_id = ? OR (event_id IS NULL AND organizer_id = ?)) AND (is_relay = 0 OR is_relay IS NULL)");
             $stmtValid->execute([$event_id, $organizerId]);
-            $validCats = $stmtValid->fetchAll(PDO::FETCH_COLUMN);
+            $allEvents = $stmtValid->fetchAll(PDO::FETCH_ASSOC);
+
+            $stmtGroups = $this->db->prepare("SELECT id, min_age, max_age, group_name FROM swim_event_age_groups WHERE event_id = ?");
+            $stmtGroups->execute([$event_id]);
+            $ageRules = $stmtGroups->fetchAll(PDO::FETCH_UNIQUE|PDO::FETCH_ASSOC);
+
+            $calcType = $event['age_calculation_type'] ?? 'Dec 31'; 
+            $compYear = (int)date('Y', strtotime($event['event_date_start']));
+            $compDateObj = new DateTime($event['event_date_start']);
 
             $this->db->beginTransaction();
             $updated = 0;
             $deleted = 0;
+            $newSwimmers = 0;
             
             try {
-                $stmtSwimmer = $this->db->prepare("SELECT id FROM swim_swimmers WHERE uid = ? AND user_id = ?");
                 $stmtCek = $this->db->prepare("SELECT id FROM swim_event_entries WHERE user_id=? AND event_id=? AND swimmer_id=? AND category_id=?");
                 $stmtDel = $this->db->prepare("DELETE FROM swim_event_entries WHERE id=?");
                 $stmtUpd = $this->db->prepare("UPDATE swim_event_entries SET entry_time=?, entry_time_ms=?, club_id=? WHERE id=?");
                 $stmtIns = $this->db->prepare("INSERT INTO swim_event_entries (user_id, event_id, club_id, swimmer_id, category_id, entry_time, entry_time_ms, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, 'Pending', NOW())");
 
-                while (($data = fgetcsv($handle, 10000, $delimiter)) !== FALSE) {
-                    if (count($data) == 1 && strpos($data[0], ',') !== false && $delimiter == ';') {
-                        $data = explode(',', $data[0]);
-                    }
+                if ($isLegacy) {
+                    $stmtSwimmer = $this->db->prepare("SELECT id FROM swim_swimmers WHERE uid = ? AND user_id = ?");
+                    $validCatIds = array_column($allEvents, 'id');
 
-                    if (count($data) < 4) continue;
-                    $swimmerUid = trim($data[0]);
-                    
-                    $stmtSwimmer->execute([$swimmerUid, $uid]);
-                    $swimmerId = $stmtSwimmer->fetchColumn();
-                    if (!$swimmerId) continue; 
-
-                    if (!isset($_SESSION['matrix_list'][$event_id])) $_SESSION['matrix_list'][$event_id] = [];
-                    if (!in_array($swimmerId, $_SESSION['matrix_list'][$event_id])) {
-                        $_SESSION['matrix_list'][$event_id][] = (int)$swimmerId;
-                    }
-
-                    foreach ($eventCols as $index => $catId) {
-                        if (!in_array($catId, $validCats)) continue;
-
-                        $time = isset($data[$index]) ? trim($data[$index]) : '';
+                    while (($data = fgetcsv($handle, 10000, $delimiter)) !== FALSE) {
+                        if (count($data) == 1 && strpos($data[0], ',') !== false && $delimiter == ';') {
+                            $data = explode(',', $data[0]);
+                        }
+                        if (count($data) < 4) continue;
+                        $swimmerUid = trim($data[0]);
                         
-                        if (strpos(strtoupper($time), 'TIDAK SESUAI') !== false || $time === '-') continue;
-                        
-                        if ($time !== '' && strtoupper($time) !== 'DELETE' && $time !== '99.99.99' && strtoupper($time) !== 'X') {
-                            $time = preg_replace('/[^\d\.\:]/', '', $time);
-                            $time = str_replace(':', '.', $time);
-                        } else if (strtoupper($time) === 'X' || $time === '00.00.00' || strtoupper($time) === 'NT') {
-                            $time = '99.99.99';
+                        $stmtSwimmer->execute([$swimmerUid, $uid]);
+                        $swimmerId = $stmtSwimmer->fetchColumn();
+                        if (!$swimmerId) continue; 
+
+                        if (!isset($_SESSION['matrix_list'][$event_id])) $_SESSION['matrix_list'][$event_id] = [];
+                        if (!in_array($swimmerId, $_SESSION['matrix_list'][$event_id])) {
+                            $_SESSION['matrix_list'][$event_id][] = (int)$swimmerId;
                         }
 
-                        $stmtCek->execute([$uid, $event_id, $swimmerId, $catId]);
-                        $exist = $stmtCek->fetch(PDO::FETCH_ASSOC);
+                        foreach ($eventCols as $index => $catId) {
+                            if (!in_array($catId, $validCatIds)) continue;
 
-                        if ($time === '' || $time === '00.00.00' || strtoupper($time) === 'DELETE') {
-                            if ($exist) {
-                                $stmtDel->execute([$exist['id']]);
-                                $deleted++;
+                            $time = isset($data[$index]) ? trim($data[$index]) : '';
+                            if (strpos(strtoupper($time), 'TIDAK SESUAI') !== false || $time === '-') continue;
+                            
+                            if ($time !== '' && strtoupper($time) !== 'DELETE' && $time !== '99.99.99' && strtoupper($time) !== 'X') {
+                                $time = preg_replace('/[^\d\.\:]/', '', $time);
+                                $time = str_replace(':', '.', $time);
+                            } else if (strtoupper($time) === 'X' || $time === '00.00.00' || strtoupper($time) === 'NT') {
+                                $time = '99.99.99';
                             }
+
+                            $stmtCek->execute([$uid, $event_id, $swimmerId, $catId]);
+                            $exist = $stmtCek->fetch(PDO::FETCH_ASSOC);
+
+                            if ($time === '' || $time === '00.00.00' || strtoupper($time) === 'DELETE') {
+                                if ($exist) {
+                                    $stmtDel->execute([$exist['id']]);
+                                    $deleted++;
+                                }
+                            } else {
+                                $timeMs = 999999999;
+                                if ($time !== '99.99.99') {
+                                    $parts = explode('.', $time);
+                                    if (count($parts) >= 2) {
+                                        $m = count($parts) >= 3 ? (int)$parts[0] : 0;
+                                        $s = count($parts) >= 3 ? (int)$parts[1] : (int)$parts[0];
+                                        $ms = count($parts) >= 3 ? (int)$parts[2] : (int)$parts[1];
+                                        $timeMs = ($m * 60000) + ($s * 1000) + ($ms * 10);
+                                    }
+                                }
+
+                                if ($exist) {
+                                    $stmtUpd->execute([$time, $timeMs, $club_id, $exist['id']]);
+                                    $updated++;
+                                } else {
+                                    $stmtIns->execute([$uid, $event_id, $club_id, $swimmerId, $catId, $time, $timeMs]);
+                                    $updated++;
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    // Form A3 Format Parser
+                    $row2 = fgetcsv($handle, 10000, $delimiter);
+                    $subText = strtoupper(implode(' ', (array)$row2));
+                    if (strpos($subText, 'PAPAN') === false && strpos($subText, '25M') === false && strpos($subText, '50M') === false) {
+                        $firstDataRow = $row2;
+                    } else {
+                        $firstDataRow = null;
+                    }
+
+                    $formA3Columns = [
+                        4  => ['stroke' => 'BEBAS',     'distance' => 25, 'is_kick' => true],
+                        5  => ['stroke' => 'BEBAS',     'distance' => 25, 'is_kick' => false],
+                        6  => ['stroke' => 'BEBAS',     'distance' => 50, 'is_kick' => false],
+                        7  => ['stroke' => 'DADA',      'distance' => 25, 'is_kick' => true],
+                        8  => ['stroke' => 'DADA',      'distance' => 25, 'is_kick' => false],
+                        9  => ['stroke' => 'DADA',      'distance' => 50, 'is_kick' => false],
+                        10 => ['stroke' => 'PUNGGUNG',  'distance' => 25, 'is_kick' => true],
+                        11 => ['stroke' => 'PUNGGUNG',  'distance' => 25, 'is_kick' => false],
+                        12 => ['stroke' => 'PUNGGUNG',  'distance' => 50, 'is_kick' => false],
+                        13 => ['stroke' => 'KUPU-KUPU', 'distance' => 25, 'is_kick' => true],
+                        14 => ['stroke' => 'KUPU-KUPU', 'distance' => 25, 'is_kick' => false],
+                        15 => ['stroke' => 'KUPU-KUPU', 'distance' => 50, 'is_kick' => false],
+                    ];
+
+                    $stmtCekSwimmer = $this->db->prepare("SELECT id FROM swim_swimmers WHERE user_id = ? AND UPPER(TRIM(nama_atlet)) = ?");
+                    $stmtUpdSwimmer = $this->db->prepare("UPDATE swim_swimmers SET jenis_kelamin=?, tanggal_lahir=?, asal_sekolah=? WHERE id=?");
+                    $stmtInsSwimmer = $this->db->prepare("INSERT INTO swim_swimmers (uid, user_id, nama_atlet, jenis_kelamin, tanggal_lahir, club_id, asal_sekolah) VALUES (?, ?, ?, ?, ?, ?, ?)");
+
+                    $processRow = function($data) use (
+                        &$updated, &$deleted, &$newSwimmers, $formA3Columns, $allEvents, $ageRules,
+                        $compYear, $calcType, $compDateObj, $uid, $event_id, $club_id,
+                        $stmtCekSwimmer, $stmtUpdSwimmer, $stmtInsSwimmer, $stmtCek, $stmtDel, $stmtUpd, $stmtIns
+                    ) {
+                        if (count($data) < 4) return;
+                        $nama = trim($data[0] ?? '');
+                        if (empty($nama) || strtoupper($nama) === 'NAMA' || strtoupper($nama) === 'NAMA ATLET' || strtoupper($nama) === 'NO') {
+                            return;
+                        }
+
+                        $sekolah = trim($data[1] ?? '');
+                        $dobRaw = trim($data[2] ?? '');
+                        $genderRaw = strtoupper(trim($data[3] ?? ''));
+
+                        $gender = ($genderRaw === 'P' || $genderRaw === 'PUTRI' || $genderRaw === 'PI' || $genderRaw === 'F') ? 'P' : 'L';
+
+                        $dob = $dobRaw;
+                        if (!preg_match("/^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])$/", $dob)) {
+                            $dobClean = str_replace('/', '-', $dobRaw);
+                            if (preg_match("/^([0-9]{1,2})-([0-9]{1,2})-([0-9]{4})$/", $dobClean, $m)) {
+                                $dob = sprintf("%04d-%02d-%02d", $m[3], $m[2], $m[1]);
+                            } elseif (preg_match("/^([0-9]{1,2})-([0-9]{1,2})-([0-9]{2})$/", $dobClean, $m)) {
+                                $year = (int)$m[3];
+                                $year += ($year > 50) ? 1900 : 2000;
+                                $dob = sprintf("%04d-%02d-%02d", $year, $m[2], $m[1]);
+                            } else {
+                                $timeObj = strtotime($dobClean);
+                                if ($timeObj) $dob = date('Y-m-d', $timeObj);
+                            }
+                        }
+
+                        if (empty($dob) || $dob === '0000-00-00') {
+                            $dob = '2015-01-01';
+                        }
+
+                        $stmtCekSwimmer->execute([$uid, strtoupper($nama)]);
+                        $swimmerId = $stmtCekSwimmer->fetchColumn();
+
+                        if ($swimmerId) {
+                            $stmtUpdSwimmer->execute([$gender, $dob, $sekolah, $swimmerId]);
                         } else {
+                            $uid_baru = $this->generateSwimmerUID($nama, $dob, $gender);
+                            $stmtInsSwimmer->execute([$uid_baru, $uid, $nama, $gender, $dob, $club_id, $sekolah]);
+                            $swimmerId = $this->db->lastInsertId();
+                            $newSwimmers++;
+                        }
+
+                        if (!isset($_SESSION['matrix_list'][$event_id])) $_SESSION['matrix_list'][$event_id] = [];
+                        if (!in_array($swimmerId, $_SESSION['matrix_list'][$event_id])) {
+                            $_SESSION['matrix_list'][$event_id][] = (int)$swimmerId;
+                        }
+
+                        $sw = [
+                            'id' => $swimmerId,
+                            'nama_atlet' => $nama,
+                            'jenis_kelamin' => $gender,
+                            'tanggal_lahir' => $dob,
+                            'asal_sekolah' => $sekolah
+                        ];
+
+                        foreach ($formA3Columns as $colIdx => $spec) {
+                            $val = isset($data[$colIdx]) ? trim($data[$colIdx]) : '';
+                            if ($val === '' || $val === '-') continue;
+
+                            $targetEvent = null;
+                            foreach ($allEvents as $ev) {
+                                $rawStroke = strtoupper(trim($ev['stroke'] ?? ''));
+                                $rawName   = strtoupper(trim($ev['event_name'] ?? ''));
+                                $fullText  = $rawStroke . ' ' . $rawName;
+                                $isKick    = (strpos($fullText, 'PAPAN') !== false || strpos($fullText, 'KICK') !== false);
+
+                                if (strpos($fullText, 'DADA') !== false || strpos($fullText, 'BREAST') !== false) {
+                                    $sName = 'DADA';
+                                } elseif (strpos($fullText, 'PUNGGUNG') !== false || strpos($fullText, 'BACK') !== false) {
+                                    $sName = 'PUNGGUNG';
+                                } elseif (strpos($fullText, 'KUPU') !== false || strpos($fullText, 'FLY') !== false) {
+                                    $sName = 'KUPU-KUPU';
+                                } else {
+                                    $sName = 'BEBAS';
+                                }
+
+                                $dist = (int)($ev['distance'] ?? 0);
+                                if ($dist <= 0) {
+                                    if (preg_match('/(?:^|\D)(25|50|100|200|400|800|1500)\s*M?(?:\D|$)/', $fullText, $dm)) {
+                                        $dist = (int)$dm[1];
+                                    } else {
+                                        $dist = $isKick ? 25 : 50;
+                                    }
+                                }
+
+                                if ($sName !== $spec['stroke'] || $dist !== $spec['distance'] || $isKick !== $spec['is_kick']) {
+                                    continue;
+                                }
+
+                                $evGenRaw = strtoupper($ev['jenis_kelamin'] ?? '');
+                                $evGen = ($evGenRaw === 'P' || $evGenRaw === 'PUTRI') ? 'P' : (($evGenRaw === 'L' || $evGenRaw === 'PUTRA') ? 'L' : 'MIX');
+                                if ($evGen !== 'MIX' && $evGen !== 'MIXED' && $evGen !== $gender) {
+                                    continue;
+                                }
+
+                                if ($this->checkSwimmerEligibility($sw, $ev, $ageRules, $compYear, $calcType, $compDateObj)) {
+                                    $targetEvent = $ev;
+                                    break;
+                                }
+                            }
+
+                            if (!$targetEvent) {
+                                continue;
+                            }
+
+                            $catId = (int)$targetEvent['id'];
+
+                            if (strtoupper($val) === 'DELETE') {
+                                $stmtCek->execute([$uid, $event_id, $swimmerId, $catId]);
+                                $exist = $stmtCek->fetch(PDO::FETCH_ASSOC);
+                                if ($exist) {
+                                    $stmtDel->execute([$exist['id']]);
+                                    $deleted++;
+                                }
+                                continue;
+                            }
+
+                            $time = $val;
+                            if ($time !== '' && strtoupper($time) !== 'X' && $time !== '00.00.00' && strtoupper($time) !== 'NT') {
+                                $time = preg_replace('/[^\d\.\:]/', '', $time);
+                                $time = str_replace(':', '.', $time);
+                                if (!preg_match('/^\d{1,2}\.\d{1,2}\.\d{1,2}$/', $time)) {
+                                    $time = '99.99.99';
+                                }
+                            } else {
+                                $time = '99.99.99';
+                            }
+
                             $timeMs = 999999999;
                             if ($time !== '99.99.99') {
                                 $parts = explode('.', $time);
                                 if (count($parts) >= 2) {
-                                    if (count($parts) >= 3) {
-                                        $m = (int)$parts[0];
-                                        $s = (int)$parts[1];
-                                        $ms = (int)$parts[2];
-                                    } else {
-                                        $m = 0;
-                                        $s = (int)$parts[0];
-                                        $ms = (int)$parts[1];
-                                    }
+                                    $m = count($parts) >= 3 ? (int)$parts[0] : 0;
+                                    $s = count($parts) >= 3 ? (int)$parts[1] : (int)$parts[0];
+                                    $ms = count($parts) >= 3 ? (int)$parts[2] : (int)$parts[1];
                                     $timeMs = ($m * 60000) + ($s * 1000) + ($ms * 10);
                                 }
                             }
+
+                            $stmtCek->execute([$uid, $event_id, $swimmerId, $catId]);
+                            $exist = $stmtCek->fetch(PDO::FETCH_ASSOC);
 
                             if ($exist) {
                                 $stmtUpd->execute([$time, $timeMs, $club_id, $exist['id']]);
@@ -899,10 +1147,26 @@ class RegistrationController extends Controller {
                                 $updated++;
                             }
                         }
+                    };
+
+                    if ($firstDataRow) {
+                        $processRow($firstDataRow);
+                    }
+
+                    while (($data = fgetcsv($handle, 10000, $delimiter)) !== FALSE) {
+                        if (count($data) == 1 && strpos($data[0], ',') !== false && $delimiter == ';') {
+                            $data = explode(',', $data[0]);
+                        }
+                        $processRow($data);
                     }
                 }
+
                 $this->db->commit();
-                $_SESSION['flash_success'] = "Import matrix berhasil! $updated dientri/diperbarui, $deleted dihapus.";
+                $msg = "Import Form A3 berhasil! $updated nomor lomba dientri/diperbarui";
+                if ($newSwimmers > 0) $msg .= " ($newSwimmers atlet baru otomatis dibuat)";
+                if ($deleted > 0) $msg .= ", $deleted nomor dihapus";
+                $msg .= ".";
+                $_SESSION['flash_success'] = $msg;
             } catch (\Exception $e) {
                 if ($this->db->inTransaction()) $this->db->rollBack();
                 $_SESSION['flash_error'] = "Terjadi kesalahan saat import: " . $e->getMessage();

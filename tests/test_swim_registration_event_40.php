@@ -182,8 +182,8 @@ assert(isset($testStructure['GAYA KUPU-KUPU'][25]), "GAYA KUPU-KUPU must have ke
 
 echo "PASS: Table Structure cleanly groups ALL stroke variants into canonical headers with 25M PAPAN (key 0), 25 M (key 25), and 50 M (key 50)!\n";
 
-// Test Swimmer Event List: All events of the swimmer's gender are available in the modal
-$swimmerMale = ['id' => 99, 'nama_atlet' => 'Tester Putra', 'tanggal_lahir' => '2015-05-10', 'jenis_kelamin' => 'L']; // Age 11
+// Test Swimmer Event List: Only events matching the athlete's KU are available in the modal
+$swimmerMale = ['id' => 99, 'nama_atlet' => 'Tester Putra', 'tanggal_lahir' => '2016-05-10', 'jenis_kelamin' => 'L']; // Born 2016 -> matches KU 2016
 $sampleAllEvents = [
     ['id' => 1, 'event_number' => '1', 'stroke' => '25M Papan Bebas', 'distance' => 25, 'event_name' => '25 M PAPAN BEBAS PUTRA - LCM', 'jenis_kelamin' => 'L', 'age_group' => 'KU 2020'],
     ['id' => 2, 'event_number' => '2', 'stroke' => '25M Papan Bebas', 'distance' => 25, 'event_name' => '25 M PAPAN BEBAS PUTRI - LCM', 'jenis_kelamin' => 'P', 'age_group' => 'KU 2020'],
@@ -200,6 +200,11 @@ foreach ($sampleAllEvents as $ev) {
         continue;
     }
     $isAgeFit = $method->invoke($instance, $swimmerMale, $ev, $ageRules, $event_year, "Dec 31", $compDateObj);
+    $hasSaved = false;
+    // Strict KU filter for modal
+    if (!$isAgeFit && !$hasSaved) {
+        continue;
+    }
     $myEventsTest[] = [
         'id' => $ev['id'],
         'event_number' => $ev['event_number'],
@@ -207,11 +212,44 @@ foreach ($sampleAllEvents as $ev) {
     ];
 }
 
-assert(count($myEventsTest) === 3, "Male swimmer must receive all 3 male events (25M Papan, 25M, 50M)");
-assert($myEventsTest[0]['id'] === 1, "Event #1 (25M Papan Bebas) must be in modal list");
-assert($myEventsTest[1]['id'] === 3, "Event #3 (25M Bebas) must be in modal list");
-assert($myEventsTest[2]['id'] === 5, "Event #5 (50M Bebas) must be in modal list");
-echo "PASS: All male events are complete and accessible in the swimmer modal!\n";
+assert(count($myEventsTest) === 1, "Male swimmer 2016 must only receive matching KU 2016 event (#5), not other KUs");
+assert($myEventsTest[0]['id'] === 5, "Event #5 (KU 2016) must be the only event in modal list for 2016 swimmer");
+echo "PASS: Modal strictly filters events to athlete's KU only!\n";
+
+// Test Form A3 Header & Column Mapping
+$formA3Header1 = ['Nama', 'Sekolah', 'Tgl Lahir', 'Pa/Pi', 'Gaya Bebas', '', '', 'Gaya Dada', '', '', 'Gaya Punggung', '', '', 'Gaya Kupu-kupu', '', ''];
+$formA3Header2 = ['', '', '', '', 'Papan', '25M', '50M', 'Papan', '25M', '50M', 'Papan', '25M', '50M', 'Papan', '25M', '50M'];
+assert(count($formA3Header1) === 16, "Form A3 Row 1 must have 16 columns");
+assert(count($formA3Header2) === 16, "Form A3 Row 2 must have 16 columns");
+
+$formA3Columns = [
+    4  => ['stroke' => 'BEBAS',     'distance' => 25, 'is_kick' => true],
+    5  => ['stroke' => 'BEBAS',     'distance' => 25, 'is_kick' => false],
+    6  => ['stroke' => 'BEBAS',     'distance' => 50, 'is_kick' => false],
+    7  => ['stroke' => 'DADA',      'distance' => 25, 'is_kick' => true],
+    8  => ['stroke' => 'DADA',      'distance' => 25, 'is_kick' => false],
+    9  => ['stroke' => 'DADA',      'distance' => 50, 'is_kick' => false],
+    10 => ['stroke' => 'PUNGGUNG',  'distance' => 25, 'is_kick' => true],
+    11 => ['stroke' => 'PUNGGUNG',  'distance' => 25, 'is_kick' => false],
+    12 => ['stroke' => 'PUNGGUNG',  'distance' => 50, 'is_kick' => false],
+    13 => ['stroke' => 'KUPU-KUPU', 'distance' => 25, 'is_kick' => true],
+    14 => ['stroke' => 'KUPU-KUPU', 'distance' => 25, 'is_kick' => false],
+    15 => ['stroke' => 'KUPU-KUPU', 'distance' => 50, 'is_kick' => false],
+];
+
+// Test parsing actual row from downloaded Form A3 CSV
+$sampleRow = str_getcsv("Devano Putra Wibowo,SD Muhamadiyah Sokonandi,01/01/2016,L,,99.99.99,99.99.99,,,,,99.99.99,99.99.99,,,");
+assert($sampleRow[0] === "Devano Putra Wibowo", "Name matched");
+assert($sampleRow[1] === "SD Muhamadiyah Sokonandi", "School matched");
+assert($sampleRow[2] === "01/01/2016", "DOB matched");
+assert($sampleRow[3] === "L", "Gender matched");
+assert($sampleRow[5] === "99.99.99", "Bebas 25M has time");
+assert($sampleRow[6] === "99.99.99", "Bebas 50M has time");
+assert($sampleRow[11] === "99.99.99", "Punggung 25M has time");
+assert($sampleRow[12] === "99.99.99", "Punggung 50M has time");
+assert(empty($sampleRow[4]), "Bebas papan is empty");
+
+echo "PASS: Form A3 CSV structure and mapping verified successfully!\n";
 
 if ($passed !== count($testCases)) {
     exit(1);

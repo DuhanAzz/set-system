@@ -23,10 +23,8 @@
             </div>
             <a href="<?= getenv('APP_URL') ?>/swim/user/checkout/detail/<?= $event['id'] ?>" class="bg-slate-900 text-white px-6 py-3 rounded-xl font-bold text-xs shadow-lg">LIHAT STATUS</a>
         <?php else: ?>
-            <a href="<?= getenv('APP_URL') ?>/swim/user/registration/exportCsv/<?= $event['id'] ?>" class="bg-emerald-600 text-white px-4 py-3 rounded-xl font-bold text-[10px] shadow-lg hover:bg-emerald-700 transition flex items-center gap-2">📥 EXPORT CSV</a>
-            <button onclick="document.getElementById('modalConvertCsv').classList.remove('hidden')" class="bg-indigo-500 text-white px-4 py-3 rounded-xl font-bold text-[10px] shadow-lg hover:bg-indigo-600 transition flex items-center gap-2">🔄 KONVERSI TEKS</button>
-            <button onclick="document.getElementById('modalImportByEvent').classList.remove('hidden')" class="bg-violet-500 text-white px-4 py-3 rounded-xl font-bold text-[10px] shadow-lg hover:bg-violet-600 transition flex items-center gap-2">📥 IMPORT PER NOMOR</button>
-            <button onclick="document.getElementById('modalImportCsv').classList.remove('hidden')" class="bg-amber-500 text-white px-4 py-3 rounded-xl font-bold text-[10px] shadow-lg hover:bg-amber-600 transition flex items-center gap-2">📤 IMPORT CSV</button>
+            <a href="<?= getenv('APP_URL') ?>/swim/user/registration/exportCsv/<?= $event['id'] ?>" class="bg-emerald-600 text-white px-4 py-3 rounded-xl font-bold text-[10px] shadow-lg hover:bg-emerald-700 transition flex items-center gap-2">📥 EXPORT CSV (FORM A3)</a>
+            <button onclick="document.getElementById('modalImportCsv').classList.remove('hidden')" class="bg-amber-500 text-white px-4 py-3 rounded-xl font-bold text-[10px] shadow-lg hover:bg-amber-600 transition flex items-center gap-2">📤 IMPORT CSV (FORM A3)</button>
             <button onclick="document.getElementById('modalAdd').classList.remove('hidden')" class="bg-blue-600 text-white px-4 py-3 rounded-xl font-bold text-[10px] shadow-lg hover:bg-blue-700">+ PILIH ATLET</button>
             <a href="<?= getenv('APP_URL') ?>/swim/user/checkout/detail/<?= $event['id'] ?>" class="bg-slate-900 text-white px-6 py-3 rounded-xl font-bold text-xs shadow-lg">SELESAI / BAYAR</a>
         <?php endif; ?>
@@ -109,22 +107,10 @@
                                 }
                             }
 
-                            // 2. Jika belum terisi, prioritaskan nomor yang sesuai KU & gender
+                            // 2. Jika belum terisi, cari nomor yang sesuai KU & gender atlet
                             if (!$foundEvent) {
                                 foreach ($eventsInDist as $ev) {
                                     if (!empty($eligibleMap[$sid][$ev['id']])) {
-                                        $foundEvent = $ev;
-                                        break;
-                                    }
-                                }
-                            }
-
-                            // 3. Fallback: nomor pertama di jarak/gaya ini yang sesuai gender atlet
-                            if (!$foundEvent) {
-                                foreach ($eventsInDist as $ev) {
-                                    $evGenRaw = strtoupper($ev['jenis_kelamin'] ?? '');
-                                    $evGen = ($evGenRaw === 'P' || $evGenRaw === 'PUTRI') ? 'P' : (($evGenRaw === 'L' || $evGenRaw === 'PUTRA') ? 'L' : 'MIX');
-                                    if ($evGen === 'MIX' || $evGen === 'MIXED' || $evGen === $swGen) {
                                         $foundEvent = $ev;
                                         break;
                                     }
@@ -195,106 +181,30 @@
     <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col">
         <div class="bg-amber-500 p-6 text-white flex justify-between items-center">
             <div>
-                <h2 class="text-xl font-black italic uppercase tracking-tighter">IMPORT MATRIX</h2>
-                <p class="text-[10px] font-bold text-amber-100 uppercase mt-1">Upload File CSV</p>
+                <h2 class="text-xl font-black italic uppercase tracking-tighter">IMPORT CSV (FORM A3)</h2>
+                <p class="text-[10px] font-bold text-amber-100 uppercase mt-1">Upload File CSV Form A3</p>
             </div>
             <button onclick="document.getElementById('modalImportCsv').classList.add('hidden')" class="text-3xl hover:text-amber-200 transition">&times;</button>
         </div>
         <form method="POST" action="<?= getenv('APP_URL') ?>/swim/user/registration/importCsv/<?= $event['id'] ?>" enctype="multipart/form-data" class="p-6">
             <div class="mb-4">
-                <label class="block text-slate-700 font-bold mb-2 text-xs uppercase tracking-wide">Pilih File (.csv)</label>
+                <label class="block text-slate-700 font-bold mb-2 text-xs uppercase tracking-wide">Pilih File Form A3 (.csv)</label>
                 <input type="file" name="csv_file" accept=".csv" class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" required>
             </div>
             <div class="bg-blue-50 p-4 rounded-xl mb-6">
                 <p class="text-xs text-blue-800 font-medium leading-relaxed">
-                    <strong>Cara Penggunaan:</strong><br>
-                    1. Klik tombol <span class="font-bold text-emerald-600">📥 EXPORT CSV</span> terlebih dahulu untuk mengunduh format (daftar atlet beserta kolom lomba).<br>
-                    2. Buka file CSV tersebut di Excel / Google Sheets.<br>
-                    3. Isi waktu (misal: <code>00.32.10</code>) pada sel yang diizinkan (kosong). <br>
-                    4. Jika ingin mendaftar tanpa catatan waktu, ketik huruf <code>X</code>.<br>
-                    5. Simpan dan unggah kembali di sini.
+                    <strong>Format Form A3:</strong><br>
+                    • Kolom: <code>Nama, Sekolah, Tgl Lahir, Pa/Pi, Gaya Bebas (Papan, 25M, 50M), Gaya Dada (Papan, 25M, 50M), Gaya Punggung (Papan, 25M, 50M), Gaya Kupu-kupu (Papan, 25M, 50M)</code><br>
+                    • Format tgl lahir: <code>DD/MM/YYYY</code> atau <code>YYYY-MM-DD</code>.<br>
+                    • Catatan waktu: isi waktu (misal: <code>00.32.10</code>) atau <code>99.99.99</code> / <code>X</code>.<br>
+                    • Atlet baru otomatis didaftarkan dan masuk ke matriks lomba.<br>
+                    • Nomor lomba akan otomatis disesuaikan dengan Kelompok Umur (KU) masing-masing atlet.
                 </p>
             </div>
-            <button type="submit" class="w-full bg-slate-900 text-white font-black py-4 rounded-xl shadow-lg hover:bg-slate-800 transition uppercase tracking-wide text-sm">Upload & Import</button>
-        </form>
-    </div>
-</div>
-
-<div id="modalImportByEvent" class="hidden fixed inset-0 z-[65] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col">
-        <div class="bg-violet-500 p-6 text-white flex justify-between items-center">
-            <div>
-                <h2 class="text-xl font-black italic uppercase tracking-tighter">IMPORT PER NOMOR</h2>
-                <p class="text-[10px] font-bold text-violet-100 uppercase mt-1">Upload Data 1 Nomor Saja</p>
+            <div class="flex gap-2">
+                <a href="<?= getenv('APP_URL') ?>/swim/user/registration/exportCsv/<?= $event['id'] ?>" class="flex-1 text-center bg-slate-100 text-slate-700 font-bold py-3 rounded-xl border border-slate-300 hover:bg-slate-200 transition text-xs flex items-center justify-center gap-1">📥 Unduh Template</a>
+                <button type="submit" class="flex-1 bg-amber-500 text-white font-black py-3 rounded-xl shadow-lg hover:bg-amber-600 transition uppercase tracking-wide text-xs">Upload & Simpan</button>
             </div>
-            <button onclick="document.getElementById('modalImportByEvent').classList.add('hidden')" class="text-3xl hover:text-violet-200 transition">&times;</button>
-        </div>
-        <form method="POST" action="<?= getenv('APP_URL') ?>/swim/user/registration/importByEventCsv/<?= $event['id'] ?>" enctype="multipart/form-data" class="p-6">
-            <div class="mb-4">
-                <label class="block text-slate-700 font-bold mb-2 text-xs uppercase tracking-wide">Pilih Nomor Perlombaan</label>
-                <select name="category_id" class="w-full text-sm p-3 border rounded-xl font-bold focus:ring-2 focus:ring-violet-500" required>
-                    <option value="">-- Pilih Nomor --</option>
-                    <?php foreach ($allEvents as $ev): 
-                        $rawStroke = strtoupper(trim($ev['stroke'] ?? ''));
-                        $rawName   = strtoupper(trim($ev['event_name'] ?? ''));
-                        $fullText  = $rawStroke . ' ' . $rawName;
-                        $isKickEv  = (strpos($fullText, 'PAPAN') !== false || strpos($fullText, 'KICK') !== false);
-
-                        if (strpos($fullText, 'DADA') !== false || strpos($fullText, 'BREAST') !== false) $sName = 'DADA';
-                        elseif (strpos($fullText, 'PUNGGUNG') !== false || strpos($fullText, 'BACK') !== false) $sName = 'PUNGGUNG';
-                        elseif (strpos($fullText, 'KUPU') !== false || strpos($fullText, 'FLY') !== false) $sName = 'KUPU-KUPU';
-                        elseif (strpos($fullText, 'GANTI') !== false || strpos($fullText, 'MEDLEY') !== false || strpos($fullText, ' IM ') !== false) $sName = 'GAYA GANTI';
-                        else $sName = 'BEBAS';
-
-                        $dist = (int)($ev['distance'] ?? 0);
-                        if ($dist <= 0) {
-                            if (preg_match('/(?:^|\D)(25|50|100|200|400|800|1500)\s*M?(?:\D|$)/', $fullText, $dm)) $dist = (int)$dm[1];
-                            else $dist = $isKickEv ? 25 : 50;
-                        }
-
-                        $evStrokeDisplay = $isKickEv ? ("25M PAPAN " . $sName) : ("{$dist}M " . $sName);
-                    ?>
-                        <option value="<?= $ev['id'] ?>">[#<?= $ev['event_number'] ?>] <?= $evStrokeDisplay ?> <?= strtoupper($ev['jenis_kelamin']) ?> <?= strtoupper($ev['age_group']) ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-            <div class="mb-4">
-                <label class="block text-slate-700 font-bold mb-2 text-xs uppercase tracking-wide">Pilih File (.csv)</label>
-                <input type="file" name="csv_file" accept=".csv" class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-violet-50 file:text-violet-700 hover:file:bg-violet-100" required>
-            </div>
-            <div class="bg-violet-50 p-4 rounded-xl mb-6">
-                <p class="text-xs text-violet-800 font-medium leading-relaxed">
-                    <strong>Format CSV:</strong><br>
-                    <code class="text-[10px]">NAMA PESERTA, GENDER, TGL LAHIR, ASAL SEKOLAH, BEST TIME</code><br><br>
-                    <span class="text-[10px]">*Atlet baru akan otomatis terdaftar.</span>
-                </p>
-            </div>
-            <button type="submit" class="w-full bg-slate-900 text-white font-black py-4 rounded-xl shadow-lg hover:bg-slate-800 transition uppercase tracking-wide text-sm">Proses Import</button>
-        </form>
-    </div>
-</div>
-
-<div id="modalConvertCsv" class="hidden fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col">
-        <div class="bg-indigo-500 p-6 text-white flex justify-between items-center">
-            <div>
-                <h2 class="text-xl font-black italic uppercase tracking-tighter">KONVERSI DARI TEKS MENTAH</h2>
-                <p class="text-[10px] font-bold text-indigo-100 uppercase mt-1">Otomatis buat file Matrix CSV dari pendaftaran per-nomor</p>
-            </div>
-            <button onclick="document.getElementById('modalConvertCsv').classList.add('hidden')" class="text-3xl hover:text-indigo-200 transition">&times;</button>
-        </div>
-        <form method="POST" action="<?= getenv('APP_URL') ?>/swim/user/registration/convertCsv/<?= $event['id'] ?>" class="p-6">
-            <div class="mb-4">
-                <label class="block text-slate-700 font-bold mb-2 text-xs uppercase tracking-wide">Paste Teks Data Pendaftaran Di Sini</label>
-                <textarea name="raw_text" rows="12" class="w-full text-[10px] text-slate-600 p-3 border rounded-xl font-mono focus:ring-2 focus:ring-indigo-500" placeholder="100 M GAYA BEBAS PUTRA SMP,,,&#10;NO,NAMA PESERTA,ASAL SEKOLAH,BEST TIME&#10;21,Akbar Risqi Rahmanto,SMP Negeri 12 Yogyakarta,01.02.58" required></textarea>
-            </div>
-            <div class="bg-indigo-50 p-4 rounded-xl mb-6">
-                <p class="text-[11px] text-indigo-800 font-medium leading-relaxed">
-                    Sistem akan mengekstrak otomatis siapa saja yang didaftarkan pada gaya apa saja, lalu <strong>menghasilkan file Matrix CSV yang sudah otomatis terisi waktu renangnya</strong>.<br><br>
-                    <strong>PENTING:</strong> Setelah file CSV hasil konversi berhasil terdownload, Anda harus mengunggahnya kembali ke menu <strong>📤 IMPORT CSV</strong> agar data tersimpan ke database!
-                </p>
-            </div>
-            <button type="submit" class="w-full bg-slate-900 text-white font-black py-4 rounded-xl shadow-lg hover:bg-slate-800 transition uppercase tracking-wide text-sm">Download Matrix Terisi</button>
         </form>
     </div>
 </div>
