@@ -17,8 +17,10 @@
         <p class="text-[10px] font-bold text-slate-400 uppercase tracking-[3px] mt-2"><?= htmlspecialchars($event['event_name'] ?? '') ?></p>
     </div>
     <div class="flex gap-3">
-        <?php if ($isLocked): ?>
-            <div class="bg-red-100 border border-red-200 text-red-700 px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2"><span>🔒</span> Menunggu Verifikasi. Data terkunci sementara.</div>
+        <?php if ($isLocked || !empty($isClosed)): ?>
+            <div class="bg-red-100 border border-red-200 text-red-700 px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2">
+                <span>🔒</span> <?= !empty($isClosed) ? 'Pendaftaran ditutup oleh Panitia.' : 'Menunggu Verifikasi. Data terkunci sementara.' ?>
+            </div>
             <a href="<?= getenv('APP_URL') ?>/swim/user/checkout/detail/<?= $event['id'] ?>" class="bg-slate-900 text-white px-6 py-3 rounded-xl font-bold text-xs shadow-lg">LIHAT STATUS</a>
         <?php else: ?>
             <a href="<?= getenv('APP_URL') ?>/swim/user/registration/exportCsv/<?= $event['id'] ?>" class="bg-emerald-600 text-white px-4 py-3 rounded-xl font-bold text-[10px] shadow-lg hover:bg-emerald-700 transition flex items-center gap-2">📥 EXPORT CSV</a>

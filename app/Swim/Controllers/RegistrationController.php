@@ -45,6 +45,102 @@ class RegistrationController extends Controller {
         ];
     }
 
+    public function checkSwimmerEligibility($sw, $ev, $ageRules, $compYear, $calcType, $compDateObj = null) {
+        // 1. Gender check
+        $swGen = (strtoupper($sw['jenis_kelamin'] ?? '') === 'P' || strtoupper($sw['jenis_kelamin'] ?? '') === 'PUTRI') ? 'P' : 'L';
+        $evGenRaw = strtoupper($ev['jenis_kelamin'] ?? '');
+        $evGen = ($evGenRaw === 'P' || $evGenRaw === 'PUTRI') ? 'P' : (($evGenRaw === 'L' || $evGenRaw === 'PUTRA') ? 'L' : 'MIX');
+        if ($evGen !== 'MIX' && $evGen !== $swGen) {
+            return false;
+        }
+
+        // 2. Swimmer Age Calculation
+        if (empty($sw['tanggal_lahir']) || $sw['tanggal_lahir'] === '0000-00-00') {
+            return false;
+        }
+        $dobObj = new DateTime($sw['tanggal_lahir']);
+        $birthYear = (int)$dobObj->format('Y');
+        $age = (strcasecmp($calcType, 'Meet Start') === 0 && $compDateObj instanceof DateTime)
+            ? $dobObj->diff($compDateObj)->y
+            : ($compYear - $birthYear);
+
+        // 3. Check selected_ku_ids from admin configuration first (Most authoritative)
+        $kuIds = !empty($ev['selected_ku_ids']) ? array_filter(array_map('intval', explode(',', (string)$ev['selected_ku_ids']))) : [];
+        if (!empty($kuIds)) {
+            foreach ($kuIds as $kid) {
+                if (isset($ageRules[$kid])) {
+                    $min = (int)$ageRules[$kid]['min_age'];
+                    $max = (int)$ageRules[$kid]['max_age'];
+                    if ($age >= $min && ($max == 0 || $age <= $max)) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        // 4. Check if event age_group matches any group_name in ageRules
+        $groupName = strtoupper(trim($ev['age_group'] ?? ''));
+        if (!empty($ageRules)) {
+            foreach ($ageRules as $kid => $ar) {
+                $arName = strtoupper(trim($ar['group_name']));
+                if ($arName !== '' && (strpos($groupName, $arName) !== false || strpos($arName, $groupName) !== false)) {
+                    $min = (int)$ar['min_age'];
+                    $max = (int)$ar['max_age'];
+                    if ($age >= $min && ($max == 0 || $age <= $max)) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        // 5. Check Year-based patterns in age_group (e.g. "2014-2016", "2017 & LEBIH MUDA", "KU 2016")
+        // Filter out event year (e.g. >= 2026) to prevent false matches with competition year
+        if (preg_match_all('/\b(19\d{2}|20\d{2})\b/', $groupName, $m)) {
+            $candidateYears = array_filter(array_map('intval', $m[1]), fn($y) => $y < $compYear);
+            if (!empty($candidateYears)) {
+                // Check for range: "2014-2016" or "2014 - 2016" or "2014 s/d 2016"
+                if (preg_match('/(19\d{2}|20\d{2})\s*(-|\/|S\/D|TO)\s*(19\d{2}|20\d{2})/i', $groupName, $rm)) {
+                    $minY = min((int)$rm[1], (int)$rm[3]);
+                    $maxY = max((int)$rm[1], (int)$rm[3]);
+                    if ($birthYear >= $minY && $birthYear <= $maxY) {
+                        return true;
+                    }
+                }
+                // Check for "LEBIH MUDA" / "KE BAWAH" (born in year or later)
+                elseif (preg_match('/(19\d{2}|20\d{2})\s*(&|\+)?\s*(LEBIH MUDA|KE BAWAH|KEBAWAH|DIBAWAH)/i', $groupName, $ym)) {
+                    if ($birthYear >= (int)$ym[1]) return true;
+                }
+                // Check for "LEBIH TUA" / "KE ATAS" (born in year or earlier)
+                elseif (preg_match('/(19\d{2}|20\d{2})\s*(&|\+)?\s*(LEBIH TUA|KE ATAS|KEATAS|DIATAS)/i', $groupName, $ym)) {
+                    if ($birthYear <= (int)$ym[1]) return true;
+                }
+                // Discrete years: e.g. "KU 2016" or "KU 2016, KU 2017"
+                else {
+                    if (in_array($birthYear, $candidateYears)) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+        }
+
+        // 6. Check explicit age_min and age_max on event number
+        $hasMin = isset($ev['age_min']) && $ev['age_min'] !== '' && (int)$ev['age_min'] > 0;
+        $hasMax = isset($ev['age_max']) && $ev['age_max'] !== '' && (int)$ev['age_max'] < 90 && (int)$ev['age_max'] > 0;
+        if ($hasMin || $hasMax) {
+            $min = (int)($ev['age_min'] ?? 0);
+            $max = (int)($ev['age_max'] ?? 99);
+            return ($age >= $min && ($max == 0 || $age <= $max));
+        }
+
+        // 7. If "OPEN" or "UMUM", all ages are eligible
+        if (strpos($groupName, 'OPEN') !== false || strpos($groupName, 'UMUM') !== false) {
+            return true;
+        }
+
+        return true;
+    }
+
     private function calculateAgeGroup($dob, $rule) {
         if (!$rule || empty($dob) || $dob == '0000-00-00') return 'N/A';
         
@@ -67,7 +163,11 @@ class RegistrationController extends Controller {
     }
 
     private function isRegistrationClosed($event) {
-        if (empty($event['registration_deadline'])) return false;
+        $rawStatus = strtolower($event['event_status'] ?? '');
+        if ($rawStatus === 'closed' || $rawStatus === 'done') return true;
+        if ($rawStatus === 'open' || $rawStatus === 'registration') return false;
+
+        if (empty($event['registration_deadline']) || $event['registration_deadline'] === '0000-00-00') return false;
         $deadline = new DateTime($event['registration_deadline']);
         $today = new DateTime('today');
         return $today > $deadline;
@@ -112,8 +212,16 @@ class RegistrationController extends Controller {
         $stmtGroups->execute([$event_id]);
         $ageRules = $stmtGroups->fetchAll(PDO::FETCH_UNIQUE|PDO::FETCH_ASSOC);
 
-        $stmtEn = $this->db->prepare("SELECT * FROM swim_event_numbers WHERE event_id = ? AND is_relay = 0 ORDER BY distance ASC, stroke ASC");
-        $stmtEn->execute([$event_id]);
+        $organizerId = (int)($event['user_id'] ?? 0);
+        // Sinkronisasi nomor lomba lama tanpa event_id
+        if ($organizerId > 0) {
+            try {
+                $this->db->prepare("UPDATE swim_event_numbers SET event_id = ? WHERE (event_id IS NULL OR event_id = 0) AND organizer_id = ?")->execute([$event_id, $organizerId]);
+            } catch (\Exception $ex) {}
+        }
+
+        $stmtEn = $this->db->prepare("SELECT * FROM swim_event_numbers WHERE (event_id = ? OR (event_id IS NULL AND organizer_id = ?)) AND is_relay = 0 ORDER BY CAST(event_number AS UNSIGNED) ASC, distance ASC");
+        $stmtEn->execute([$event_id, $organizerId]);
         $allEvents = $stmtEn->fetchAll(PDO::FETCH_ASSOC);
 
         $stmtSw = $this->db->prepare("SELECT * FROM swim_swimmers WHERE user_id = ? ORDER BY nama_atlet ASC");
@@ -132,7 +240,7 @@ class RegistrationController extends Controller {
         }
 
         if (isset($_GET['add_swimmer'])) {
-            if ($isLocked) { header("Location: " . getenv('APP_URL') . "/swim/user/registration/index/" . $event_id); exit; } 
+            if ($isLocked || $isClosed) { header("Location: " . getenv('APP_URL') . "/swim/user/registration/index/" . $event_id); exit; } 
             $addId = (int)$_GET['add_swimmer'];
             $validSw = false; foreach($allSwimmers as $s) { if($s['id'] == $addId) $validSw = true; }
             if ($validSw && !in_array($addId, $_SESSION['matrix_list'][$event_id])) { $_SESSION['matrix_list'][$event_id][] = $addId; }
@@ -140,7 +248,7 @@ class RegistrationController extends Controller {
         }
 
         if (isset($_GET['remove_swimmer'])) {
-            if ($isLocked) { header("Location: " . getenv('APP_URL') . "/swim/user/registration/index/" . $event_id); exit; } 
+            if ($isLocked || $isClosed) { header("Location: " . getenv('APP_URL') . "/swim/user/registration/index/" . $event_id); exit; } 
             $remId = (int)$_GET['remove_swimmer'];
             
             if (isset($_SESSION['matrix_list'][$event_id])) {
@@ -178,24 +286,25 @@ class RegistrationController extends Controller {
         }
 
         $strokeOrder = [
-            'GAYA BEBAS'      => 1,
-            'GAYA DADA'       => 2,
-            'GAYA PUNGGUNG'   => 3,
-            'GAYA KUPU-KUPU'  => 4,
-            'GAYA GANTI'      => 5
+            'GAYA BEBAS'            => 1,
+            'GAYA DADA'             => 2,
+            'GAYA PUNGGUNG'         => 3,
+            'GAYA KUPU-KUPU'        => 4,
+            'GAYA GANTI'            => 5,
+            'GAYA GANTI PERORANGAN' => 5
         ];
 
         $tableStructure = []; 
         foreach ($allEvents as $ev) { 
             $rawStroke = strtoupper($ev['stroke'] ?? '');
-            $isKick = false;
+            $isKick = (strpos($rawStroke, 'KICK') !== false || strpos($rawStroke, 'PAPAN') !== false);
 
-            if (strpos($rawStroke, 'KICK') !== false) {
-                $isKick = true;
-                $cleanStrokeName = trim(str_replace('KICK', '', $rawStroke));
+            if ($isKick) {
+                $cleanStrokeName = trim(str_replace(['KICK', 'PAPAN'], '', $rawStroke));
             } else {
                 $cleanStrokeName = trim(str_replace(['GAYA ', 'GAYA'], '', $rawStroke));
             }
+            $cleanStrokeName = trim(str_replace(['GAYA ', 'GAYA'], '', $cleanStrokeName));
 
             if ($cleanStrokeName !== '' && strpos($cleanStrokeName, 'GAYA') === false) {
                 $cleanStrokeName = 'GAYA ' . $cleanStrokeName;
@@ -216,50 +325,31 @@ class RegistrationController extends Controller {
         }
 
         $jsonData = [];
+        $eligibleMap = [];
         foreach ($visibleSwimmers as $sw) {
             $sid = $sw['id'];
             $dobObj = new DateTime($sw['tanggal_lahir']);
             $birthYear = (int)$dobObj->format('Y');
-            $age = ($calcType === 'Meet Start') ? $dobObj->diff($compDateObj)->y : ($compYear - $birthYear);
+            $age = (strcasecmp($calcType, 'Meet Start') === 0 && $compDateObj) ? $dobObj->diff($compDateObj)->y : ($compYear - $birthYear);
             
             $gender = ($sw['jenis_kelamin'] == 'L') ? 'L' : 'P';
             $myEvents = [];
 
             foreach ($allEvents as $ev) {
-                $eGen = (in_array($ev['jenis_kelamin'], ['Putra', 'L'])) ? 'L' : ((in_array($ev['jenis_kelamin'], ['Putri', 'P'])) ? 'P' : 'MIX');
-                if ($eGen !== 'MIX' && $eGen !== $gender) continue;
-                
-                $isAgeFit = false;
-                $groupName = strtoupper($ev['age_group'] ?? '');
-
-                if (preg_match_all('/\b(20\d{2})\b/', $groupName, $matches)) {
-                    $allowedYears = array_map('intval', $matches[1]); 
-                    if (in_array($birthYear, $allowedYears)) $isAgeFit = true;
+                $isAgeFit = $this->checkSwimmerEligibility($sw, $ev, $ageRules, $compYear, $calcType, $compDateObj);
+                if ($isAgeFit) {
+                    $eligibleMap[$sid][$ev['id']] = true;
                 } else {
-                    $min = (int)($ev['age_min'] ?? 0); 
-                    $max = (int)($ev['age_max'] ?? 99);
-                    $passMinMax = ($age >= $min && ($max == 0 || $age <= $max));
-
-                    $kuIds = !empty($ev['selected_ku_ids']) ? explode(',', $ev['selected_ku_ids']) : [];
-                    if (!empty($kuIds)) {
-                        $passKu = false;
-                        foreach ($kuIds as $kid) { 
-                            if (isset($ageRules[$kid]) && $age >= (int)$ageRules[$kid]['min_age'] && $age <= (int)$ageRules[$kid]['max_age']) { $passKu = true; break; } 
-                        }
-                        if ($passKu && $passMinMax) { $isAgeFit = true; }
-                    } else {
-                        if ($passMinMax) { $isAgeFit = true; }
-                    }
+                    continue;
                 }
 
-                if (!$isAgeFit) continue; 
-
-                $isKickPop = (strpos(strtoupper($ev['stroke'] ?? ''), 'KICK') !== false);
+                $isKickPop = (strpos(strtoupper($ev['stroke'] ?? ''), 'KICK') !== false || strpos(strtoupper($ev['stroke'] ?? ''), 'PAPAN') !== false);
                 $normS = strtoupper(str_replace(['Gaya ', 'GAYA '], '', $ev['stroke'] ?? ''));
-                $displayName = $isKickPop ? "PAPAN " . str_replace('KICK ', '', $normS) : "{$ev['distance']}M " . $normS;
+                $displayName = $isKickPop ? "PAPAN " . trim(str_replace(['KICK ', 'PAPAN '], '', $normS)) : "{$ev['distance']}M " . $normS;
 
                 $myEvents[] = [
                     'id' => $ev['id'], 
+                    'event_number' => $ev['event_number'] ?? '',
                     'name' => $displayName,
                     'group' => $ev['age_group'],
                     'time' => $savedData[$sid][$ev['id']] ?? '', 
@@ -267,7 +357,12 @@ class RegistrationController extends Controller {
                 ];
             }
             
-            usort($myEvents, fn($a, $b) => strcmp($a['name'], $b['name']));
+            usort($myEvents, function($a, $b) {
+                $noA = (int)($a['event_number'] ?? 0);
+                $noB = (int)($b['event_number'] ?? 0);
+                if ($noA > 0 && $noB > 0) return $noA - $noB;
+                return strcmp($a['name'], $b['name']);
+            });
 
             $jsonData[$sid] = ['name' => $sw['nama_atlet'], 'info' => ($gender == 'L' ? 'PUTRA' : 'PUTRI') . " - " . date('Y', strtotime($sw['tanggal_lahir'])) . " ($age Th)", 'events' => $myEvents];
         }
@@ -275,6 +370,8 @@ class RegistrationController extends Controller {
         $this->view('swim/user/registration/index', [
             'event' => $event,
             'isLocked' => $isLocked,
+            'isClosed' => $isClosed,
+            'eligibleMap' => $eligibleMap,
             'allEvents' => $allEvents,
             'allSwimmers' => $allSwimmers,
             'visibleSwimmers' => $visibleSwimmers,
@@ -322,23 +419,22 @@ class RegistrationController extends Controller {
         }
 
         $rule = $this->getActiveEventAgeRule($event['id']);
-        $ku = $this->calculateAgeGroup($swimmer['tanggal_lahir'], $rule);
-        
-        // Filter event numbers by Gender and KU
-        $genderMap = ['L' => 'PUTRA', 'P' => 'PUTRI'];
-        $swimmerGender = $genderMap[strtoupper($swimmer['jenis_kelamin'])] ?? 'MIXED';
+        $calcType = $event['age_calculation_type'] ?? 'Dec 31';
+        $compYear = (int)date('Y', strtotime($event['event_date_start']));
+        $compDateObj = new DateTime($event['event_date_start']);
 
-        $stmtEn = $this->db->prepare("SELECT * FROM swim_event_numbers WHERE event_id = ? AND is_relay = 0 ORDER BY distance ASC, stroke ASC");
-        $stmtEn->execute([$event['id']]);
+        $stmtGroups = $this->db->prepare("SELECT id, min_age, max_age, group_name FROM swim_event_age_groups WHERE event_id = ?");
+        $stmtGroups->execute([$event['id']]);
+        $ageRules = $stmtGroups->fetchAll(PDO::FETCH_UNIQUE|PDO::FETCH_ASSOC);
+
+        $organizerId = (int)($event['user_id'] ?? 0);
+        $stmtEn = $this->db->prepare("SELECT * FROM swim_event_numbers WHERE (event_id = ? OR (event_id IS NULL AND organizer_id = ?)) AND is_relay = 0 ORDER BY CAST(event_number AS UNSIGNED) ASC, distance ASC");
+        $stmtEn->execute([$event['id'], $organizerId]);
         $allEvents = $stmtEn->fetchAll(PDO::FETCH_ASSOC);
 
         $availableEvents = [];
         foreach ($allEvents as $ev) {
-            $evGender = strtoupper($ev['jenis_kelamin']);
-            $evAge = strtoupper($ev['age_group']);
-            
-            if (($evGender === $swimmerGender || $evGender === 'CAMPURAN' || $evGender === 'MIXED') && 
-                ($evAge === strtoupper($ku))) {
+            if ($this->checkSwimmerEligibility($swimmer, $ev, $ageRules, $compYear, $calcType, $compDateObj)) {
                 $availableEvents[] = $ev;
             }
         }
@@ -395,17 +491,19 @@ class RegistrationController extends Controller {
             $stmtC->execute([$uid]);
             $club_id = $stmtC->fetchColumn();
         }
+        $club_id = !empty($club_id) ? (int)$club_id : 0;
 
         try {
             $this->db->beginTransaction();
 
-            $stmtValid = $this->db->prepare("SELECT id FROM swim_event_numbers WHERE event_id = ?");
-            $stmtValid->execute([$event['id']]);
+            $organizerId = (int)($event['user_id'] ?? 0);
+            $stmtValid = $this->db->prepare("SELECT id FROM swim_event_numbers WHERE (event_id = ? OR (event_id IS NULL AND organizer_id = ?))");
+            $stmtValid->execute([$event['id'], $organizerId]);
             $validCats = $stmtValid->fetchAll(PDO::FETCH_COLUMN);
 
             foreach ($entries as $catId => $time) {
                 $catId = (int)$catId;
-                $time = trim($time);
+                $time = trim((string)$time);
                 
                 if (!in_array($catId, $validCats)) continue;
 
@@ -413,15 +511,39 @@ class RegistrationController extends Controller {
                 $stmtCek->execute([$uid, $event['id'], $swimmer_id, $catId]);
                 $exist = $stmtCek->fetch(PDO::FETCH_ASSOC);
 
+                if (strtoupper($time) === 'X' || strtoupper($time) === 'NT') {
+                    $time = '99.99.99';
+                } elseif ($time !== '' && $time !== '00.00.00' && $time !== 'DELETE') {
+                    $time = preg_replace('/[^\d\.\:]/', '', $time);
+                    $time = str_replace(':', '.', $time);
+                }
+
                 if ($time === '' || $time === '00.00.00' || $time === 'DELETE') {
                     if ($exist) { $this->db->prepare("DELETE FROM swim_event_entries WHERE id=?")->execute([$exist['id']]); }
                 } else {
+                    $timeMs = 999999999;
+                    if ($time !== '99.99.99') {
+                        $parts = explode('.', $time);
+                        if (count($parts) >= 2) {
+                            if (count($parts) >= 3) {
+                                $m = (int)$parts[0];
+                                $s = (int)$parts[1];
+                                $ms = (int)$parts[2];
+                            } else {
+                                $m = 0;
+                                $s = (int)$parts[0];
+                                $ms = (int)$parts[1];
+                            }
+                            $timeMs = ($m * 60000) + ($s * 1000) + ($ms * 10);
+                        }
+                    }
+
                     if ($exist) {
-                        $this->db->prepare("UPDATE swim_event_entries SET entry_time=?, club_id=? WHERE id=?")
-                                 ->execute([$time, $club_id, $exist['id']]);
+                        $this->db->prepare("UPDATE swim_event_entries SET entry_time=?, entry_time_ms=?, club_id=? WHERE id=?")
+                                 ->execute([$time, $timeMs, $club_id, $exist['id']]);
                     } else {
-                        $this->db->prepare("INSERT INTO swim_event_entries (user_id, event_id, club_id, swimmer_id, category_id, entry_time, status, created_at) VALUES (?, ?, ?, ?, ?, ?, 'Pending', NOW())")
-                                 ->execute([$uid, $event['id'], $club_id, $swimmer_id, $catId, $time]);
+                        $this->db->prepare("INSERT INTO swim_event_entries (user_id, event_id, club_id, swimmer_id, category_id, entry_time, entry_time_ms, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, 'Pending', NOW())")
+                                 ->execute([$uid, $event['id'], $club_id, $swimmer_id, $catId, $time, $timeMs]);
                     }
                 }
             }
@@ -496,8 +618,9 @@ class RegistrationController extends Controller {
         $stmtGroups->execute([$event_id]);
         $ageRules = $stmtGroups->fetchAll(PDO::FETCH_UNIQUE|PDO::FETCH_ASSOC);
 
-        $stmtEn = $this->db->prepare("SELECT * FROM swim_event_numbers WHERE event_id = ? AND is_relay = 0 ORDER BY distance ASC, stroke ASC");
-        $stmtEn->execute([$event_id]);
+        $organizerId = (int)($event['user_id'] ?? 0);
+        $stmtEn = $this->db->prepare("SELECT * FROM swim_event_numbers WHERE (event_id = ? OR (event_id IS NULL AND organizer_id = ?)) AND is_relay = 0 ORDER BY CAST(event_number AS UNSIGNED) ASC, distance ASC");
+        $stmtEn->execute([$event_id, $organizerId]);
         $allEvents = $stmtEn->fetchAll(PDO::FETCH_ASSOC);
 
         $stmtSw = $this->db->prepare("SELECT * FROM swim_swimmers WHERE user_id = ? ORDER BY nama_atlet ASC");
@@ -526,7 +649,7 @@ class RegistrationController extends Controller {
             $sid = $sw['id'];
             $dobObj = new DateTime($sw['tanggal_lahir']);
             $birthYear = (int)$dobObj->format('Y');
-            $age = ($calcType === 'Meet Start') ? $dobObj->diff($compDateObj)->y : ($compYear - $birthYear);
+            $age = (strcasecmp($calcType, 'Meet Start') === 0 && $compDateObj) ? $dobObj->diff($compDateObj)->y : ($compYear - $birthYear);
             
             $gender = ($sw['jenis_kelamin'] == 'L') ? 'L' : 'P';
             
@@ -538,31 +661,7 @@ class RegistrationController extends Controller {
             ];
 
             foreach ($allEvents as $ev) {
-                $eGen = (in_array($ev['jenis_kelamin'], ['Putra', 'L'])) ? 'L' : ((in_array($ev['jenis_kelamin'], ['Putri', 'P'])) ? 'P' : 'MIX');
-                
-                $isAgeFit = false;
-                if ($eGen === 'MIX' || $eGen === $gender) {
-                    $groupName = strtoupper($ev['age_group'] ?? '');
-                    if (preg_match_all('/\b(20\d{2})\b/', $groupName, $matches)) {
-                        $allowedYears = array_map('intval', $matches[1]); 
-                        if (in_array($birthYear, $allowedYears)) $isAgeFit = true;
-                    } else {
-                        $min = (int)($ev['age_min'] ?? 0); 
-                        $max = (int)($ev['age_max'] ?? 99);
-                        $passMinMax = ($age >= $min && ($max == 0 || $age <= $max));
-
-                        $kuIds = !empty($ev['selected_ku_ids']) ? explode(',', $ev['selected_ku_ids']) : [];
-                        if (!empty($kuIds)) {
-                            $passKu = false;
-                            foreach ($kuIds as $kid) { 
-                                if (isset($ageRules[$kid]) && $age >= (int)$ageRules[$kid]['min_age'] && $age <= (int)$ageRules[$kid]['max_age']) { $passKu = true; break; } 
-                            }
-                            if ($passKu && $passMinMax) { $isAgeFit = true; }
-                        } else {
-                            if ($passMinMax) { $isAgeFit = true; }
-                        }
-                    }
-                }
+                $isAgeFit = $this->checkSwimmerEligibility($sw, $ev, $ageRules, $compYear, $calcType, $compDateObj);
 
                 if ($isAgeFit) {
                     if (isset($savedData[$sid][$ev['id']]) && $savedData[$sid][$ev['id']] !== '') {
@@ -633,9 +732,11 @@ class RegistrationController extends Controller {
             $stmtC = $this->db->prepare("SELECT id FROM swim_clubs WHERE user_id = ? LIMIT 1");
             $stmtC->execute([$uid]);
             $club_id = $stmtC->fetchColumn();
+            $club_id = !empty($club_id) ? (int)$club_id : 0;
 
-            $stmtValid = $this->db->prepare("SELECT id FROM swim_event_numbers WHERE event_id = ?");
-            $stmtValid->execute([$event_id]);
+            $organizerId = (int)($event['user_id'] ?? 0);
+            $stmtValid = $this->db->prepare("SELECT id FROM swim_event_numbers WHERE (event_id = ? OR (event_id IS NULL AND organizer_id = ?))");
+            $stmtValid->execute([$event_id, $organizerId]);
             $validCats = $stmtValid->fetchAll(PDO::FETCH_COLUMN);
 
             $this->db->beginTransaction();
@@ -646,8 +747,8 @@ class RegistrationController extends Controller {
                 $stmtSwimmer = $this->db->prepare("SELECT id FROM swim_swimmers WHERE uid = ? AND user_id = ?");
                 $stmtCek = $this->db->prepare("SELECT id FROM swim_event_entries WHERE user_id=? AND event_id=? AND swimmer_id=? AND category_id=?");
                 $stmtDel = $this->db->prepare("DELETE FROM swim_event_entries WHERE id=?");
-                $stmtUpd = $this->db->prepare("UPDATE swim_event_entries SET entry_time=?, club_id=? WHERE id=?");
-                $stmtIns = $this->db->prepare("INSERT INTO swim_event_entries (user_id, event_id, club_id, swimmer_id, category_id, entry_time, status, created_at) VALUES (?, ?, ?, ?, ?, ?, 'Pending', NOW())");
+                $stmtUpd = $this->db->prepare("UPDATE swim_event_entries SET entry_time=?, entry_time_ms=?, club_id=? WHERE id=?");
+                $stmtIns = $this->db->prepare("INSERT INTO swim_event_entries (user_id, event_id, club_id, swimmer_id, category_id, entry_time, entry_time_ms, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, 'Pending', NOW())");
 
                 while (($data = fgetcsv($handle, 10000, $delimiter)) !== FALSE) {
                     if (count($data) == 1 && strpos($data[0], ',') !== false && $delimiter == ';') {
@@ -676,7 +777,7 @@ class RegistrationController extends Controller {
                         if ($time !== '' && strtoupper($time) !== 'DELETE' && $time !== '99.99.99' && strtoupper($time) !== 'X') {
                             $time = preg_replace('/[^\d\.\:]/', '', $time);
                             $time = str_replace(':', '.', $time);
-                        } else if (strtoupper($time) === 'X' || $time === '00.00.00') {
+                        } else if (strtoupper($time) === 'X' || $time === '00.00.00' || strtoupper($time) === 'NT') {
                             $time = '99.99.99';
                         }
 
@@ -689,11 +790,28 @@ class RegistrationController extends Controller {
                                 $deleted++;
                             }
                         } else {
+                            $timeMs = 999999999;
+                            if ($time !== '99.99.99') {
+                                $parts = explode('.', $time);
+                                if (count($parts) >= 2) {
+                                    if (count($parts) >= 3) {
+                                        $m = (int)$parts[0];
+                                        $s = (int)$parts[1];
+                                        $ms = (int)$parts[2];
+                                    } else {
+                                        $m = 0;
+                                        $s = (int)$parts[0];
+                                        $ms = (int)$parts[1];
+                                    }
+                                    $timeMs = ($m * 60000) + ($s * 1000) + ($ms * 10);
+                                }
+                            }
+
                             if ($exist) {
-                                $stmtUpd->execute([$time, $club_id, $exist['id']]);
+                                $stmtUpd->execute([$time, $timeMs, $club_id, $exist['id']]);
                                 $updated++;
                             } else {
-                                $stmtIns->execute([$uid, $event_id, $club_id, $swimmerId, $catId, $time]);
+                                $stmtIns->execute([$uid, $event_id, $club_id, $swimmerId, $catId, $time, $timeMs]);
                                 $updated++;
                             }
                         }
@@ -796,8 +914,9 @@ class RegistrationController extends Controller {
         $stmtGroups->execute([$event_id]);
         $ageRules = $stmtGroups->fetchAll(PDO::FETCH_UNIQUE|PDO::FETCH_ASSOC);
 
-        $stmtEn = $this->db->prepare("SELECT * FROM swim_event_numbers WHERE event_id = ? AND is_relay = 0 ORDER BY distance ASC, stroke ASC");
-        $stmtEn->execute([$event_id]);
+        $organizerId = (int)($event['user_id'] ?? 0);
+        $stmtEn = $this->db->prepare("SELECT * FROM swim_event_numbers WHERE (event_id = ? OR (event_id IS NULL AND organizer_id = ?)) AND is_relay = 0 ORDER BY CAST(event_number AS UNSIGNED) ASC, distance ASC");
+        $stmtEn->execute([$event_id, $organizerId]);
         $allEvents = $stmtEn->fetchAll(PDO::FETCH_ASSOC);
 
         $stmtSw = $this->db->prepare("SELECT * FROM swim_swimmers WHERE user_id = ? ORDER BY nama_atlet ASC");
@@ -819,7 +938,7 @@ class RegistrationController extends Controller {
             $sid = $sw['id'];
             $dobObj = new DateTime($sw['tanggal_lahir']);
             $birthYear = (int)$dobObj->format('Y');
-            $age = ($calcType === 'Meet Start') ? $dobObj->diff($compDateObj)->y : ($compYear - $birthYear);
+            $age = (strcasecmp($calcType, 'Meet Start') === 0 && $compDateObj) ? $dobObj->diff($compDateObj)->y : ($compYear - $birthYear);
             
             $gender = ($sw['jenis_kelamin'] == 'L') ? 'L' : 'P';
             $swName = strtoupper($sw['nama_atlet']);
@@ -832,31 +951,7 @@ class RegistrationController extends Controller {
             ];
 
             foreach ($allEvents as $ev) {
-                $eGen = (in_array($ev['jenis_kelamin'], ['Putra', 'L'])) ? 'L' : ((in_array($ev['jenis_kelamin'], ['Putri', 'P'])) ? 'P' : 'MIX');
-                
-                $isAgeFit = false;
-                if ($eGen === 'MIX' || $eGen === $gender) {
-                    $groupName = strtoupper($ev['age_group'] ?? '');
-                    if (preg_match_all('/\b(20\d{2})\b/', $groupName, $matches)) {
-                        $allowedYears = array_map('intval', $matches[1]); 
-                        if (in_array($birthYear, $allowedYears)) $isAgeFit = true;
-                    } else {
-                        $min = (int)($ev['age_min'] ?? 0); 
-                        $max = (int)($ev['age_max'] ?? 99);
-                        $passMinMax = ($age >= $min && ($max == 0 || $age <= $max));
-
-                        $kuIds = !empty($ev['selected_ku_ids']) ? explode(',', $ev['selected_ku_ids']) : [];
-                        if (!empty($kuIds)) {
-                            $passKu = false;
-                            foreach ($kuIds as $kid) { 
-                                if (isset($ageRules[$kid]) && $age >= (int)$ageRules[$kid]['min_age'] && $age <= (int)$ageRules[$kid]['max_age']) { $passKu = true; break; } 
-                            }
-                            if ($passKu && $passMinMax) { $isAgeFit = true; }
-                        } else {
-                            if ($passMinMax) { $isAgeFit = true; }
-                        }
-                    }
-                }
+                $isAgeFit = $this->checkSwimmerEligibility($sw, $ev, $ageRules, $compYear, $calcType, $compDateObj);
 
                 if ($isAgeFit) {
                     $matchKey = $ev['distance'] . "M " . strtoupper(str_replace('-', '', $ev['stroke'])) . " " . $gender . " " . strtoupper($ev['age_group']);
@@ -923,7 +1018,7 @@ class RegistrationController extends Controller {
         $stmtC = $this->db->prepare("SELECT id FROM swim_clubs WHERE user_id = ? LIMIT 1");
         $stmtC->execute([$uid]);
         $club_id = $stmtC->fetchColumn();
-        $club_id = $club_id ?: null;
+        $club_id = !empty($club_id) ? (int)$club_id : 0;
 
         ini_set('auto_detect_line_endings', TRUE);
         $handle = fopen($file, "r");
@@ -950,8 +1045,8 @@ class RegistrationController extends Controller {
                 $stmtInsSwimmer = $this->db->prepare("INSERT INTO swim_swimmers (uid, user_id, nama_atlet, jenis_kelamin, tanggal_lahir, club_id, asal_sekolah) VALUES (?, ?, ?, ?, ?, ?, ?)");
                 
                 $stmtCekEntry = $this->db->prepare("SELECT id FROM swim_event_entries WHERE user_id=? AND event_id=? AND swimmer_id=? AND category_id=?");
-                $stmtUpdEntry = $this->db->prepare("UPDATE swim_event_entries SET entry_time=?, club_id=? WHERE id=?");
-                $stmtInsEntry = $this->db->prepare("INSERT INTO swim_event_entries (user_id, event_id, club_id, swimmer_id, category_id, entry_time, status, created_at) VALUES (?, ?, ?, ?, ?, ?, 'Pending', NOW())");
+                $stmtUpdEntry = $this->db->prepare("UPDATE swim_event_entries SET entry_time=?, entry_time_ms=?, club_id=? WHERE id=?");
+                $stmtInsEntry = $this->db->prepare("INSERT INTO swim_event_entries (user_id, event_id, club_id, swimmer_id, category_id, entry_time, entry_time_ms, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, 'Pending', NOW())");
 
                 while (($data = fgetcsv($handle, 10000, $delimiter)) !== FALSE) {
                     if (count($data) == 1 && strpos($data[0], ',') !== false && $delimiter == ';') {
@@ -1002,7 +1097,7 @@ class RegistrationController extends Controller {
                     }
 
                     $time = isset($data[4]) ? trim($data[4]) : '';
-                    if ($time !== '' && strtoupper($time) !== 'X' && $time !== '00.00.00') {
+                    if ($time !== '' && strtoupper($time) !== 'X' && $time !== '00.00.00' && strtoupper($time) !== 'NT') {
                         $time = preg_replace('/[^\d\.\:]/', '', $time);
                         $time = str_replace(':', '.', $time);
                         // Make sure time format is valid
@@ -1013,14 +1108,31 @@ class RegistrationController extends Controller {
                         $time = '99.99.99';
                     }
 
+                    $timeMs = 999999999;
+                    if ($time !== '99.99.99') {
+                        $parts = explode('.', $time);
+                        if (count($parts) >= 2) {
+                            if (count($parts) >= 3) {
+                                $m = (int)$parts[0];
+                                $s = (int)$parts[1];
+                                $ms = (int)$parts[2];
+                            } else {
+                                $m = 0;
+                                $s = (int)$parts[0];
+                                $ms = (int)$parts[1];
+                            }
+                            $timeMs = ($m * 60000) + ($s * 1000) + ($ms * 10);
+                        }
+                    }
+
                     $stmtCekEntry->execute([$uid, $event_id, $swimmerId, $catId]);
                     $exist = $stmtCekEntry->fetch(PDO::FETCH_ASSOC);
 
                     if ($exist) {
-                        $stmtUpdEntry->execute([$time, $club_id, $exist['id']]);
+                        $stmtUpdEntry->execute([$time, $timeMs, $club_id, $exist['id']]);
                         $updated++;
                     } else {
-                        $stmtInsEntry->execute([$uid, $event_id, $club_id, $swimmerId, $catId, $time]);
+                        $stmtInsEntry->execute([$uid, $event_id, $club_id, $swimmerId, $catId, $time, $timeMs]);
                         $updated++;
                     }
                 }
