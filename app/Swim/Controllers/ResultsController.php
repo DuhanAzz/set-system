@@ -83,7 +83,7 @@ class ResultsController extends Controller {
         if (!$cat_id) { header("Location: " . getenv('APP_URL') . "/swim/admin/results"); exit; }
         
         // Simpan referensi ke request untuk method POST
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
             $this->store($pdo, $cat_id, $eventId);
             return;
         }
@@ -384,7 +384,7 @@ class ResultsController extends Controller {
         $uid = $_SESSION['swim_user_id'];
         
         // --- 🚀 HANDLER AJAX UNTUK SAKLAR (TOGGLE) ---
-        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+        if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
             header('Content-Type: application/json');
             
             if ($_POST['action'] === 'toggle_publish') {
