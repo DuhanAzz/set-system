@@ -76,20 +76,30 @@ class RegistrationController extends Controller {
                     }
                 }
             }
+            return false;
         }
 
         // 4. Check if event age_group matches any group_name in ageRules
         $groupName = strtoupper(trim($ev['age_group'] ?? ''));
+        $matchedAgeRule = false;
         if (!empty($ageRules)) {
             foreach ($ageRules as $kid => $ar) {
-                $arName = strtoupper(trim($ar['group_name']));
-                if ($arName !== '' && (strpos($groupName, $arName) !== false || strpos($arName, $groupName) !== false)) {
-                    $min = (int)$ar['min_age'];
-                    $max = (int)$ar['max_age'];
-                    if ($age >= $min && ($max == 0 || $age <= $max)) {
-                        return true;
+                $arName = strtoupper(trim($ar['group_name'] ?? ''));
+                if ($arName !== '') {
+                    $isMatch = ($groupName === $arName) || 
+                               (preg_match('/\b' . preg_quote($arName, '/') . '\b/i', $groupName) === 1);
+                    if ($isMatch) {
+                        $matchedAgeRule = true;
+                        $min = (int)$ar['min_age'];
+                        $max = (int)$ar['max_age'];
+                        if ($age >= $min && ($max == 0 || $age <= $max)) {
+                            return true;
+                        }
                     }
                 }
+            }
+            if ($matchedAgeRule) {
+                return false;
             }
         }
 
@@ -102,25 +112,18 @@ class RegistrationController extends Controller {
                 if (preg_match('/(19\d{2}|20\d{2})\s*(-|\/|S\/D|TO)\s*(19\d{2}|20\d{2})/i', $groupName, $rm)) {
                     $minY = min((int)$rm[1], (int)$rm[3]);
                     $maxY = max((int)$rm[1], (int)$rm[3]);
-                    if ($birthYear >= $minY && $birthYear <= $maxY) {
-                        return true;
-                    }
+                    return ($birthYear >= $minY && $birthYear <= $maxY);
                 }
                 // Check for "LEBIH MUDA" / "KE BAWAH" (born in year or later)
-                elseif (preg_match('/(19\d{2}|20\d{2})\s*(&|\+)?\s*(LEBIH MUDA|KE BAWAH|KEBAWAH|DIBAWAH)/i', $groupName, $ym)) {
-                    if ($birthYear >= (int)$ym[1]) return true;
+                if (preg_match('/(19\d{2}|20\d{2})\s*(&|\+)?\s*(LEBIH MUDA|KE BAWAH|KEBAWAH|DIBAWAH)/i', $groupName, $ym)) {
+                    return ($birthYear >= (int)$ym[1]);
                 }
                 // Check for "LEBIH TUA" / "KE ATAS" (born in year or earlier)
-                elseif (preg_match('/(19\d{2}|20\d{2})\s*(&|\+)?\s*(LEBIH TUA|KE ATAS|KEATAS|DIATAS)/i', $groupName, $ym)) {
-                    if ($birthYear <= (int)$ym[1]) return true;
+                if (preg_match('/(19\d{2}|20\d{2})\s*(&|\+)?\s*(LEBIH TUA|KE ATAS|KEATAS|DIATAS)/i', $groupName, $ym)) {
+                    return ($birthYear <= (int)$ym[1]);
                 }
                 // Discrete years: e.g. "KU 2016" or "KU 2016, KU 2017"
-                else {
-                    if (in_array($birthYear, $candidateYears)) {
-                        return true;
-                    }
-                }
-                return false;
+                return in_array($birthYear, $candidateYears);
             }
         }
 

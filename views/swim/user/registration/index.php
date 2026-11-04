@@ -219,7 +219,7 @@
                 <select name="category_id" class="w-full text-sm p-3 border rounded-xl font-bold focus:ring-2 focus:ring-violet-500" required>
                     <option value="">-- Pilih Nomor --</option>
                     <?php foreach ($allEvents as $ev): ?>
-                        <option value="<?= $ev['id'] ?>"><?= $ev['distance'] ?>M <?= strtoupper($ev['stroke']) ?> <?= strtoupper($ev['jenis_kelamin']) ?> <?= strtoupper($ev['age_group']) ?></option>
+                        <option value="<?= $ev['id'] ?>">[#<?= $ev['event_number'] ?>] <?= $ev['distance'] ?>M <?= strtoupper($ev['stroke']) ?> <?= strtoupper($ev['jenis_kelamin']) ?> <?= strtoupper($ev['age_group']) ?></option>
                     <?php endforeach; ?>
                 </select>
             </div>
@@ -266,10 +266,10 @@
 
 <script>
 const DATA = <?= json_encode($jsonData) ?>;
-const IS_LOCKED = <?= json_encode($isLocked) ?>;
+const IS_LOCKED = <?= json_encode((bool)($isLocked || !empty($isClosed))) ?>;
 let currentSwimmerData = null; 
 
-function openModal(sid) {
+function openModal(sid, targetEventId = null) {
     if (IS_LOCKED) return;
     const s = DATA[sid]; if(!s) return;
     currentSwimmerData = s.events; 
@@ -301,15 +301,27 @@ function openModal(sid) {
         `);
         groupedEvents[groupName].forEach(ev => {
             let btnRec = ev.best_time ? `<button type="button" onclick="copyTime('${ev.best_time}', '${ev.id}')" class="bg-emerald-50 text-emerald-600 border border-emerald-200 px-2 py-1 rounded text-[9px] font-bold hover:bg-emerald-100 transition flex items-center gap-1">⚡ ${ev.best_time}</button>` : `<span class="text-[9px] text-slate-300 font-bold italic">No Record</span>`;
+            let noPrefix = ev.event_number ? `<span class="text-blue-500 font-mono text-xs mr-1">#${ev.event_number}</span>` : '';
+            let isTarget = (targetEventId && ev.id == targetEventId);
             body.insertAdjacentHTML('beforeend', `
-                <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm mb-3 hover:border-blue-300 transition-colors group">
-                    <div class="flex justify-between items-center mb-2"><div class="font-black text-slate-700 text-sm italic uppercase tracking-tight group-hover:text-blue-600 transition-colors">${ev.name}</div>${btnRec}</div>
+                <div id="card_ev_${ev.id}" class="bg-white p-3 rounded-xl border ${isTarget ? 'border-blue-500 ring-2 ring-blue-200 bg-blue-50/20' : 'border-slate-200'} shadow-sm mb-3 hover:border-blue-300 transition-colors group">
+                    <div class="flex justify-between items-center mb-2"><div class="font-black text-slate-700 text-sm italic uppercase tracking-tight group-hover:text-blue-600 transition-colors">${noPrefix}${ev.name}</div>${btnRec}</div>
                     <div class="relative"><input type="text" id="input_${ev.id}" name="entries[${ev.id}]" value="${ev.time}" placeholder="00.00.00" maxlength="8" oninput="handleTimeInput(this)" class="w-full text-center font-mono font-bold text-xl text-slate-700 bg-slate-50 border border-slate-200 rounded-lg py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition shadow-inner placeholder:text-slate-200"><div class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 text-[10px] font-bold pointer-events-none">WAKTU</div></div>
                 </div>
             `);
         });
     });
     document.getElementById('modalEntry').classList.remove('hidden');
+    if (targetEventId) {
+        setTimeout(() => {
+            const el = document.getElementById('input_' + targetEventId);
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                el.focus();
+                el.select();
+            }
+        }, 150);
+    }
 }
 
 function handleTimeInput(el) {

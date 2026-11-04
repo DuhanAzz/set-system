@@ -463,6 +463,17 @@ class EventsController extends Controller {
                             $cleanName = strtoupper(trim($gn));
                             if (isset($kuMapByName[$cleanName])) {
                                 $selectedKuIds[] = (int)$kuMapByName[$cleanName]['id'];
+                            } else {
+                                foreach ($dbKUs as $ku) {
+                                    $kuName = strtoupper(trim($ku['group_name']));
+                                    if ($kuName === '') continue;
+                                    $normKu = trim(str_replace('KU', '', $kuName));
+                                    $normClean = trim(str_replace('KU', '', $cleanName));
+                                    if ($normKu !== '' && ($normKu === $normClean || strpos($cleanName, $kuName) !== false || strpos($kuName, $cleanName) !== false)) {
+                                        $selectedKuIds[] = (int)$ku['id'];
+                                        break;
+                                    }
+                                }
                             }
                         }
                     }
