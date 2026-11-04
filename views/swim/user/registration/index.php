@@ -83,11 +83,11 @@
             ?>
             <tr class="hover:bg-slate-50 transition-colors group">
                 <td class="sticky-col-1 bg-white border-r text-center py-4 group-hover:bg-slate-50">
-                    <button onclick="<?= $isLocked ? "alert('Terkunci')" : "openModal($sid)" ?>" class="hover:scale-125 transition-transform text-slate-400 hover:text-blue-500">
-                        <?= $isLocked ? '🔒' : '✏️' ?>
+                    <button onclick="<?= ($isLocked || !empty($isClosed)) ? "alert('Terkunci / Ditutup')" : "openModal($sid)" ?>" class="hover:scale-125 transition-transform text-slate-400 hover:text-blue-500">
+                        <?= ($isLocked || !empty($isClosed)) ? '🔒' : '✏️' ?>
                     </button>
                 </td>
-                <td onclick="<?= $isLocked ? "alert('Terkunci')" : "openModal($sid)" ?>" class="sticky-col-2 bg-white border-r px-4 py-4 cursor-pointer group-hover:bg-slate-50">
+                <td onclick="<?= ($isLocked || !empty($isClosed)) ? "alert('Terkunci / Ditutup')" : "openModal($sid)" ?>" class="sticky-col-2 bg-white border-r px-4 py-4 cursor-pointer group-hover:bg-slate-50">
                     <div class="font-bold text-slate-800 uppercase truncate"><?= htmlspecialchars($sName) ?></div>
                     <div class="text-[9px] text-slate-400 font-bold mt-0.5"><?= $info ?></div>
                 </td>
@@ -100,34 +100,8 @@
                             $registeredTime = null;
 
                             foreach ($eventsInDist as $ev) {
-                                $eGen = (in_array($ev['jenis_kelamin'], ['Putra', 'L'])) ? 'L' : ((in_array($ev['jenis_kelamin'], ['Putri', 'P'])) ? 'P' : 'MIX');
-                                if ($eGen !== 'MIX' && $eGen !== $gender) continue;
-
-                                $isAgeFit = false;
-                                $groupName = strtoupper($ev['age_group'] ?? '');
-
-                                if (preg_match_all('/\b(20\d{2})\b/', $groupName, $matches)) {
-                                    $allowedYears = array_map('intval', $matches[1]); 
-                                    if (in_array($birthYear, $allowedYears)) $isAgeFit = true;
-                                } else {
-                                    $min = (int)($ev['age_min'] ?? 0); 
-                                    $max = (int)($ev['age_max'] ?? 99);
-                                    $passMinMax = ($age >= $min && ($max == 0 || $age <= $max));
-
-                                    $kuIds = !empty($ev['selected_ku_ids']) ? explode(',', $ev['selected_ku_ids']) : [];
-                                    if (!empty($kuIds)) {
-                                        $passKu = false;
-                                        foreach ($kuIds as $kid) { 
-                                            if (isset($ageRules[$kid]) && $age >= (int)$ageRules[$kid]['min_age'] && $age <= (int)$ageRules[$kid]['max_age']) { $passKu = true; break; } 
-                                        }
-                                        if ($passKu && $passMinMax) { $isAgeFit = true; }
-                                    } else {
-                                        if ($passMinMax) { $isAgeFit = true; }
-                                    }
-                                }
-
-                                if ($isAgeFit) { 
-                                    $matchedEvents[] = $ev; 
+                                if (!empty($eligibleMap[$sid][$ev['id']])) {
+                                    $matchedEvents[] = $ev;
                                 }
                             }
 
@@ -153,7 +127,7 @@
                                 }
                             }
                         ?>
-                        <td onclick="<?= ($foundEvent && !$isLocked) ? "openModal($sid)" : "" ?>" class="border-l border-slate-100 text-center h-12 transition-all <?= $cellClass ?>">
+                        <td onclick="<?= ($foundEvent && !$isLocked && empty($isClosed)) ? "openModal($sid, {$foundEvent['id']})" : "" ?>" class="border-l border-slate-100 text-center h-12 transition-all <?= $cellClass ?>" title="<?= $foundEvent ? ('#' . $foundEvent['event_number'] . ' - ' . htmlspecialchars($foundEvent['event_name'] ?? '')) : 'Tidak Sesuai KU/Gender' ?>">
                             <?= $cellContent ?>
                         </td>
                     <?php endforeach; ?>
