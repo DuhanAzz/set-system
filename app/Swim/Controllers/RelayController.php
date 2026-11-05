@@ -16,19 +16,31 @@ class RelayController extends Controller {
     }
 
     private function resolveEvent($pdo, $uid) {
+        // Defensive migration: ensure columns exist in swim_events
+        try {
+            $pdo->query("ALTER TABLE swim_events ADD COLUMN price_per_item DECIMAL(15,2) DEFAULT 0.00 AFTER pricing_mode");
+        } catch (\Exception $e) {}
+        try {
+            $pdo->query("ALTER TABLE swim_events ADD COLUMN price_relay DECIMAL(15,2) DEFAULT 0.00 AFTER price_per_item");
+        } catch (\Exception $e) {}
+
         $isMaster = (($_SESSION['swim_role'] ?? '') === 'master' || ($_SESSION['swim_role'] ?? '') === 'superadmin');
 
-        if ($isMaster) {
-            $stmtAll = $pdo->query("SELECT id, event_name, event_date_start, pool_type FROM swim_events ORDER BY id DESC");
-            $allEvents = $stmtAll->fetchAll(PDO::FETCH_ASSOC);
-        } else {
-            $stmtAll = $pdo->prepare("SELECT id, event_name, event_date_start, pool_type FROM swim_events WHERE user_id = ? ORDER BY id DESC");
-            $stmtAll->execute([$uid]);
-            $allEvents = $stmtAll->fetchAll(PDO::FETCH_ASSOC);
-            if (empty($allEvents)) {
+        try {
+            if ($isMaster) {
                 $stmtAll = $pdo->query("SELECT id, event_name, event_date_start, pool_type FROM swim_events ORDER BY id DESC");
                 $allEvents = $stmtAll->fetchAll(PDO::FETCH_ASSOC);
+            } else {
+                $stmtAll = $pdo->prepare("SELECT id, event_name, event_date_start, pool_type FROM swim_events WHERE user_id = ? ORDER BY id DESC");
+                $stmtAll->execute([$uid]);
+                $allEvents = $stmtAll->fetchAll(PDO::FETCH_ASSOC);
+                if (empty($allEvents)) {
+                    $stmtAll = $pdo->query("SELECT id, event_name, event_date_start, pool_type FROM swim_events ORDER BY id DESC");
+                    $allEvents = $stmtAll->fetchAll(PDO::FETCH_ASSOC);
+                }
             }
+        } catch (\Exception $e) {
+            $allEvents = [];
         }
 
         $requestedEventId = (int)($_GET['event_id'] ?? ($_SESSION['active_event_id'] ?? 0));
@@ -41,7 +53,10 @@ class RelayController extends Controller {
         }
 
         if (!$activeEvent && !empty($allEvents)) {
-            $activeEvent = $allEvents[0];
+            $firstId = (int)$allEvents[0]['id'];
+            $stmt = $pdo->prepare("SELECT * FROM swim_events WHERE id = ?");
+            $stmt->execute([$firstId]);
+            $activeEvent = $stmt->fetch(PDO::FETCH_ASSOC);
         }
 
         $eventId = (int)($activeEvent['id'] ?? 0);

@@ -20,6 +20,14 @@ class EventsController extends Controller {
     }
 
     private function resolveEvent($pdo, $adminId, $requestedEventId = 0) {
+        // Defensive migration: ensure columns exist in swim_events
+        try {
+            $pdo->query("ALTER TABLE swim_events ADD COLUMN price_per_item DECIMAL(15,2) DEFAULT 0.00 AFTER pricing_mode");
+        } catch (\Exception $e) {}
+        try {
+            $pdo->query("ALTER TABLE swim_events ADD COLUMN price_relay DECIMAL(15,2) DEFAULT 0.00 AFTER price_per_item");
+        } catch (\Exception $e) {}
+
         $isMaster = ($_SESSION['swim_role'] ?? '') === 'master';
 
         // Ambil semua event yang dapat diakses pengguna
