@@ -79,7 +79,7 @@
 
     <!-- TOMBOL KONTROL DI LUAR KERTAS (TIDAK IKUT TERCETAK) -->
     <div class="no-print">
-        <a href="<?= getenv('APP_URL') ?>/swim/admin/medal_tally?team_source=<?= htmlspecialchars($team_source) ?>" class="btn btn-back">⬅ Kembali ke Hasil</a>
+        <a href="<?= getenv('APP_URL') ?>/swim/admin/medal_tally?event_id=<?= $eventId ?>&team_source=<?= htmlspecialchars($team_source) ?>" class="btn btn-back">⬅ Kembali ke Hasil</a>
         <button onclick="window.print()" class="btn btn-print">🖨️ CETAK SEKARANG (PDF)</button>
     </div>
 

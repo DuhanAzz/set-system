@@ -77,10 +77,10 @@
             <p class="text-xs text-slate-500">Pilih mode tampilan:</p>
         </div>
         <div class="flex gap-2 bg-slate-100 p-1 rounded-lg">
-            <a href="<?= getenv('APP_URL') ?>/swim/admin/medal_tally?team_source=<?= htmlspecialchars($team_source) ?>" class="bg-white shadow text-blue-700 px-4 py-1.5 rounded text-xs font-bold uppercase transition">
+            <a href="<?= getenv('APP_URL') ?>/swim/admin/medal_tally?event_id=<?= $eventId ?>&team_source=<?= htmlspecialchars($team_source) ?>" class="bg-white shadow text-blue-700 px-4 py-1.5 rounded text-xs font-bold uppercase transition">
                 🏆 Juara Umum (Tim)
             </a>
-            <a href="<?= getenv('APP_URL') ?>/swim/admin/medal_tally/best_swimmer?team_source=<?= htmlspecialchars($team_source) ?>" class="text-gray-500 hover:text-gray-700 px-4 py-1.5 rounded text-xs font-bold uppercase transition">
+            <a href="<?= getenv('APP_URL') ?>/swim/admin/medal_tally/best_swimmer?event_id=<?= $eventId ?>&team_source=<?= htmlspecialchars($team_source) ?>" class="text-gray-500 hover:text-gray-700 px-4 py-1.5 rounded text-xs font-bold uppercase transition">
                 🏊‍♂️ Perenang Terbaik
             </a>
         </div>
@@ -90,13 +90,21 @@
         <form method="GET" class="space-y-4" action="<?= getenv('APP_URL') ?>/swim/admin/medal_tally">
             <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
                 <div class="md:col-span-6 flex flex-col gap-1">
+                    <label class="text-[10px] font-bold text-slate-400 uppercase">Pilih Event Aktif</label>
+                    <select name="event_id" onchange="this.form.submit()" class="border border-slate-300 rounded px-3 py-2 text-xs font-bold bg-white h-10 w-full outline-none">
+                        <?php foreach($myEvents as $ev): ?>
+                            <option value="<?= $ev['id'] ?>" <?= ($ev['id'] == $eventId) ? 'selected' : '' ?>><?= htmlspecialchars($ev['event_name']) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="md:col-span-4 flex flex-col gap-1">
                     <label class="text-[10px] font-bold text-slate-400 uppercase">Sumber Data Tim</label>
                     <select name="team_source" class="border border-slate-300 rounded px-3 py-2 text-xs font-bold bg-slate-50 h-10 w-full outline-none">
                         <option value="club" <?= $team_source=='club'?'selected':'' ?>>KLUB / TIM</option>
                         <option value="school" <?= $team_source=='school'?'selected':'' ?>>ASAL SEKOLAH</option>
                     </select>
                 </div>
-                <div class="md:col-span-6 flex flex-col justify-end">
+                <div class="md:col-span-2 flex flex-col justify-end">
                     <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded text-xs font-bold uppercase shadow w-full h-10">🔍 Terapkan</button>
                 </div>
             </div>
@@ -104,7 +112,7 @@
     </div>
 
     <div class="flex justify-end">
-        <a href="<?= getenv('APP_URL') ?>/swim/admin/medal_tally?team_source=<?= htmlspecialchars($team_source) ?>&print=1" target="_blank" class="bg-slate-900 hover:bg-slate-800 text-white px-6 py-2 rounded text-xs font-bold uppercase shadow flex items-center gap-2">
+        <a href="<?= getenv('APP_URL') ?>/swim/admin/medal_tally?event_id=<?= $eventId ?>&team_source=<?= htmlspecialchars($team_source) ?>&print=1" target="_blank" class="bg-slate-900 hover:bg-slate-800 text-white px-6 py-2 rounded text-xs font-bold uppercase shadow flex items-center gap-2">
             🖨️ Cetak Laporan
         </a>
     </div>

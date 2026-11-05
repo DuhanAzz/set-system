@@ -9,27 +9,50 @@ use PDO;
 class MedalTallyController extends Controller {
 
     private function checkAccess() {
-        if (!isset($_SESSION['swim_role']) || $_SESSION['swim_role'] !== 'admin') {
+        $role = $_SESSION['role'] ?? ($_SESSION['swim_role'] ?? '');
+        if ($role !== 'admin' && $role !== 'superadmin') {
             header("Location: " . getenv('APP_URL') . "/swim/login");
             exit;
         }
     }
 
     private function getActiveEventId($pdo, $uid) {
+        $eventId = (int)($_GET['event_id'] ?? ($_SESSION['active_event_id'] ?? 0));
+        if ($eventId > 0) {
+            $_SESSION['active_event_id'] = $eventId;
+            return $eventId;
+        }
+
         $stmt = $pdo->prepare("SELECT id FROM swim_events WHERE user_id = ? ORDER BY id DESC LIMIT 1");
         $stmt->execute([$uid]);
-        return $stmt->fetchColumn() ?: 0;
+        $eventId = (int)($stmt->fetchColumn() ?: 0);
+        if ($eventId == 0) {
+            $eventId = (int)($pdo->query("SELECT id FROM swim_events ORDER BY id DESC LIMIT 1")->fetchColumn() ?: 0);
+        }
+        if ($eventId > 0) {
+            $_SESSION['active_event_id'] = $eventId;
+        }
+        return $eventId;
     }
 
     private function timeToMs($time) {
-        $time = trim($time);
-        if (empty($time) || strtoupper($time) == 'NT' || $time == '99:99.99' || $time == '99.99.99' || $time == '-') return 9999999999; 
-        $parts = preg_split('/[:.]/', $time);
-        $menit = 0; $detik = 0; $ms = 0;
-        if (count($parts) == 3) { $menit = (int)$parts[0]; $detik = (int)$parts[1]; $ms = (int)$parts[2]; } 
-        elseif (count($parts) == 2) { $detik = (int)$parts[0]; $ms = (int)$parts[1]; } 
-        elseif (count($parts) == 1) { $detik = (int)$parts[0]; }
-        return ($menit * 60000) + ($detik * 1000) + ($ms * 10);
+        if (empty($time) || strtoupper($time) == 'NT') return 9999999999;
+        $time = str_replace(',', '.', trim($time));
+        if ($time == '99:99.99' || $time == '99.99.99' || $time == '-') return 9999999999;
+        $parts = explode(':', $time);
+        if (count($parts) == 2) {
+            $minutes = (int)$parts[0];
+            $secParts = explode('.', $parts[1]);
+            $seconds = (int)$secParts[0];
+            $hundredths = isset($secParts[1]) ? (int)str_pad(substr($secParts[1], 0, 2), 2, '0') : 0;
+            return ($minutes * 60 * 1000) + ($seconds * 1000) + ($hundredths * 10);
+        } elseif (count($parts) == 1) {
+            $secParts = explode('.', $parts[0]);
+            $seconds = (int)$secParts[0];
+            $hundredths = isset($secParts[1]) ? (int)str_pad(substr($secParts[1], 0, 2), 2, '0') : 0;
+            return ($seconds * 1000) + ($hundredths * 10);
+        }
+        return 9999999999;
     }
 
     private function getKUNameTally($dob, $evtYear, $groups) {
@@ -43,16 +66,46 @@ class MedalTallyController extends Controller {
 
     private function calculateTally($mode = 'team') {
         $pdo = Database::getInstance()->getConnection();
-        $uid = $_SESSION['swim_user_id'];
+        $uid = $_SESSION['swim_user_id'] ?? 0;
         
-        $eventId = $_GET['event_id'] ?? 0;
-        if ($eventId == 0) $eventId = $this->getActiveEventId($pdo, $uid);
+        $role = $_SESSION['role'] ?? ($_SESSION['swim_role'] ?? 'user');
+        if ($role === 'superadmin' || $role === 'admin') {
+            $stmtEvents = $pdo->query("SELECT id, event_name, event_date_start, participation_type FROM swim_events ORDER BY id DESC");
+        } else {
+            $stmtEvents = $pdo->prepare("SELECT id, event_name, event_date_start, participation_type FROM swim_events WHERE user_id = ? ORDER BY id DESC");
+            $stmtEvents->execute([$uid]);
+        }
+        $myEvents = $stmtEvents ? $stmtEvents->fetchAll(PDO::FETCH_ASSOC) : [];
+        if (empty($myEvents)) {
+            $myEvents = $pdo->query("SELECT id, event_name, event_date_start, participation_type FROM swim_events ORDER BY id DESC")->fetchAll(PDO::FETCH_ASSOC);
+        }
 
-        $stmtProfile = $pdo->prepare("SELECT * FROM swim_events WHERE id = ?");
-        $stmtProfile->execute([$eventId]);
-        $raceInfo = $stmtProfile->fetch(PDO::FETCH_ASSOC);
+        $eventId = (int)($_GET['event_id'] ?? ($_SESSION['active_event_id'] ?? 0));
+        if ($eventId == 0 && count($myEvents) > 0) {
+            $eventId = (int)$myEvents[0]['id'];
+        }
+        if ($eventId == 0) {
+            $eventId = $this->getActiveEventId($pdo, $uid);
+        }
+
+        $raceInfo = null;
+        if ($eventId > 0) {
+            $_SESSION['active_event_id'] = $eventId;
+            $stmtProfile = $pdo->prepare("SELECT * FROM swim_events WHERE id = ?");
+            $stmtProfile->execute([$eventId]);
+            $raceInfo = $stmtProfile->fetch(PDO::FETCH_ASSOC);
+        }
 
         if (!$raceInfo) die("Data Event tidak ditemukan.");
+
+        // Pastikan jika eventId tidak ada di myEvents, tetap muncul di dropdown
+        $existsInList = false;
+        foreach ($myEvents as $ev) {
+            if ($ev['id'] == $eventId) { $existsInList = true; break; }
+        }
+        if (!$existsInList && $raceInfo) {
+            array_unshift($myEvents, ['id' => $raceInfo['id'], 'event_name' => $raceInfo['event_name']]);
+        }
         $eventYear = date('Y', strtotime($raceInfo['event_date_start'])); 
         $eventLoc = strtoupper($raceInfo['event_location'] ?? 'LOKASI');
         
@@ -137,8 +190,8 @@ class MedalTallyController extends Controller {
         
                     SELECT 
                         en.event_number, en.age_group as event_age_group, en.rank_mode,
-                        NULL as swimmer_id, NULL as uid, c.nama_klub as nama_atlet, en.jenis_kelamin as jenis_kelamin, '0000-00-00' as tanggal_lahir,
-                        c.nama_klub as team_name,
+                        NULL as swimmer_id, NULL as uid, COALESCE(NULLIF(re.team_name, ''), c.nama_klub, 'RELAY TEAM') as nama_atlet, en.jenis_kelamin as jenis_kelamin, '0000-00-00' as tanggal_lahir,
+                        COALESCE(NULLIF(re.team_name, ''), c.nama_klub, 'RELAY TEAM') as team_name,
                         es.time_final, es.is_dq_final, es.rank_final
                     FROM swim_relay_entries re
                     JOIN swim_event_seeding es ON re.id = es.entry_id
@@ -232,10 +285,25 @@ class MedalTallyController extends Controller {
                 $row['ku_name'] = $ku_name;
                 $groupedAthleteData[$ku_name][$row['jenis_kelamin']][] = $row;
             }
-            ksort($groupedAthleteData); 
+
+            // Urutkan grup sesuai urutan resmi di database ($available_kus)
+            $orderedGrouped = [];
+            foreach ($available_kus as $ku) {
+                $kName = strtoupper($ku['group_name']);
+                if (isset($groupedAthleteData[$kName])) {
+                    $orderedGrouped[$kName] = $groupedAthleteData[$kName];
+                    unset($groupedAthleteData[$kName]);
+                }
+            }
+            foreach ($groupedAthleteData as $kName => $val) {
+                $orderedGrouped[$kName] = $val;
+            }
+            $groupedAthleteData = $orderedGrouped;
         }
 
         return [
+            'eventId' => $eventId,
+            'myEvents' => $myEvents,
             'tallyData' => $tallyData,
             'groupedAthleteData' => $groupedAthleteData,
             'raceInfo' => $raceInfo,
