@@ -266,6 +266,45 @@ foreach($rawData as $row) {
 }
 
 if ($showScheduleAuto) {
+    try {
+        $stmtAllCats = $pdo->prepare("SELECT id, event_number, distance, stroke, age_group, jenis_kelamin, schedule_date, schedule_time FROM swim_event_numbers WHERE event_id = ? ORDER BY CAST(event_number AS UNSIGNED) ASC");
+        $stmtAllCats->execute([$eventId]);
+        $allCats = $stmtAllCats->fetchAll(PDO::FETCH_ASSOC);
+
+        if (!empty($allCats)) {
+            $scheduleData = [];
+            foreach ($allCats as $cat) {
+                $cid = $cat['id'];
+                $tglRaw = !empty($cat['schedule_date']) ? $cat['schedule_date'] : $eventDate;
+                $jamRaw = !empty($cat['schedule_time']) ? $cat['schedule_time'] : '00:00:00';
+                $cleanStroke = trim(str_ireplace(['Gaya', 'GAYA'], '', $cat['stroke']));
+                $genderLabel = (in_array($cat['jenis_kelamin'], ['L','Male'])) ? 'PUTRA' : ((in_array($cat['jenis_kelamin'], ['P','Female'])) ? 'PUTRI' : 'CAMPURAN');
+                
+                $heatCount = isset($fullBook[$cid]['heats']) ? count($fullBook[$cid]['heats']) : 0;
+
+                $scheduleData[$cid] = [
+                    'no' => $cat['event_number'],
+                    'jam' => date('H:i', strtotime($jamRaw)),
+                    'tgl_display' => strtoupper(date('l, d F Y', strtotime($tglRaw))),
+                    'uraian' => $cat['distance']."M ".strtoupper($cleanStroke),
+                    'kategori' => $cat['age_group'] . " - " . strtoupper($genderLabel),
+                    'total_heats' => $heatCount,
+                    'babak' => 'FINAL'
+                ];
+            }
+        }
+    } catch (\Exception $e) {}
+}
+
+// Pastikan jumlah seri (total_heats) selalu terhitung untuk setiap nomor acara
+foreach ($scheduleData as $cid => &$sch) {
+    if (!isset($sch['total_heats']) || $sch['total_heats'] === 0) {
+        $sch['total_heats'] = isset($fullBook[$cid]['heats']) ? count($fullBook[$cid]['heats']) : 0;
+    }
+}
+unset($sch);
+
+if ($showScheduleAuto) {
     usort($scheduleData, function($a, $b) { return (int)$a['no'] - (int)$b['no']; });
 }
 ?>
@@ -636,21 +675,23 @@ if ($showScheduleAuto) {
                     <thead>
                         <tr>
                             <th style="width: 10%">JAM</th>
-                            <th style="width: 8%; text-align:center">NO</th>
-                            <th style="width: 35%">URAIAN ACARA</th>
-                            <th style="width: 35%">KATEGORI</th>
-                            <th style="width: 12%; text-align:right">BABAK</th>
+                            <th style="width: 7%; text-align:center">NO</th>
+                            <th style="width: 33%">URAIAN ACARA</th>
+                            <th style="width: 32%">KATEGORI</th>
+                            <th style="width: 8%; text-align:center">SERI</th>
+                            <th style="width: 10%; text-align:right">BABAK</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php $lastDate = ''; foreach($scheduleData as $sch): if ($sch['tgl_display'] !== $lastDate): ?>
-                            <tr><td colspan="5" class="schedule-date-header"><?= $sch['tgl_display'] ?></td></tr>
+                            <tr><td colspan="6" class="schedule-date-header"><?= $sch['tgl_display'] ?></td></tr>
                         <?php $lastDate = $sch['tgl_display']; endif; ?>
                         <tr>
                             <td><?= $sch['jam'] ?></td>
                             <td style="text-align:center;">#<?= $sch['no'] ?></td>
                             <td><?= $sch['uraian'] ?></td>
                             <td><?= $sch['kategori'] ?></td>
+                            <td style="text-align:center; font-weight:900;"><?= $sch['total_heats'] > 0 ? $sch['total_heats'] . ' Seri' : '-' ?></td>
                             <td style="text-align:right;"><?= $sch['babak'] ?></td>
                         </tr>
                         <?php endforeach; ?>

@@ -98,5 +98,29 @@ assert($cfgDefault['klub'] === true && $cfgDefault['sekolah'] === true, "Default
 
 echo "Column resolution test (Klub & Sekolah): PASSED!\n";
 
+// 5. Test SERI calculation for ORDER OF EVENTS
+$sampleFullBook = [
+    101 => ['heats' => [1 => ['lane_1' => true], 2 => ['lane_1' => true], 3 => ['lane_1' => true]]],
+    102 => ['heats' => [1 => ['lane_1' => true]]],
+    103 => ['heats' => []]
+];
+
+$calcHeats = function($cid, $fullBook) {
+    return isset($fullBook[$cid]['heats']) ? count($fullBook[$cid]['heats']) : 0;
+};
+
+assert($calcHeats(101, $sampleFullBook) === 3, "Event 101 must have 3 heats");
+assert($calcHeats(102, $sampleFullBook) === 1, "Event 102 must have 1 heat");
+assert($calcHeats(103, $sampleFullBook) === 0, "Event 103 must have 0 heats");
+
+$formatHeat = function($count) {
+    return $count > 0 ? $count . ' Seri' : '-';
+};
+
+assert($formatHeat(3) === '3 Seri', "3 heats should format as '3 Seri'");
+assert($formatHeat(1) === '1 Seri', "1 heat should format as '1 Seri'");
+assert($formatHeat(0) === '-', "0 heats should format as '-'");
+echo "SERI calculation & formatting test: PASSED!\n";
+
 echo "ALL SEEDING FILTER TESTS PASSED!\n";
 
