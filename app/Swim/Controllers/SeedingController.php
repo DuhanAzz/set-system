@@ -157,7 +157,7 @@ class SeedingController extends Controller {
                 $pdo->prepare("DELETE FROM swim_event_seeding WHERE entry_id IN (SELECT id FROM swim_relay_entries WHERE category_id = ?)")->execute([$categoryId]);
                 
                 $stmt = $pdo->prepare("
-                    SELECT re.id, re.seed_time as entry_time, NULL as tanggal_lahir 
+                    SELECT re.id, re.seed_time as entry_time, NULL as tanggal_lahir, re.club_id 
                     FROM swim_relay_entries re
                     JOIN swim_event_numbers en ON re.category_id = en.id
                     WHERE re.category_id = ?
@@ -176,7 +176,7 @@ class SeedingController extends Controller {
                 $pdo->prepare("DELETE FROM swim_event_seeding WHERE entry_id IN (SELECT id FROM swim_event_entries WHERE category_id = ?)")->execute([$categoryId]);
 
                 $stmt = $pdo->prepare("
-                    SELECT ee.id, ee.entry_time, s.tanggal_lahir 
+                    SELECT ee.id, ee.entry_time, s.tanggal_lahir, ee.club_id 
                     FROM swim_event_entries ee
                     JOIN swim_event_numbers en ON ee.category_id = en.id
                     JOIN swim_swimmers s ON ee.swimmer_id = s.id
@@ -249,6 +249,86 @@ class SeedingController extends Controller {
                         $chunks[] = array_slice($swimmers, $offset, $size);
                         $offset += $size;
                     }
+                }
+
+                // Logika Pemisahan Tim dari Klub yang Sama (Same-Club Separation)
+                // Menghindari bertemunya tim dari klub yang sama pada heat/seri yang sama agar lebih fair
+                if ($totalHeats > 1 && $isRelay) {
+                    $maxPasses = 50;
+                    for ($pass = 0; $pass < $maxPasses; $pass++) {
+                        $foundConflict = false;
+                        
+                        for ($h1 = 0; $h1 < count($chunks); $h1++) {
+                            $clubCounts = [];
+                            foreach ($chunks[$h1] as $idx => $swimmer) {
+                                $cid = (int)($swimmer['club_id'] ?? 0);
+                                if ($cid > 0) {
+                                    $clubCounts[$cid][] = $idx;
+                                }
+                            }
+                            
+                            foreach ($clubCounts as $cid => $indexes) {
+                                if (count($indexes) > 1) {
+                                    // Ada tabrakan tim dari club $cid di heat $h1
+                                    $idxToMove = $indexes[count($indexes) - 1];
+                                    $teamToMove = $chunks[$h1][$idxToMove];
+                                    
+                                    $bestSwapH2 = -1;
+                                    $bestSwapIdx = -1;
+                                    $minTimeDiff = PHP_INT_MAX;
+                                    
+                                    for ($h2 = 0; $h2 < count($chunks); $h2++) {
+                                        if ($h1 === $h2) continue;
+                                        
+                                        $h2Clubs = [];
+                                        foreach ($chunks[$h2] as $other) {
+                                            $otherCid = (int)($other['club_id'] ?? 0);
+                                            if ($otherCid > 0) {
+                                                $h2Clubs[$otherCid] = ($h2Clubs[$otherCid] ?? 0) + 1;
+                                            }
+                                        }
+                                        
+                                        // Cari heat lain yang memiliki tim dari club $cid lebih sedikit
+                                        if (($h2Clubs[$cid] ?? 0) < count($indexes) - 1) {
+                                            foreach ($chunks[$h2] as $idx2 => $cand) {
+                                                $candCid = (int)($cand['club_id'] ?? 0);
+                                                // Pastikan jika $cand dipindah ke $h1, tidak membuat club $candCid bentrok di $h1
+                                                if ($candCid === 0 || empty($clubCounts[$candCid])) {
+                                                    $timeDiff = abs(($teamToMove['ms'] ?? 0) - ($cand['ms'] ?? 0));
+                                                    if ($timeDiff < $minTimeDiff) {
+                                                        $minTimeDiff = $timeDiff;
+                                                        $bestSwapH2 = $h2;
+                                                        $bestSwapIdx = $idx2;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                    
+                                    if ($bestSwapH2 !== -1 && $bestSwapIdx !== -1) {
+                                        $temp = $chunks[$h1][$idxToMove];
+                                        $chunks[$h1][$idxToMove] = $chunks[$bestSwapH2][$bestSwapIdx];
+                                        $chunks[$bestSwapH2][$bestSwapIdx] = $temp;
+                                        $foundConflict = true;
+                                        break 2;
+                                    }
+                                }
+                            }
+                        }
+                        
+                        if (!$foundConflict) break;
+                    }
+                    
+                    // Rapikan kembali urutan di tiap heat berdasarkan seed time agar pembagian lintasan teratur
+                    foreach ($chunks as &$batchSwimmers) {
+                        usort($batchSwimmers, function($a, $b) {
+                            if ($a['ms'] != $b['ms']) {
+                                return ($a['ms'] < $b['ms']) ? -1 : 1;
+                            }
+                            return 0;
+                        });
+                    }
+                    unset($batchSwimmers);
                 }
 
                 foreach ($chunks as $i => $batchSwimmers) {

@@ -190,7 +190,7 @@ $sqlAll = "(
            (
             SELECT en.id as cat_id, en.event_number, en.distance, en.stroke, en.age_group, en.jenis_kelamin, en.schedule_date, en.schedule_time, en.is_relay,
             es.heat_prelim as heat_no, es.lane_prelim as lane_no, es.time_prelim as entry_time,
-            NULL as uid, '' as nama_atlet, NULL as tanggal_lahir, c.nama_klub as club_name, '' as asal_sekolah,
+            NULL as uid, '' as nama_atlet, NULL as tanggal_lahir, COALESCE(NULLIF(c.nama_klub, ''), s1.asal_sekolah, '') as club_name, COALESCE(NULLIF(s1.asal_sekolah, ''), c.nama_klub, '') as asal_sekolah,
             re.team_name as team_name, s1.nama_atlet as n1, s2.nama_atlet as n2, s3.nama_atlet as n3, s4.nama_atlet as n4
            FROM swim_event_numbers en
            JOIN swim_relay_entries re ON re.category_id = en.id
@@ -833,63 +833,83 @@ if ($showScheduleAuto) {
                                     <?php endif; ?>
 
                                     <!-- Heats & Lanes -->
-                                    <?php foreach($data['heats'] as $heatNo => $lanes): ?>
+                                    <?php foreach($data['heats'] as $heatNo => $lanes): 
+                                        $isRelayEvent = (isset($data['meta']['is_relay']) && $data['meta']['is_relay'] == 1);
+                                    ?>
                                         <div class="heat-title">SERI <?= $heatNo ?></div>
                                         <table class="data-table">
                                             <thead>
                                                 <tr>
-                                                    <th class="col-ln">LN</th>
-                                                    <?php if($cc['uid']): ?><th class="col-uid">UID</th><?php endif; ?>
-                                                    <th class="col-nama">NAMA ATLET</th>
-                                                    <?php if($cc['lahir']): ?><th class="col-lahir">LAHIR</th><?php endif; ?>
-                                                    <?php if($cc['ku']): ?><th class="col-ku">KU</th><?php endif; ?>
-                                                    <?php if($cc['klub']): ?><th class="col-tim">KLUB</th><?php endif; ?>
-                                                    <?php if($cc['sekolah']): ?><th class="col-sekolah">SEKOLAH</th><?php endif; ?>
-                                                    <?php if($cc['waktu']): ?><th class="col-waktu">WAKTU</th><?php endif; ?>
-                                                    <?php if($cc['hasil']): ?><th class="col-hasil">HASIL</th><?php endif; ?>
+                                                    <?php if($isRelayEvent): ?>
+                                                        <th class="col-ln" style="width: 5%;">LN</th>
+                                                        <th class="col-nama">NAMA TIM</th>
+                                                        <th class="col-tim" style="width: 28%;">KLUB / SEKOLAH</th>
+                                                        <th class="col-waktu" style="width: 12%;">WAKTU</th>
+                                                        <?php if($cc['hasil']): ?><th class="col-hasil" style="width: 12%;">HASIL</th><?php endif; ?>
+                                                    <?php else: ?>
+                                                        <th class="col-ln">LN</th>
+                                                        <?php if($cc['uid']): ?><th class="col-uid">UID</th><?php endif; ?>
+                                                        <th class="col-nama">NAMA ATLET</th>
+                                                        <?php if($cc['lahir']): ?><th class="col-lahir">LAHIR</th><?php endif; ?>
+                                                        <?php if($cc['ku']): ?><th class="col-ku">KU</th><?php endif; ?>
+                                                        <?php if($cc['klub']): ?><th class="col-tim">KLUB</th><?php endif; ?>
+                                                        <?php if($cc['sekolah']): ?><th class="col-sekolah">SEKOLAH</th><?php endif; ?>
+                                                        <?php if($cc['waktu']): ?><th class="col-waktu">WAKTU</th><?php endif; ?>
+                                                        <?php if($cc['hasil']): ?><th class="col-hasil">HASIL</th><?php endif; ?>
+                                                    <?php endif; ?>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 <?php foreach($activeLanes as $ln): $s = $lanes[$ln] ?? null; ?>
                                                     <tr>
                                                         <td class="col-ln"><?= $ln ?></td>
-                                                        <?php if($s): ?>
-                                                            <?php if($cc['uid']): ?>
-                                                                <td class="col-uid"><?= htmlspecialchars($s['uid'] ?? '-') ?></td>
-                                                            <?php endif; ?>
-                                                            <td class="col-nama">
-                                                                <?php if(isset($data['meta']['is_relay']) && $data['meta']['is_relay'] == 1): ?>
-                                                                    <div style="font-size: 8.5pt;"><strong><?= htmlspecialchars($s['club_name'] ?? 'Klub') ?> - <?= htmlspecialchars($s['team_name'] ?? 'Tim') ?></strong></div>
+                                                        <?php if($isRelayEvent): ?>
+                                                            <?php if($s): 
+                                                                $teamTitle = !empty($s['team_name']) ? $s['team_name'] : ($s['club_name'] ?: 'TIM RELAY');
+                                                                $klubSekolah = $s['club_name'] ?: ($s['asal_sekolah'] ?: '-');
+                                                            ?>
+                                                                <td class="col-nama">
+                                                                    <div style="font-size: 8.5pt;"><strong><?= htmlspecialchars($teamTitle) ?></strong></div>
                                                                     <div style="font-size: 7pt; font-weight: normal; color: #475569; line-height: 1.1;">
                                                                         1. <?= htmlspecialchars($s['n1'] ?? '(Belum Diatur)') ?>, 
                                                                         2. <?= htmlspecialchars($s['n2'] ?? '(Belum Diatur)') ?><br>
                                                                         3. <?= htmlspecialchars($s['n3'] ?? '(Belum Diatur)') ?>, 
                                                                         4. <?= htmlspecialchars($s['n4'] ?? '(Belum Diatur)') ?>
                                                                     </div>
-                                                                <?php else: ?>
-                                                                    <?= htmlspecialchars($s['nama_atlet'] ?? '') ?>
-                                                                <?php endif; ?>
-                                                            </td>
-                                                            <?php if($cc['lahir']): ?>
-                                                                <td class="col-lahir"><?= (!empty($s['tanggal_lahir']) && $s['tanggal_lahir']!='0000-00-00') ? date('Y', strtotime($s['tanggal_lahir'])) : '-' ?></td>
-                                                            <?php endif; ?>
-                                                            <?php if($cc['ku']): ?>
-                                                                <td class="col-ku"><?= !empty($s['tanggal_lahir']) ? getKUName($s['tanggal_lahir'], $eventYear, $ageGroups) : '-' ?></td>
-                                                            <?php endif; ?>
-                                                            <?php if($cc['klub']): ?>
-                                                                <td class="col-tim"><?= htmlspecialchars($s['club_name'] ?: '-') ?></td>
-                                                            <?php endif; ?>
-                                                            <?php if($cc['sekolah']): ?>
-                                                                <td class="col-sekolah"><?= htmlspecialchars($s['asal_sekolah'] ?: '-') ?></td>
-                                                            <?php endif; ?>
-                                                            <?php if($cc['waktu']): ?>
-                                                                <td class="col-waktu"><?= (!$s['entry_time'] || $s['entry_time']=='99.99.99') ? 'NT' : htmlspecialchars($s['entry_time']) ?></td>
-                                                            <?php endif; ?>
-                                                            <?php if($cc['hasil']): ?>
-                                                                <td class="col-hasil">[.......]</td>
+                                                                </td>
+                                                                <td class="col-tim" style="width: 28%;"><?= htmlspecialchars($klubSekolah) ?></td>
+                                                                <td class="col-waktu" style="width: 12%;"><?= (!$s['entry_time'] || $s['entry_time']=='99.99.99') ? 'NT' : htmlspecialchars($s['entry_time']) ?></td>
+                                                                <?php if($cc['hasil']): ?><td class="col-hasil" style="width: 12%;">[.......]</td><?php endif; ?>
+                                                            <?php else: ?>
+                                                                <td colspan="<?= $cc['hasil'] ? 4 : 3 ?>" style="color:#94a3b8; font-style:italic; padding-left:10px;">&lt;Kosong&gt;</td>
                                                             <?php endif; ?>
                                                         <?php else: ?>
-                                                            <td colspan="<?= ($activeColumnsCount - 1) ?>" style="color:#94a3b8; font-style:italic; padding-left:10px;">&lt;Kosong&gt;</td>
+                                                            <?php if($s): ?>
+                                                                <?php if($cc['uid']): ?>
+                                                                    <td class="col-uid"><?= htmlspecialchars($s['uid'] ?? '-') ?></td>
+                                                                <?php endif; ?>
+                                                                <td class="col-nama"><?= htmlspecialchars($s['nama_atlet'] ?? '') ?></td>
+                                                                <?php if($cc['lahir']): ?>
+                                                                    <td class="col-lahir"><?= (!empty($s['tanggal_lahir']) && $s['tanggal_lahir']!='0000-00-00') ? date('Y', strtotime($s['tanggal_lahir'])) : '-' ?></td>
+                                                                <?php endif; ?>
+                                                                <?php if($cc['ku']): ?>
+                                                                    <td class="col-ku"><?= !empty($s['tanggal_lahir']) ? getKUName($s['tanggal_lahir'], $eventYear, $ageGroups) : '-' ?></td>
+                                                                <?php endif; ?>
+                                                                <?php if($cc['klub']): ?>
+                                                                    <td class="col-tim"><?= htmlspecialchars($s['club_name'] ?: '-') ?></td>
+                                                                <?php endif; ?>
+                                                                <?php if($cc['sekolah']): ?>
+                                                                    <td class="col-sekolah"><?= htmlspecialchars($s['asal_sekolah'] ?: '-') ?></td>
+                                                                <?php endif; ?>
+                                                                <?php if($cc['waktu']): ?>
+                                                                    <td class="col-waktu"><?= (!$s['entry_time'] || $s['entry_time']=='99.99.99') ? 'NT' : htmlspecialchars($s['entry_time']) ?></td>
+                                                                <?php endif; ?>
+                                                                <?php if($cc['hasil']): ?>
+                                                                    <td class="col-hasil">[.......]</td>
+                                                                <?php endif; ?>
+                                                            <?php else: ?>
+                                                                <td colspan="<?= ($activeColumnsCount - 1) ?>" style="color:#94a3b8; font-style:italic; padding-left:10px;">&lt;Kosong&gt;</td>
+                                                            <?php endif; ?>
                                                         <?php endif; ?>
                                                     </tr>
                                                 <?php endforeach; ?>
