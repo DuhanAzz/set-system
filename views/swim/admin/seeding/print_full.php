@@ -222,6 +222,10 @@ $scheduleData = [];
 
 foreach($rawData as $row) {
     $cid = $row['cat_id'];
+    $isRelayRow = (isset($row['is_relay']) && $row['is_relay'] == 1);
+    $distStr = \App\Helpers\SwimEventHelper::formatDistance($row['distance'] ?? 0, $isRelayRow);
+    $relayUraianSuffix = $isRelayRow ? (stripos($row['stroke'], 'ESTAFET') === false ? ' (ESTAFET)' : '') : '';
+
     if (!isset($scheduleData[$cid])) {
         $tglRaw = !empty($row['schedule_date']) ? $row['schedule_date'] : $eventDate;
         $jamRaw = !empty($row['schedule_time']) ? $row['schedule_time'] : '00:00:00';
@@ -231,7 +235,7 @@ foreach($rawData as $row) {
             'no' => $row['event_number'],
             'jam' => date('H:i', strtotime($jamRaw)),
             'tgl_display' => strtoupper(date('l, d F Y', strtotime($tglRaw))),
-            'uraian' => $row['distance']."M ".strtoupper($cleanStroke),
+            'uraian' => $distStr . " " . strtoupper($cleanStroke) . $relayUraianSuffix,
             'kategori' => $row['age_group'] . " - " . strtoupper($genderLabel),
             'babak' => 'FINAL'
         ];
@@ -243,7 +247,7 @@ foreach($rawData as $row) {
         $jamMain = !empty($row['schedule_time']) ? date('H:i', strtotime($row['schedule_time'])) . ' WIB' : '08:00 WIB';
         
         $judulParts = [];
-        if ($pc['show_event_name']) $judulParts[] = $row['distance']."M ".strtoupper($cleanStroke); 
+        if ($pc['show_event_name']) $judulParts[] = $distStr . " " . strtoupper($cleanStroke) . $relayUraianSuffix; 
         if ($pc['show_group'])      $judulParts[] = $row['age_group']; 
         if ($pc['show_gender'])     $judulParts[] = strtoupper($genderLabel); 
         if ($pc['show_pool'])       $judulParts[] = $poolLabel; 

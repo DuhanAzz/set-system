@@ -57,6 +57,9 @@ class ResultsController extends Controller {
             die("Anda belum memiliki event aktif. Silakan buat di dashboard.");
         }
         
+        // Sinkronisasi nomor estafet (100M -> 4 x 25M)
+        \App\Helpers\SwimEventHelper::syncEventRelayNames($pdo, $eventId);
+
         // Mengambil daftar lomba yang sudah di-seed
         $stmt = $pdo->prepare("
             SELECT en.*, 

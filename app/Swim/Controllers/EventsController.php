@@ -82,6 +82,9 @@ class EventsController extends Controller {
         $listEvents = [];
 
         if ($eventId > 0) {
+            // Sinkronisasi permanen penamaan nomor estafet di database
+            \App\Helpers\SwimEventHelper::syncEventRelayNames($pdo, $eventId);
+
             $kus = $pdo->prepare("SELECT * FROM swim_event_age_groups WHERE event_id = ? ORDER BY min_age ASC");
             $kus->execute([$eventId]);
             $listKU = $kus->fetchAll(PDO::FETCH_ASSOC);
@@ -324,7 +327,14 @@ class EventsController extends Controller {
                 $selectedIdsString = implode(",", $selected_kus);
 
                 $labelJK = ($jk == 'L') ? 'PUTRA' : (($jk == 'P') ? 'PUTRI' : 'MIXED');
-                if (strpos(strtoupper($gaya), 'PAPAN') !== false || strpos(strtoupper($gaya), 'KICK') !== false) {
+                if ($is_relay == 1) {
+                    $distLabel = \App\Helpers\SwimEventHelper::formatDistance($jarak, true, ' M', ' x ');
+                    $cleanRelayStroke = strtoupper($gaya);
+                    if (strpos($cleanRelayStroke, 'ESTAFET') === false && strpos($cleanRelayStroke, 'RELAY') === false) {
+                        $cleanRelayStroke = "ESTAFET " . $cleanRelayStroke;
+                    }
+                    $eventName = "$distLabel $cleanRelayStroke $labelJK - $poolLabel";
+                } elseif (strpos(strtoupper($gaya), 'PAPAN') !== false || strpos(strtoupper($gaya), 'KICK') !== false) {
                     $normGaya = trim(str_ireplace(['25m', '25 m', 'kick', 'papan', 'gaya'], '', $gaya));
                     if (strtoupper($normGaya) === 'LUNCUR' || empty($normGaya)) $normGaya = 'Bebas';
                     $eventName = "25 M PAPAN " . strtoupper($normGaya) . " $labelJK - $poolLabel";
@@ -558,7 +568,14 @@ class EventsController extends Controller {
 
                     $selectedIdsString = implode(",", $selectedKuIds);
                     $labelJK = ($jk == 'L') ? 'PUTRA' : (($jk == 'P') ? 'PUTRI' : 'MIXED');
-                    if (strpos(strtoupper($gaya), 'PAPAN') !== false || strpos(strtoupper($gaya), 'KICK') !== false) {
+                    if ($is_relay == 1) {
+                        $distLabel = \App\Helpers\SwimEventHelper::formatDistance($jarak, true, ' M', ' x ');
+                        $cleanRelayStroke = strtoupper($gaya);
+                        if (strpos($cleanRelayStroke, 'ESTAFET') === false && strpos($cleanRelayStroke, 'RELAY') === false) {
+                            $cleanRelayStroke = "ESTAFET " . $cleanRelayStroke;
+                        }
+                        $eventName = "$distLabel $cleanRelayStroke $labelJK - $poolLabel";
+                    } elseif (strpos(strtoupper($gaya), 'PAPAN') !== false || strpos(strtoupper($gaya), 'KICK') !== false) {
                         $normGaya = trim(str_ireplace(['25m', '25 m', 'kick', 'papan', 'gaya'], '', $gaya));
                         if (strtoupper($normGaya) === 'LUNCUR' || empty($normGaya)) $normGaya = 'Bebas';
                         $eventName = "25 M PAPAN " . strtoupper($normGaya) . " $labelJK - $poolLabel";

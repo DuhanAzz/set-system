@@ -175,12 +175,14 @@
                         </div>
                     </div>
                     <div class="divide-y divide-slate-100">
-                        <?php foreach($relayEntries as $re): ?>
+                        <?php foreach($relayEntries as $re): 
+                            $relayDistStr = \App\Helpers\SwimEventHelper::formatDistance($re["distance"] ?? 0, true);
+                        ?>
                             <div class="px-4 py-3 flex justify-between items-center hover:bg-slate-50 transition-colors">
                                 <div class="flex flex-col">
                                     <span class="text-xs font-bold text-slate-800 uppercase"><?= htmlspecialchars($re["team_name"] ?? 'Tim Estafet') ?></span>
                                     <span class="text-[10px] text-slate-400 font-medium mt-0.5 uppercase">
-                                        <?= $re["distance"] ?>M <?= strtoupper($re["stroke"]) ?> (<?= $re["jenis_kelamin"] ?>)
+                                        <?= $relayDistStr ?> <?= strtoupper($re["stroke"]) ?> (<?= $re["jenis_kelamin"] ?>)
                                         <?php if(!empty($re["age_group"])): ?> • KU <?= $re["age_group"] ?><?php endif; ?>
                                     </span>
                                 </div>

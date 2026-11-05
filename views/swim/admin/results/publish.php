@@ -139,11 +139,15 @@
                         $hasResult = ($race['count_results'] > 0);
                         $isPublished = ($race['is_published'] == 1);
                     ?>
+                    <?php
+                        $isRelayRace = ($race['is_relay'] == 1);
+                        $distLabel = \App\Helpers\SwimEventHelper::formatDistance($race['distance'] ?? 0, $isRelayRace);
+                    ?>
                     <tr class="hover:bg-slate-50 transition-colors">
                         <td class="px-6 py-4 text-center font-black text-slate-400 text-lg">#<?= htmlspecialchars($race['event_number']) ?></td>
                         <td class="px-6 py-4">
                             <a href="<?= getenv('APP_URL') ?>/swim/admin/results/input?category_id=<?= $race['id'] ?>" class="font-black text-slate-800 hover:text-blue-600 transition uppercase text-sm leading-tight mb-1 block">
-                                <?= htmlspecialchars($race['distance']) ?>M <?= htmlspecialchars($race['stroke']) ?> 
+                                <?= htmlspecialchars($distLabel) ?> <?= htmlspecialchars($race['stroke']) ?> <?= $isRelayRace ? '(ESTAFET)' : '' ?>
                             </a>
                             <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
                                 <?= htmlspecialchars($race['age_group'] ?? 'OPEN') ?> • <?= strtoupper($race['jenis_kelamin'] ?? '') === 'L' ? 'PUTRA' : 'PUTRI' ?>

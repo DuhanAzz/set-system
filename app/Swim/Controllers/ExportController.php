@@ -710,10 +710,15 @@ foreach ($groupedResults as $groupName => &$rows) {
             }
         }
 
-        // Format Jarak (contoh: 50m, 100m, 4x50m)
-        $distRaw = trim((string)$atlet['distance']);
-        $distClean = rtrim(preg_replace('/\s+/', '', $distRaw), 'mM');
-        $dist = !empty($distClean) ? $distClean . 'm' : $distRaw;
+        // Format Jarak (contoh: 50m, 100m, 4x25m)
+        $isRelayEntry = !empty($atlet['is_relay']);
+        if ($isRelayEntry) {
+            $dist = \App\Helpers\SwimEventHelper::formatDistance($atlet['distance'] ?? 0, true, 'm', 'x');
+        } else {
+            $distRaw = trim((string)$atlet['distance']);
+            $distClean = rtrim(preg_replace('/\s+/', '', $distRaw), 'mM');
+            $dist = !empty($distClean) ? $distClean . 'm' : $distRaw;
+        }
 
         // Format Gaya Renang
         $rawStroke = trim($atlet['stroke'] ?? '');

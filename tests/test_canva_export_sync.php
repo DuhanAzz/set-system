@@ -115,4 +115,31 @@ $csvRow2 = implode(';', $row2);
 assert($csvRow2 === 'Edi;SDN 1 Gamping;Juara II;100m Gaya Bebas Putra;01:05:12', "Generated CSV row 2 matches expected format");
 echo "✓ Test 3: Second sample row with time 01:05:12 PASSED: ($csvRow2)\n";
 
+// 5. Test Relay Sample Row (Distance 100m -> 4x25m)
+require_once __DIR__ . '/../app/Helpers/SwimEventHelper.php';
+$mockRelay = [
+    'nama_atlet' => 'TIRTA SARI RELAY A',
+    'asal_sekolah' => 'SD 1 Gamping',
+    'dynamic_rank' => 1,
+    'distance' => 100,
+    'stroke' => 'Estafet Gaya Bebas',
+    'jenis_kelamin' => 'L',
+    'time_final' => '01:45.20',
+    'is_dq_final' => 0,
+    'is_relay' => 1
+];
+$distRelay = \App\Helpers\SwimEventHelper::formatDistance($mockRelay['distance'], true, 'm', 'x');
+$nomorLombaRelay = $distRelay . ' ' . $mockRelay['stroke'] . ' Putra';
+$rowRelay = [
+    'Nama' => mb_convert_case(trim($mockRelay['nama_atlet']), MB_CASE_TITLE, "UTF-8"),
+    'Asal Sekolah' => formatSchoolTest($mockRelay['asal_sekolah']),
+    'Juara' => 'Juara I',
+    'Nomor lomba' => $nomorLombaRelay,
+    'Catatan Waktu' => formatTimeCanvaTest($mockRelay['time_final'], 0)
+];
+$csvRowRelay = implode(';', $rowRelay);
+assert($csvRowRelay === 'Tirta Sari Relay A;SD 1 Gamping;Juara I;4x25m Estafet Gaya Bebas Putra;01:45:20');
+echo "✓ Test 4: Relay Canva row PASSED: ($csvRowRelay)\n";
+
 echo "ALL CANVA EXPORT SYNCHRONIZATION TESTS PASSED!\n";
+

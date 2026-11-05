@@ -132,13 +132,16 @@
             <?php if($error_msg): ?><div class="bg-red-50 text-red-600 p-4 rounded-xl border border-red-200 mb-6 font-bold"><?= $error_msg ?></div><?php endif; ?>
             <?php if(!empty($events)): ?>
                 <?php foreach($events as $ev): 
+                    $isRelay = ($ev['is_relay'] == 1);
+                    $distDisplay = \App\Helpers\SwimEventHelper::formatDistance($ev['distance'] ?? 0, $isRelay);
+                    $dispEventName = \App\Helpers\SwimEventHelper::formatEventName($ev['event_name'] ?? 'Nomor Lomba', $isRelay, $ev['distance'] ?? 0);
                     $isReady = $ev['total_athletes'] > 0;
                     $cardOpacity = $isReady ? 'opacity-100' : 'opacity-60 grayscale';
                     $genderCode = strtoupper($ev['jenis_kelamin'] ?? 'L'); 
                     if(in_array($genderCode, ['L', 'MALE', 'PUTRA'])) { $bg='bg-blue-50'; $txt='text-blue-600'; $icon='👨'; $lbl='PUTRA'; } 
                     elseif(in_array($genderCode, ['P', 'FEMALE', 'PUTRI'])) { $bg='bg-pink-50'; $txt='text-pink-600'; $icon='👩'; $lbl='PUTRI'; } 
                     else { $bg='bg-purple-50'; $txt='text-purple-600'; $icon='👫'; $lbl='MIXED'; }
-                    $searchString = strtolower($ev['event_number']." ".$ev['event_name']);
+                    $searchString = strtolower(($ev['event_number'] ?? '') . " " . $dispEventName . " " . $distDisplay);
                 ?>
                 <div class="event-item group relative rounded-[2rem] p-5 border border-slate-200 bg-white transition flex flex-col md:flex-row items-center gap-6 <?= $cardOpacity ?>" data-search="<?= $searchString ?>">
                     <div class="shrink-0 w-20 h-20 rounded-3xl bg-slate-900 text-white flex flex-col items-center justify-center shadow-lg">
@@ -148,10 +151,10 @@
                     <div class="flex-1 text-center md:text-left">
                         <div class="inline-flex items-center gap-2 mb-1">
                             <span class="px-2 py-1 rounded-md <?= $bg ?> <?= $txt ?> text-[9px] font-black uppercase tracking-widest border border-slate-100"><?= $icon ?> <?= $lbl ?></span>
-                            <span class="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded-md uppercase border border-slate-200"><?= htmlspecialchars($ev['distance'] ?? '0') ?>M <?= htmlspecialchars($ev['stroke'] ?? '-') ?> <?= $ev['is_relay'] == 1 ? '(ESTAFET)' : '' ?></span>
-                            <span class="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md uppercase border border-emerald-200">👥 <?= $ev['total_athletes'] ?> <?= $ev['is_relay'] == 1 ? 'Tim' : 'Atlet' ?></span>
+                            <span class="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded-md uppercase border border-slate-200"><?= htmlspecialchars($distDisplay) ?> <?= htmlspecialchars($ev['stroke'] ?? '-') ?> <?= $isRelay ? '(ESTAFET)' : '' ?></span>
+                            <span class="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md uppercase border border-emerald-200">👥 <?= $ev['total_athletes'] ?> <?= $isRelay ? 'Tim (' . ($ev['total_athletes'] * 4) . ' Atlet)' : 'Atlet' ?></span>
                         </div>
-                        <h3 class="text-xl font-black text-slate-800 uppercase italic tracking-tight"><?= htmlspecialchars($ev['event_name'] ?? 'Nomor Lomba') ?></h3>
+                        <h3 class="text-xl font-black text-slate-800 uppercase italic tracking-tight"><?= htmlspecialchars($dispEventName) ?></h3>
                     </div>
                     <div class="flex gap-2 w-full md:w-auto">
                         <?php if($isReady): ?>

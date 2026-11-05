@@ -78,11 +78,16 @@
                     <?php endif; ?>
                 </div>
                 
+                <?php
+                    $isRelay = ($ev['is_relay'] == 1);
+                    $distDisp = \App\Helpers\SwimEventHelper::formatDistance($ev['distance'] ?? 0, $isRelay);
+                    $nameDisp = \App\Helpers\SwimEventHelper::formatEventName($ev['event_name'] ?? '', $isRelay, $ev['distance'] ?? 0);
+                ?>
                 <h3 class="text-xl font-black text-slate-800 uppercase italic leading-tight group-hover:text-blue-600 transition-colors">
-                    <?= htmlspecialchars($ev['event_name']) ?>
+                    <?= htmlspecialchars($nameDisp) ?>
                 </h3>
                 <p class="text-xs font-bold text-slate-400 mt-1">
-                    <?= $ev['distance'] ?>M <?= strtoupper($ev['stroke']) ?> • <span class="text-slate-600"><?= $ev['count_seeded'] ?> Peserta</span>
+                    <?= $distDisp ?> <?= strtoupper($ev['stroke']) ?> • <span class="text-slate-600"><?= $ev['count_seeded'] ?> <?= $isRelay ? 'Tim (' . ($ev['count_seeded'] * 4) . ' Atlet)' : 'Peserta' ?></span>
                 </p>
             </div>
 

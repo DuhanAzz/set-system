@@ -122,8 +122,12 @@ $genderLabel = (in_array($raceInfo['jenis_kelamin'], ['L','Male'])) ? 'PUTRA' : 
 $tglMain = !empty($raceInfo['schedule_date']) ? strtoupper(date('d F Y', strtotime($raceInfo['schedule_date']))) : $displayDate;
 $jamMain = !empty($raceInfo['schedule_time']) ? date('H:i', strtotime($raceInfo['schedule_time'])) . ' WIB' : '08:00 WIB';
 
+$isRelayRace = (isset($raceInfo['is_relay']) && $raceInfo['is_relay'] == 1);
+$distStr = \App\Helpers\SwimEventHelper::formatDistance($raceInfo['distance'] ?? 0, $isRelayRace);
+$relayUraianSuffix = $isRelayRace ? (stripos($raceInfo['stroke'], 'ESTAFET') === false ? ' (ESTAFET)' : '') : '';
+
 $judulParts = [];
-if ($pc['show_event_name']) $judulParts[] = $raceInfo['distance']."M ".strtoupper($cleanStroke); 
+if ($pc['show_event_name']) $judulParts[] = $distStr . " " . strtoupper($cleanStroke) . $relayUraianSuffix; 
 if ($pc['show_group'])      $judulParts[] = $raceInfo['age_group']; 
 if ($pc['show_gender'])     $judulParts[] = strtoupper($genderLabel); 
 if ($pc['show_pool'])       $judulParts[] = $poolLabel; 

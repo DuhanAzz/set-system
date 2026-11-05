@@ -32,6 +32,9 @@ class SeedingController extends Controller {
         $error_msg = null;
         try {
             if ($targetEventId > 0) {
+                // Sinkronisasi permanen nama nomor estafet di database (100M -> 4 x 25M)
+                \App\Helpers\SwimEventHelper::syncEventRelayNames($pdo, $targetEventId);
+
                 $stmtEvt = $pdo->prepare("SELECT id, event_name, participation_type FROM swim_events WHERE id = ?");
                 $stmtEvt->execute([$targetEventId]);
                 $targetEvent = $stmtEvt->fetch(\PDO::FETCH_ASSOC);

@@ -715,7 +715,7 @@
                                     </div>
                                     <div class="flex-1">
                                         <h4 class="font-black text-sm text-slate-800 uppercase tracking-tight">
-                                            <?= htmlspecialchars($ev['event_name']) ?>
+                                            <?= htmlspecialchars(\App\Helpers\SwimEventHelper::formatEventName($ev['event_name'], $ev['is_relay'] == 1, $ev['distance'])) ?>
                                         </h4>
                                         <div class="flex flex-wrap gap-2 mt-1.5 items-center">
                                             <?php if($ev['is_relay']): ?>
@@ -732,7 +732,7 @@
 
                                             <!-- Badge Peserta & Heat -->
                                             <span class="text-[10px] font-bold px-2 py-0.5 rounded <?= $pCount > 0 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-500' ?>">
-                                                👥 <?= $pCount ?> Atlet (<?= $heatCount ?> Heat)
+                                                👥 <?= $pCount ?> <?= $ev['is_relay'] == 1 ? 'Tim (' . ($pCount * 4) . ' Atlet)' : 'Atlet' ?> (<?= $heatCount ?> Heat)
                                             </span>
                                             
                                             <?php if(!empty($ev['slowest_time_str'])): ?>
@@ -1493,17 +1493,32 @@ function parseJuknisAcara(acaraText) {
 
     // 3. Deteksi Jarak
     let distance = 50;
+    let distLabel = '50 M';
     const matchRelayDist = upper.match(/4\s*[xX]\s*(\d{2,3})\s*M?/);
     const matchDist = upper.match(/(?:^|\D)(25|50|100|200|400|800|1500)\s*M?(?:\D|$)/);
 
     if (matchRelayDist) {
-        distance = parseInt(matchRelayDist[1], 10) * 4; // e.g. 4x25 = 100m
+        const leg = parseInt(matchRelayDist[1], 10);
+        distance = leg * 4; // e.g. 4x25 = 100m total
+        distLabel = `4 x ${leg} M`;
+    } else if (isRelay) {
+        let rawD = matchDist ? parseInt(matchDist[1], 10) : 100;
+        if (rawD === 100) { distance = 100; distLabel = '4 x 25 M'; }
+        else if (rawD === 200) { distance = 200; distLabel = '4 x 50 M'; }
+        else if (rawD === 400) { distance = 400; distLabel = '4 x 100 M'; }
+        else if (rawD === 800) { distance = 800; distLabel = '4 x 200 M'; }
+        else if (rawD === 25)  { distance = 100; distLabel = '4 x 25 M'; }
+        else if (rawD === 50)  { distance = 200; distLabel = '4 x 50 M'; }
+        else { distance = rawD; distLabel = `4 x ${Math.round(rawD / 4)} M`; }
     } else if (matchDist) {
         distance = parseInt(matchDist[1], 10);
+        distLabel = `${distance} M`;
     } else if (stroke.includes('Papan')) {
         distance = 25; // nomor papan pemula selalu 25m
+        distLabel = '25 M';
     } else {
         distance = 50; // default nomor lomba
+        distLabel = '50 M';
     }
 
     // 4. Deteksi Kelompok Umur (KU)
@@ -1547,7 +1562,18 @@ function parseJuknisAcara(acaraText) {
     }
 
     let cleanTitle = raw;
-    if (stroke.includes('Papan') && !upper.includes('25M') && !upper.includes('25 M')) {
+    if (isRelay) {
+        // Ganti 100 M atau 100M dengan 4 x 25 M
+        cleanTitle = cleanTitle.replace(/^(100\s*M|100M)\b/i, distLabel);
+        cleanTitle = cleanTitle.replace(/^(200\s*M|200M)\b/i, distLabel);
+        cleanTitle = cleanTitle.replace(/^(400\s*M|400M)\b/i, distLabel);
+        if (!cleanTitle.includes('4 x') && !cleanTitle.includes('4x')) {
+            cleanTitle = `${distLabel} ${cleanTitle}`;
+        }
+        if (!cleanTitle.toUpperCase().includes('ESTAFET') && !cleanTitle.toUpperCase().includes('RELAY')) {
+            cleanTitle = cleanTitle.replace(new RegExp(`^${distLabel}\\s*`, 'i'), `${distLabel} ESTAFET `);
+        }
+    } else if (stroke.includes('Papan') && !upper.includes('25M') && !upper.includes('25 M')) {
         cleanTitle = '25M ' + raw;
     }
 
