@@ -156,7 +156,12 @@
                         </div>
                         <h3 class="text-xl font-black text-slate-800 uppercase italic tracking-tight"><?= htmlspecialchars($dispEventName) ?></h3>
                     </div>
-                    <div class="flex gap-2 w-full md:w-auto">
+                    <div class="flex flex-wrap gap-2 w-full md:w-auto items-center justify-end">
+                        <?php if($isRelay): ?>
+                            <button type="button" onclick="openRelayBlankoModal(<?= $ev['id'] ?>)" class="px-4 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold text-xs uppercase shadow-sm transition flex items-center gap-1.5 whitespace-nowrap">
+                                <span>📋</span> Blanko Estafet
+                            </button>
+                        <?php endif; ?>
                         <?php if($isReady): ?>
                             <a href="<?= getenv("APP_URL") ?>/swim/admin/seeding/viewStartlist?category_id=<?= $ev['id'] ?>" data-base-url="<?= getenv("APP_URL") ?>/swim/admin/seeding/viewStartlist?category_id=<?= $ev['id'] ?>" class="view-startlist-btn px-6 py-3 bg-white hover:bg-slate-50 text-slate-600 rounded-xl font-bold text-xs uppercase border border-slate-200 text-center">View</a>
                             
@@ -174,6 +179,345 @@
             <?php endif; ?>
         </div>
 <?php endif; ?>
+
+<!-- MODAL BLANKO SUSUNAN ATLET ESTAFET -->
+<div id="relayBlankoModal" class="fixed inset-0 z-50 hidden overflow-y-auto bg-slate-900/60 backdrop-blur-sm p-4 items-center justify-center">
+    <div class="relative w-full max-w-4xl bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-200 flex flex-col max-h-[90vh]">
+        <!-- Modal Header -->
+        <div class="px-6 py-4 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
+            <div>
+                <div class="flex items-center gap-2">
+                    <span class="text-xl">📋</span>
+                    <h3 class="text-base font-black uppercase italic tracking-tight" id="blankoModalTitle">Blanko Susunan Atlet Estafet</h3>
+                </div>
+                <p class="text-xs text-slate-300 font-semibold mt-0.5" id="blankoModalSubtitle">Memuat informasi nomor acara...</p>
+            </div>
+            <div class="flex items-center gap-2">
+                <a id="blankoPrintBtn" href="#" target="_blank" class="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-black text-xs uppercase shadow transition flex items-center gap-1.5">
+                    <span>🖨️</span> Cetak Blanko
+                </a>
+                <button type="button" onclick="closeRelayBlankoModal()" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center transition text-lg font-bold">
+                    ✕
+                </button>
+            </div>
+        </div>
+
+        <!-- Limit Info Banner -->
+        <div id="blankoLimitBanner" class="px-6 py-2.5 bg-amber-50 border-b border-amber-200 flex items-center justify-between text-xs font-bold text-amber-900">
+            <div class="flex items-center gap-2">
+                <span>🎂</span>
+                <span id="blankoLimitText">Batas Maksimal Total Umur Estafet: -</span>
+            </div>
+            <span class="text-[11px] text-amber-700 font-medium">Akumulasi umur seluruh atlet dalam satu regu</span>
+        </div>
+
+        <!-- Modal Body (Scrollable) -->
+        <div class="p-6 overflow-y-auto flex-1 space-y-6 bg-slate-50/60" id="blankoModalBody">
+            <div id="blankoLoading" class="py-16 text-center text-slate-400">
+                <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-slate-300 border-t-blue-600 mb-2"></div>
+                <p class="text-xs font-bold">Mengambil data tim estafet...</p>
+            </div>
+            <div id="blankoTeamsContainer" class="space-y-6 hidden">
+                <!-- Teams rendered dynamically via JS -->
+            </div>
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="px-6 py-3.5 bg-white border-t border-slate-200 flex items-center justify-between text-xs text-slate-500 font-bold">
+            <span>💡 Perubahan langsung tersimpan ke database & terintegrasi dengan lembar hasil</span>
+            <button type="button" onclick="closeRelayBlankoModal()" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl transition font-bold text-xs uppercase">
+                Tutup
+            </button>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    let currentRelayData = null;
+
+    function openRelayBlankoModal(catId) {
+        const modal = document.getElementById('relayBlankoModal');
+        const title = document.getElementById('blankoModalTitle');
+        const sub = document.getElementById('blankoModalSubtitle');
+        const printBtn = document.getElementById('blankoPrintBtn');
+        const limitText = document.getElementById('blankoLimitText');
+        const loading = document.getElementById('blankoLoading');
+        const container = document.getElementById('blankoTeamsContainer');
+
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        loading.classList.remove('hidden');
+        container.classList.add('hidden');
+        container.innerHTML = '';
+
+        printBtn.href = '<?= getenv("APP_URL") ?>/swim/admin/seeding/print_blanko?category_id=' + catId;
+
+        fetch('<?= getenv("APP_URL") ?>/swim/admin/seeding/get_relay_teams?category_id=' + catId)
+            .then(res => res.json())
+            .then(data => {
+                loading.classList.add('hidden');
+                container.classList.remove('hidden');
+
+                if (!data.success) {
+                    container.innerHTML = '<div class="p-6 text-center text-red-600 font-bold bg-red-50 rounded-2xl border border-red-200">' + (data.message || 'Gagal memuat data') + '</div>';
+                    return;
+                }
+
+                currentRelayData = data;
+                const cat = data.category;
+                title.textContent = 'BLANKO ESTAFET - ACARA #' + (cat.event_number || '') + ' (' + (cat.distance || '') + ' ' + (cat.stroke || '') + ')';
+                sub.textContent = (cat.event_name || '') + ' • ' + (cat.age_group || '') + ' ' + (cat.jenis_kelamin || '');
+
+                const maxAge = parseInt(data.max_total_age) || 0;
+                if (maxAge > 0) {
+                    limitText.innerHTML = 'Batas Maksimal Total Umur: <span class="text-amber-900 font-black text-sm">' + maxAge + ' Tahun</span> (Akumulasi 4 atlet harus ≤ ' + maxAge + ' Th)';
+                } else {
+                    limitText.innerHTML = 'Batas Maksimal Total Umur: <span class="text-blue-900 font-black text-sm">Bebas (Tanpa Batas Limit)</span>';
+                }
+
+                if (!data.teams || data.teams.length === 0) {
+                    container.innerHTML = '<div class="p-8 text-center text-slate-400 font-bold bg-white rounded-2xl border border-slate-200 italic">Belum ada tim estafet yang terdaftar pada nomor acara ini.</div>';
+                    return;
+                }
+
+                renderRelayTeams(data.teams, maxAge, cat.stroke || '');
+            })
+            .catch(err => {
+                loading.classList.add('hidden');
+                container.classList.remove('hidden');
+                container.innerHTML = '<div class="p-6 text-center text-red-600 font-bold bg-red-50 rounded-2xl border border-red-200">Terjadi kesalahan koneksi: ' + err.message + '</div>';
+            });
+    }
+
+    function closeRelayBlankoModal() {
+        const modal = document.getElementById('relayBlankoModal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+
+    function renderRelayTeams(teams, maxAge, strokeName) {
+        const container = document.getElementById('blankoTeamsContainer');
+        container.innerHTML = '';
+
+        const isMedley = /ganti|medley/i.test(strokeName);
+        const legLabels = {
+            1: isMedley ? 'Leg 1 (Punggung)' : 'Perenang 1',
+            2: isMedley ? 'Leg 2 (Dada)' : 'Perenang 2',
+            3: isMedley ? 'Leg 3 (Kupu-kupu)' : 'Perenang 3',
+            4: isMedley ? 'Leg 4 (Bebas)' : 'Perenang 4'
+        };
+
+        teams.forEach(team => {
+            const card = document.createElement('div');
+            card.className = 'bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-4';
+            card.id = 'team-card-' + team.relay_id;
+
+            // Card Header
+            let headerHtml = `
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-base font-black text-slate-900 uppercase">${escapeHtml(team.team_name)}</span>
+                            <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200 uppercase">${escapeHtml(team.club_name)}</span>
+                        </div>
+                        <span class="text-[11px] text-slate-400 font-medium">Seed Time: <b>${escapeHtml(team.seed_time || 'NT')}</b></span>
+                    </div>
+                    <div id="team-age-badge-${team.relay_id}">
+                        ${renderAgeBadge(team.total_age, maxAge, team.is_valid_age)}
+                    </div>
+                </div>
+            `;
+
+            // 4 Swimmer Dropdowns
+            let legsHtml = '<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">';
+            for (let leg = 1; leg <= 4; leg++) {
+                const curSw = team.swimmers[leg] || {};
+                const curId = curSw.id || 0;
+                const curAge = curSw.age || 0;
+
+                legsHtml += `
+                    <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                        <label class="block text-[11px] font-black uppercase text-slate-700 mb-1 flex items-center justify-between">
+                            <span>${legLabels[leg]}</span>
+                            <span id="leg-age-${team.relay_id}-${leg}" class="text-[10px] font-bold text-indigo-600">${curAge > 0 ? curAge + ' Th' : '-'}</span>
+                        </label>
+                        <select id="swimmer-${team.relay_id}-${leg}" class="swimmer-select w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none" onchange="onSwimmerChange(${team.relay_id}, ${maxAge})">
+                            <option value="" data-age="0">-- Pilih Atlet --</option>
+                `;
+
+                if (team.available_swimmers && team.available_swimmers.length > 0) {
+                    team.available_swimmers.forEach(sw => {
+                        const sel = (sw.id == curId) ? 'selected' : '';
+                        legsHtml += `<option value="${sw.id}" data-age="${sw.age}" data-dob="${sw.tanggal_lahir || ''}" ${sel}>${escapeHtml(sw.nama_atlet)} (${sw.age} Th - ${sw.jenis_kelamin || ''})</option>`;
+                    });
+                }
+
+                legsHtml += `
+                        </select>
+                    </div>
+                `;
+            }
+            legsHtml += '</div>';
+
+            // Card Footer with Save button & Status text
+            let footerHtml = `
+                <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-slate-100">
+                    <div id="team-status-msg-${team.relay_id}" class="text-[11px] font-bold text-slate-500">
+                        Pilih 4 perenang untuk regu ini
+                    </div>
+                    <button type="button" onclick="saveRelayTeamSwimmers(${team.relay_id}, ${maxAge})" id="btn-save-${team.relay_id}" class="w-full sm:w-auto px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-black text-xs uppercase shadow transition flex items-center justify-center gap-1.5">
+                        <span>💾</span> Simpan Susunan Atlet
+                    </button>
+                </div>
+            `;
+
+            card.innerHTML = headerHtml + legsHtml + footerHtml;
+            container.appendChild(card);
+        });
+    }
+
+    function renderAgeBadge(totalAge, maxAge, isValid) {
+        if (maxAge > 0) {
+            if (isValid) {
+                return `<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-black bg-emerald-100 text-emerald-800 border border-emerald-300">
+                    <span>✅</span> Total Umur: ${totalAge} Th <span class="text-[10px] font-bold text-emerald-600">(≤ ${maxAge} Th)</span>
+                </span>`;
+            } else {
+                return `<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-black bg-red-100 text-red-700 border border-red-300 animate-pulse">
+                    <span>⚠️</span> Total Umur: ${totalAge} Th <span class="text-[10px] font-bold text-red-600">(LEBIH DARI ${maxAge} Th!)</span>
+                </span>`;
+            }
+        }
+        return `<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-black bg-slate-100 text-slate-700 border border-slate-200">
+            <span>🎂</span> Total Umur: ${totalAge > 0 ? totalAge + ' Th' : '-'} (Bebas)
+        </span>`;
+    }
+
+    function onSwimmerChange(relayId, maxAge) {
+        let total = 0;
+        let selectedIds = [];
+        let hasDuplicate = false;
+
+        for (let leg = 1; leg <= 4; leg++) {
+            const sel = document.getElementById(`swimmer-${relayId}-${leg}`);
+            const ageSpan = document.getElementById(`leg-age-${relayId}-${leg}`);
+            if (sel) {
+                const opt = sel.options[sel.selectedIndex];
+                const age = parseInt(opt ? opt.getAttribute('data-age') : 0) || 0;
+                const id = parseInt(sel.value) || 0;
+
+                if (ageSpan) {
+                    ageSpan.textContent = age > 0 ? age + ' Th' : '-';
+                }
+
+                if (id > 0) {
+                    if (selectedIds.includes(id)) {
+                        hasDuplicate = true;
+                    }
+                    selectedIds.push(id);
+                    total += age;
+                }
+            }
+        }
+
+        const isValid = (maxAge <= 0) || (total <= maxAge);
+        const badgeContainer = document.getElementById(`team-age-badge-${relayId}`);
+        if (badgeContainer) {
+            badgeContainer.innerHTML = renderAgeBadge(total, maxAge, isValid);
+        }
+
+        const statusMsg = document.getElementById(`team-status-msg-${relayId}`);
+        const btnSave = document.getElementById(`btn-save-${relayId}`);
+        if (hasDuplicate) {
+            if (statusMsg) {
+                statusMsg.innerHTML = '<span class="text-red-600 font-bold">⚠️ Perenang tidak boleh dipilih ganda dalam tim yang sama!</span>';
+            }
+            if (btnSave) btnSave.disabled = true;
+        } else {
+            if (statusMsg) {
+                if (maxAge > 0 && !isValid) {
+                    statusMsg.innerHTML = `<span class="text-amber-700 font-bold">⚠️ Total umur (${total} Th) melebihi batas maksimal (${maxAge} Th)</span>`;
+                } else if (selectedIds.length === 4) {
+                    statusMsg.innerHTML = '<span class="text-emerald-700 font-bold">✓ Susunan 4 perenang lengkap</span>';
+                } else {
+                    statusMsg.innerHTML = `<span class="text-slate-500 font-bold">${selectedIds.length} dari 4 perenang dipilih</span>`;
+                }
+            }
+            if (btnSave) btnSave.disabled = false;
+        }
+    }
+
+    function saveRelayTeamSwimmers(relayId, maxAge) {
+        const s1 = document.getElementById(`swimmer-${relayId}-1`).value;
+        const s2 = document.getElementById(`swimmer-${relayId}-2`).value;
+        const s3 = document.getElementById(`swimmer-${relayId}-3`).value;
+        const s4 = document.getElementById(`swimmer-${relayId}-4`).value;
+
+        const btnSave = document.getElementById(`btn-save-${relayId}`);
+        const originalText = btnSave.innerHTML;
+        btnSave.disabled = true;
+        btnSave.innerHTML = '<span>⏳</span> Menyimpan...';
+
+        const formData = new FormData();
+        formData.append('relay_id', relayId);
+        formData.append('swimmer_1_id', s1);
+        formData.append('swimmer_2_id', s2);
+        formData.append('swimmer_3_id', s3);
+        formData.append('swimmer_4_id', s4);
+
+        fetch('<?= getenv("APP_URL") ?>/swim/admin/seeding/save_relay_swimmers', {
+            method: 'POST',
+            body: formData
+        })
+        .then(res => res.json())
+        .then(res => {
+            btnSave.disabled = false;
+            btnSave.innerHTML = originalText;
+
+            if (res.success) {
+                const badgeContainer = document.getElementById(`team-age-badge-${relayId}`);
+                if (badgeContainer) {
+                    badgeContainer.innerHTML = renderAgeBadge(res.total_age, maxAge, res.is_valid_age);
+                }
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Tersimpan!',
+                    text: res.message + (maxAge > 0 ? (res.is_valid_age ? ' (Total Umur: ' + res.total_age + ' Th)' : ' (⚠️ Total umur ' + res.total_age + ' Th melebihi batas ' + maxAge + ' Th!)') : ''),
+                    timer: 2000,
+                    showConfirmButton: false,
+                    toast: true,
+                    position: 'top-end'
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal Menyimpan',
+                    text: res.message || 'Terjadi kesalahan sistem'
+                });
+            }
+        })
+        .catch(err => {
+            btnSave.disabled = false;
+            btnSave.innerHTML = originalText;
+            Swal.fire({
+                icon: 'error',
+                title: 'Koneksi Terputus',
+                text: err.message
+            });
+        });
+    }
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        return String(text)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+</script>
 
 <script>
     /**

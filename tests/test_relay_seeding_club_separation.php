@@ -131,3 +131,4 @@ assert($countKlubXInHeat0 === 1 && $countKlubXInHeat1 === 1, "Klub X must have e
 echo "✓ Test 2: Single club with 2 teams distributed across heats PASSED!\n";
 
 echo "ALL RELAY SEEDING CLUB SEPARATION TESTS PASSED!\n";
+

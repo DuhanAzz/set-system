@@ -94,7 +94,7 @@ if (!function_exists('getKULabelInput')) {
         <div class="flex justify-between items-start mb-6 pb-4 border-b border-slate-300">
             <div class="text-left">
                 <h1 class="text-2xl font-black text-slate-800 uppercase italic">ACARA #<?= htmlspecialchars($raceInfo['event_number'] ?? '') ?></h1>
-                <p class="font-bold text-slate-600"><?= htmlspecialchars($raceInfo['event_name'] ?? '') ?></p>
+                <p class="font-bold text-slate-600"><?= htmlspecialchars(\App\Helpers\SwimEventHelper::formatEventName($raceInfo['event_name'] ?? '', (isset($raceInfo['is_relay']) && $raceInfo['is_relay'] == 1), $raceInfo['distance'] ?? 0)) ?></p>
             </div>
         </div>
         
@@ -108,7 +108,7 @@ if (!function_exists('getKULabelInput')) {
                     <thead class="text-xs text-slate-700 uppercase bg-slate-100">
                         <tr>
                             <th class="px-4 py-3 text-center w-12">LN</th>
-                            <th class="px-4 py-3">NAMA ATLET</th>
+                            <th class="px-4 py-3"><?= (isset($raceInfo['is_relay']) && $raceInfo['is_relay'] == 1) ? 'NAMA TIM & SUSUNAN ATLET' : 'NAMA ATLET' ?></th>
                             <th class="px-4 py-3 text-center">KU</th>
                             <th class="px-4 py-3">TIM</th>
                             <th class="px-4 py-3 text-right w-32">WAKTU</th>
@@ -137,7 +137,27 @@ if (!function_exists('getKULabelInput')) {
                                     $teamName = $isSchoolEvent ? (!empty($s['asal_sekolah']) ? $s['asal_sekolah'] : ($s['club_name'] ?? '')) : ($s['club_name'] ?? '');
                                 }
                             ?>
-                                <td class="px-4 py-3 font-bold"><?= htmlspecialchars($s['nama_atlet'] ?? '') ?></td>
+                                <td class="px-4 py-3">
+                                    <?php if(isset($raceInfo['is_relay']) && $raceInfo['is_relay'] == 1): 
+                                        $teamDisplay = !empty($s['nama_tim']) ? $s['nama_tim'] : (!empty($s['team_name']) ? $s['team_name'] : ($s['nama_atlet'] ?? 'Tim Estafet'));
+                                        $swimmerList = [];
+                                        if (!empty($s['s1_nama'])) $swimmerList[] = "1. " . $s['s1_nama'];
+                                        if (!empty($s['s2_nama'])) $swimmerList[] = "2. " . $s['s2_nama'];
+                                        if (!empty($s['s3_nama'])) $swimmerList[] = "3. " . $s['s3_nama'];
+                                        if (!empty($s['s4_nama'])) $swimmerList[] = "4. " . $s['s4_nama'];
+                                    ?>
+                                        <div class="font-black text-slate-900 uppercase text-xs"><?= htmlspecialchars($teamDisplay) ?></div>
+                                        <?php if (!empty($swimmerList)): ?>
+                                            <div class="text-[10px] text-slate-500 font-normal mt-0.5 leading-snug">
+                                                <?= htmlspecialchars(implode(', ', $swimmerList)) ?>
+                                            </div>
+                                        <?php else: ?>
+                                            <div class="text-[10px] text-amber-600 italic mt-0.5">⚠️ Blanko atlet belum diisi</div>
+                                        <?php endif; ?>
+                                    <?php else: ?>
+                                        <div class="font-bold"><?= htmlspecialchars($s['nama_atlet'] ?? '') ?></div>
+                                    <?php endif; ?>
+                                </td>
                                 <td class="px-4 py-3 text-center text-[10px] text-slate-700 font-bold"><?= htmlspecialchars($kuLabel) ?></td>
                                 <td class="px-4 py-3 text-xs"><?= htmlspecialchars($teamName) ?></td>
                                 <td class="px-4 py-3 text-right">

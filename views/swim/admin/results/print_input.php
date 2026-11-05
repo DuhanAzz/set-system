@@ -228,11 +228,19 @@ if(!empty($eventProfile['event_date_end']) && $eventProfile['event_date_end'] !=
 $dateRange = strtoupper($dateRange);
 
 // Judul Acara Tengah
-$cleanStroke = trim(str_ireplace(['Gaya', 'GAYA'], '', $raceInfo['stroke'] ?? ''));
+$isRelay = isset($raceInfo['is_relay']) && (int)$raceInfo['is_relay'] === 1;
+$cleanStroke = trim(str_ireplace(['Gaya', 'GAYA', 'ESTAFET', 'RELAY'], '', $raceInfo['stroke'] ?? ''));
 $gender_label = (in_array($raceInfo['jenis_kelamin'] ?? '', ['L','Male','Man'])) ? 'PUTRA' : 'PUTRI';
 if (($raceInfo['jenis_kelamin'] ?? '') == 'Campuran') $gender_label = 'CAMPURAN';
 $poolSuffix = (strtoupper($eventProfile['pool_type'] ?? 'LCM') == 'SCM') ? ' - SCM' : ' - LCM';
-$judul_print = $raceInfo['distance'] . "M " . strtoupper($cleanStroke) . " - " . ($raceInfo['age_group'] ?? '') . " " . $gender_label . $poolSuffix;
+$distLabel = \App\Helpers\SwimEventHelper::formatDistance($raceInfo['distance'] ?? 0, $isRelay);
+
+if ($isRelay) {
+    $judulRaw = $distLabel . " ESTAFET " . strtoupper($cleanStroke) . " - " . ($raceInfo['age_group'] ?? '') . " " . $gender_label . $poolSuffix;
+    $judul_print = \App\Helpers\SwimEventHelper::formatEventName($judulRaw, true, $raceInfo['distance'] ?? 0);
+} else {
+    $judul_print = $distLabel . " " . strtoupper($cleanStroke) . " - " . ($raceInfo['age_group'] ?? '') . " " . $gender_label . $poolSuffix;
+}
 
 // Jadwal Acara Kiri
 $jadwalKiri = $displayDate . " | " . (empty($raceInfo['schedule_time']) ? '08:00 WIB' : date('H:i', strtotime($raceInfo['schedule_time'])) . ' WIB');
@@ -300,7 +308,11 @@ if ($currentMode === 'overall') {
 } else {
     foreach ($swimmersList as $row) {
         if (!empty($row['id'])) {
-            $groupName = getKULabelInput($row['tanggal_lahir'] ?? '0000-00-00', $eventYear, $ageGroups ?? []);
+            if ($isRelay) {
+                $groupName = !empty($raceInfo['age_group']) ? $raceInfo['age_group'] : 'ESTAFET';
+            } else {
+                $groupName = getKULabelInput($row['tanggal_lahir'] ?? '0000-00-00', $eventYear, $ageGroups ?? []);
+            }
             $row['ms_sort'] = 9999999999;
             if (($row['is_dq'] ?? 0) == 1) {
                 $row['ms_sort'] = 9999999999 + 100;
@@ -414,6 +426,16 @@ unset($rows);
                         <?php else: ?>
                             <table class="data-table">
                                 <thead>
+                                    <?php if ($isRelay): ?>
+                                    <tr>
+                                        <th style="width: 6%;">RANK</th>
+                                        <th style="width: 22%;">NAMA TIM</th>
+                                        <th style="width: 36%;">NAMA ATLET</th>
+                                        <th style="width: 20%;"><?= $isSchoolEvent ? 'SEKOLAH' : 'KLUB / SEKOLAH' ?></th>
+                                        <th style="width: 8%;">ENTRY</th>
+                                        <th style="width: 8%;">HASIL</th>
+                                    </tr>
+                                    <?php else: ?>
                                     <tr>
                                         <th class="col-rank">RANK</th>
                                         <th class="col-uid">UID</th>
@@ -423,10 +445,11 @@ unset($rows);
                                         <th class="col-waktu-awal">ENTRY</th>
                                         <th class="col-hasil">HASIL</th>
                                     </tr>
+                                    <?php endif; ?>
                                 </thead>
                                 <tbody>
                                     <?php foreach($groupedResults as $groupTitle => $swimmers): ?>
-                                        <tr class="group-row"><td colspan="7"><?= htmlspecialchars($groupTitle) ?></td></tr>
+                                        <tr class="group-row"><td colspan="<?= $isRelay ? '6' : '7' ?>"><?= htmlspecialchars($groupTitle) ?></td></tr>
                                         <?php 
                                         $rank = 1; $real_rank = 1; $prev_time = null;
                                         foreach($swimmers as $p): 
@@ -439,14 +462,47 @@ unset($rows);
                                                 $rank++;
                                             }
                                             
-                                            $kuLabel = getKULabelInput($p['tanggal_lahir'] ?? '0000-00-00', $eventYear, $ageGroups ?? []);
-                                            if (isset($raceInfo['is_relay']) && $raceInfo['is_relay'] == 1) {
-                                                $teamName = $p['club_name'] ?? '';
-                                            } else {
-                                                $teamName = $isSchoolEvent ? (!empty($p['asal_sekolah']) ? $p['asal_sekolah'] : ($p['club_name'] ?? '')) : ($p['club_name'] ?? '');
-                                            }
-                                            
                                             $seedTime = (!empty($p['entry_time']) && $p['entry_time'] != '99:99.99' && $p['entry_time'] != '99.99.99' && strtoupper($p['entry_time']) != 'NT') ? $p['entry_time'] : 'NT';
+                                        ?>
+                                        <?php if ($isRelay): 
+                                            $teamNameDisplay = !empty($p['nama_tim']) ? $p['nama_tim'] : (!empty($p['team_name']) ? $p['team_name'] : ($p['club_name'] ?? 'TIM ESTAFET'));
+                                            $swimmerNames = [];
+                                            if (!empty($p['s1_nama'])) $swimmerNames[] = '1. ' . $p['s1_nama'];
+                                            if (!empty($p['s2_nama'])) $swimmerNames[] = '2. ' . $p['s2_nama'];
+                                            if (!empty($p['s3_nama'])) $swimmerNames[] = '3. ' . $p['s3_nama'];
+                                            if (!empty($p['s4_nama'])) $swimmerNames[] = '4. ' . $p['s4_nama'];
+                                            
+                                            $clubOrSchool = $isSchoolEvent ? (!empty($p['asal_sekolah']) ? $p['asal_sekolah'] : ($p['club_name'] ?? '')) : ($p['club_name'] ?? '');
+                                        ?>
+                                        <tr>
+                                            <td class="col-rank"><?= $rank_display ?></td>
+                                            <td style="font-weight: 900; text-transform: uppercase;"><?= htmlspecialchars($teamNameDisplay) ?></td>
+                                            <td style="font-size: 7.5pt; line-height: 1.35; padding: 4px 6px;">
+                                                <?php if(!empty($swimmerNames)): ?>
+                                                    <?= implode('<br>', array_map('htmlspecialchars', $swimmerNames)) ?>
+                                                <?php else: ?>
+                                                    <span style="color: #94a3b8; font-style: italic;">(Susunan atlet belum diisi)</span>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td style="font-size: 8pt; font-weight: bold;"><?= htmlspecialchars($clubOrSchool) ?></td>
+                                            <td class="col-waktu-awal"><?= htmlspecialchars($seedTime) ?></td>
+                                            <td class="col-hasil">
+                                                <?php 
+                                                if (($p['is_dq'] ?? 0) == 1) {
+                                                    $reason = $p['dq_reason'] ?? 'DQ';
+                                                    $print_text = (in_array($reason, ['DNS', 'DNF'])) ? $reason : 'DQ';
+                                                    echo '<span style="color:#dc2626; font-weight:900;">' . htmlspecialchars($print_text) . '</span>';
+                                                } elseif ($is_valid) {
+                                                    echo htmlspecialchars($p['final_time']);
+                                                } else {
+                                                    echo '-';
+                                                }
+                                                ?>
+                                            </td>
+                                        </tr>
+                                        <?php else: 
+                                            $kuLabel = getKULabelInput($p['tanggal_lahir'] ?? '0000-00-00', $eventYear, $ageGroups ?? []);
+                                            $teamName = $isSchoolEvent ? (!empty($p['asal_sekolah']) ? $p['asal_sekolah'] : ($p['club_name'] ?? '')) : ($p['club_name'] ?? '');
                                         ?>
                                         <tr>
                                             <td class="col-rank"><?= $rank_display ?></td>
@@ -469,6 +525,7 @@ unset($rows);
                                                 ?>
                                             </td>
                                         </tr>
+                                        <?php endif; ?>
                                         <?php endforeach; ?>
                                     <?php endforeach; ?>
                                 </tbody>

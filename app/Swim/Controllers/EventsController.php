@@ -82,7 +82,8 @@ class EventsController extends Controller {
         $listEvents = [];
 
         if ($eventId > 0) {
-            // Sinkronisasi permanen penamaan nomor estafet di database
+            // Pastikan kolom relay umur & penamaan nomor estafet sinkron
+            \App\Helpers\SwimEventHelper::ensureRelayAgeColumns($pdo);
             \App\Helpers\SwimEventHelper::syncEventRelayNames($pdo, $eventId);
 
             $kus = $pdo->prepare("SELECT * FROM swim_event_age_groups WHERE event_id = ? ORDER BY min_age ASC");
@@ -170,25 +171,34 @@ class EventsController extends Controller {
                 $syncNumbers = !empty($_POST['sync_numbers_price']);
                 $priceRelay = !empty($_POST['price_relay']) ? (float)$_POST['price_relay'] : 0;
                 $syncRelay = !empty($_POST['sync_relay_price']);
+                $relayMaxTotalAge = isset($_POST['relay_max_total_age']) ? max(0, (int)$_POST['relay_max_total_age']) : 0;
 
-                // Ensure price_per_item and price_relay columns exist in swim_events
+                // Ensure price_per_item, price_relay, and relay_max_total_age columns exist in swim_events
                 try {
                     $pdo->query("ALTER TABLE swim_events ADD COLUMN price_per_item DECIMAL(15,2) DEFAULT 0.00 AFTER pricing_mode");
                 } catch (\Exception $e) {}
                 try {
                     $pdo->query("ALTER TABLE swim_events ADD COLUMN price_relay DECIMAL(15,2) DEFAULT 0.00 AFTER price_per_item");
                 } catch (\Exception $e) {}
+                try {
+                    $pdo->query("ALTER TABLE swim_events ADD COLUMN relay_max_total_age INT DEFAULT 0 AFTER price_relay");
+                } catch (\Exception $e) {}
 
                 try {
-                    $sql = "UPDATE swim_events SET pricing_mode=?, package_price=?, package_limit=?, extra_price=?, price_per_item=?, price_relay=? WHERE id=?";
-                    $pdo->prepare($sql)->execute([$mode, $pkgPrice, $pkgLimit, $pkgExtra, $pricePerItem, $priceRelay, $eventId]);
+                    $sql = "UPDATE swim_events SET pricing_mode=?, package_price=?, package_limit=?, extra_price=?, price_per_item=?, price_relay=?, relay_max_total_age=? WHERE id=?";
+                    $pdo->prepare($sql)->execute([$mode, $pkgPrice, $pkgLimit, $pkgExtra, $pricePerItem, $priceRelay, $relayMaxTotalAge, $eventId]);
                 } catch (\Exception $e) {
                     try {
-                        $sql = "UPDATE swim_events SET pricing_mode=?, package_price=?, package_limit=?, extra_price=?, price_per_item=? WHERE id=?";
-                        $pdo->prepare($sql)->execute([$mode, $pkgPrice, $pkgLimit, $pkgExtra, $pricePerItem, $eventId]);
+                        $sql = "UPDATE swim_events SET pricing_mode=?, package_price=?, package_limit=?, extra_price=?, price_per_item=?, price_relay=? WHERE id=?";
+                        $pdo->prepare($sql)->execute([$mode, $pkgPrice, $pkgLimit, $pkgExtra, $pricePerItem, $priceRelay, $eventId]);
                     } catch (\Exception $e2) {
-                        $sql = "UPDATE swim_events SET pricing_mode=?, package_price=?, package_limit=?, extra_price=? WHERE id=?";
-                        $pdo->prepare($sql)->execute([$mode, $pkgPrice, $pkgLimit, $pkgExtra, $eventId]);
+                        try {
+                            $sql = "UPDATE swim_events SET pricing_mode=?, package_price=?, package_limit=?, extra_price=?, price_per_item=? WHERE id=?";
+                            $pdo->prepare($sql)->execute([$mode, $pkgPrice, $pkgLimit, $pkgExtra, $pricePerItem, $eventId]);
+                        } catch (\Exception $e3) {
+                            $sql = "UPDATE swim_events SET pricing_mode=?, package_price=?, package_limit=?, extra_price=? WHERE id=?";
+                            $pdo->prepare($sql)->execute([$mode, $pkgPrice, $pkgLimit, $pkgExtra, $eventId]);
+                        }
                     }
                 }
 
@@ -199,9 +209,15 @@ class EventsController extends Controller {
                 }
 
                 // Jika sync relay dicentang, update seluruh nomor lomba estafet
-                if ($priceRelay > 0 && $syncRelay) {
-                    $stmtSyncRelay = $pdo->prepare("UPDATE swim_event_numbers SET price = ? WHERE event_id = ? AND is_relay = 1");
-                    $stmtSyncRelay->execute([$priceRelay, $eventId]);
+                if ($syncRelay) {
+                    if ($priceRelay > 0) {
+                        $stmtSyncRelay = $pdo->prepare("UPDATE swim_event_numbers SET price = ? WHERE event_id = ? AND is_relay = 1");
+                        $stmtSyncRelay->execute([$priceRelay, $eventId]);
+                    }
+                    try {
+                        $stmtSyncAge = $pdo->prepare("UPDATE swim_event_numbers SET relay_max_total_age = ? WHERE event_id = ? AND is_relay = 1");
+                        $stmtSyncAge->execute([$relayMaxTotalAge, $eventId]);
+                    } catch (\Throwable $eAge) {}
                 }
                 
                 $_SESSION['toast'] = ['type' => 'success', 'msg' => 'Aturan Biaya Berhasil Disimpan & Disinkronkan!'];

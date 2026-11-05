@@ -131,4 +131,47 @@ class SwimEventHelper {
             // Non-blocking: Abaikan kegagalan SQL agar proses utama tetap jalan
         }
     }
+
+    /**
+     * Hitung umur atlet perenang berdasarkan tanggal lahir dan tipe perhitungan event (Dec 31 atau Meet Start)
+     */
+    public static function calculateSwimmerAge($dob, $eventDateStart = null, $calcType = 'Dec 31'): int {
+        if (empty($dob) || $dob === '0000-00-00') return 0;
+        try {
+            $dobObj = new \DateTime($dob);
+            $compDate = $eventDateStart ? new \DateTime($eventDateStart) : new \DateTime();
+            if (strcasecmp((string)$calcType, 'Meet Start') === 0) {
+                return (int)$dobObj->diff($compDate)->y;
+            }
+            return max(0, (int)$compDate->format('Y') - (int)$dobObj->format('Y'));
+        } catch (\Throwable $e) {
+            return 0;
+        }
+    }
+
+    /**
+     * Hitung akumulasi umur perenang regu estafet
+     */
+    public static function calculateTeamTotalAge(array $swimmersDob, $eventDateStart = null, $calcType = 'Dec 31'): int {
+        $total = 0;
+        foreach ($swimmersDob as $dob) {
+            if (!empty($dob)) {
+                $total += self::calculateSwimmerAge($dob, $eventDateStart, $calcType);
+            }
+        }
+        return $total;
+    }
+
+    /**
+     * Pastikan kolom relay_max_total_age tersedia di database
+     */
+    public static function ensureRelayAgeColumns(PDO $pdo): void {
+        try {
+            $pdo->exec("ALTER TABLE swim_events ADD COLUMN relay_max_total_age INT DEFAULT 0");
+        } catch (\Throwable $e) {}
+
+        try {
+            $pdo->exec("ALTER TABLE swim_event_numbers ADD COLUMN relay_max_total_age INT DEFAULT 0");
+        } catch (\Throwable $e) {}
+    }
 }

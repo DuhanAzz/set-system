@@ -466,6 +466,271 @@ class SeedingController extends Controller {
         $pdo = Database::getInstance()->getConnection();
         require_once __DIR__ . '/../../../views/swim/admin/seeding/view_startlist.php';
     }
+
+    /**
+     * API: Ambil daftar tim estafet, atlet yang sudah terpilih, dan atlet yang tersedia di klub
+     */
+    public function get_relay_teams() {
+        if (!isset($_SESSION['swim_role']) || !in_array($_SESSION['swim_role'], ['admin', 'master', 'superadmin'])) {
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            exit;
+        }
+
+        $pdo = Database::getInstance()->getConnection();
+        $categoryId = (int)($_GET['category_id'] ?? 0);
+        if ($categoryId <= 0) {
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'message' => 'Category ID tidak valid']);
+            exit;
+        }
+
+        // Pastikan kolom umur tersedia
+        \App\Helpers\SwimEventHelper::ensureRelayAgeColumns($pdo);
+
+        $stmtCat = $pdo->prepare("
+            SELECT en.*, e.event_name as full_event_name, e.event_date_start, e.age_calculation_type,
+                   e.relay_max_total_age as event_max_age
+            FROM swim_event_numbers en
+            JOIN swim_events e ON en.event_id = e.id
+            WHERE en.id = ?
+        ");
+        $stmtCat->execute([$categoryId]);
+        $cat = $stmtCat->fetch(\PDO::FETCH_ASSOC);
+
+        if (!$cat) {
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'message' => 'Nomor lomba tidak ditemukan']);
+            exit;
+        }
+
+        // Tentukan batas maksimal umur: utamakan nomor acara jika > 0, lalu event jika > 0
+        $maxTotalAge = 0;
+        if (!empty($cat['relay_max_total_age']) && (int)$cat['relay_max_total_age'] > 0) {
+            $maxTotalAge = (int)$cat['relay_max_total_age'];
+        } elseif (!empty($cat['event_max_age']) && (int)$cat['event_max_age'] > 0) {
+            $maxTotalAge = (int)$cat['event_max_age'];
+        }
+
+        // Ambil seluruh tim estafet di nomor acara ini
+        $stmtTeams = $pdo->prepare("
+            SELECT 
+                re.id as relay_id,
+                re.event_id,
+                re.category_id,
+                re.club_id,
+                re.team_name,
+                re.seed_time,
+                re.status,
+                re.swimmer_1_id,
+                re.swimmer_2_id,
+                re.swimmer_3_id,
+                re.swimmer_4_id,
+                c.nama_klub,
+                c.user_id as club_user_id,
+                s1.nama_atlet as s1_nama, s1.tanggal_lahir as s1_dob, s1.jenis_kelamin as s1_jk,
+                s2.nama_atlet as s2_nama, s2.tanggal_lahir as s2_dob, s2.jenis_kelamin as s2_jk,
+                s3.nama_atlet as s3_nama, s3.tanggal_lahir as s3_dob, s3.jenis_kelamin as s3_jk,
+                s4.nama_atlet as s4_nama, s4.tanggal_lahir as s4_dob, s4.jenis_kelamin as s4_jk
+            FROM swim_relay_entries re
+            LEFT JOIN swim_clubs c ON re.club_id = c.id
+            LEFT JOIN swim_swimmers s1 ON re.swimmer_1_id = s1.id
+            LEFT JOIN swim_swimmers s2 ON re.swimmer_2_id = s2.id
+            LEFT JOIN swim_swimmers s3 ON re.swimmer_3_id = s3.id
+            LEFT JOIN swim_swimmers s4 ON re.swimmer_4_id = s4.id
+            WHERE re.category_id = ?
+            ORDER BY re.id ASC
+        ");
+        $stmtTeams->execute([$categoryId]);
+        $teams = $stmtTeams->fetchAll(\PDO::FETCH_ASSOC);
+
+        $eventDateStart = $cat['event_date_start'] ?? date('Y-m-d');
+        $calcType = $cat['age_calculation_type'] ?? 'Dec 31';
+
+        // Kumpulkan semua club_ids
+        $clubIds = [];
+        foreach ($teams as $t) {
+            if (!empty($t['club_id'])) $clubIds[$t['club_id']] = (int)$t['club_id'];
+        }
+
+        // Ambil atlet per klub
+        $swimmersByClub = [];
+        if (!empty($clubIds)) {
+            $inClubs = implode(',', array_fill(0, count($clubIds), '?'));
+            $stmtSw = $pdo->prepare("
+                SELECT s.id, s.club_id, s.user_id, s.nama_atlet, s.jenis_kelamin, s.tanggal_lahir, s.uid
+                FROM swim_swimmers s
+                WHERE s.club_id IN ($inClubs)
+                   OR s.user_id IN (SELECT user_id FROM swim_clubs WHERE id IN ($inClubs))
+                ORDER BY s.nama_atlet ASC
+            ");
+            $stmtSw->execute(array_merge(array_values($clubIds), array_values($clubIds)));
+            $swimmersRaw = $stmtSw->fetchAll(\PDO::FETCH_ASSOC);
+
+            foreach ($swimmersRaw as $sw) {
+                $swAge = \App\Helpers\SwimEventHelper::calculateSwimmerAge($sw['tanggal_lahir'], $eventDateStart, $calcType);
+                $sw['age'] = $swAge;
+                $cid = (int)$sw['club_id'];
+                if ($cid > 0) {
+                    $swimmersByClub[$cid][] = $sw;
+                }
+            }
+        }
+
+        // Hitung total umur dan validasi untuk setiap tim
+        $formattedTeams = [];
+        foreach ($teams as $t) {
+            $dob1 = $t['s1_dob'] ?? null;
+            $dob2 = $t['s2_dob'] ?? null;
+            $dob3 = $t['s3_dob'] ?? null;
+            $dob4 = $t['s4_dob'] ?? null;
+
+            $age1 = !empty($dob1) ? \App\Helpers\SwimEventHelper::calculateSwimmerAge($dob1, $eventDateStart, $calcType) : 0;
+            $age2 = !empty($dob2) ? \App\Helpers\SwimEventHelper::calculateSwimmerAge($dob2, $eventDateStart, $calcType) : 0;
+            $age3 = !empty($dob3) ? \App\Helpers\SwimEventHelper::calculateSwimmerAge($dob3, $eventDateStart, $calcType) : 0;
+            $age4 = !empty($dob4) ? \App\Helpers\SwimEventHelper::calculateSwimmerAge($dob4, $eventDateStart, $calcType) : 0;
+
+            $totalAge = $age1 + $age2 + $age3 + $age4;
+            $isValidAge = ($maxTotalAge <= 0) || ($totalAge <= $maxTotalAge);
+
+            $cid = (int)$t['club_id'];
+            $available = $swimmersByClub[$cid] ?? [];
+
+            $formattedTeams[] = [
+                'relay_id' => (int)$t['relay_id'],
+                'club_id' => $cid,
+                'team_name' => $t['team_name'] ?: ($t['nama_klub'] ?? 'Tim Estafet'),
+                'club_name' => $t['nama_klub'] ?? '-',
+                'seed_time' => $t['seed_time'] ?? 'NT',
+                'swimmers' => [
+                    1 => ['id' => (int)($t['swimmer_1_id'] ?? 0), 'name' => $t['s1_nama'] ?? '', 'dob' => $dob1, 'age' => $age1],
+                    2 => ['id' => (int)($t['swimmer_2_id'] ?? 0), 'name' => $t['s2_nama'] ?? '', 'dob' => $dob2, 'age' => $age2],
+                    3 => ['id' => (int)($t['swimmer_3_id'] ?? 0), 'name' => $t['s3_nama'] ?? '', 'dob' => $dob3, 'age' => $age3],
+                    4 => ['id' => (int)($t['swimmer_4_id'] ?? 0), 'name' => $t['s4_nama'] ?? '', 'dob' => $dob4, 'age' => $age4],
+                ],
+                'total_age' => $totalAge,
+                'is_valid_age' => $isValidAge,
+                'available_swimmers' => $available
+            ];
+        }
+
+        header('Content-Type: application/json');
+        echo json_encode([
+            'success' => true,
+            'category' => [
+                'id' => (int)$cat['id'],
+                'event_number' => $cat['event_number'],
+                'event_name' => \App\Helpers\SwimEventHelper::formatEventName($cat['event_name'], true, $cat['distance']),
+                'distance' => \App\Helpers\SwimEventHelper::formatDistance($cat['distance'], true),
+                'stroke' => $cat['stroke'],
+                'age_group' => $cat['age_group'],
+                'jenis_kelamin' => $cat['jenis_kelamin'],
+                'relay_max_total_age' => $maxTotalAge
+            ],
+            'max_total_age' => $maxTotalAge,
+            'teams' => $formattedTeams
+        ]);
+        exit;
+    }
+
+    public function getRelayTeams() {
+        $this->get_relay_teams();
+    }
+
+    /**
+     * API: Simpan susunan 4 perenang tim estafet
+     */
+    public function save_relay_swimmers() {
+        if (!isset($_SESSION['swim_role']) || !in_array($_SESSION['swim_role'], ['admin', 'master', 'superadmin'])) {
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+            exit;
+        }
+
+        $pdo = Database::getInstance()->getConnection();
+        $relayId = (int)($_POST['relay_id'] ?? 0);
+        $s1 = !empty($_POST['swimmer_1_id']) ? (int)$_POST['swimmer_1_id'] : null;
+        $s2 = !empty($_POST['swimmer_2_id']) ? (int)$_POST['swimmer_2_id'] : null;
+        $s3 = !empty($_POST['swimmer_3_id']) ? (int)$_POST['swimmer_3_id'] : null;
+        $s4 = !empty($_POST['swimmer_4_id']) ? (int)$_POST['swimmer_4_id'] : null;
+
+        if ($relayId <= 0) {
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'message' => 'Relay ID tidak valid']);
+            exit;
+        }
+
+        // Cek duplikasi perenang dalam satu tim
+        $selected = array_filter([$s1, $s2, $s3, $s4]);
+        if (count($selected) !== count(array_unique($selected))) {
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'message' => 'Perenang tidak boleh dipilih ganda dalam satu tim!']);
+            exit;
+        }
+
+        try {
+            $stmt = $pdo->prepare("UPDATE swim_relay_entries SET swimmer_1_id = ?, swimmer_2_id = ?, swimmer_3_id = ?, swimmer_4_id = ?, updated_at = NOW() WHERE id = ?");
+            $stmt->execute([$s1, $s2, $s3, $s4, $relayId]);
+
+            // Hitung total umur terbaru
+            $stmtRel = $pdo->prepare("
+                SELECT re.*, e.event_date_start, e.age_calculation_type,
+                       COALESCE(NULLIF(en.relay_max_total_age, 0), e.relay_max_total_age, 0) as max_total_age,
+                       s1.tanggal_lahir as dob1, s2.tanggal_lahir as dob2, s3.tanggal_lahir as dob3, s4.tanggal_lahir as dob4
+                FROM swim_relay_entries re
+                JOIN swim_events e ON re.event_id = e.id
+                JOIN swim_event_numbers en ON re.category_id = en.id
+                LEFT JOIN swim_swimmers s1 ON re.swimmer_1_id = s1.id
+                LEFT JOIN swim_swimmers s2 ON re.swimmer_2_id = s2.id
+                LEFT JOIN swim_swimmers s3 ON re.swimmer_3_id = s3.id
+                LEFT JOIN swim_swimmers s4 ON re.swimmer_4_id = s4.id
+                WHERE re.id = ?
+            ");
+            $stmtRel->execute([$relayId]);
+            $relData = $stmtRel->fetch(\PDO::FETCH_ASSOC);
+
+            $totalAge = 0;
+            $maxAge = (int)($relData['max_total_age'] ?? 0);
+            if ($relData) {
+                $dobs = array_filter([$relData['dob1'] ?? null, $relData['dob2'] ?? null, $relData['dob3'] ?? null, $relData['dob4'] ?? null]);
+                $totalAge = \App\Helpers\SwimEventHelper::calculateTeamTotalAge($dobs, $relData['event_date_start'], $relData['age_calculation_type'] ?? 'Dec 31');
+            }
+            $isValidAge = ($maxAge <= 0) || ($totalAge <= $maxAge);
+
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => true,
+                'message' => 'Susunan atlet berhasil disimpan!',
+                'total_age' => $totalAge,
+                'max_total_age' => $maxAge,
+                'is_valid_age' => $isValidAge
+            ]);
+            exit;
+        } catch (\Throwable $e) {
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'message' => 'Gagal menyimpan: ' . $e->getMessage()]);
+            exit;
+        }
+    }
+
+    public function saveRelaySwimmers() {
+        $this->save_relay_swimmers();
+    }
+
+    /**
+     * Cetak Lembar Blanko Estafet Resmi
+     */
+    public function print_blanko() {
+        if (!isset($_SESSION['swim_role']) || !in_array($_SESSION['swim_role'], ['admin', 'master', 'superadmin'])) {
+            die("Akses ditolak");
+        }
+        $pdo = Database::getInstance()->getConnection();
+        require_once __DIR__ . '/../../../views/swim/admin/seeding/print_blanko.php';
+    }
+
+    public function printBlanko() {
+        $this->print_blanko();
+    }
     
     // ==========================================
     // HELPER METHODS (Private)

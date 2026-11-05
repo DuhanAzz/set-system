@@ -182,10 +182,28 @@ class ResultsController extends Controller {
         try {
             if ($isRelay) {
                 $sql = "SELECT es.id, es.heat_prelim as heat, es.lane_prelim as lane, es.time_final as final_time, es.is_dq_final as is_dq, es.dq_reason_final as dq_reason, es.time_prelim as entry_time,
-                        NULL as uid, COALESCE(NULLIF(re.team_name, ''), c.nama_klub) as nama_atlet, '0000-00-00' as tanggal_lahir, NULL as asal_sekolah, c.nama_klub as club_name, es.rank_final
+                        NULL as uid, 
+                        COALESCE(NULLIF(re.team_name, ''), c.nama_klub, 'Tim Estafet') as nama_tim,
+                        COALESCE(NULLIF(re.team_name, ''), c.nama_klub, 'Tim Estafet') as nama_atlet,
+                        '0000-00-00' as tanggal_lahir, 
+                        s1.asal_sekolah as asal_sekolah, 
+                        c.nama_klub as club_name, 
+                        es.rank_final,
+                        re.id as relay_id,
+                        re.team_name,
+                        re.club_id,
+                        re.swimmer_1_id, re.swimmer_2_id, re.swimmer_3_id, re.swimmer_4_id,
+                        s1.nama_atlet as s1_nama, s1.tanggal_lahir as s1_dob,
+                        s2.nama_atlet as s2_nama, s2.tanggal_lahir as s2_dob,
+                        s3.nama_atlet as s3_nama, s3.tanggal_lahir as s3_dob,
+                        s4.nama_atlet as s4_nama, s4.tanggal_lahir as s4_dob
                         FROM swim_relay_entries re 
                         JOIN swim_event_seeding es ON re.id = es.entry_id 
                         LEFT JOIN swim_clubs c ON re.club_id = c.id 
+                        LEFT JOIN swim_swimmers s1 ON re.swimmer_1_id = s1.id
+                        LEFT JOIN swim_swimmers s2 ON re.swimmer_2_id = s2.id
+                        LEFT JOIN swim_swimmers s3 ON re.swimmer_3_id = s3.id
+                        LEFT JOIN swim_swimmers s4 ON re.swimmer_4_id = s4.id
                         WHERE re.category_id = ? AND es.heat_prelim IS NOT NULL ORDER BY es.heat_prelim ASC, es.lane_prelim ASC";
             } else {
                 $sql = "SELECT es.id, es.heat_prelim as heat, es.lane_prelim as lane, es.time_final as final_time, es.is_dq_final as is_dq, es.dq_reason_final as dq_reason, es.time_prelim as entry_time,
@@ -387,7 +405,7 @@ class ResultsController extends Controller {
         } else {
             $groupedSwimmers = [];
             foreach ($allSwimmers as $s) {
-                $groupName = $this->getAgeGroupLabel($s['tanggal_lahir'], $eventYear, $ageGroups);
+                $groupName = $isRelay ? (!empty($raceInfo['age_group']) ? $raceInfo['age_group'] : 'ESTAFET') : $this->getAgeGroupLabel($s['tanggal_lahir'], $eventYear, $ageGroups);
                 $groupedSwimmers[$groupName][] = $s;
             }
             foreach ($groupedSwimmers as $groupName => $swimmersInGroup) {

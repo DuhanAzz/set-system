@@ -246,14 +246,21 @@
                                 </div>
                                 <div class="flex items-center gap-2 mt-2">
                                     <input type="checkbox" id="syncRelayPrice" name="sync_relay_price" value="1" checked class="rounded bg-indigo-900 border-indigo-600 text-blue-500 focus:ring-blue-500 cursor-pointer">
-                                    <label for="syncRelayPrice" class="text-[10px] text-indigo-200 cursor-pointer">Terapkan tarif ini ke seluruh nomor lomba estafet di event ini</label>
+                                    <label for="syncRelayPrice" class="text-[10px] text-indigo-200 cursor-pointer">Terapkan tarif & limit umur ke seluruh nomor estafet</label>
                                 </div>
                             </div>
 
-                            <div class="bg-indigo-900/60 p-3.5 rounded-xl border border-indigo-700/50 text-[11px] text-indigo-200 space-y-1">
-                                <p class="font-bold text-amber-300">💡 Ketentuan Biaya Estafet:</p>
-                                <p class="leading-relaxed">
-                                    Tarif ini otomatis berlaku untuk setiap tim estafet yang didaftarkan pada menu pendaftaran estafet dan tertera otomatis di rincian invoice checkout klub.
+                            <div>
+                                <label class="block text-[10px] font-black uppercase tracking-wider text-indigo-300 mb-1.5 flex items-center justify-between">
+                                    <span>Batas Maksimal Total Umur Estafet (Tahun)</span>
+                                    <span class="text-amber-400 font-bold text-[9px] lowercase">0 = tanpa batas</span>
+                                </label>
+                                <div class="relative">
+                                    <span class="absolute left-3 top-2.5 text-xs font-bold text-indigo-400">🎂</span>
+                                    <input type="number" id="relayMaxTotalAgeInput" name="relay_max_total_age" value="<?= (int)($activeEvent['relay_max_total_age'] ?? 0) ?>" class="w-full bg-indigo-900/80 border border-indigo-600 rounded-xl pl-9 pr-3 py-2 text-xs font-bold text-white focus:outline-none focus:ring-2 focus:ring-indigo-400" placeholder="Contoh: 60" min="0" step="1">
+                                </div>
+                                <p class="text-[10px] text-indigo-200 mt-2 leading-relaxed">
+                                    💡 Menjumlahkan akumulasi umur seluruh atlet dalam satu regu estafet (mis. 10+11+12+13 = 46 Th).
                                 </p>
                             </div>
                         </div>
