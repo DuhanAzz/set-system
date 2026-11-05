@@ -17,9 +17,22 @@ class ResultsController extends Controller {
     }
 
     private function getActiveEventId($pdo, $uid) {
+        $eventId = (int)($_GET['event_id'] ?? ($_SESSION['active_event_id'] ?? 0));
+        if ($eventId > 0) {
+            $_SESSION['active_event_id'] = $eventId;
+            return $eventId;
+        }
+
         $stmt = $pdo->prepare("SELECT id FROM swim_events WHERE user_id = ? ORDER BY id DESC LIMIT 1");
         $stmt->execute([$uid]);
-        return $stmt->fetchColumn() ?: 0;
+        $eventId = (int)($stmt->fetchColumn() ?: 0);
+        if ($eventId == 0) {
+            $eventId = (int)($pdo->query("SELECT id FROM swim_events ORDER BY id DESC LIMIT 1")->fetchColumn() ?: 0);
+        }
+        if ($eventId > 0) {
+            $_SESSION['active_event_id'] = $eventId;
+        }
+        return $eventId;
     }
 
     private function timeToMs($time) {
@@ -66,9 +79,14 @@ class ResultsController extends Controller {
         $stmt->execute([$eventId]);
         $events = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+        $stmtProfile = $pdo->prepare("SELECT * FROM swim_events WHERE id = ?");
+        $stmtProfile->execute([$eventId]);
+        $eventProfile = $stmtProfile->fetch(PDO::FETCH_ASSOC);
+
         $this->view('swim/admin/results/index', [
             'events' => $events,
-            'eventId' => $eventId
+            'eventId' => $eventId,
+            'eventProfile' => $eventProfile
         ]);
     }
 
@@ -77,22 +95,24 @@ class ResultsController extends Controller {
         
         $pdo = Database::getInstance()->getConnection();
         $uid = $_SESSION['swim_user_id'];
-        $eventId = $this->getActiveEventId($pdo, $uid);
         
-        $cat_id = $_GET['category_id'] ?? null;
+        $cat_id = (int)($_GET['category_id'] ?? 0);
         if (!$cat_id) { header("Location: " . getenv('APP_URL') . "/swim/admin/results"); exit; }
-        
-        // Simpan referensi ke request untuk method POST
-        if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
-            $this->store($pdo, $cat_id, $eventId);
-            return;
-        }
 
         $stmtRace = $pdo->prepare("SELECT * FROM swim_event_numbers WHERE id = ?");
         $stmtRace->execute([$cat_id]);
         $raceInfo = $stmtRace->fetch(PDO::FETCH_ASSOC);
         
         if (!$raceInfo) die("Nomor lomba tidak ditemukan.");
+
+        $currentEventId = (int)$raceInfo['event_id'];
+        $_SESSION['active_event_id'] = $currentEventId;
+        
+        // Simpan referensi ke request untuk method POST
+        if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
+            $this->store($pdo, $cat_id, $currentEventId);
+            return;
+        }
 
         // Logika Export TXT
         if (isset($_GET['export_txt'])) {
@@ -178,15 +198,16 @@ class ResultsController extends Controller {
         $heats = [];
         foreach ($raw_data as $row) { $heats[$row['heat']][$row['lane']] = $row; }
 
-        $currentEventId = $raceInfo['event_id'];
-        $stmtPrev = $pdo->prepare("SELECT id FROM swim_event_numbers WHERE event_id = ? AND id < ? ORDER BY id DESC LIMIT 1");
-        $stmtPrev->execute([$currentEventId, $cat_id]);
+        $currentEventId = (int)$raceInfo['event_id'];
+        $currentEvNo = (int)($raceInfo['event_number'] ?? 0);
+        $stmtPrev = $pdo->prepare("SELECT id FROM swim_event_numbers WHERE event_id = ? AND (CAST(event_number AS UNSIGNED) < ? OR (CAST(event_number AS UNSIGNED) = ? AND id < ?)) ORDER BY CAST(event_number AS UNSIGNED) DESC, id DESC LIMIT 1");
+        $stmtPrev->execute([$currentEventId, $currentEvNo, $currentEvNo, $cat_id]);
         $rowPrev = $stmtPrev->fetch(PDO::FETCH_ASSOC);
         $prevUrl = $rowPrev ? getenv('APP_URL') . "/swim/admin/results/input?category_id=" . $rowPrev['id'] : "#";
         $prevClass = $rowPrev ? "bg-slate-700 hover:bg-slate-800 text-white" : "bg-slate-200 text-slate-400 cursor-not-allowed pointer-events-none";
 
-        $stmtNext = $pdo->prepare("SELECT id FROM swim_event_numbers WHERE event_id = ? AND id > ? ORDER BY id ASC LIMIT 1");
-        $stmtNext->execute([$currentEventId, $cat_id]);
+        $stmtNext = $pdo->prepare("SELECT id FROM swim_event_numbers WHERE event_id = ? AND (CAST(event_number AS UNSIGNED) > ? OR (CAST(event_number AS UNSIGNED) = ? AND id > ?)) ORDER BY CAST(event_number AS UNSIGNED) ASC, id ASC LIMIT 1");
+        $stmtNext->execute([$currentEventId, $currentEvNo, $currentEvNo, $cat_id]);
         $rowNext = $stmtNext->fetch(PDO::FETCH_ASSOC);
         $nextUrl = $rowNext ? getenv('APP_URL') . "/swim/admin/results/input?category_id=" . $rowNext['id'] : "#";
         $nextClass = $rowNext ? "bg-slate-700 hover:bg-slate-800 text-white" : "bg-slate-200 text-slate-400 cursor-not-allowed pointer-events-none";    
@@ -293,13 +314,15 @@ class ResultsController extends Controller {
             $stmtRace->execute([$cat_id]);
             $raceInfo = $stmtRace->fetch(PDO::FETCH_ASSOC);
 
+            $actualEventId = (int)($raceInfo['event_id'] ?? $eventId);
+
             $stmtEvent = $pdo->prepare("SELECT * FROM swim_events WHERE id = ?");
-            $stmtEvent->execute([$eventId]);
+            $stmtEvent->execute([$actualEventId]);
             $eventProfile = $stmtEvent->fetch(PDO::FETCH_ASSOC);
-            $eventYear = date('Y', strtotime($eventProfile['event_date_start']));
+            $eventYear = date('Y', strtotime($eventProfile['event_date_start'] ?? date('Y')));
 
             $stmtAgeGroups = $pdo->prepare("SELECT * FROM swim_event_age_groups WHERE event_id = ? ORDER BY min_age ASC");
-            $stmtAgeGroups->execute([$eventId]);
+            $stmtAgeGroups->execute([$actualEventId]);
             $ageGroups = $stmtAgeGroups->fetchAll(PDO::FETCH_ASSOC);
 
             $isRelay = isset($raceInfo['is_relay']) && $raceInfo['is_relay'] == 1;
@@ -359,6 +382,7 @@ class ResultsController extends Controller {
 
             $pdo->commit();
             $_SESSION['success'] = "Hasil lomba berhasil disimpan!";
+            $_SESSION['active_event_id'] = $actualEventId;
         } catch (Exception $e) {
             $pdo->rollBack();
             $_SESSION['error'] = "Terjadi kesalahan: " . $e->getMessage();

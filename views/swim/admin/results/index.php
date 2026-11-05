@@ -2,14 +2,16 @@
     <div class="flex flex-col md:flex-row justify-between items-end md:items-center gap-4">
         <div>
             <h1 class="text-4xl font-black uppercase tracking-tighter italic text-slate-900 leading-none">Input Hasil</h1>
-            <p class="text-sm text-slate-500 font-bold uppercase tracking-widest mt-1">Daftar Nomor Lomba</p>
+            <p class="text-sm text-slate-500 font-bold uppercase tracking-widest mt-1">
+                <?= htmlspecialchars($eventProfile['event_name'] ?? 'Daftar Nomor Lomba') ?>
+            </p>
         </div>
 
         <div class="flex flex-col md:flex-row gap-3 w-full md:w-auto">
-            <a href="<?= getenv('APP_URL') ?>/swim/admin/results/publish" class="px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs uppercase tracking-wider shadow-lg hover:shadow-blue-200 transition flex items-center justify-center gap-2 group">
+            <a href="<?= getenv('APP_URL') ?>/swim/admin/results/publish?event_id=<?= $eventId ?>" class="px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs uppercase tracking-wider shadow-lg hover:shadow-blue-200 transition flex items-center justify-center gap-2 group">
                 <span>🌐</span> Publikasi Live Result
             </a>
-            <a href="<?= getenv('APP_URL') ?>/swim/admin/export" class="px-5 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs uppercase tracking-wider shadow-lg hover:shadow-emerald-200 transition flex items-center justify-center gap-2 group">
+            <a href="<?= getenv('APP_URL') ?>/swim/admin/export?event_id=<?= $eventId ?>" class="px-5 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs uppercase tracking-wider shadow-lg hover:shadow-emerald-200 transition flex items-center justify-center gap-2 group">
                 <span class="group-hover:translate-y-0.5 transition-transform">📥</span> Download Full Hasil
             </a>
         </div>

@@ -62,7 +62,7 @@ if (!function_exists('getKULabelInput')) {
         <div class="flex items-center gap-2">
             <a href="<?= $prevUrl ?? '#' ?>" class="h-10 px-4 flex items-center justify-center rounded-l-lg font-bold text-xs uppercase transition border-r border-slate-600 <?= $prevClass ?? '' ?>">&laquo; PREV</a>
             <div class="flex bg-slate-100 rounded-none p-1 gap-1">
-                <a href="<?= getenv('APP_URL') ?>/swim/admin/results" class="h-8 px-3 flex items-center bg-white border border-slate-300 rounded text-slate-600 font-bold text-[10px] uppercase hover:bg-slate-50">Menu</a>
+                <a href="<?= getenv('APP_URL') ?>/swim/admin/results?event_id=<?= (int)($raceInfo['event_id'] ?? 0) ?>" class="h-8 px-3 flex items-center bg-white border border-slate-300 rounded text-slate-600 font-bold text-[10px] uppercase hover:bg-slate-50">Menu</a>
                 <a href="<?= getenv('APP_URL') ?>/swim/admin/results/input?category_id=<?= $cat_id ?>&export_txt=1" class="h-8 px-3 flex items-center bg-teal-500 text-white rounded font-bold text-[10px] uppercase hover:bg-teal-600 gap-1" title="Download Data ke TXT Format Stopwatch">📤 EXPORT</a>
                 <button type="button" onclick="document.getElementById('txtUploadForm').classList.toggle('hidden')" class="h-8 px-3 flex items-center bg-emerald-500 text-white rounded font-bold text-[10px] uppercase hover:bg-emerald-600 gap-1" title="Import TXT Backup dari Stopwatch">📝 IMPORT</button>
                 <a href="?category_id=<?= $cat_id ?>&print=1" target="_blank" class="h-8 px-3 flex items-center bg-orange-500 text-white rounded font-bold text-[10px] uppercase hover:bg-orange-600 gap-1">🖨️ PDF</a>

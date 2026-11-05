@@ -16,7 +16,7 @@
     <div class="mb-8 flex flex-col lg:flex-row lg:items-end justify-between gap-6 border-b border-slate-200 pb-6">
         <div>
             <div class="flex items-center gap-3 mb-1">
-                <a href="<?= getenv('APP_URL') ?>/swim/admin/results" class="text-xs font-bold text-slate-400 hover:text-blue-600 transition flex items-center gap-1">
+                <a href="<?= getenv('APP_URL') ?>/swim/admin/results<?= !empty($eventId) ? '?event_id=' . $eventId : '' ?>" class="text-xs font-bold text-slate-400 hover:text-blue-600 transition flex items-center gap-1">
                     &larr; Input Hasil
                 </a>
                 <span class="text-slate-300">/</span>
