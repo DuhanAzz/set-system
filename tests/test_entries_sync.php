@@ -126,3 +126,4 @@ assert(isset($res['groupedSwimmers'][101]['info']['gender']), "Key 'gender' exis
 assert(isset($res['groupedSwimmers'][101]['info']['jenis_kelamin']), "Key 'jenis_kelamin' exists");
 
 echo "All sync tests passed successfully!\n";
+

@@ -4,26 +4,63 @@ namespace App\Swim\Controllers;
 
 use App\Core\Controller;
 use App\Core\Database;
+use PDO;
 
 class RelayController extends Controller {
-    
-    public function index() {
-        if (!isset($_SESSION['swim_role']) || $_SESSION['swim_role'] !== 'admin') {
+
+    private function checkAccess() {
+        if (!isset($_SESSION['swim_role']) || !in_array($_SESSION['swim_role'], ['admin', 'master', 'superadmin'])) {
             header("Location: " . getenv('APP_URL') . "/swim/login");
             exit;
         }
-        
+    }
+
+    private function resolveEvent($pdo, $uid) {
+        $isMaster = (($_SESSION['swim_role'] ?? '') === 'master' || ($_SESSION['swim_role'] ?? '') === 'superadmin');
+
+        if ($isMaster) {
+            $stmtAll = $pdo->query("SELECT id, event_name, event_date_start, pool_type FROM swim_events ORDER BY id DESC");
+            $allEvents = $stmtAll->fetchAll(PDO::FETCH_ASSOC);
+        } else {
+            $stmtAll = $pdo->prepare("SELECT id, event_name, event_date_start, pool_type FROM swim_events WHERE user_id = ? ORDER BY id DESC");
+            $stmtAll->execute([$uid]);
+            $allEvents = $stmtAll->fetchAll(PDO::FETCH_ASSOC);
+            if (empty($allEvents)) {
+                $stmtAll = $pdo->query("SELECT id, event_name, event_date_start, pool_type FROM swim_events ORDER BY id DESC");
+                $allEvents = $stmtAll->fetchAll(PDO::FETCH_ASSOC);
+            }
+        }
+
+        $requestedEventId = (int)($_GET['event_id'] ?? ($_SESSION['active_event_id'] ?? 0));
+        $activeEvent = null;
+
+        if ($requestedEventId > 0) {
+            $stmt = $pdo->prepare("SELECT * FROM swim_events WHERE id = ?");
+            $stmt->execute([$requestedEventId]);
+            $activeEvent = $stmt->fetch(PDO::FETCH_ASSOC);
+        }
+
+        if (!$activeEvent && !empty($allEvents)) {
+            $activeEvent = $allEvents[0];
+        }
+
+        $eventId = (int)($activeEvent['id'] ?? 0);
+        if ($eventId > 0) {
+            $_SESSION['active_event_id'] = $eventId;
+        }
+
+        return [$activeEvent, $allEvents, $eventId];
+    }
+    
+    public function index() {
+        $this->checkAccess();
         $pdo = Database::getInstance()->getConnection();
         $uid = $_SESSION['swim_user_id'];
         
-        // GET ACTIVE EVENT
-        $stmtEv = $pdo->prepare("SELECT id, event_name FROM swim_events WHERE user_id = ? ORDER BY id DESC LIMIT 1");
-        $stmtEv->execute([$uid]);
-        $activeEvent = $stmtEv->fetch(\PDO::FETCH_ASSOC);
-        $eventId = $activeEvent['id'] ?? 0;
+        list($activeEvent, $allEvents, $eventId) = $this->resolveEvent($pdo, $uid);
         
-        if ($eventId == 0) {
-            die("Anda belum membuat event. Silakan buat event terlebih dahulu di dashboard.");
+        if ($eventId == 0 || !$activeEvent) {
+            die("Anda belum memiliki event aktif. Silakan buat event terlebih dahulu di dashboard.");
         }
         
         // FETCH RELAY TEAMS
@@ -39,12 +76,16 @@ class RelayController extends Controller {
                 re.swimmer_3_id,
                 re.swimmer_4_id,
                 c.nama_klub,
+                c.user_id as club_user_id,
                 en.event_name, 
                 en.event_number, 
                 en.jenis_kelamin, 
                 en.age_group, 
                 en.distance,
                 en.stroke,
+                en.price as item_price,
+                (SELECT status FROM swim_payments WHERE user_id = c.user_id AND event_id = re.event_id ORDER BY id DESC LIMIT 1) as payment_status,
+                (SELECT amount FROM swim_payments WHERE user_id = c.user_id AND event_id = re.event_id ORDER BY id DESC LIMIT 1) as payment_amount,
                 s1.nama_atlet as name1, s1.club_id as club1, s1.jenis_kelamin as jk1, s1.tanggal_lahir as dob1,
                 s2.nama_atlet as name2, s2.club_id as club2, s2.jenis_kelamin as jk2, s2.tanggal_lahir as dob2,
                 s3.nama_atlet as name3, s3.club_id as club3, s3.jenis_kelamin as jk3, s3.tanggal_lahir as dob3,
@@ -62,7 +103,7 @@ class RelayController extends Controller {
         
         $stmt = $pdo->prepare($sql);
         $stmt->execute([$eventId]);
-        $relays = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        $relays = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         // Ambil data perenang dari klub-klub peserta estafet untuk modal edit panitia
         $clubIds = array_unique(array_filter(array_column($relays, 'club_id')));
@@ -71,7 +112,7 @@ class RelayController extends Controller {
             $inClubs = implode(',', array_fill(0, count($clubIds), '?'));
             $stmtSw = $pdo->prepare("SELECT id, club_id, nama_atlet, jenis_kelamin, tanggal_lahir FROM swim_swimmers WHERE club_id IN ($inClubs) ORDER BY nama_atlet ASC");
             $stmtSw->execute(array_values($clubIds));
-            while ($sw = $stmtSw->fetch(\PDO::FETCH_ASSOC)) {
+            while ($sw = $stmtSw->fetch(PDO::FETCH_ASSOC)) {
                 $swimmersByClub[$sw['club_id']][] = $sw;
             }
         }
@@ -79,16 +120,18 @@ class RelayController extends Controller {
         return $this->view('swim/admin/relay/index', [
             'relays' => $relays,
             'swimmersByClub' => $swimmersByClub,
-            'eventName' => $activeEvent['event_name']
+            'eventName' => $activeEvent['event_name'],
+            'eventId' => $eventId,
+            'activeEvent' => $activeEvent,
+            'allEvents' => $allEvents
         ]);
     }
     
     public function verify() {
-        if (!isset($_SESSION['swim_role']) || $_SESSION['swim_role'] !== 'admin') {
-            header("Location: " . getenv('APP_URL') . "/swim/login");
-            exit;
-        }
+        $this->checkAccess();
         
+        $eventId = (int)($_GET['event_id'] ?? ($_SESSION['active_event_id'] ?? 0));
+
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $pdo = Database::getInstance()->getConnection();
             $relayId = (int)($_POST['relay_id'] ?? 0);
@@ -98,7 +141,7 @@ class RelayController extends Controller {
                 // 1. Fetch relay details to validate swimmers if approving
                 if ($action === 'approve') {
                     $stmtCheck = $pdo->prepare("
-                        SELECT re.club_id, s1.club_id as c1, s2.club_id as c2, s3.club_id as c3, s4.club_id as c4 
+                        SELECT re.event_id, re.club_id, s1.club_id as c1, s2.club_id as c2, s3.club_id as c3, s4.club_id as c4 
                         FROM swim_relay_entries re
                         LEFT JOIN swim_swimmers s1 ON re.swimmer_1_id = s1.id
                         LEFT JOIN swim_swimmers s2 ON re.swimmer_2_id = s2.id
@@ -107,9 +150,10 @@ class RelayController extends Controller {
                         WHERE re.id = ?
                     ");
                     $stmtCheck->execute([$relayId]);
-                    $data = $stmtCheck->fetch(\PDO::FETCH_ASSOC);
+                    $data = $stmtCheck->fetch(PDO::FETCH_ASSOC);
                     
                     if ($data) {
+                        if ($eventId == 0) $eventId = (int)$data['event_id'];
                         $clubIds = array_filter([$data['c1'], $data['c2'], $data['c3'], $data['c4']]);
                         $uniqueClubs = array_unique($clubIds);
                         
@@ -117,7 +161,7 @@ class RelayController extends Controller {
                         if (!empty($uniqueClubs) && (count($uniqueClubs) > 1 || end($uniqueClubs) != $data['club_id'])) {
                             $_SESSION['swal_type'] = 'error';
                             $_SESSION['swal_msg'] = 'Gagal: Atlet terpilih harus berasal dari Klub yang sama!';
-                            header("Location: " . getenv('APP_URL') . "/swim/admin/relay/index");
+                            header("Location: " . getenv('APP_URL') . "/swim/admin/relay/index?event_id=" . $eventId);
                             exit;
                         }
                     }
@@ -134,9 +178,9 @@ class RelayController extends Controller {
                     $stmt->execute([$newStatus, $relayId]);
                     
                     $_SESSION['swal_type'] = 'success';
-                    $_SESSION['swal_msg'] = 'Status estafet berhasil diperbarui!';
+                    $_SESSION['swal_msg'] = 'Status tim estafet berhasil diperbarui!';
                     $_SESSION['flash_type'] = 'success';
-                    $_SESSION['flash_message'] = 'Status estafet berhasil diperbarui!';
+                    $_SESSION['flash_message'] = 'Status tim estafet berhasil diperbarui!';
                 } catch (\Exception $e) {
                     $_SESSION['swal_type'] = 'error';
                     $_SESSION['swal_msg'] = 'Gagal memperbarui status estafet.';
@@ -146,15 +190,14 @@ class RelayController extends Controller {
             }
         }
         
-        header("Location: " . getenv('APP_URL') . "/swim/admin/relay/index");
+        header("Location: " . getenv('APP_URL') . "/swim/admin/relay/index?event_id=" . $eventId);
         exit;
     }
 
     public function update_swimmers() {
-        if (!isset($_SESSION['swim_role']) || $_SESSION['swim_role'] !== 'admin') {
-            header("Location: " . getenv('APP_URL') . "/swim/login");
-            exit;
-        }
+        $this->checkAccess();
+        
+        $eventId = (int)($_GET['event_id'] ?? ($_SESSION['active_event_id'] ?? 0));
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $pdo = Database::getInstance()->getConnection();
@@ -170,7 +213,7 @@ class RelayController extends Controller {
                 $_SESSION['swal_msg'] = 'Gagal: Perenang tidak boleh dipilih ganda dalam satu tim!';
                 $_SESSION['flash_type'] = 'error';
                 $_SESSION['flash_message'] = 'Gagal: Perenang tidak boleh dipilih ganda dalam satu tim!';
-                header("Location: " . getenv('APP_URL') . "/swim/admin/relay/index");
+                header("Location: " . getenv('APP_URL') . "/swim/admin/relay/index?event_id=" . $eventId);
                 exit;
             }
 
@@ -191,7 +234,7 @@ class RelayController extends Controller {
             }
         }
 
-        header("Location: " . getenv('APP_URL') . "/swim/admin/relay/index");
+        header("Location: " . getenv('APP_URL') . "/swim/admin/relay/index?event_id=" . $eventId);
         exit;
     }
 }

@@ -140,3 +140,4 @@ assert($res3['totalTagihan'] === 450000.0, "Total tagihan test 3 failed: got " .
 echo "Test 3 (Relay inclusion) PASSED!\n";
 
 echo "ALL TESTS PASSED SUCCESSFULLY!\n";
+

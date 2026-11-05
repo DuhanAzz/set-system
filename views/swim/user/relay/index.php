@@ -38,6 +38,7 @@
             $catName = htmlspecialchars($cat['distance'] . "M " . $cat['stroke']);
             $catGender = in_array(strtoupper($cat['jenis_kelamin']), ['L', 'MALE', 'PUTRA']) ? 'PUTRA' : (in_array(strtoupper($cat['jenis_kelamin']), ['P', 'FEMALE', 'PUTRI']) ? 'PUTRI' : 'MIXED');
             $catAge = htmlspecialchars($cat['age_group']);
+            $catPrice = (float)($cat['price'] ?? 0);
             
             $badgeBg = $catGender == 'PUTRA' ? 'bg-blue-100 text-blue-700' : ($catGender == 'PUTRI' ? 'bg-pink-100 text-pink-700' : 'bg-purple-100 text-purple-700');
         ?>
@@ -49,9 +50,14 @@
                         <div>
                             <span class="text-xs font-black text-slate-300 uppercase tracking-widest mb-1 block">Nomor Lomba #<?= $cat['event_number'] ?></span>
                             <h2 class="text-2xl font-black text-slate-800 uppercase italic leading-none mb-2"><?= $catName ?></h2>
-                            <div class="flex gap-2">
+                            <div class="flex flex-wrap items-center gap-2">
                                 <span class="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest <?= $badgeBg ?>"><?= $catGender ?></span>
                                 <span class="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest bg-slate-100 text-slate-600"><?= $catAge ?></span>
+                                <?php if ($catPrice > 0): ?>
+                                    <span class="px-2.5 py-0.5 rounded text-[10px] font-black uppercase tracking-widest bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                        Rp <?= number_format($catPrice, 0, ',', '.') ?> / Tim
+                                    </span>
+                                <?php endif; ?>
                             </div>
                         </div>
                         <div class="w-12 h-12 bg-pink-50 rounded-2xl flex items-center justify-center text-2xl">🏃‍♂️</div>
@@ -70,7 +76,12 @@
                                                 <div class="w-8 h-8 rounded-full bg-slate-200 text-slate-700 font-black flex items-center justify-center text-xs"><?= $index + 1 ?></div>
                                                 <div>
                                                     <h4 class="font-black text-slate-800 uppercase text-sm"><?= htmlspecialchars($team['team_name']) ?></h4>
-                                                    <p class="text-[10px] font-bold text-slate-400">Entry Time: <span class="text-blue-500 font-mono"><?= $team['seed_time'] ? htmlspecialchars($team['seed_time']) : 'NO TIME' ?></span></p>
+                                                    <p class="text-[10px] font-bold text-slate-400">
+                                                        Entry Time: <span class="text-blue-500 font-mono"><?= $team['seed_time'] ? htmlspecialchars($team['seed_time']) : 'NO TIME' ?></span>
+                                                        <?php if ($catPrice > 0): ?>
+                                                            <span class="mx-1">•</span> Biaya: <b class="text-slate-700">Rp <?= number_format($catPrice, 0, ',', '.') ?></b>
+                                                        <?php endif; ?>
+                                                    </p>
                                                 </div>
                                             </div>
                                             <div class="flex items-center gap-2">

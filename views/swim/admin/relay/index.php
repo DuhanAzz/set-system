@@ -1,10 +1,26 @@
-<div class="max-w-[95%] mx-auto mb-8 flex flex-col md:flex-row justify-between items-end gap-4">
+<div class="max-w-[95%] mx-auto mb-8 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
     <div>
         <h1 class="text-3xl font-black uppercase italic text-slate-900 leading-none">Verifikasi & Susunan Estafet</h1>
-        <p class="text-xs text-slate-500 font-bold uppercase tracking-widest mt-2">Dapur Verifikasi & Technical Meeting: <?= htmlspecialchars($eventName) ?></p>
+        <p class="text-xs text-slate-500 font-bold uppercase tracking-widest mt-2">
+            Event: <span class="text-blue-600 font-black"><?= htmlspecialchars($eventName) ?></span> 
+            <span class="text-slate-300 mx-2">|</span> ID: #<?= $eventId ?>
+        </p>
     </div>
     
-    <div class="flex gap-3">
+    <div class="flex flex-wrap items-center gap-3">
+        <?php if (!empty($allEvents) && count($allEvents) > 1): ?>
+        <div class="flex items-center gap-2 bg-white px-3 py-2 rounded-xl border border-slate-200 shadow-sm">
+            <label for="eventPicker" class="text-[10px] font-black text-slate-500 uppercase tracking-wider">Pilih Event:</label>
+            <select id="eventPicker" class="text-xs font-bold text-slate-800 bg-transparent border-none outline-none focus:ring-0 cursor-pointer" onchange="window.location.href='<?= getenv('APP_URL') ?>/swim/admin/relay/index?event_id=' + this.value">
+                <?php foreach ($allEvents as $ev): ?>
+                    <option value="<?= $ev['id'] ?>" <?= ($ev['id'] == $eventId) ? 'selected' : '' ?>>
+                        <?= htmlspecialchars($ev['event_name']) ?> (#<?= $ev['id'] ?>)
+                    </option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+        <?php endif; ?>
+
         <?php 
             $totalCount = count($relays);
             $appCount = 0; $penCount = 0; $rejCount = 0;
@@ -42,6 +58,19 @@
             <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
                 <?php foreach($relays as $row): 
                     $filled = (!empty($row['swimmer_1_id'])?1:0) + (!empty($row['swimmer_2_id'])?1:0) + (!empty($row['swimmer_3_id'])?1:0) + (!empty($row['swimmer_4_id'])?1:0);
+                    $payStatus = $row['payment_status'] ?? 'Unpaid';
+                    $payStatusDisplay = match($payStatus) {
+                        'Paid', 'completed' => 'Lunas',
+                        'Pending', 'pending' => 'Pending Bayar',
+                        'Rejected' => 'Bayar Ditolak',
+                        default => 'Belum Bayar'
+                    };
+                    $payBadgeColor = match($payStatus) {
+                        'Paid', 'completed' => 'bg-emerald-50 text-emerald-700 border-emerald-200',
+                        'Pending', 'pending' => 'bg-amber-50 text-amber-700 border-amber-200',
+                        'Rejected' => 'bg-red-50 text-red-700 border-red-200',
+                        default => 'bg-slate-100 text-slate-500 border-slate-200'
+                    };
                 ?>
                 <div class="bg-slate-50 border border-slate-200 rounded-2xl p-5 flex flex-col justify-between transition hover:shadow-md <?= $row['entry_status'] == 'Pending' ? 'border-amber-300 bg-amber-50/20' : '' ?>">
                     
@@ -56,6 +85,21 @@
                                 </h3>
                                 <div class="inline-flex items-center text-[10px] font-black bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
                                     #<?= $row['event_number'] ?> - <?= $row['distance'] ?>M <?= $row['stroke'] ?> (<?= $row['jenis_kelamin'] ?>) - <?= htmlspecialchars($row['age_group']) ?>
+                                </div>
+                                <div class="mt-1.5 flex items-center gap-2">
+                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider border <?= $payBadgeColor ?>">
+                                        💳 <?= $payStatusDisplay ?>
+                                    </span>
+                                    <?php if ((float)($row['item_price'] ?? 0) > 0): ?>
+                                        <span class="text-[10px] font-bold text-slate-500">
+                                            Biaya: <b class="text-slate-800">Rp <?= number_format($row['item_price'], 0, ',', '.') ?></b>
+                                        </span>
+                                    <?php endif; ?>
+                                    <?php if(!empty($row['club_user_id'])): ?>
+                                        <a href="<?= getenv('APP_URL') ?>/swim/admin/entries/detail?id=<?= $row['club_user_id'] ?>&event_id=<?= $eventId ?>" class="text-[9px] font-bold text-blue-600 hover:underline">
+                                            Rincian Tagihan ↗
+                                        </a>
+                                    <?php endif; ?>
                                 </div>
                             </div>
                             <div>
@@ -108,14 +152,14 @@
                             </button>
 
                             <?php if($row['entry_status'] == 'Pending'): ?>
-                                <form method="POST" action="<?= getenv('APP_URL') ?>/swim/admin/relay/verify" class="inline">
+                                <form method="POST" action="<?= getenv('APP_URL') ?>/swim/admin/relay/verify?event_id=<?= $eventId ?>" class="inline">
                                     <input type="hidden" name="relay_id" value="<?= $row['relay_id'] ?>">
                                     <input type="hidden" name="action" value="approve">
                                     <button type="submit" class="px-4 py-2 rounded-lg bg-emerald-600 text-white font-bold text-xs uppercase hover:bg-emerald-700 transition shadow-lg shadow-emerald-200 flex items-center gap-1">
                                         ✅ Setuju
                                     </button>
                                 </form>
-                                <form method="POST" action="<?= getenv('APP_URL') ?>/swim/admin/relay/verify" class="inline" onsubmit="return confirm('Tolak tim estafet ini?');">
+                                <form method="POST" action="<?= getenv('APP_URL') ?>/swim/admin/relay/verify?event_id=<?= $eventId ?>" class="inline" onsubmit="return confirm('Tolak tim estafet ini?');">
                                     <input type="hidden" name="relay_id" value="<?= $row['relay_id'] ?>">
                                     <input type="hidden" name="action" value="reject">
                                     <button type="submit" class="px-3 py-2 rounded-lg bg-red-100 text-red-600 font-bold text-xs uppercase hover:bg-red-200 transition shadow-sm">
@@ -123,7 +167,7 @@
                                     </button>
                                 </form>
                             <?php else: ?>
-                                <form method="POST" action="<?= getenv('APP_URL') ?>/swim/admin/relay/verify" class="inline" onsubmit="return confirm('Batalkan verifikasi estafet (Rollback ke Pending)?');">
+                                <form method="POST" action="<?= getenv('APP_URL') ?>/swim/admin/relay/verify?event_id=<?= $eventId ?>" class="inline" onsubmit="return confirm('Batalkan verifikasi estafet (Rollback ke Pending)?');">
                                     <input type="hidden" name="relay_id" value="<?= $row['relay_id'] ?>">
                                     <input type="hidden" name="action" value="rollback">
                                     <button type="submit" class="px-4 py-2 rounded-lg bg-slate-200 text-slate-700 font-bold text-[10px] uppercase hover:bg-slate-300 transition shadow-sm">
@@ -140,111 +184,66 @@
     <?php endif; ?>
 </div>
 
-<!-- MODAL SUSUN ATLET (ADMIN / TECHNICAL MEETING) -->
-<div id="adminSwimmerModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4">
-    <!-- Backdrop -->
-    <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm transition-opacity" onclick="closeAdminSwimmerModal()"></div>
-    
-    <!-- Modal Card -->
-    <div class="relative bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-100 z-10">
-        <div class="bg-gradient-to-r from-indigo-700 to-purple-700 p-6 text-white flex justify-between items-start">
-            <div>
-                <span class="text-[10px] font-black uppercase tracking-widest text-indigo-200 block mb-1" id="adminModalSubTitle">Nomor Acara</span>
-                <h3 class="text-xl font-black uppercase tracking-tight" id="adminModalTitle">Susunan Perenang TM</h3>
-            </div>
-            <button type="button" onclick="closeAdminSwimmerModal()" class="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center font-bold text-lg transition">
-                &times;
-            </button>
-        </div>
+<!-- MODAL SUSUN 4 ATLET OLEH PANITIA (TECHNICAL MEETING) -->
+<div id="adminSwimmerModal" class="hidden fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl relative border border-slate-100 max-h-[90vh] overflow-y-auto">
+        <button type="button" onclick="closeAdminSwimmerModal()" class="absolute top-5 right-5 text-slate-400 hover:text-slate-600 text-2xl font-black">&times;</button>
+        
+        <h3 class="text-base font-black uppercase text-slate-800 italic mb-1">Susunan 4 Perenang (Panitia)</h3>
+        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2" id="modalAdminTeamTitle">-</p>
+        <p class="text-xs font-black text-blue-600 uppercase mb-6" id="modalAdminCatTitle">-</p>
 
-        <form method="POST" action="<?= getenv('APP_URL') ?>/swim/admin/relay/update_swimmers" id="adminSwimmerForm" onsubmit="return validateAdminSwimmerForm()" class="p-6 space-y-4">
-            <input type="hidden" name="relay_id" id="admin_modal_relay_id" value="">
-            
-            <p class="text-xs text-slate-500 font-medium leading-relaxed bg-indigo-50 p-3 rounded-xl border border-indigo-100">
-                ⚙️ <strong>Technical Meeting / Entry Manager:</strong> Pilih urutan 4 perenang untuk tim ini dari atlet terdaftar di klub bersangkutan.
-            </p>
+        <form method="POST" action="<?= getenv('APP_URL') ?>/swim/admin/relay/update_swimmers?event_id=<?= $eventId ?>" class="space-y-4">
+            <input type="hidden" name="relay_id" id="modalAdminRelayId" value="">
 
-            <?php for ($i = 1; $i <= 4; $i++): ?>
-            <div>
-                <label class="block text-xs font-black uppercase tracking-wider text-slate-700 mb-1.5 flex items-center gap-1.5">
-                    <span class="w-5 h-5 rounded-full bg-indigo-600 text-white text-[10px] font-black flex items-center justify-center"><?= $i ?></span>
-                    Perenang <?= $i ?>
-                </label>
-                <select name="swimmer_<?= $i ?>_id" id="admin_swimmer_<?= $i ?>_select" class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs font-bold rounded-xl p-3 focus:bg-white focus:border-indigo-500 outline-none transition">
-                    <option value="">-- Belum Ditentukan (Menunggu TM) --</option>
-                </select>
-            </div>
+            <?php for ($p = 1; $p <= 4; $p++): ?>
+                <div class="bg-slate-50 p-3 rounded-2xl border border-slate-200">
+                    <label class="block text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1.5">Perenang <?= $p ?></label>
+                    <select name="swimmer_<?= $p ?>_id" id="modalAdminSwimmer<?= $p ?>" class="w-full text-xs font-bold text-slate-700 px-3 py-2 rounded-xl border border-slate-200 bg-white outline-none focus:border-blue-500">
+                        <option value="">-- Belum Dipilih --</option>
+                    </select>
+                </div>
             <?php endfor; ?>
 
-            <div class="flex gap-3 pt-4 border-t border-slate-100">
-                <button type="button" onclick="closeAdminSwimmerModal()" class="w-1/2 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 font-black text-xs uppercase tracking-wider transition">
-                    Batal
-                </button>
-                <button type="submit" class="w-1/2 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs uppercase tracking-wider transition shadow-lg shadow-indigo-200">
-                    Simpan Perenang
-                </button>
+            <div class="pt-2 flex gap-2">
+                <button type="button" onclick="closeAdminSwimmerModal()" class="w-1/3 py-3 rounded-xl border border-slate-200 text-slate-600 text-xs font-black uppercase hover:bg-slate-50 transition">Batal</button>
+                <button type="submit" class="w-2/3 py-3 rounded-xl bg-blue-600 text-white text-xs font-black uppercase hover:bg-blue-700 transition shadow-lg shadow-blue-200">Simpan Perenang</button>
             </div>
         </form>
     </div>
 </div>
 
 <script>
-// Data perenang per klub untuk populasi dropdown modal admin
-const swimmersByClub = <?= json_encode($swimmersByClub ?? []) ?>;
+const swimmersDataByClub = <?= json_encode($swimmersByClub) ?>;
 
-function openAdminSwimmerModal(relayId, clubId, teamName, eventInfo, s1, s2, s3, s4) {
-    document.getElementById('admin_modal_relay_id').value = relayId;
-    document.getElementById('adminModalTitle').innerText = teamName;
-    document.getElementById('adminModalSubTitle').innerText = eventInfo;
-    
-    const clubSwimmers = swimmersByClub[clubId] || [];
-    
-    // Populate select 1..4
-    for (let i = 1; i <= 4; i++) {
-        const select = document.getElementById('admin_swimmer_' + i + '_select');
-        select.innerHTML = '<option value="">-- Belum Ditentukan (Menunggu TM) --</option>';
-        
+function openAdminSwimmerModal(relayId, clubId, teamTitle, catTitle, s1, s2, s3, s4) {
+    document.getElementById('modalAdminRelayId').value = relayId;
+    document.getElementById('modalAdminTeamTitle').textContent = teamTitle;
+    document.getElementById('modalAdminCatTitle').textContent = catTitle;
+
+    const clubSwimmers = swimmersDataByClub[clubId] || [];
+    const selectedIds = [s1, s2, s3, s4];
+
+    for (let pos = 1; pos <= 4; pos++) {
+        const select = document.getElementById('modalAdminSwimmer' + pos);
+        select.innerHTML = '<option value="">-- Belum Dipilih --</option>';
+
         clubSwimmers.forEach(sw => {
             const opt = document.createElement('option');
             opt.value = sw.id;
-            let thn = '-';
-            if (sw.tanggal_lahir) {
-                thn = sw.tanggal_lahir.substring(0, 4);
+            const year = sw.tanggal_lahir ? ' (' + sw.tanggal_lahir.substring(0, 4) + ')' : '';
+            opt.textContent = sw.nama_atlet + ' - ' + (sw.jenis_kelamin || '') + year;
+            if (parseInt(sw.id) === parseInt(selectedIds[pos - 1])) {
+                opt.selected = true;
             }
-            opt.textContent = sw.nama_atlet + ' (' + (sw.jenis_kelamin || '-') + ', Thn ' + thn + ')';
             select.appendChild(opt);
         });
     }
-    
-    document.getElementById('admin_swimmer_1_select').value = s1 || "";
-    document.getElementById('admin_swimmer_2_select').value = s2 || "";
-    document.getElementById('admin_swimmer_3_select').value = s3 || "";
-    document.getElementById('admin_swimmer_4_select').value = s4 || "";
-    
+
     document.getElementById('adminSwimmerModal').classList.remove('hidden');
 }
 
 function closeAdminSwimmerModal() {
     document.getElementById('adminSwimmerModal').classList.add('hidden');
 }
-
-function validateAdminSwimmerForm() {
-    const s1 = document.getElementById('admin_swimmer_1_select').value;
-    const s2 = document.getElementById('admin_swimmer_2_select').value;
-    const s3 = document.getElementById('admin_swimmer_3_select').value;
-    const s4 = document.getElementById('admin_swimmer_4_select').value;
-    const selected = [s1, s2, s3, s4].filter(v => v !== "");
-    const unique = new Set(selected);
-    if (unique.size !== selected.length) {
-        alert("Peringatan: Atlet yang sama tidak boleh dipilih lebih dari satu kali dalam satu tim estafet.");
-        return false;
-    }
-    return true;
-}
-
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') {
-        closeAdminSwimmerModal();
-    }
-});
 </script>
