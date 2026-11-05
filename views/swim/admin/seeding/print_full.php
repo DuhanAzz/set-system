@@ -18,22 +18,27 @@ $pc = [
     'show_event_records' => $isSubmitted ? isset($_REQUEST['cfg_show_event_records']) : true
 ];
 
+$hasKlubParam = isset($_REQUEST['col_klub']) || isset($_REQUEST['col_tim']);
+$hasSekolahParam = isset($_REQUEST['col_sekolah']);
+
 $cc = [
-    'uid'   => $isSubmitted ? isset($_REQUEST['col_uid']) : true,
-    'lahir' => $isSubmitted ? isset($_REQUEST['col_lahir']) : true,
-    'ku'    => $isSubmitted ? isset($_REQUEST['col_ku']) : true,
-    'tim'   => $isSubmitted ? isset($_REQUEST['col_tim']) : true,
-    'waktu' => $isSubmitted ? isset($_REQUEST['col_waktu']) : true,
-    'hasil' => $isSubmitted ? isset($_REQUEST['col_hasil']) : true,
+    'uid'     => $isSubmitted ? isset($_REQUEST['col_uid']) : true,
+    'lahir'   => $isSubmitted ? isset($_REQUEST['col_lahir']) : true,
+    'ku'      => $isSubmitted ? isset($_REQUEST['col_ku']) : true,
+    'klub'    => $isSubmitted ? $hasKlubParam : true,
+    'sekolah' => $isSubmitted ? $hasSekolahParam : true,
+    'waktu'   => $isSubmitted ? isset($_REQUEST['col_waktu']) : true,
+    'hasil'   => $isSubmitted ? isset($_REQUEST['col_hasil']) : true,
 ];
 
 $activeColumnsCount = 2; // LN & NAMA (wajib)
-if ($cc['uid'])   $activeColumnsCount++;
-if ($cc['lahir']) $activeColumnsCount++;
-if ($cc['ku'])    $activeColumnsCount++;
-if ($cc['tim'])   $activeColumnsCount++;
-if ($cc['waktu']) $activeColumnsCount++;
-if ($cc['hasil']) $activeColumnsCount++;
+if ($cc['uid'])     $activeColumnsCount++;
+if ($cc['lahir'])   $activeColumnsCount++;
+if ($cc['ku'])      $activeColumnsCount++;
+if ($cc['klub'])    $activeColumnsCount++;
+if ($cc['sekolah']) $activeColumnsCount++;
+if ($cc['waktu'])   $activeColumnsCount++;
+if ($cc['hasil'])   $activeColumnsCount++;
 
 // Handle Uploaded Images
 $scheduleImage = null;
@@ -374,7 +379,8 @@ if ($showScheduleAuto) {
         .col-nama { text-align: left; padding-left: 6px; font-weight: bold; }
         .col-lahir { width: 8%; text-align: center; font-weight: bold; }
         .col-ku { width: 9%; text-align: center; font-weight: bold; }
-        .col-tim { width: 22%; text-align: left; padding-left: 6px; font-weight: bold; }
+        .col-tim { width: <?= ($cc['klub'] && $cc['sekolah']) ? '15%' : '22%' ?>; text-align: left; padding-left: 6px; font-weight: bold; }
+        .col-sekolah { width: <?= ($cc['klub'] && $cc['sekolah']) ? '15%' : '22%' ?>; text-align: left; padding-left: 6px; font-weight: bold; }
         .col-waktu { width: 10%; text-align: right; padding-right: 6px; font-family: 'Courier New', monospace; font-weight: bold; }
         .col-hasil { width: 10%; text-align: center; font-family: 'Courier New', monospace; font-weight: 900; }
 
@@ -792,7 +798,8 @@ if ($showScheduleAuto) {
                                                     <th class="col-nama">NAMA ATLET</th>
                                                     <?php if($cc['lahir']): ?><th class="col-lahir">LAHIR</th><?php endif; ?>
                                                     <?php if($cc['ku']): ?><th class="col-ku">KU</th><?php endif; ?>
-                                                    <?php if($cc['tim']): ?><th class="col-tim">TIM / KLUB</th><?php endif; ?>
+                                                    <?php if($cc['klub']): ?><th class="col-tim">KLUB</th><?php endif; ?>
+                                                    <?php if($cc['sekolah']): ?><th class="col-sekolah">SEKOLAH</th><?php endif; ?>
                                                     <?php if($cc['waktu']): ?><th class="col-waktu">WAKTU</th><?php endif; ?>
                                                     <?php if($cc['hasil']): ?><th class="col-hasil">HASIL</th><?php endif; ?>
                                                 </tr>
@@ -824,8 +831,11 @@ if ($showScheduleAuto) {
                                                             <?php if($cc['ku']): ?>
                                                                 <td class="col-ku"><?= !empty($s['tanggal_lahir']) ? getKUName($s['tanggal_lahir'], $eventYear, $ageGroups) : '-' ?></td>
                                                             <?php endif; ?>
-                                                            <?php if($cc['tim']): ?>
-                                                                <td class="col-tim"><?= htmlspecialchars(getTeamName($s, $partType)) ?></td>
+                                                            <?php if($cc['klub']): ?>
+                                                                <td class="col-tim"><?= htmlspecialchars($s['club_name'] ?: '-') ?></td>
+                                                            <?php endif; ?>
+                                                            <?php if($cc['sekolah']): ?>
+                                                                <td class="col-sekolah"><?= htmlspecialchars($s['asal_sekolah'] ?: '-') ?></td>
                                                             <?php endif; ?>
                                                             <?php if($cc['waktu']): ?>
                                                                 <td class="col-waktu"><?= (!$s['entry_time'] || $s['entry_time']=='99.99.99') ? 'NT' : htmlspecialchars($s['entry_time']) ?></td>

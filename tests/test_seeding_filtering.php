@@ -66,4 +66,37 @@ assert(!in_array(2, array_column($filtered, 'id')), "Entry 2 (unpaid & pending) 
 assert(!in_array(5, array_column($filtered, 'id')), "Entry 5 (unpaid & rejected) must be excluded");
 echo "Simulated entry filtering check: PASSED!\n";
 
+// 4. Test column configuration for Klub and Sekolah
+function resolveColumns($isSubmitted, $request) {
+    $hasKlub = isset($request['col_klub']) || isset($request['col_tim']);
+    $hasSekolah = isset($request['col_sekolah']);
+    return [
+        'klub' => $isSubmitted ? $hasKlub : true,
+        'sekolah' => $isSubmitted ? $hasSekolah : true,
+    ];
+}
+
+// Case 1: Both checked
+$cfgBoth = resolveColumns(true, ['col_klub' => '1', 'col_sekolah' => '1']);
+assert($cfgBoth['klub'] === true && $cfgBoth['sekolah'] === true, "Both Klub and Sekolah must be enabled");
+
+// Case 2: Only Sekolah checked
+$cfgSekolah = resolveColumns(true, ['col_sekolah' => '1']);
+assert($cfgSekolah['klub'] === false && $cfgSekolah['sekolah'] === true, "Only Sekolah should be enabled");
+
+// Case 3: Only Klub checked
+$cfgKlub = resolveColumns(true, ['col_klub' => '1']);
+assert($cfgKlub['klub'] === true && $cfgKlub['sekolah'] === false, "Only Klub should be enabled");
+
+// Case 4: Legacy col_tim checked
+$cfgLegacy = resolveColumns(true, ['col_tim' => '1']);
+assert($cfgLegacy['klub'] === true && $cfgLegacy['sekolah'] === false, "Legacy col_tim should map to Klub");
+
+// Case 5: Default unsubmitted
+$cfgDefault = resolveColumns(false, []);
+assert($cfgDefault['klub'] === true && $cfgDefault['sekolah'] === true, "Default unsubmitted should display both");
+
+echo "Column resolution test (Klub & Sekolah): PASSED!\n";
+
 echo "ALL SEEDING FILTER TESTS PASSED!\n";
+

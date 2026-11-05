@@ -26,10 +26,17 @@ class SeedingController extends Controller {
             }
         }
         
-        // 3. Ambil Data Nomor Lomba
+        // 3. Ambil Data Nomor Lomba & Profil Event
         $events = [];
+        $targetEvent = null;
         $error_msg = null;
         try {
+            if ($targetEventId > 0) {
+                $stmtEvt = $pdo->prepare("SELECT id, event_name, participation_type FROM swim_events WHERE id = ?");
+                $stmtEvt->execute([$targetEventId]);
+                $targetEvent = $stmtEvt->fetch(\PDO::FETCH_ASSOC);
+            }
+
             $sql = "SELECT en.*, 
                     IF(en.is_relay = 1, 
                         (SELECT COUNT(re.id) FROM swim_relay_entries re 
@@ -53,6 +60,7 @@ class SeedingController extends Controller {
 
         return $this->view('swim/admin/seeding/index', [
             'events' => $events,
+            'targetEvent' => $targetEvent,
             'targetEventId' => $targetEventId,
             'error_msg' => $error_msg
         ]);

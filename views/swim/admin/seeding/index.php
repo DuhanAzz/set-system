@@ -10,6 +10,8 @@
         <?php 
             $total_all_entries = !empty($events) ? array_sum(array_column($events, 'total_athletes')) : 0;
             $globalDisabled = $total_all_entries == 0 ? 'opacity-50 cursor-not-allowed grayscale' : 'hover:-translate-y-1 shadow-xl hover:shadow-2xl';
+            $partType = strtolower($targetEvent['participation_type'] ?? 'club');
+            $isSchoolEvent = (strpos($partType, 'school') !== false || strpos($partType, 'sekolah') !== false);
         ?>
         
         <div class="flex flex-wrap items-start gap-3">
@@ -100,7 +102,8 @@
                             <label class="flex items-center gap-2 cursor-pointer select-none"><input type="checkbox" name="col_uid" value="1" class="rounded border-slate-300 text-blue-600 config-cb" checked> Kolom UID</label>
                             <label class="flex items-center gap-2 cursor-pointer select-none"><input type="checkbox" name="col_lahir" value="1" class="rounded border-slate-300 text-blue-600 config-cb" checked> Tahun Lahir</label>
                             <label class="flex items-center gap-2 cursor-pointer select-none"><input type="checkbox" name="col_ku" value="1" class="rounded border-slate-300 text-blue-600 config-cb" checked> Kolom KU</label>
-                            <label class="flex items-center gap-2 cursor-pointer select-none"><input type="checkbox" name="col_tim" value="1" class="rounded border-slate-300 text-blue-600 config-cb" checked> TIM / Klub</label>
+                            <label class="flex items-center gap-2 cursor-pointer select-none"><input type="checkbox" name="col_klub" value="1" class="rounded border-slate-300 text-blue-600 config-cb" checked> Nama Klub</label>
+                            <label class="flex items-center gap-2 cursor-pointer select-none"><input type="checkbox" name="col_sekolah" value="1" class="rounded border-slate-300 text-blue-600 config-cb" checked> Nama Sekolah</label>
                             <label class="flex items-center gap-2 cursor-pointer select-none"><input type="checkbox" name="col_waktu" value="1" class="rounded border-slate-300 text-blue-600 config-cb" checked> Waktu Entry</label>
                             <label class="flex items-center gap-2 cursor-pointer select-none"><input type="checkbox" name="col_hasil" value="1" class="rounded border-slate-300 text-blue-600 config-cb" checked> Lembar Titik</label>
                         </div>
