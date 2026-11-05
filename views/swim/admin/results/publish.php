@@ -44,6 +44,10 @@
                     <div class="relative w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500 shadow-inner"></div>
                 </label>
             </div>
+
+            <a href="<?= getenv('APP_URL') ?>/swim/live_result/index/<?= $eventId ?>" target="_blank" class="h-[42px] px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs uppercase tracking-wider shadow-sm flex items-center gap-1.5 transition mt-auto">
+                <span>🌐</span> Live Web ↗
+            </a>
             <?php endif; ?>
         </div>
     </div>
@@ -77,6 +81,37 @@
                 <button type="submit" class="w-full bg-slate-900 text-white px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-blue-600 transition shadow-lg">Upload</button>
             </div>
         </form>
+
+        <?php if (!empty($documents)): ?>
+        <div class="mt-6 border-t border-slate-100 pt-4">
+            <h3 class="text-xs font-black text-slate-700 uppercase tracking-wider mb-3">📄 Dokumen Yang Terpasang di Live Web:</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <?php foreach ($documents as $doc): ?>
+                <div class="flex items-center justify-between p-3 rounded-xl border border-slate-200 bg-slate-50">
+                    <div>
+                        <span class="inline-block px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider <?= $doc['kategori'] === 'buku_acara' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800' ?> mb-1">
+                            <?= $doc['kategori'] === 'buku_acara' ? 'Buku Acara' : 'Buku Hasil' ?>
+                        </span>
+                        <div class="text-xs font-bold text-slate-800"><?= htmlspecialchars($doc['judul_file']) ?></div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <a href="<?= getenv('APP_URL') . '/' . ltrim($doc['file_path'], '/') ?>" target="_blank" class="px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-slate-700 text-[10px] font-black hover:bg-slate-100 transition shadow-sm">
+                            Buka
+                        </a>
+                        <form method="POST" action="<?= getenv('APP_URL') ?>/swim/admin/results/publish" onsubmit="return confirm('Hapus dokumen ini?');">
+                            <input type="hidden" name="event_id" value="<?= $eventId ?>">
+                            <input type="hidden" name="doc_id" value="<?= $doc['id'] ?>">
+                            <input type="hidden" name="delete_doc" value="1">
+                            <button type="submit" class="px-2.5 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-[10px] font-black border border-red-200 transition">
+                                🗑️
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+        <?php endif; ?>
     </div>
     <?php endif; ?>
 
@@ -107,9 +142,9 @@
                     <tr class="hover:bg-slate-50 transition-colors">
                         <td class="px-6 py-4 text-center font-black text-slate-400 text-lg">#<?= htmlspecialchars($race['event_number']) ?></td>
                         <td class="px-6 py-4">
-                            <div class="font-black text-slate-800 uppercase text-sm leading-tight mb-1">
+                            <a href="<?= getenv('APP_URL') ?>/swim/admin/results/input?category_id=<?= $race['id'] ?>" class="font-black text-slate-800 hover:text-blue-600 transition uppercase text-sm leading-tight mb-1 block">
                                 <?= htmlspecialchars($race['distance']) ?>M <?= htmlspecialchars($race['stroke']) ?> 
-                            </div>
+                            </a>
                             <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
                                 <?= htmlspecialchars($race['age_group'] ?? 'OPEN') ?> • <?= strtoupper($race['jenis_kelamin'] ?? '') === 'L' ? 'PUTRA' : 'PUTRI' ?>
                             </div>
@@ -134,9 +169,14 @@
                             </label>
                         </td>
                         <td class="px-6 py-4 text-right">
-                            <a href="<?= getenv('APP_URL') ?>/swim/admin/results/input?category_id=<?= $race['id'] ?>&print=1" target="_blank" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold rounded-lg border border-slate-300 uppercase tracking-wider transition">
-                                🖨️ A4
-                            </a>
+                            <div class="inline-flex items-center gap-1.5 justify-end">
+                                <a href="<?= getenv('APP_URL') ?>/swim/admin/results/input?category_id=<?= $race['id'] ?>" class="inline-flex items-center gap-1 px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-[10px] font-bold rounded-lg border border-blue-200 uppercase tracking-wider transition">
+                                    📝 Input
+                                </a>
+                                <a href="<?= getenv('APP_URL') ?>/swim/admin/results/input?category_id=<?= $race['id'] ?>&print=1" target="_blank" class="inline-flex items-center gap-1 px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold rounded-lg border border-slate-300 uppercase tracking-wider transition">
+                                    🖨️ A4
+                                </a>
+                            </div>
                         </td>
                     </tr>
                     <?php endforeach; ?>

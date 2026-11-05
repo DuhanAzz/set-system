@@ -85,4 +85,41 @@ assert($ranks[1] === 3, "Next swimmer gets rank 3 after tie");
 assert($ranks[4] === 4, "Last swimmer gets rank 4");
 echo "✓ Test 4: Overall ranking calculation and tie handling PASSED!\n";
 
+// 5. Test Event ID Resolution in Publish
+function resolvePublishEventId($getEv, $postEv, $sessionEv, $myEvents) {
+    $eventId = (int)($getEv ?: ($postEv ?: ($sessionEv ?: 0)));
+    if ($eventId == 0 && count($myEvents) > 0) {
+        $eventId = (int)$myEvents[0]['id'];
+    }
+    return $eventId;
+}
+$mockEventsList = [['id' => 40, 'event_name' => 'Event 40'], ['id' => 39, 'event_name' => 'Event 39']];
+assert(resolvePublishEventId(40, null, 39, $mockEventsList) === 40, "GET param takes top priority");
+assert(resolvePublishEventId(null, null, 40, $mockEventsList) === 40, "Session param is picked up if no GET/POST");
+assert(resolvePublishEventId(null, null, null, $mockEventsList) === 40, "Falls back to first event in list");
+echo "✓ Test 5: Publish event resolution logic PASSED!\n";
+
+// 6. Test Split KU vs Overall Ranking
+$allAthletes = [
+    ['id' => 101, 'ku' => 'KU 3', 'ms' => 31000],
+    ['id' => 102, 'ku' => 'KU 3', 'ms' => 29000],
+    ['id' => 201, 'ku' => 'KU 2', 'ms' => 30000],
+    ['id' => 202, 'ku' => 'KU 2', 'ms' => 32000],
+];
+// Overall
+usort($allAthletes, function($a, $b) { return $a['ms'] - $b['ms']; });
+assert($allAthletes[0]['id'] === 102 && $allAthletes[1]['id'] === 201, "Overall ranks regardless of KU");
+
+// Split KU
+$grouped = [];
+foreach ($allAthletes as $a) { $grouped[$a['ku']][] = $a; }
+foreach ($grouped as $ku => $group) {
+    usort($group, function($a, $b) { return $a['ms'] - $b['ms']; });
+    $grouped[$ku] = $group;
+}
+assert($grouped['KU 3'][0]['id'] === 102 && $grouped['KU 3'][0]['ms'] === 29000, "KU 3 fastest is #1 in KU 3");
+assert($grouped['KU 2'][0]['id'] === 201 && $grouped['KU 2'][0]['ms'] === 30000, "KU 2 fastest is #1 in KU 2");
+echo "✓ Test 6: Split KU ranking isolation PASSED!\n";
+
 echo "ALL SWIM RESULTS SYNCHRONIZATION TESTS PASSED!\n";
+

@@ -309,76 +309,8 @@ class ResultsController extends Controller {
                 $stmtUpd->execute([$time, $is_dq, $reason, $id]);
             }
 
-            // Calculation Logic
-            $stmtRace = $pdo->prepare("SELECT * FROM swim_event_numbers WHERE id = ?");
-            $stmtRace->execute([$cat_id]);
-            $raceInfo = $stmtRace->fetch(PDO::FETCH_ASSOC);
-
-            $actualEventId = (int)($raceInfo['event_id'] ?? $eventId);
-
-            $stmtEvent = $pdo->prepare("SELECT * FROM swim_events WHERE id = ?");
-            $stmtEvent->execute([$actualEventId]);
-            $eventProfile = $stmtEvent->fetch(PDO::FETCH_ASSOC);
-            $eventYear = date('Y', strtotime($eventProfile['event_date_start'] ?? date('Y')));
-
-            $stmtAgeGroups = $pdo->prepare("SELECT * FROM swim_event_age_groups WHERE event_id = ? ORDER BY min_age ASC");
-            $stmtAgeGroups->execute([$actualEventId]);
-            $ageGroups = $stmtAgeGroups->fetchAll(PDO::FETCH_ASSOC);
-
-            $isRelay = isset($raceInfo['is_relay']) && $raceInfo['is_relay'] == 1;
-            if ($isRelay) {
-                $stmtAll = $pdo->prepare("
-                    SELECT es.id, es.time_final as final_time, es.is_dq_final as is_dq, '0000-00-00' as tanggal_lahir
-                    FROM swim_relay_entries re JOIN swim_event_seeding es ON re.id = es.entry_id 
-                    WHERE re.category_id = ?
-                ");
-            } else {
-                $stmtAll = $pdo->prepare("
-                    SELECT es.id, es.time_final as final_time, es.is_dq_final as is_dq, s.tanggal_lahir
-                    FROM swim_event_entries ee JOIN swim_event_seeding es ON ee.id = es.entry_id JOIN swim_swimmers s ON ee.swimmer_id = s.id 
-                    WHERE ee.category_id = ?
-                ");
-            }
-            $stmtAll->execute([$cat_id]);
-            $allSwimmers = $stmtAll->fetchAll(PDO::FETCH_ASSOC);
-
-            $stmtRank = $pdo->prepare("UPDATE swim_event_seeding SET rank_final = ? WHERE id = ?");
-            if ($rankModePost === 'overall') {
-                $valid = []; $invalid = [];
-                foreach ($allSwimmers as $s) {
-                    if ($s['is_dq'] == 0 && !empty($s['final_time']) && strtoupper($s['final_time']) != 'NT' && $s['final_time'] != '99:99.99' && $s['final_time'] != '99.99.99') {
-                        $s['ms'] = $this->timeToMs($s['final_time']); $valid[] = $s;
-                    } else { $invalid[] = $s; }
-                }
-                usort($valid, function($a, $b) { return $a['ms'] - $b['ms']; });
-                $rank = 1; $counter = 1; $prevMs = null;
-                foreach ($valid as $s) {
-                    if ($prevMs !== null && $s['ms'] != $prevMs) { $rank = $counter; }
-                    $stmtRank->execute([$rank, $s['id']]); $prevMs = $s['ms']; $counter++;
-                }
-                foreach ($invalid as $s) { $stmtRank->execute([NULL, $s['id']]); }
-            } else {
-                $groupedSwimmers = [];
-                foreach ($allSwimmers as $s) {
-                    $groupName = $this->getAgeGroupLabel($s['tanggal_lahir'], $eventYear, $ageGroups);
-                    $groupedSwimmers[$groupName][] = $s;
-                }
-                foreach ($groupedSwimmers as $groupName => $swimmersInGroup) {
-                    $valid = []; $invalid = [];
-                    foreach ($swimmersInGroup as $s) {
-                        if ($s['is_dq'] == 0 && !empty($s['final_time']) && strtoupper($s['final_time']) != 'NT' && $s['final_time'] != '99:99.99' && $s['final_time'] != '99.99.99') {
-                            $s['ms'] = $this->timeToMs($s['final_time']); $valid[] = $s;
-                        } else { $invalid[] = $s; }
-                    }
-                    usort($valid, function($a, $b) { return $a['ms'] - $b['ms']; });
-                    $rank = 1; $counter = 1; $prevMs = null;
-                    foreach ($valid as $s) {
-                        if ($prevMs !== null && $s['ms'] != $prevMs) { $rank = $counter; }
-                        $stmtRank->execute([$rank, $s['id']]); $prevMs = $s['ms']; $counter++;
-                    }
-                    foreach ($invalid as $s) { $stmtRank->execute([NULL, $s['id']]); }
-                }
-            }
+            // 2. Simpan mode ranking & hitung ulang rank_final atlet/tim
+            $this->recalculateRanks($pdo, $cat_id, $rankModePost);
 
             $pdo->commit();
             $_SESSION['success'] = "Hasil lomba berhasil disimpan!";
@@ -390,6 +322,88 @@ class ResultsController extends Controller {
 
         header("Location: " . getenv('APP_URL') . "/swim/admin/results/input?category_id=" . $cat_id);
         exit;
+    }
+
+    private function recalculateRanks($pdo, $cat_id, $rankMode = null) {
+        $stmtRace = $pdo->prepare("SELECT * FROM swim_event_numbers WHERE id = ?");
+        $stmtRace->execute([$cat_id]);
+        $raceInfo = $stmtRace->fetch(PDO::FETCH_ASSOC);
+        if (!$raceInfo) return false;
+
+        if ($rankMode !== null) {
+            $stmtUpdMode = $pdo->prepare("UPDATE swim_event_numbers SET rank_mode = ? WHERE id = ?");
+            $stmtUpdMode->execute([$rankMode, $cat_id]);
+            $rankModePost = $rankMode;
+        } else {
+            $rankModePost = $raceInfo['rank_mode'] ?? 'split';
+        }
+
+        $actualEventId = (int)$raceInfo['event_id'];
+
+        $stmtEvent = $pdo->prepare("SELECT * FROM swim_events WHERE id = ?");
+        $stmtEvent->execute([$actualEventId]);
+        $eventProfile = $stmtEvent->fetch(PDO::FETCH_ASSOC);
+        $eventYear = date('Y', strtotime($eventProfile['event_date_start'] ?? date('Y')));
+
+        $stmtAgeGroups = $pdo->prepare("SELECT * FROM swim_event_age_groups WHERE event_id = ? ORDER BY min_age ASC");
+        $stmtAgeGroups->execute([$actualEventId]);
+        $ageGroups = $stmtAgeGroups->fetchAll(PDO::FETCH_ASSOC);
+
+        $isRelay = isset($raceInfo['is_relay']) && $raceInfo['is_relay'] == 1;
+        if ($isRelay) {
+            $stmtAll = $pdo->prepare("
+                SELECT es.id, es.time_final as final_time, es.is_dq_final as is_dq, '0000-00-00' as tanggal_lahir
+                FROM swim_relay_entries re JOIN swim_event_seeding es ON re.id = es.entry_id 
+                WHERE re.category_id = ?
+            ");
+        } else {
+            $stmtAll = $pdo->prepare("
+                SELECT es.id, es.time_final as final_time, es.is_dq_final as is_dq, s.tanggal_lahir
+                FROM swim_event_entries ee JOIN swim_event_seeding es ON ee.id = es.entry_id JOIN swim_swimmers s ON ee.swimmer_id = s.id 
+                WHERE ee.category_id = ?
+            ");
+        }
+        $stmtAll->execute([$cat_id]);
+        $allSwimmers = $stmtAll->fetchAll(PDO::FETCH_ASSOC);
+
+        $stmtRank = $pdo->prepare("UPDATE swim_event_seeding SET rank_final = ? WHERE id = ?");
+        if ($rankModePost === 'overall') {
+            $valid = []; $invalid = [];
+            foreach ($allSwimmers as $s) {
+                if ($s['is_dq'] == 0 && !empty($s['final_time']) && strtoupper($s['final_time']) != 'NT' && $s['final_time'] != '99:99.99' && $s['final_time'] != '99.99.99') {
+                    $s['ms'] = $this->timeToMs($s['final_time']); $valid[] = $s;
+                } else { $invalid[] = $s; }
+            }
+            usort($valid, function($a, $b) { return $a['ms'] - $b['ms']; });
+            $rank = 1; $counter = 1; $prevMs = null;
+            foreach ($valid as $s) {
+                if ($prevMs !== null && $s['ms'] != $prevMs) { $rank = $counter; }
+                $stmtRank->execute([$rank, $s['id']]); $prevMs = $s['ms']; $counter++;
+            }
+            foreach ($invalid as $s) { $stmtRank->execute([NULL, $s['id']]); }
+        } else {
+            $groupedSwimmers = [];
+            foreach ($allSwimmers as $s) {
+                $groupName = $this->getAgeGroupLabel($s['tanggal_lahir'], $eventYear, $ageGroups);
+                $groupedSwimmers[$groupName][] = $s;
+            }
+            foreach ($groupedSwimmers as $groupName => $swimmersInGroup) {
+                $valid = []; $invalid = [];
+                foreach ($swimmersInGroup as $s) {
+                    if ($s['is_dq'] == 0 && !empty($s['final_time']) && strtoupper($s['final_time']) != 'NT' && $s['final_time'] != '99:99.99' && $s['final_time'] != '99.99.99') {
+                        $s['ms'] = $this->timeToMs($s['final_time']); $valid[] = $s;
+                    } else { $invalid[] = $s; }
+                }
+                usort($valid, function($a, $b) { return $a['ms'] - $b['ms']; });
+                $rank = 1; $counter = 1; $prevMs = null;
+                foreach ($valid as $s) {
+                    if ($prevMs !== null && $s['ms'] != $prevMs) { $rank = $counter; }
+                    $stmtRank->execute([$rank, $s['id']]); $prevMs = $s['ms']; $counter++;
+                }
+                foreach ($invalid as $s) { $stmtRank->execute([NULL, $s['id']]); }
+            }
+        }
+        return true;
     }
 
     private function getAgeGroupLabel($dob, $eventYear, $ageGroups) {
@@ -429,8 +443,7 @@ class ResultsController extends Controller {
                 $mode = trim($_POST['rank_mode'] ?? 'split');
                 if (!in_array($mode, ['split', 'overall'])) $mode = 'split';
                 try {
-                    $stmt = $pdo->prepare("UPDATE swim_event_numbers SET rank_mode = ? WHERE id = ?");
-                    $stmt->execute([$mode, $numId]);
+                    $this->recalculateRanks($pdo, $numId, $mode);
                     echo json_encode([
                         'success' => true,
                         'message' => 'Mode ranking berhasil diubah ke ' . ($mode === 'overall' ? 'OVERALL (GABUNGAN)' : 'SPLIT (PER KU)'),
@@ -456,10 +469,28 @@ class ResultsController extends Controller {
             }
         }
 
+        // --- 🗑️ HANDLER HAPUS DOKUMEN ---
+        if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['delete_doc'])) {
+            $docId = (int)($_POST['doc_id'] ?? 0);
+            $evId = (int)($_POST['event_id'] ?? 0);
+            if ($docId > 0) {
+                $stmtGetDoc = $pdo->prepare("SELECT file_path FROM swim_documents WHERE id = ?");
+                $stmtGetDoc->execute([$docId]);
+                $fPath = $stmtGetDoc->fetchColumn();
+                if ($fPath && file_exists(__DIR__ . '/../../../../public/' . $fPath)) {
+                    @unlink(__DIR__ . '/../../../../public/' . $fPath);
+                }
+                $pdo->prepare("DELETE FROM swim_documents WHERE id = ?")->execute([$docId]);
+                $_SESSION['success'] = "Dokumen berhasil dihapus!";
+            }
+            header("Location: " . getenv('APP_URL') . "/swim/admin/results/publish?event_id=" . $evId);
+            exit;
+        }
+
         // --- 🚀 HANDLER UPLOAD DOKUMEN ---
         $uploadMsg = '';
         if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['upload_doc'])) {
-            $evId = $_POST['event_id'];
+            $evId = (int)$_POST['event_id'];
             $kategori = $_POST['kategori'];
             $judul_file = $_POST['judul_file'];
 
@@ -493,21 +524,40 @@ class ResultsController extends Controller {
             exit;
         }
 
-        $stmtEvents = $pdo->prepare("SELECT id, event_name FROM swim_events WHERE user_id = ? ORDER BY event_date_start DESC");
-        $stmtEvents->execute([$uid]);
-        $myEvents = $stmtEvents->fetchAll(PDO::FETCH_ASSOC);
+        $role = $_SESSION['role'] ?? ($_SESSION['swim_role'] ?? 'user');
+        if ($role === 'superadmin' || $role === 'admin') {
+            $stmtEvents = $pdo->query("SELECT id, event_name FROM swim_events ORDER BY id DESC");
+        } else {
+            $stmtEvents = $pdo->prepare("SELECT id, event_name FROM swim_events WHERE user_id = ? ORDER BY event_date_start DESC");
+            $stmtEvents->execute([$uid]);
+        }
+        $myEvents = $stmtEvents ? $stmtEvents->fetchAll(PDO::FETCH_ASSOC) : [];
+        if (empty($myEvents)) {
+            $myEvents = $pdo->query("SELECT id, event_name FROM swim_events ORDER BY id DESC")->fetchAll(PDO::FETCH_ASSOC);
+        }
 
-        $eventId = $_GET['event_id'] ?? ($_POST['event_id'] ?? 0);
-        if ($eventId == 0 && count($myEvents) > 0) { $eventId = $myEvents[0]['id']; }
+        $eventId = (int)($_GET['event_id'] ?? ($_POST['event_id'] ?? ($_SESSION['active_event_id'] ?? 0)));
+        if ($eventId == 0 && count($myEvents) > 0) { $eventId = (int)$myEvents[0]['id']; }
 
         $currentEvent = null;
         if ($eventId > 0) {
+            $_SESSION['active_event_id'] = $eventId;
             $stmtCurr = $pdo->prepare("SELECT * FROM swim_events WHERE id = ?");
             $stmtCurr->execute([$eventId]);
             $currentEvent = $stmtCurr->fetch(PDO::FETCH_ASSOC);
+
+            // Pastikan eventId ada di daftar dropdown myEvents
+            $existsInList = false;
+            foreach ($myEvents as $ev) {
+                if ($ev['id'] == $eventId) { $existsInList = true; break; }
+            }
+            if (!$existsInList && $currentEvent) {
+                array_unshift($myEvents, ['id' => $currentEvent['id'], 'event_name' => $currentEvent['event_name']]);
+            }
         }
 
         $raceList = [];
+        $documents = [];
         if ($eventId > 0) {
             $sql = "SELECT en.*, 
                     IF(en.is_relay = 1,
@@ -519,13 +569,18 @@ class ResultsController extends Controller {
             $stmtRace = $pdo->prepare($sql);
             $stmtRace->execute([$eventId]);
             $raceList = $stmtRace->fetchAll(PDO::FETCH_ASSOC);
+
+            $stmtDocs = $pdo->prepare("SELECT * FROM swim_documents WHERE event_id = ? ORDER BY id DESC");
+            $stmtDocs->execute([$eventId]);
+            $documents = $stmtDocs->fetchAll(PDO::FETCH_ASSOC);
         }
 
         $this->view('swim/admin/results/publish', [
             'myEvents' => $myEvents,
             'eventId' => $eventId,
             'currentEvent' => $currentEvent,
-            'raceList' => $raceList
+            'raceList' => $raceList,
+            'documents' => $documents
         ]);
     }
 }
