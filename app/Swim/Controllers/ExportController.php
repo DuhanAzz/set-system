@@ -27,7 +27,8 @@ class ExportController extends Controller {
     }
 
     private function checkAccess() {
-        if (!isset($_SESSION['swim_role']) || ($_SESSION['swim_role'] !== 'admin' && $_SESSION['swim_role'] !== 'master')) {
+        $role = $_SESSION['role'] ?? ($_SESSION['swim_role'] ?? '');
+        if ($role !== 'admin' && $role !== 'master' && $role !== 'superadmin') {
             header("Location: " . getenv('APP_URL') . "/swim/login");
             exit;
         }
@@ -36,18 +37,45 @@ class ExportController extends Controller {
     public function index() {
         $this->checkAccess();
         $pdo = $this->db;
+        $role = $_SESSION['role'] ?? ($_SESSION['swim_role'] ?? '');
         
-        if ($_SESSION['swim_role'] === 'master') {
+        if ($role === 'master' || $role === 'superadmin' || $role === 'admin') {
             $stmtEvents = $pdo->query("SELECT id, event_name, event_date_start, participation_type FROM swim_events ORDER BY id DESC");
-            $events = $stmtEvents->fetchAll(PDO::FETCH_ASSOC);
+            $events = $stmtEvents ? $stmtEvents->fetchAll(PDO::FETCH_ASSOC) : [];
         } else {
-            $uid = $_SESSION['swim_user_id'];
+            $uid = $_SESSION['swim_user_id'] ?? 0;
             $stmtEvents = $pdo->prepare("SELECT id, event_name, event_date_start, participation_type FROM swim_events WHERE user_id = ? ORDER BY id DESC");
             $stmtEvents->execute([$uid]);
             $events = $stmtEvents->fetchAll(PDO::FETCH_ASSOC);
         }
+        if (empty($events)) {
+            $events = $pdo->query("SELECT id, event_name, event_date_start, participation_type FROM swim_events ORDER BY id DESC")->fetchAll(PDO::FETCH_ASSOC);
+        }
 
-        $selectedEventId = isset($_GET['event_id']) ? (int)$_GET['event_id'] : (isset($events[0]) ? $events[0]['id'] : 0);
+        $selectedEventId = isset($_GET['event_id']) ? (int)$_GET['event_id'] : (int)($_SESSION['active_event_id'] ?? (isset($events[0]) ? $events[0]['id'] : 0));
+        if ($selectedEventId > 0) {
+            $_SESSION['active_event_id'] = $selectedEventId;
+        }
+
+        $selectedEvent = null;
+        if ($selectedEventId > 0) {
+            $stmtEvDetail = $pdo->prepare("SELECT * FROM swim_events WHERE id = ?");
+            $stmtEvDetail->execute([$selectedEventId]);
+            $selectedEvent = $stmtEvDetail->fetch(PDO::FETCH_ASSOC);
+        }
+
+        $existsInList = false;
+        foreach ($events as $ev) {
+            if ($ev['id'] == $selectedEventId) { $existsInList = true; break; }
+        }
+        if (!$existsInList && $selectedEvent) {
+            array_unshift($events, [
+                'id' => $selectedEvent['id'],
+                'event_name' => $selectedEvent['event_name'],
+                'event_date_start' => $selectedEvent['event_date_start'],
+                'participation_type' => $selectedEvent['participation_type']
+            ]);
+        }
 
         $partType = 'club';
         foreach($events as $ev) {
@@ -70,31 +98,24 @@ class ExportController extends Controller {
             if ($isSchool) {
                 $stmtTeam = $pdo->prepare("
                     SELECT team_name FROM (
-                        SELECT s.asal_sekolah as team_name FROM swim_event_entries ee JOIN swim_swimmers s ON ee.swimmer_id = s.id WHERE ee.event_id = ? AND s.asal_sekolah != ''
+                        SELECT s.asal_sekolah as team_name FROM swim_event_entries ee JOIN swim_swimmers s ON ee.swimmer_id = s.id WHERE (ee.event_id = ? OR ee.category_id IN (SELECT id FROM swim_event_numbers WHERE event_id = ?)) AND s.asal_sekolah != ''
                         UNION
-                        SELECT c.nama_klub as team_name FROM swim_relay_entries re JOIN swim_clubs c ON re.club_id = c.id WHERE re.event_id = ?
+                        SELECT c.nama_klub as team_name FROM swim_relay_entries re JOIN swim_clubs c ON re.club_id = c.id WHERE (re.event_id = ? OR re.category_id IN (SELECT id FROM swim_event_numbers WHERE event_id = ?))
                     ) t ORDER BY team_name ASC
                 ");
-                $stmtTeam->execute([$selectedEventId, $selectedEventId]);
+                $stmtTeam->execute([$selectedEventId, $selectedEventId, $selectedEventId, $selectedEventId]);
                 while($r = $stmtTeam->fetch(PDO::FETCH_ASSOC)) { $teams[] = $r['team_name']; }
             } else {
                 $stmtTeam = $pdo->prepare("
                     SELECT team_name FROM (
-                        SELECT c.nama_klub as team_name FROM swim_event_entries ee JOIN swim_clubs c ON ee.club_id = c.id WHERE ee.event_id = ?
+                        SELECT c.nama_klub as team_name FROM swim_event_entries ee JOIN swim_clubs c ON ee.club_id = c.id WHERE (ee.event_id = ? OR ee.category_id IN (SELECT id FROM swim_event_numbers WHERE event_id = ?))
                         UNION
-                        SELECT c.nama_klub as team_name FROM swim_relay_entries re JOIN swim_clubs c ON re.club_id = c.id WHERE re.event_id = ?
+                        SELECT c.nama_klub as team_name FROM swim_relay_entries re JOIN swim_clubs c ON re.club_id = c.id WHERE (re.event_id = ? OR re.category_id IN (SELECT id FROM swim_event_numbers WHERE event_id = ?))
                     ) t ORDER BY team_name ASC
                 ");
-                $stmtTeam->execute([$selectedEventId, $selectedEventId]);
+                $stmtTeam->execute([$selectedEventId, $selectedEventId, $selectedEventId, $selectedEventId]);
                 while($r = $stmtTeam->fetch(PDO::FETCH_ASSOC)) { $teams[] = $r['team_name']; }
             }
-        }
-
-        $selectedEvent = null;
-        if ($selectedEventId > 0) {
-            $stmtEvDetail = $pdo->prepare("SELECT * FROM swim_events WHERE id = ?");
-            $stmtEvDetail->execute([$selectedEventId]);
-            $selectedEvent = $stmtEvDetail->fetch(PDO::FETCH_ASSOC);
         }
 
         $this->view('swim/admin/exports/index', [
@@ -480,14 +501,15 @@ class ExportController extends Controller {
         $this->checkAccess();
         if (ob_get_level() > 0) ob_clean();
         
-        // src/admin/results/export_canva.php
-// Proteksi Akses
-if (!isset($_SESSION['swim_role']) || ($_SESSION['swim_role'] !== 'admin' && $_SESSION['swim_role'] !== 'master')) {
-    die("Akses Ditolak.");
-}
+        // Proteksi Akses
+        $role = $_SESSION['role'] ?? ($_SESSION['swim_role'] ?? '');
+        if ($role !== 'admin' && $role !== 'master' && $role !== 'superadmin') {
+            die("Akses Ditolak.");
+        }
 
-$event_id = isset($_GET['event_id']) ? (int)$_GET['event_id'] : 0;
-$filter_ku = isset($_GET['ku']) ? $_GET['ku'] : 'ALL';
+        $event_id = isset($_GET['event_id']) ? (int)$_GET['event_id'] : (int)($_SESSION['active_event_id'] ?? 0);
+        if ($event_id === 0) die("Event ID invalid.");
+        $_SESSION['active_event_id'] = $event_id;
 $filter_team = isset($_GET['team']) ? $_GET['team'] : 'ALL';
 $filter_limit = isset($_GET['limit']) ? $_GET['limit'] : 'ALL'; // ALL, TOP3, DQ
 $rank_mode = isset($_GET['rank_mode']) ? $_GET['rank_mode'] : 'OVERALL'; // SPLIT, OVERALL
@@ -570,7 +592,7 @@ SELECT * FROM (
     UNION ALL
 
     SELECT en.event_number, en.distance, en.stroke, en.jenis_kelamin, en.age_group as event_age_group,
-           NULL as uid, re.team_name as nama_atlet, c.nama_klub, NULL as asal_sekolah, '0000-00-00' as tanggal_lahir,
+           NULL as uid, COALESCE(NULLIF(re.team_name, ''), c.nama_klub, 'RELAY TEAM') as nama_atlet, c.nama_klub, NULL as asal_sekolah, '0000-00-00' as tanggal_lahir,
            es.time_final, es.is_dq_final, es.dq_reason_final
     FROM swim_event_numbers en
     JOIN swim_relay_entries re ON en.id = re.category_id
@@ -649,13 +671,44 @@ foreach ($groupedResults as $groupName => &$rows) {
             $rank++;
         }
         
-        // Format Gender & Waktu
         $genderLabel = (in_array(strtoupper($atlet['jenis_kelamin']), ['L', 'MALE', 'MAN', 'PUTRA'])) ? 'PUTRA' : 'PUTRI';
         $waktuFormatted = (!empty($timeFinal) && strtoupper($timeFinal) != 'NT') ? formatTimeDisplay($timeFinal) : '-';
 
         // Helper Roman Juara & Formatter Canva Template
         $romanMap = [1 => 'I', 2 => 'II', 3 => 'III', 4 => 'IV', 5 => 'V', 6 => 'VI', 7 => 'VII', 8 => 'VIII', 9 => 'IX', 10 => 'X'];
         $namaTitle = !empty($atlet['nama_atlet']) ? mb_convert_case(trim($atlet['nama_atlet']), MB_CASE_TITLE, "UTF-8") : '-';
+
+        // Format Asal Sekolah / Tim (persis sesuai template Canva)
+        $asalSekolahRaw = !empty($atlet['asal_sekolah']) ? trim($atlet['asal_sekolah']) : (!empty($atlet['team_name']) && $atlet['team_name'] !== '-' ? trim($atlet['team_name']) : (!empty($atlet['nama_klub']) ? trim($atlet['nama_klub']) : '-'));
+        $asalSekolahTitle = ($asalSekolahRaw !== '-') ? ucwords(strtolower($asalSekolahRaw)) : '-';
+        if ($asalSekolahTitle !== '-') {
+            $asalSekolahTitle = preg_replace_callback('/\b(sd|smp|sma|smk|sdn|smpn|sman|mi|mts|ma|club|sc)\b/i', function($m) {
+                return strtoupper($m[0]);
+            }, $asalSekolahTitle);
+        }
+
+        // Catatan Waktu format (seperti 99:99:99 atau 00:25:43)
+        $catatanWaktu = '-';
+        if (!$isDQ && !empty($timeFinal) && strtoupper($timeFinal) !== 'NT') {
+            $timeClean = str_replace(',', '.', trim($timeFinal));
+            if ($timeClean === '99:99.99' || $timeClean === '99.99.99' || $timeClean === '99:99:99') {
+                $catatanWaktu = '99:99:99';
+            } else {
+                $parts = preg_split('/[:.]/', $timeClean);
+                $menit = 0; $detik = 0; $ms = 0;
+                if (count($parts) == 3) {
+                    $menit = (int)$parts[0];
+                    $detik = (int)$parts[1];
+                    $ms = (int)str_pad(substr($parts[2], 0, 2), 2, '0');
+                } elseif (count($parts) == 2) {
+                    $detik = (int)$parts[0];
+                    $ms = (int)str_pad(substr($parts[1], 0, 2), 2, '0');
+                } elseif (count($parts) == 1) {
+                    $detik = (int)$parts[0];
+                }
+                $catatanWaktu = sprintf("%02d:%02d:%02d", $menit, $detik, $ms);
+            }
+        }
 
         // Format Jarak (contoh: 50m, 100m, 4x50m)
         $distRaw = trim((string)$atlet['distance']);
@@ -696,19 +749,22 @@ foreach ($groupedResults as $groupName => &$rows) {
             if ($template_format === 'template') {
                 $finalOutput[] = [
                     'Nama' => $namaTitle,
+                    'Asal Sekolah' => $asalSekolahTitle,
                     'Juara' => $juaraRoman,
-                    'Nomor lomba' => $nomorLombaTitle
+                    'Nomor lomba' => $nomorLombaTitle,
+                    'Catatan Waktu' => $catatanWaktu
                 ];
             } else {
                 $finalOutput[] = [
                     'UID' => $atlet['uid'] ?: '-',
                     'Nama_Atlet' => strtoupper($atlet['nama_atlet']),
+                    'Asal_Sekolah' => strtoupper($asalSekolahRaw),
                     'Klub_Sekolah' => strtoupper($atlet['team_name']),
                     'Nomor_Acara' => $atlet['event_number'],
                     'Perlombaan' => strtoupper($atlet['distance'] . "M " . $atlet['stroke'] . " " . $genderLabel),
                     'Kelompok_Umur' => strtoupper($atlet['real_ku']),
                     'Gender' => $genderLabel,
-                    'Waktu_Final' => $waktuFormatted,
+                    'Waktu_Final' => $catatanWaktu,
                     'Peringkat' => $juaraRoman,
                     'Juara' => $juaraRoman,
                     'Medali' => $medali,
@@ -736,13 +792,16 @@ foreach ($groupedResults as $groupName => &$rows) {
                 if ($template_format === 'template') {
                     $finalOutput[] = [
                         'Nama' => $namaTitle,
+                        'Asal Sekolah' => $asalSekolahTitle,
                         'Juara' => 'Peserta',
-                        'Nomor lomba' => 'Peserta Perlombaan'
+                        'Nomor lomba' => 'Peserta Perlombaan',
+                        'Catatan Waktu' => '-'
                     ];
                 } else {
                     $finalOutput[] = [
                         'UID' => $atlet['uid'] ?: '-',
                         'Nama_Atlet' => strtoupper($atlet['nama_atlet']),
+                        'Asal_Sekolah' => strtoupper($asalSekolahRaw),
                         'Klub_Sekolah' => strtoupper($atlet['team_name']),
                         'Gender' => $genderLabel,
                         'Kelompok_Umur' => strtoupper($atlet['real_ku']),
@@ -757,19 +816,22 @@ foreach ($groupedResults as $groupName => &$rows) {
             if ($template_format === 'template') {
                 $finalOutput[] = [
                     'Nama' => $namaTitle,
+                    'Asal Sekolah' => $asalSekolahTitle,
                     'Juara' => 'Peserta',
-                    'Nomor lomba' => $nomorLombaTitle
+                    'Nomor lomba' => $nomorLombaTitle,
+                    'Catatan Waktu' => $catatanWaktu
                 ];
             } else {
                 $finalOutput[] = [
                     'UID' => $atlet['uid'] ?: '-',
                     'Nama_Atlet' => strtoupper($atlet['nama_atlet']),
+                    'Asal_Sekolah' => strtoupper($asalSekolahRaw),
                     'Klub_Sekolah' => strtoupper($atlet['team_name']),
                     'Nomor_Acara' => $atlet['event_number'],
                     'Perlombaan' => strtoupper($atlet['distance'] . "M " . $atlet['stroke'] . " " . $genderLabel),
                     'Kelompok_Umur' => strtoupper($atlet['real_ku']),
                     'Gender' => $genderLabel,
-                    'Waktu_Final' => $isDQ ? '-' : $waktuFormatted,
+                    'Waktu_Final' => $isDQ ? '-' : $catatanWaktu,
                     'Peringkat' => 'PESERTA',
                     'Predikat' => 'PESERTA'
                 ];
@@ -799,19 +861,22 @@ foreach ($groupedResults as $groupName => &$rows) {
         if ($template_format === 'template') {
             $finalOutput[] = [
                 'Nama' => $namaTitle,
+                'Asal Sekolah' => $asalSekolahTitle,
                 'Juara' => $rankLabel,
-                'Nomor lomba' => $nomorLombaTitle
+                'Nomor lomba' => $nomorLombaTitle,
+                'Catatan Waktu' => $catatanWaktu
             ];
         } else {
             $finalOutput[] = [
                 'UID' => $atlet['uid'] ?: '-',
                 'Nama_Atlet' => strtoupper($atlet['nama_atlet']),
+                'Asal_Sekolah' => strtoupper($asalSekolahRaw),
                 'Klub_Sekolah' => strtoupper($atlet['team_name']),
                 'Nomor_Acara' => $atlet['event_number'],
                 'Perlombaan' => strtoupper($atlet['distance'] . "M " . $atlet['stroke'] . " " . $genderLabel),
                 'Kelompok_Umur' => strtoupper($atlet['real_ku']),
                 'Gender' => $genderLabel,
-                'Waktu_Final' => $timeFinal ? formatTimeDisplay($timeFinal) : '-',
+                'Waktu_Final' => $catatanWaktu,
                 'Peringkat' => $rankLabel
             ];
         }
@@ -823,7 +888,7 @@ unset($rows);
 $delimiter = ($template_format === 'template') ? ';' : ',';
 
 if ($template_format === 'template') {
-    $csvHeaders = ['Nama', 'Juara', 'Nomor lomba'];
+    $csvHeaders = ['Nama', 'Asal Sekolah', 'Juara', 'Nomor lomba', 'Catatan Waktu'];
     if ($cert_type === 'pemenang') {
         $filename = "Canva_Sertifikat_Pemenang_" . $cleanEventName . "_" . date('Ymd_His') . ".csv";
     } elseif ($cert_type === 'peserta') {
@@ -834,18 +899,18 @@ if ($template_format === 'template') {
 } else {
     if ($cert_type === 'pemenang') {
         $filename = "Canva_Sertifikat_Pemenang_Full_" . $cleanEventName . "_" . date('Ymd_His') . ".csv";
-        $csvHeaders = ['UID', 'Nama_Atlet', 'Klub_Sekolah', 'Nomor_Acara', 'Perlombaan', 'Kelompok_Umur', 'Gender', 'Waktu_Final', 'Peringkat', 'Juara', 'Medali', 'Juara_Angka'];
+        $csvHeaders = ['UID', 'Nama_Atlet', 'Asal_Sekolah', 'Klub_Sekolah', 'Nomor_Acara', 'Perlombaan', 'Kelompok_Umur', 'Gender', 'Waktu_Final', 'Peringkat', 'Juara', 'Medali', 'Juara_Angka'];
     } elseif ($cert_type === 'peserta') {
         if ($scope === 'swimmer') {
             $filename = "Canva_Sertifikat_Peserta_PerAtlet_Full_" . $cleanEventName . "_" . date('Ymd_His') . ".csv";
-            $csvHeaders = ['UID', 'Nama_Atlet', 'Klub_Sekolah', 'Gender', 'Kelompok_Umur', 'Peringkat', 'Predikat'];
+            $csvHeaders = ['UID', 'Nama_Atlet', 'Asal_Sekolah', 'Klub_Sekolah', 'Gender', 'Kelompok_Umur', 'Peringkat', 'Predikat'];
         } else {
             $filename = "Canva_Sertifikat_Peserta_PerNomor_Full_" . $cleanEventName . "_" . date('Ymd_His') . ".csv";
-            $csvHeaders = ['UID', 'Nama_Atlet', 'Klub_Sekolah', 'Nomor_Acara', 'Perlombaan', 'Kelompok_Umur', 'Gender', 'Waktu_Final', 'Peringkat', 'Predikat'];
+            $csvHeaders = ['UID', 'Nama_Atlet', 'Asal_Sekolah', 'Klub_Sekolah', 'Nomor_Acara', 'Perlombaan', 'Kelompok_Umur', 'Gender', 'Waktu_Final', 'Peringkat', 'Predikat'];
         }
     } else {
         $filename = "Canva_Sertifikat_Batch_Full_" . $cleanEventName . "_" . date('Ymd_His') . ".csv";
-        $csvHeaders = ['UID', 'Nama_Atlet', 'Klub_Sekolah', 'Nomor_Acara', 'Perlombaan', 'Kelompok_Umur', 'Gender', 'Waktu_Final', 'Peringkat'];
+        $csvHeaders = ['UID', 'Nama_Atlet', 'Asal_Sekolah', 'Klub_Sekolah', 'Nomor_Acara', 'Perlombaan', 'Kelompok_Umur', 'Gender', 'Waktu_Final', 'Peringkat'];
     }
 }
 
@@ -887,11 +952,14 @@ exit;
         if (ob_get_level() > 0) ob_clean();
 
         // Proteksi Akses
-        if (!isset($_SESSION['swim_role']) || ($_SESSION['swim_role'] !== 'admin' && $_SESSION['swim_role'] !== 'master')) {
+        $role = $_SESSION['role'] ?? ($_SESSION['swim_role'] ?? '');
+        if ($role !== 'admin' && $role !== 'master' && $role !== 'superadmin') {
             die("Akses Ditolak.");
         }
 
-        $event_id = isset($_REQUEST['event_id']) ? (int)$_REQUEST['event_id'] : 0;
+        $event_id = isset($_REQUEST['event_id']) ? (int)$_REQUEST['event_id'] : (int)($_SESSION['active_event_id'] ?? 0);
+        if ($event_id === 0) die("Event ID invalid.");
+        $_SESSION['active_event_id'] = $event_id;
         $filter_ku = isset($_REQUEST['ku']) ? $_REQUEST['ku'] : 'ALL';
         $filter_team = isset($_REQUEST['team']) ? $_REQUEST['team'] : 'ALL';
         $filter_limit = isset($_REQUEST['limit']) ? $_REQUEST['limit'] : 'ALL'; 

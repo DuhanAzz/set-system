@@ -103,3 +103,4 @@ assert(resolveTeamName($relay3) === 'RELAY TEAM', "Falls back to default RELAY T
 echo "✓ Test 4: Relay Team Name fallback PASSED!\n";
 
 echo "ALL MEDAL TALLY SYNCHRONIZATION TESTS PASSED!\n";
+

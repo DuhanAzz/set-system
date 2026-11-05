@@ -123,7 +123,7 @@
                             <span class="text-base">📋</span>
                             <div>
                                 <p class="text-[11px] font-black uppercase text-indigo-100 tracking-wider">Format Kolom CSV:</p>
-                                <p class="text-[10px] text-indigo-300 font-mono font-bold">Nama;Juara;Nomor lomba</p>
+                                <p class="text-[10px] text-indigo-300 font-mono font-bold">Nama;Asal Sekolah;Juara;Nomor lomba;Catatan Waktu</p>
                             </div>
                         </div>
                         <select id="canvaTemplateFormat" class="bg-indigo-900 border border-indigo-400/50 text-white rounded-lg text-[11px] font-bold py-1.5 px-2.5 focus:ring-2 focus:ring-indigo-400 focus:outline-none">
@@ -132,7 +132,7 @@
                         </select>
                     </div>
                     <p class="text-[10px] text-indigo-200/80 leading-tight">
-                        ✨ Langsung singkron otomatis dengan text box Canva: <code class="bg-indigo-900 px-1 py-0.5 rounded text-amber-300">{{Nama}}</code>, <code class="bg-indigo-900 px-1 py-0.5 rounded text-amber-300">{{Juara}}</code>, dan <code class="bg-indigo-900 px-1 py-0.5 rounded text-amber-300">{{Nomor lomba}}</code> (Pemisah titik koma <code class="bg-indigo-900 px-1 rounded text-white">;</code> tanpa tanda kutip).
+                        ✨ Langsung singkron otomatis dengan text box Canva: <code class="bg-indigo-900 px-1 py-0.5 rounded text-amber-300">{{Nama}}</code>, <code class="bg-indigo-900 px-1 py-0.5 rounded text-amber-300">{{Asal Sekolah}}</code>, <code class="bg-indigo-900 px-1 py-0.5 rounded text-amber-300">{{Juara}}</code>, <code class="bg-indigo-900 px-1 py-0.5 rounded text-amber-300">{{Nomor lomba}}</code>, dan <code class="bg-indigo-900 px-1 py-0.5 rounded text-amber-300">{{Catatan Waktu}}</code> (Pemisah titik koma <code class="bg-indigo-900 px-1 rounded text-white">;</code> tanpa tanda kutip).
                     </p>
                 </div>
 
