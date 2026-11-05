@@ -1,17 +1,20 @@
 <?php
-// === LOGIKA CONFIG ===
+// FILE: views/swim/admin/seeding/print_full.php
+// Buku Acara / Start List Resmi Format Lembar A4 Interaktif
+
+// === LOGIKA CONFIG & FILTER ===
 $usePost = ($_SERVER['REQUEST_METHOD'] === 'POST');
 $isSubmitted = $usePost || isset($_REQUEST['print_trigger']) || isset($_REQUEST['cfg_event_name']) || isset($_REQUEST['cfg_event_no']) || isset($_REQUEST['col_uid']);
 
 $pc = [
-    'show_event_no'   => $isSubmitted ? isset($_REQUEST['cfg_event_no']) : true,
-    'show_date'       => $isSubmitted ? isset($_REQUEST['cfg_date']) : true,
-    'show_event_name' => $isSubmitted ? isset($_REQUEST['cfg_event_name']) : true,
-    'show_group'      => $isSubmitted ? isset($_REQUEST['cfg_group']) : true,
-    'show_gender'     => $isSubmitted ? isset($_REQUEST['cfg_gender']) : true,
-    'show_pool'       => $isSubmitted ? isset($_REQUEST['cfg_pool']) : true,
-    'show_round'      => $isSubmitted ? isset($_REQUEST['cfg_round']) : true,
-    'show_records'    => $isSubmitted ? isset($_REQUEST['cfg_show_records']) : true,
+    'show_event_no'      => $isSubmitted ? isset($_REQUEST['cfg_event_no']) : true,
+    'show_date'          => $isSubmitted ? isset($_REQUEST['cfg_date']) : true,
+    'show_event_name'    => $isSubmitted ? isset($_REQUEST['cfg_event_name']) : true,
+    'show_group'         => $isSubmitted ? isset($_REQUEST['cfg_group']) : true,
+    'show_gender'        => $isSubmitted ? isset($_REQUEST['cfg_gender']) : true,
+    'show_pool'          => $isSubmitted ? isset($_REQUEST['cfg_pool']) : true,
+    'show_round'         => $isSubmitted ? isset($_REQUEST['cfg_round']) : true,
+    'show_records'       => $isSubmitted ? isset($_REQUEST['cfg_show_records']) : true,
     'show_event_records' => $isSubmitted ? isset($_REQUEST['cfg_show_event_records']) : true
 ];
 
@@ -24,7 +27,7 @@ $cc = [
     'hasil' => $isSubmitted ? isset($_REQUEST['col_hasil']) : true,
 ];
 
-$activeColumnsCount = 2; 
+$activeColumnsCount = 2; // LN & NAMA (wajib)
 if ($cc['uid'])   $activeColumnsCount++;
 if ($cc['lahir']) $activeColumnsCount++;
 if ($cc['ku'])    $activeColumnsCount++;
@@ -32,7 +35,7 @@ if ($cc['tim'])   $activeColumnsCount++;
 if ($cc['waktu']) $activeColumnsCount++;
 if ($cc['hasil']) $activeColumnsCount++;
 
-// Handle Images
+// Handle Uploaded Images
 $scheduleImage = null;
 if ($usePost && !empty($_FILES['schedule_image']['tmp_name'])) {
     $imgData = file_get_contents($_FILES['schedule_image']['tmp_name']);
@@ -47,27 +50,60 @@ if ($usePost && !empty($_FILES['cover_image']['tmp_name'])) {
     $coverImage = 'data:' . $_FILES['cover_image']['type'] . ';base64,' . base64_encode($imgData);
 }
 
-// === AMBIL DATA ===
-$eventId = $_GET['event_id'] ?? ($_POST['event_id'] ?? 0);
+// === RESOLVE EVENT ID DEFENSIVE ===
+$eventId = (int)($_GET['event_id'] ?? ($_POST['event_id'] ?? ($_SESSION['active_event_id'] ?? 0)));
 if ($eventId == 0) {
-    $uid = $_SESSION['swim_user_id'];
+    $uid = $_SESSION['swim_user_id'] ?? 0;
     $stmtLast = $pdo->prepare("SELECT id FROM swim_events WHERE user_id = ? ORDER BY id DESC LIMIT 1");
     $stmtLast->execute([$uid]);
-    $lastEvent = $stmtLast->fetch();
-    $eventId = $lastEvent['id'] ?? 0;
+    $eventId = (int)($stmtLast->fetchColumn() ?: 0);
+    if ($eventId == 0) {
+        $eventId = (int)($pdo->query("SELECT id FROM swim_events ORDER BY id DESC LIMIT 1")->fetchColumn() ?: 0);
+    }
 }
 
 $stmtProfile = $pdo->prepare("SELECT * FROM swim_events WHERE id = ?");
 $stmtProfile->execute([$eventId]);
 $raceInfo = $stmtProfile->fetch(PDO::FETCH_ASSOC);
 
+if (!function_exists('getPrintImageUrl')) {
+    function getPrintImageUrl($path) {
+        if (empty($path)) return null;
+        if (strpos($path, 'data:image/') === 0) return $path;
+        $cleanPath = ltrim(preg_replace('/^(\.\.\/)+/', '', $path), '/');
+        if (strpos($cleanPath, 'set-system/set-swim-system/') === 0) $cleanPath = substr($cleanPath, 28);
+        if (strpos($cleanPath, 'public/') === 0) $cleanPath = substr($cleanPath, 7);
+        
+        $sub = ltrim(str_replace(['public/uploads/', 'uploads/'], '', $cleanPath), '/');
+        $baseDir = dirname(dirname(dirname(dirname(__DIR__)))) . '/public';
+        $candidates = [
+            $baseDir . '/uploads/logos/' . $sub,
+            $baseDir . '/uploads/sponsors/' . $sub,
+            $baseDir . '/uploads/covers/' . $sub,
+            $baseDir . '/uploads/' . $sub,
+            $baseDir . '/' . ltrim($cleanPath, '/')
+        ];
+        foreach ($candidates as $cand) {
+            if (file_exists($cand) && !is_dir($cand)) {
+                $ext = strtolower(pathinfo($cand, PATHINFO_EXTENSION));
+                if ($ext === 'jpg') $ext = 'jpeg';
+                $data = file_get_contents($cand);
+                return 'data:image/' . $ext . ';base64,' . base64_encode($data);
+            }
+        }
+        
+        $appUrl = rtrim(getenv('APP_URL') ?: '', '/');
+        return $appUrl . '/' . ltrim($cleanPath, '/');
+    }
+}
+
 $eventName  = strtoupper($raceInfo['event_name'] ?? 'EVENT NAME');
 $loc  = $raceInfo['event_location'] ?? '-';
 if (!empty($raceInfo['event_city'])) $loc .= ' - ' . $raceInfo['event_city'];
 $venueName  = strtoupper($loc);
-$eventDate  = $raceInfo['event_date_start'];
-$logoLeft   = !empty($raceInfo['logo_left']) ? getenv('APP_URL') . '/public/' . ltrim($raceInfo['logo_left'], '/') : null;
-$logoRight  = !empty($raceInfo['logo_right']) ? getenv('APP_URL') . '/public/' . ltrim($raceInfo['logo_right'], '/') : null;
+$eventDate  = $raceInfo['event_date_start'] ?? date('Y-m-d');
+$logoLeft   = getPrintImageUrl($raceInfo['logo_left'] ?? '');
+$logoRight  = getPrintImageUrl($raceInfo['logo_right'] ?? '');
 $totalLane  = (int)($raceInfo['lane_count'] ?? 8);
 
 $activeLanes = [];
@@ -113,6 +149,7 @@ if (!function_exists('getKUName')) {
         return $age . " TH";
     }
 }
+
 if (!function_exists('getTeamName')) {
     function getTeamName($row, $type) {
         $club = $row['club_name'] ?? ''; $school = $row['asal_sekolah'] ?? '';
@@ -121,6 +158,7 @@ if (!function_exists('getTeamName')) {
     }
 }
 
+// === QUERY HANYA YANG SUDAH DIVERIFIKASI / LUNAS ===
 $sqlAll = "(
             SELECT en.id as cat_id, en.event_number, en.distance, en.stroke, en.age_group, en.jenis_kelamin, en.schedule_date, en.schedule_time, en.is_relay,
             es.heat_prelim as heat_no, es.lane_prelim as lane_no, es.time_prelim as entry_time,
@@ -132,6 +170,16 @@ $sqlAll = "(
            JOIN swim_swimmers s ON ee.swimmer_id = s.id
            LEFT JOIN swim_clubs c ON ee.club_id = c.id
            WHERE en.event_id = ? AND (en.is_relay = 0 OR en.is_relay IS NULL)
+             AND (
+                 ee.payment_status = 'Paid' 
+                 OR ee.status = 'Approved' 
+                 OR EXISTS (
+                     SELECT 1 FROM swim_payments p 
+                     WHERE p.user_id = ee.user_id 
+                       AND p.event_id = en.event_id 
+                       AND p.status IN ('Paid','completed')
+                 )
+             )
            )
            UNION ALL
            (
@@ -148,6 +196,15 @@ $sqlAll = "(
            LEFT JOIN swim_swimmers s3 ON re.swimmer_3_id = s3.id
            LEFT JOIN swim_swimmers s4 ON re.swimmer_4_id = s4.id
            WHERE en.event_id = ? AND en.is_relay = 1
+             AND (
+                 re.status = 'Approved' 
+                 OR EXISTS (
+                     SELECT 1 FROM swim_payments p 
+                     WHERE (p.user_id = re.club_id OR p.user_id IN (SELECT user_id FROM swim_clubs WHERE id = re.club_id))
+                       AND p.event_id = en.event_id 
+                       AND p.status IN ('Paid','completed')
+                 )
+             )
            )
            ORDER BY CAST(event_number AS UNSIGNED) ASC, heat_no ASC, lane_no ASC";
 
@@ -207,192 +264,476 @@ if ($showScheduleAuto) {
     usort($scheduleData, function($a, $b) { return (int)$a['no'] - (int)$b['no']; });
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Meet Program Print</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buku Acara (Start List) - <?= htmlspecialchars($eventName) ?></title>
+    <link rel="icon" type="image/png" href="<?= getenv('APP_URL') ?>/favicon.png?v=2">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        * { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-        body { margin: 0; padding: 0; font-family: 'Arial Narrow', sans-serif; background: #ccc; }
+        /* --- RESET & BASIC STYLES --- */
+        * { box-sizing: border-box; }
         
-        .page-wrapper { background: white; width: 210mm; margin: 20px auto; padding: 0 10mm; min-height: 297mm; position: relative; }
-        
-        .full-page { 
-            position: relative; width: 210mm; height: 297mm; margin: 0 auto;
-            z-index: 99999; background: white; display: flex; justify-content: center; align-items: center; overflow: hidden;
-            margin-bottom: -35mm; 
+        body {
+            margin: 0; padding: 0;
+            background-color: #334155;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            font-size: 8.5pt;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
+            color: #0f172a;
         }
-        .full-page-img { width: 100%; height: 100%; object-fit: fill; }
-        
-        /* HEADER FIXED */
-        .header-fixed { position: fixed; top: 0; left: 0; right: 0; height: 35mm; background: white; border-bottom: 3px double #000; display: grid; grid-template-columns: 110px 1fr 110px; align-items: flex-end; padding: 5px 10mm 3px 10mm; z-index: 999; }
-        .header-center { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; text-align: center; line-height: 1.2; color: #000; }
-        .header-line-1 { font-size: 14pt; font-weight: 900; text-transform: uppercase; margin-bottom: 2px; }
-        .header-line-2 { font-size: 9pt; font-weight: bold; text-transform: uppercase; }
-        .header-line-3 { font-size: 9pt; font-weight: bold; text-transform: uppercase; }
-        .header-line-4 { height: 3px; } 
-        .header-line-5 { font-size: 18pt; font-weight: 900; text-transform: uppercase; letter-spacing: 2px; color: #000; margin-top: 2px; margin-bottom: 0px; line-height: 1; }
-        .logo-img { max-height: 100px; max-width: 100%; object-fit: contain; margin-bottom: 2px; }
-        
-        .footer-fixed { position: fixed; bottom: 0; left: 0; right: 0; height: 20mm; background: white; border-top: 2px double #000; display: flex; justify-content: center; align-items: center; padding: 0 10mm; z-index: 999; }
-        
-        /* SPACER */
-        .layout-table { width: 100%; border-collapse: collapse; border: none; }
-        .layout-header-space { height: 40mm; } 
-        .layout-footer-space { height: 22mm; }
-        
-        /* TABEL STYLE */
-        .schedule-title { text-align:center; font-size:14pt; font-weight:900; margin-bottom:15px; text-transform:uppercase; font-family: 'Arial Narrow', sans-serif; text-decoration: underline; }
-        .schedule-table { width: 100%; border-collapse: collapse; border: none; font-family: 'Courier New', Courier, monospace; font-size: 8pt; }
-        .schedule-table th { border: none; border-bottom: 1px solid #000; text-align: left; padding: 2px 4px; text-transform: uppercase; font-weight: bold; }
-        .schedule-table td { border: none; padding: 1px 4px; vertical-align: top; font-weight: bold !important; }
-        .schedule-date-header { font-weight: 900; padding-top: 15px; padding-bottom: 5px; font-size: 9pt; text-decoration: underline; }
-        
-        .event-header { position: relative; display: flex; justify-content: space-between; align-items: flex-end; border-top: none; border-bottom: 2px solid #000; padding: 2px 0; margin-top: 5px; margin-bottom: 0px; background: #fff; min-height: 35px; }
-        .eh-left-group { display: flex; flex-direction: column; justify-content: center; width: 180px; line-height: 1.1; z-index: 2; position: relative; background: white; }
-        .eh-number { font-size: 14pt; font-weight: 900; margin-bottom: 2px; }
-        .eh-date { font-size: 8pt; font-weight: bold; font-style: normal; }
-        .eh-center { position: absolute; left: 50%; bottom: 3px; transform: translateX(-50%); text-align: center; width: 60%; z-index: 1; }
-        .eh-title  { font-size: 11pt; font-weight: 800; text-transform: uppercase; }
-        .eh-right  { font-size: 10pt; font-weight: 900; width: 80px; text-align: right; z-index: 2; position: relative; background: white; }
-        
-        /* REKOR CONTAINER DI ANTARA 2 LINES */
-        .event-records-container { border-bottom: 1px solid #000; padding: 4px 0; margin-bottom: 10px; font-size: 8pt; font-weight: bold; line-height: 1.3; text-align: left; }
-        .rec-row { display: flex; justify-content: flex-start; text-transform: uppercase; }
-        .rec-label { width: 140px; font-weight: 900; }
-        .rec-details { flex: 1; }
 
-        .heat-title { text-align: right; font-size: 9pt; font-weight: bold; text-transform: uppercase; margin-top: 12px; margin-bottom: 2px; }
-        .event-header + .heat-title { margin-top: 2px !important; }
-        
-        /* DATA TABLE DINAMIS - BOLD */
-        .data-table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: 2px; font-size: 8pt; }
-        .data-table th { background-color: #e5e7eb; color: #000; font-weight: bold; font-size: 8pt; text-transform: uppercase; padding: 2px 2px; border-top: 1px solid #000; border-bottom: 2px solid #000; text-align: center; }
-        .data-table td { padding: 4px 4px; border-bottom: 1px solid #ccc; vertical-align: middle; font-weight: bold !important; } 
-        
-        .col-ln { width: 5%; text-align: center; background: #f8f9fa; border-right: 1px solid #eee; font-weight: bold; white-space: nowrap; }
-        .col-uid { width: 12%; text-align: center; white-space: nowrap; font-family: 'Courier New', monospace; }
-        .col-nama { text-align: left; padding-left: 5px; white-space: normal; line-height: 1.1; }
-        .col-lahir { width: 8%; text-align: center; white-space: nowrap; }
-        .col-ku { width: 10%; text-align: center; white-space: nowrap; }
-        .col-tim { width: 22%; text-align: left; padding-left: 5px; white-space: normal; line-height: 1.1; }
-        .col-waktu { width: 10%; text-align: right; padding-right: 5px; white-space: nowrap; font-family: 'Courier New', monospace; }
-        .col-hasil { width: 12%; text-align: right; color: #000; letter-spacing: 0px; white-space: nowrap; }
-        
-        .data-table tr:nth-child(even) { background-color: #f9fafb; }
-        .data-table tr { break-inside: avoid; }
+        /* --- OUTER CONTAINER --- */
+        .sheet-container {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 70px 15px 90px 15px;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
 
+        /* --- STRUKTUR KERTAS (A4) --- */
+        .sheet {
+            width: 210mm;
+            min-height: 297mm;
+            background: white;
+            padding: 8mm 8mm 6mm 8mm; 
+            margin-bottom: 25px;
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            transition: transform 0.2s ease, zoom 0.2s ease;
+        }
+
+        .full-page { 
+            position: relative; width: 210mm; min-height: 297mm; margin: 0 auto 25px auto;
+            background: white; display: flex; justify-content: center; align-items: center; overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+        }
+        .full-page-img { width: 100%; height: 100%; object-fit: contain; }
+
+        /* --- HEADER (KOP SURAT RESMI) --- */
+        .kop-surat { width: 100%; border: none; margin-bottom: 10px; border-bottom: 3px double #000; padding-bottom: 8px; margin-top: 0; }
+        .kop-surat td { padding: 0; border: none; }
+        .kop-center { text-align: center; line-height: 1.2; color: #000; }
+        .kop-line-1 { font-size: 13pt; font-weight: 900; text-transform: uppercase; margin-bottom: 2px; }
+        .kop-line-2 { font-size: 8.5pt; font-weight: bold; text-transform: uppercase; color: #333; }
+        .kop-line-3 { font-size: 8.5pt; font-weight: bold; text-transform: uppercase; color: #333; }
+        .kop-title  { font-size: 15pt; font-weight: 900; text-transform: uppercase; letter-spacing: 2px; margin-top: 4px; color: #000; }
+        .logo-img   { max-height: 65px; max-width: 100px; object-fit: contain; }
+
+        /* --- MASTER LAYOUT TABLE --- */
+        table.master-layout { width: 100%; border: none; border-collapse: collapse; flex-grow: 1; }
+        table.master-layout > thead > tr > td { padding: 0; border: none; }
+        table.master-layout > tbody > tr > td { padding: 0; border: none; }
+        table.master-layout > tfoot > tr > td { padding: 0; border: none; }
+
+        /* --- EVENT SUB-HEADER --- */
+        .event-header {
+            position: relative; display: flex; justify-content: space-between; align-items: flex-end;
+            border-bottom: 2px solid #000; padding: 4px 0; margin-top: 8px; margin-bottom: 6px;
+            background: #fff; min-height: 32px;
+        }
+        .eh-left-group { display: flex; flex-direction: column; justify-content: center; line-height: 1.1; }
+        .eh-number { font-size: 12pt; font-weight: 900; margin-bottom: 2px; color: #000; }
+        .eh-date { font-size: 8pt; font-weight: bold; color: #475569; }
+        .eh-center { text-align: center; flex: 1; padding: 0 10px; }
+        .eh-title  { font-size: 11pt; font-weight: 900; text-transform: uppercase; color: #000; }
+        .eh-right  { font-size: 10pt; font-weight: 900; text-align: right; color: #000; min-width: 60px; }
+
+        /* --- REKOR CONTAINER --- */
+        .records-table { width: 100%; border-collapse: collapse; font-size: 7.5pt; margin-bottom: 8px; border-bottom: 1px solid #000; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
+        .records-table th { text-align: left; padding: 3px 4px; background: #f1f5f9; border-top: 1px solid #000; border-bottom: 1px solid #000; font-weight: 900; text-transform: uppercase; }
+        .records-table td { padding: 2.5px 4px; border: none; font-weight: bold; text-transform: uppercase; }
+
+        /* --- JADWAL ORDER OF EVENTS --- */
+        .schedule-title { text-align: center; font-size: 13pt; font-weight: 900; margin-bottom: 12px; text-transform: uppercase; text-decoration: underline; }
+        .schedule-table { width: 100%; border-collapse: collapse; font-size: 8pt; margin-bottom: 15px; }
+        .schedule-table th { border-bottom: 2px solid #000; text-align: left; padding: 4px; background: #f1f5f9; text-transform: uppercase; font-weight: 900; }
+        .schedule-table td { border-bottom: 1px solid #e2e8f0; padding: 3px 4px; vertical-align: top; font-weight: bold; }
+        .schedule-date-header { font-weight: 900; padding: 10px 4px 4px 4px; font-size: 9pt; text-decoration: underline; background: #e2e8f0; }
+
+        /* --- DATA TABLE PESERTA HEAT --- */
+        .heat-title { text-align: right; font-size: 8.5pt; font-weight: 900; text-transform: uppercase; margin-top: 10px; margin-bottom: 3px; color: #0f172a; }
+        .event-header + .heat-title { margin-top: 4px !important; }
+
+        table.data-table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: 6px; font-size: 8pt; }
+        table.data-table th, table.data-table td { border: 1px solid #9ca3af; padding: 3.5px 4px; }
+        table.data-table th { background-color: #f1f5f9; font-weight: 900; text-transform: uppercase; font-size: 8pt; text-align: center; border-bottom: 2px solid #000; }
+        
+        .col-ln { width: 5%; text-align: center; font-weight: 900; background: #f8fafc; }
+        .col-uid { width: 11%; text-align: center; font-family: 'Courier New', monospace; font-weight: bold; }
+        .col-nama { text-align: left; padding-left: 6px; font-weight: bold; }
+        .col-lahir { width: 8%; text-align: center; font-weight: bold; }
+        .col-ku { width: 9%; text-align: center; font-weight: bold; }
+        .col-tim { width: 22%; text-align: left; padding-left: 6px; font-weight: bold; }
+        .col-waktu { width: 10%; text-align: right; padding-right: 6px; font-family: 'Courier New', monospace; font-weight: bold; }
+        .col-hasil { width: 10%; text-align: center; font-family: 'Courier New', monospace; font-weight: 900; }
+
+        table.data-table tr:nth-child(even) { background-color: #f8fafc; }
+        table.data-table tr { break-inside: avoid; }
+
+        /* --- FOOTER SPONSOR --- */
+        .sponsor-footer {
+            margin-top: auto;
+            text-align: center;
+            border-top: 2px double #000;
+            padding-top: 8px;
+            padding-bottom: 4px;
+            width: 100%;
+        }
+        .sponsor-footer img {
+            height: 32px;
+            width: auto;
+            object-fit: contain;
+            margin: 0 8px;
+        }
+
+        /* --- DESKTOP FLOATING BAR --- */
+        .desktop-bar {
+            position: fixed;
+            top: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(51, 65, 85, 0.8);
+            border-radius: 9999px;
+            padding: 8px 20px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+            color: #f8fafc;
+        }
+        .desktop-bar a.btn-back {
+            color: #cbd5e1;
+            text-decoration: none;
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: color 0.2s ease;
+        }
+        .desktop-bar a.btn-back:hover { color: #38bdf8; }
+        .desktop-bar .divider { width: 1px; height: 16px; background-color: #475569; }
+        .desktop-bar .class-tag { font-size: 11px; font-weight: 700; color: #e2e8f0; display: flex; align-items: center; gap: 8px; }
+        .desktop-bar .class-tag .badge {
+            background: #10b981;
+            color: #fff;
+            padding: 2px 7px;
+            border-radius: 6px;
+            font-weight: 900;
+            font-size: 10px;
+        }
+        .desktop-bar .zoom-controls {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #1e293b;
+            padding: 2px 6px;
+            border-radius: 8px;
+            border: 1px solid #475569;
+        }
+        .desktop-bar .btn-zoom {
+            background: transparent;
+            border: none;
+            color: #94a3b8;
+            cursor: pointer;
+            padding: 3px 6px;
+            font-size: 11px;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+        .desktop-bar .btn-zoom:hover { color: #fff; background: #334155; }
+        .desktop-bar .zoom-text { font-size: 10px; font-weight: 800; min-width: 36px; text-align: center; color: #e2e8f0; }
+        
+        .desktop-bar .btn-print-action {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: background 0.2s ease, transform 0.1s ease;
+        }
+        .desktop-bar .btn-print-action:hover { background: #1d4ed8; transform: translateY(-1px); }
+
+        /* --- MOBILE BOTTOM TAB BAR --- */
+        .mobile-bottom-bar {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            background: rgba(15, 23, 42, 0.96);
+            backdrop-filter: blur(16px);
+            border-top: 1px solid rgba(51, 65, 85, 0.8);
+            padding: 8px 12px calc(8px + env(safe-area-inset-bottom, 0px)) 12px;
+            box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.5);
+            justify-content: space-around;
+            align-items: center;
+        }
+        .mobile-bottom-bar .tab-btn {
+            background: transparent;
+            border: none;
+            color: #94a3b8;
+            font-size: 10px;
+            font-weight: 800;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            text-decoration: none;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 8px;
+        }
+        .mobile-bottom-bar .tab-btn i { font-size: 15px; }
+
+        /* --- RESPONSIVE MEDIA QUERIES --- */
+        @media screen and (max-width: 768px) {
+            .desktop-bar { display: none !important; }
+            .mobile-bottom-bar { display: flex !important; }
+            .sheet-container {
+                padding: 15px 5px 85px 5px;
+            }
+            .sheet, .full-page {
+                box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            }
+        }
+
+        /* --- PRINT STYLES --- */
         @media print {
-            @page { size: A4; margin: 0; }
-            body { background: white; margin: 0; }
-            .full-page { position: relative; width: 100%; height: 100vh; margin: 0; page-break-after: always; break-after: always; z-index: 99999; background: white; }
+            body { background: white !important; margin: 0 !important; padding: 0 !important; color: #000; }
+            .sheet-container { display: block !important; padding: 0 !important; overflow: visible !important; }
+            .full-page {
+                position: relative; width: 100% !important; height: 100vh !important; margin: 0 !important;
+                page-break-after: always; break-after: always; box-shadow: none !important;
+            }
             .schedule-section { break-after: always; page-break-after: always; }
-            .page-wrapper { margin: 0; width: 100%; box-shadow: none; padding: 0 10mm; min-height: auto; position: relative; }
-            .layout-table > thead { display: table-header-group !important; }
-            .data-table > thead { display: table-row-group !important; }
-            tfoot { display: table-footer-group; }
+            .sheet {
+                margin: 0 auto !important; box-shadow: none !important; border: none !important;
+                position: static !important; transform: none !important; zoom: 1 !important;
+                width: 100% !important; max-width: 210mm !important; min-height: 297mm !important;
+                padding: 8mm 8mm 5mm 8mm !important;
+                page-break-inside: auto;
+            }
+            .desktop-bar, .mobile-bottom-bar { display: none !important; }
+            @page { margin: 0; size: A4; }
+            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
         }
     </style>
-    <script>
-        window.onload = function() { setTimeout(function() { window.print(); }, 800); };
-    </script>
 </head>
 <body>
-    
-    <?php if ($coverImage): ?><div class="full-page"><img src="<?= $coverImage ?>" class="full-page-img"></div><?php endif; ?>
-    <?php if ($scheduleImage): ?><div class="full-page"><img src="<?= $scheduleImage ?>" class="full-page-img"></div><?php endif; ?>
 
-    <div class="header-fixed">
-        <div style="text-align: left;"><?php if($logoLeft): ?><img src="<?= $logoLeft ?>" class="logo-img"><?php endif; ?></div>
-        <div class="header-center">
-            <div class="header-line-1"><?= htmlspecialchars($eventName) ?></div>
-            <div class="header-line-2"><?= htmlspecialchars($venueName) ?></div>
-            <div class="header-line-3"><?= htmlspecialchars($dateRange) ?></div>
-            <div class="header-line-4"></div>
-            <div class="header-line-5">BUKU ACARA</div>
+    <!-- DESKTOP FLOATING BAR -->
+    <div class="desktop-bar">
+        <a href="<?= getenv('APP_URL') ?>/swim/admin/seeding/index?event_id=<?= $eventId ?>" class="btn-back">
+            <i class="fas fa-arrow-left"></i> Kembali
+        </a>
+        <div class="divider"></div>
+        <div class="class-tag">
+            <span class="badge">BUKU ACARA</span>
+            <span><?= htmlspecialchars($eventName) ?></span>
         </div>
-        <div style="text-align: right;"><?php if($logoRight): ?><img src="<?= $logoRight ?>" class="logo-img"><?php endif; ?></div>
+        <div class="divider"></div>
+        <div class="zoom-controls">
+            <button type="button" class="btn-zoom" onclick="zoomSheet(-0.1)" title="Perkecil"><i class="fas fa-search-minus"></i></button>
+            <span id="zoomPercent" class="zoom-text">100%</span>
+            <button type="button" class="btn-zoom" onclick="zoomSheet(0.1)" title="Perbesar"><i class="fas fa-search-plus"></i></button>
+            <button type="button" class="btn-zoom" onclick="resetZoom()" title="Reset Zoom"><i class="fas fa-redo-alt"></i></button>
+        </div>
+        <div class="divider"></div>
+        <button type="button" onclick="window.print()" class="btn-print-action">
+            <i class="fas fa-print"></i> Cetak / Simpan PDF
+        </button>
     </div>
 
-    <div class="footer-fixed">
-        <?php if(!empty($sponsors)): foreach($sponsors as $img): ?>
-            <img src="<?= getenv('APP_URL') . '/public/' . ltrim($img, '/') ?>" style="height:45px; margin:0 10px;">
-        <?php endforeach; endif; ?>
+    <!-- MOBILE BOTTOM BAR -->
+    <div class="mobile-bottom-bar">
+        <a href="<?= getenv('APP_URL') ?>/swim/admin/seeding/index?event_id=<?= $eventId ?>" class="tab-btn">
+            <i class="fas fa-arrow-left"></i>
+            <span>Kembali</span>
+        </a>
+        <button type="button" class="tab-btn" onclick="cycleZoomMobile()">
+            <i class="fas fa-search-plus"></i>
+            <span id="mobileZoomLabel">Zoom</span>
+        </button>
+        <button type="button" class="tab-btn" style="color:#38bdf8;" onclick="window.print()">
+            <i class="fas fa-print"></i>
+            <span>Cetak PDF</span>
+        </button>
     </div>
 
-    <?php if ($showScheduleAuto && empty($scheduleImage) && !empty($scheduleData)): ?>
-        <div class="page-wrapper schedule-section">
-            <table class="layout-table">
-                <thead><tr><td><div class="layout-header-space"></div></td></tr></thead>
-                <tfoot><tr><td><div class="layout-footer-space"></div></td></tr></tfoot>
-                <tbody>
+    <!-- MAIN SHEET WRAPPER -->
+    <div class="sheet-container" id="sheetContainer">
+        
+        <?php if ($coverImage): ?>
+            <div class="full-page">
+                <img src="<?= $coverImage ?>" class="full-page-img" alt="Cover Buku Acara">
+            </div>
+        <?php endif; ?>
+
+        <?php if ($scheduleImage): ?>
+            <div class="full-page">
+                <img src="<?= $scheduleImage ?>" class="full-page-img" alt="Jadwal Acara">
+            </div>
+        <?php endif; ?>
+
+        <?php if ($showScheduleAuto && empty($scheduleImage) && !empty($scheduleData)): ?>
+            <div class="sheet schedule-section print-sheet-target">
+                <!-- Kop Surat di Halaman Jadwal -->
+                <table class="kop-surat">
+                    <tr>
+                        <td style="width: 20%; text-align: left; vertical-align: middle;">
+                            <?php if($logoLeft): ?>
+                                <img src="<?= $logoLeft ?>" class="logo-img" alt="Logo">
+                            <?php endif; ?>
+                        </td>
+                        <td style="width: 60%; vertical-align: middle;" class="kop-center">
+                            <div class="kop-line-1"><?= htmlspecialchars($eventName) ?></div>
+                            <div class="kop-line-2"><?= htmlspecialchars($venueName) ?></div>
+                            <div class="kop-line-3"><?= htmlspecialchars($dateRange) ?></div>
+                            <div class="kop-title">SUSUNAN ACARA</div>
+                        </td>
+                        <td style="width: 20%; text-align: right; vertical-align: middle;">
+                            <?php if($logoRight): ?>
+                                <img src="<?= $logoRight ?>" class="logo-img" alt="Logo">
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                </table>
+
+                <div class="schedule-title">ORDER OF EVENTS</div>
+                <table class="schedule-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 10%">JAM</th>
+                            <th style="width: 8%; text-align:center">NO</th>
+                            <th style="width: 35%">URAIAN ACARA</th>
+                            <th style="width: 35%">KATEGORI</th>
+                            <th style="width: 12%; text-align:right">BABAK</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php $lastDate = ''; foreach($scheduleData as $sch): if ($sch['tgl_display'] !== $lastDate): ?>
+                            <tr><td colspan="5" class="schedule-date-header"><?= $sch['tgl_display'] ?></td></tr>
+                        <?php $lastDate = $sch['tgl_display']; endif; ?>
+                        <tr>
+                            <td><?= $sch['jam'] ?></td>
+                            <td style="text-align:center;">#<?= $sch['no'] ?></td>
+                            <td><?= $sch['uraian'] ?></td>
+                            <td><?= $sch['kategori'] ?></td>
+                            <td style="text-align:right;"><?= $sch['babak'] ?></td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+
+                <?php if(!empty($sponsors)): ?>
+                    <div class="sponsor-footer">
+                        <?php foreach($sponsors as $img): 
+                            $sponUrl = getPrintImageUrl($img);
+                            if ($sponUrl): ?>
+                                <img src="<?= $sponUrl ?>" alt="Sponsor">
+                            <?php endif; ?>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
+            </div>
+        <?php endif; ?>
+
+        <!-- KERTAS BUKU ACARA (MEET PROGRAM) -->
+        <div class="sheet print-sheet-target" id="mainMeetSheet">
+            <table class="master-layout">
+                <thead>
                     <tr>
                         <td>
-                            <div class="schedule-title">SUSUNAN ACARA (ORDER OF EVENTS)</div>
-                            <table class="schedule-table">
-                                <thead>
-                                    <tr>
-                                        <th style="width:8%">JAM</th>
-                                        <th style="width:6%; text-align:center">NO</th>
-                                        <th style="width:35%">URAIAN ACARA</th>
-                                        <th style="width:40%">KATEGORI</th>
-                                        <th style="width:11%; text-align:right">BABAK</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php $lastDate = ''; foreach($scheduleData as $sch): if ($sch['tgl_display'] !== $lastDate): ?>
-                                        <tr><td colspan="5" class="schedule-date-header"><?= $sch['tgl_display'] ?></td></tr>
-                                    <?php $lastDate = $sch['tgl_display']; endif; ?>
-                                    <tr>
-                                        <td><?= $sch['jam'] ?></td>
-                                        <td style="text-align:center;">#<?= $sch['no'] ?></td>
-                                        <td><?= $sch['uraian'] ?></td>
-                                        <td><?= $sch['kategori'] ?></td>
-                                        <td style="text-align:right;"><?= $sch['babak'] ?></td>
-                                    </tr>
-                                    <?php endforeach; ?>
-                                </tbody>
+                            <table class="kop-surat">
+                                <tr>
+                                    <td style="width: 20%; text-align: left; vertical-align: middle;">
+                                        <?php if($logoLeft): ?>
+                                            <img src="<?= $logoLeft ?>" class="logo-img" alt="Logo">
+                                        <?php endif; ?>
+                                    </td>
+                                    <td style="width: 60%; vertical-align: middle;" class="kop-center">
+                                        <div class="kop-line-1"><?= htmlspecialchars($eventName) ?></div>
+                                        <div class="kop-line-2"><?= htmlspecialchars($venueName) ?></div>
+                                        <div class="kop-line-3"><?= htmlspecialchars($dateRange) ?></div>
+                                        <div class="kop-title">BUKU ACARA</div>
+                                    </td>
+                                    <td style="width: 20%; text-align: right; vertical-align: middle;">
+                                        <?php if($logoRight): ?>
+                                            <img src="<?= $logoRight ?>" class="logo-img" alt="Logo">
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
                             </table>
                         </td>
                     </tr>
-                </tbody>
-            </table>
-        </div>
-    <?php endif; ?>
+                </thead>
 
-    <div class="page-wrapper">
-        <table class="layout-table">
-            <thead><tr><td><div class="layout-header-space"></div></td></tr></thead>
-            <tfoot><tr><td><div class="layout-footer-space"></div></td></tr></tfoot>
-            <tbody>
-                <tr>
-                    <td>
-                        <?php if(empty($fullBook)): ?>
-                            <div style="text-align:center; padding: 50px; font-weight:bold;">DATA KOSONG</div>
-                        <?php else: ?>
-                            <?php foreach($fullBook as $catId => $data): ?>
-                                <div class="event-header">
-                                    <div class="eh-left-group">
-                                        <?php if($pc['show_event_no']): ?><div class="eh-number">ACARA #<?= $data['meta']['nomor'] ?></div><?php endif; ?>
-                                        <?php if($pc['show_date']): ?><div class="eh-date"><?= $data['meta']['jadwal'] ?></div><?php endif; ?>
-                                    </div>
-                                    <div class="eh-center"><div class="eh-title"><?= $data['meta']['judul'] ?></div></div>
-                                    <div class="eh-right"><?= $pc['show_round'] ? 'FINAL' : '' ?></div>
+                <tbody>
+                    <tr>
+                        <td>
+                            <?php if(empty($fullBook)): ?>
+                                <div style="text-align:center; padding: 60px 20px; font-weight:bold; color:#64748b;">
+                                    <i class="fas fa-folder-open" style="font-size: 32px; margin-bottom: 10px; display:block;"></i>
+                                    TIDAK ADA DATA ENTRI YANG SUDAH DILUNASKAN / DIVERIFIKASI
                                 </div>
+                            <?php else: ?>
+                                <?php foreach($fullBook as $catId => $data): ?>
+                                    
+                                    <!-- Event Header -->
+                                    <div class="event-header">
+                                        <div class="eh-left-group">
+                                            <?php if($pc['show_event_no']): ?>
+                                                <div class="eh-number">ACARA #<?= htmlspecialchars($data['meta']['nomor']) ?></div>
+                                            <?php endif; ?>
+                                            <?php if($pc['show_date']): ?>
+                                                <div class="eh-date"><?= htmlspecialchars($data['meta']['jadwal']) ?></div>
+                                            <?php endif; ?>
+                                        </div>
+                                        <div class="eh-center">
+                                            <div class="eh-title"><?= htmlspecialchars($data['meta']['judul']) ?></div>
+                                        </div>
+                                        <div class="eh-right">
+                                            <?= $pc['show_round'] ? 'FINAL' : '' ?>
+                                        </div>
+                                    </div>
 
-                                <div class="event-records-container" style="border:none; padding:0; margin-bottom:10px;">
+                                    <!-- Event Records (Rekornas & Rekor Event) -->
                                     <?php 
                                     if($pc['show_records']): 
                                         $records = [];
                                         
-                                        // 1. Ambil Rekornas (Dari master_records)
+                                        // 1. Master Records (Rekornas)
                                         $stmtRec = $pdo->prepare("SELECT record_type, holder_name, record_time, location, record_year FROM swim_master_records WHERE distance = ? AND stroke = ? AND jenis_kelamin = ? AND record_type = 'rekornas' ORDER BY id ASC");
                                         $stmtRec->execute([$data['meta']['distance'], $data['meta']['stroke'], $data['meta']['jenis_kelamin']]);
                                         $records = array_merge($records, $stmtRec->fetchAll(PDO::FETCH_ASSOC));
 
-                                        // 2. Ambil Rekor Acuan (Dari event_historical_records)
+                                        // 2. Event Historical Records
                                         if ($pc['show_event_records'] && !empty($raceInfo['record_package_id'])) {
                                             $stmtPkg = $pdo->prepare("
                                                 SELECT 'rekor_event' as record_type, ehr.holder_name, ehr.record_time, e.event_city as location, COALESCE(YEAR(e.event_date_start), ehr.event_year) as record_year 
@@ -409,102 +750,173 @@ if ($showScheduleAuto) {
                                         }
                                         
                                         if(!empty($records)):
-                                            ?>
-                                            <table style="width: 100%; border-collapse: collapse; font-size: 8pt; font-family: 'Arial Narrow', sans-serif; font-weight: bold; border-bottom: 1px solid #000; text-transform: uppercase;">
+                                        ?>
+                                            <table class="records-table">
                                                 <thead>
-                                                    <tr style="border-bottom: 1px solid #000;">
-                                                        <th style="text-align: left; padding: 2px 0; width: 140px;">REKOR</th>
-                                                        <th style="text-align: left; padding: 2px 0;">NAMA ATLET</th>
-                                                        <th style="text-align: left; padding: 2px 0; width: 180px;">LOKASI</th>
-                                                        <th style="text-align: center; padding: 2px 0; width: 60px;">TAHUN</th>
-                                                        <th style="text-align: right; padding: 2px 0; width: 80px;">WAKTU</th>
+                                                    <tr>
+                                                        <th style="width: 130px;">REKOR</th>
+                                                        <th>NAMA ATLET</th>
+                                                        <th style="width: 170px;">LOKASI</th>
+                                                        <th style="width: 50px; text-align: center;">THN</th>
+                                                        <th style="width: 75px; text-align: right;">WAKTU</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
-                                            <?php
-                                            foreach($records as $rec):
-                                                $tipeLabel = strtoupper(str_replace('_', ' ', $rec['record_type']));
-                                                if($tipeLabel === 'REKORNAS') $tipeLabel = 'REKOR NAS';
-                                                
-                                                $lokasiDisplay = !empty($rec['location']) ? strtoupper($rec['location']) : '-';
-                                                $tahunDisplay = !empty($rec['record_year']) ? $rec['record_year'] : '-';
-                                                ?>
-                                                <tr>
-                                                    <td style="padding: 2px 0;"><?= $tipeLabel ?></td>
-                                                    <td style="padding: 2px 0;"><?= strtoupper($rec['holder_name']) ?></td>
-                                                    <td style="padding: 2px 0;"><?= $lokasiDisplay ?></td>
-                                                    <td style="text-align: center; padding: 2px 0;"><?= $tahunDisplay ?></td>
-                                                    <td style="text-align: right; padding: 2px 0;"><?= $rec['record_time'] ?></td>
-                                                </tr>
-                                                <?php 
-                                            endforeach;
-                                            ?>
+                                                    <?php foreach($records as $rec):
+                                                        $tipeLabel = strtoupper(str_replace('_', ' ', $rec['record_type']));
+                                                        if($tipeLabel === 'REKORNAS') $tipeLabel = 'REKOR NAS';
+                                                        $lokasiDisplay = !empty($rec['location']) ? strtoupper($rec['location']) : '-';
+                                                        $tahunDisplay = !empty($rec['record_year']) ? $rec['record_year'] : '-';
+                                                    ?>
+                                                        <tr>
+                                                            <td><?= $tipeLabel ?></td>
+                                                            <td><?= strtoupper(htmlspecialchars($rec['holder_name'])) ?></td>
+                                                            <td><?= htmlspecialchars($lokasiDisplay) ?></td>
+                                                            <td style="text-align: center;"><?= htmlspecialchars($tahunDisplay) ?></td>
+                                                            <td style="text-align: right;"><?= htmlspecialchars($rec['record_time']) ?></td>
+                                                        </tr>
+                                                    <?php endforeach; ?>
                                                 </tbody>
                                             </table>
-                                            <?php
-                                        else:
-                                            echo "<div style='color:#aaa; font-style:italic;'>NO MASTER RECORD DATA FOUND</div>";
-                                        endif;
-                                    else:
-                                        echo "<div style='height:2px;'></div>";
-                                    endif; 
-                                    ?>
-                                </div>
+                                        <?php endif; ?>
+                                    <?php endif; ?>
 
-                                <?php foreach($data['heats'] as $heatNo => $lanes): ?>
-                                    <div class="heat-title">SERI <?= $heatNo ?></div>
-                                    <table class="data-table">
-                                        <thead>
-                                            <tr>
-                                                <th class="col-ln">LN</th>
-                                                <?php if($cc['uid']): ?><th class="col-uid">UID</th><?php endif; ?>
-                                                <th class="col-nama">NAMA ATLET</th>
-                                                <?php if($cc['lahir']): ?><th class="col-lahir">LAHIR</th><?php endif; ?>
-                                                <?php if($cc['ku']): ?><th class="col-ku">KU</th><?php endif; ?>
-                                                <?php if($cc['tim']): ?><th class="col-tim">TIM</th><?php endif; ?>
-                                                <?php if($cc['waktu']): ?><th class="col-waktu">WAKTU</th><?php endif; ?>
-                                                <?php if($cc['hasil']): ?><th class="col-hasil">HASIL</th><?php endif; ?>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <?php foreach($activeLanes as $ln): $s = $lanes[$ln] ?? null; ?>
-                                            <tr>
-                                                <td class="col-ln"><?= $ln ?></td>
-                                                <?php if($s): ?>
-                                                    <?php if($cc['uid']): ?><td class="col-uid"><?= htmlspecialchars($s['uid'] ?? '-') ?></td><?php endif; ?>
-                                                    <td class="col-nama">
-                                                    <?php if(isset($data['meta']['is_relay']) && $data['meta']['is_relay'] == 1): ?>
-                                                        <span style="font-size:8.5pt;"><strong><?= htmlspecialchars($s['club_name'] ?? 'Klub') ?> - <?= htmlspecialchars($s['team_name'] ?? 'Tim') ?></strong></span><br>
-                                                        <span style="font-size:7pt; font-weight:normal; color:#444; line-height:1;">
-                                                            1. <?= htmlspecialchars($s['n1'] ?? '(Belum Diatur)') ?>, 
-                                                            2. <?= htmlspecialchars($s['n2'] ?? '(Belum Diatur)') ?><br>
-                                                            3. <?= htmlspecialchars($s['n3'] ?? '(Belum Diatur)') ?>, 
-                                                            4. <?= htmlspecialchars($s['n4'] ?? '(Belum Diatur)') ?>
-                                                        </span>
-                                                    <?php else: ?>
-                                                        <?= htmlspecialchars($s['nama_atlet'] ?? '') ?>
-                                                    <?php endif; ?>
-                                                    </td>
-                                                    <?php if($cc['lahir']): ?><td class="col-lahir"><?= (!empty($s['tanggal_lahir']) && $s['tanggal_lahir']!='0000-00-00') ? date('Y', strtotime($s['tanggal_lahir'])) : '-' ?></td><?php endif; ?>
-                                                    <?php if($cc['ku']): ?><td class="col-ku"><?= !empty($s['tanggal_lahir']) ? getKUName($s['tanggal_lahir'], $eventYear, $ageGroups) : '-' ?></td><?php endif; ?>
-                                                    <?php if($cc['tim']): ?><td class="col-tim"><?= htmlspecialchars(getTeamName($s, $partType)) ?></td><?php endif; ?>
-                                                    <?php if($cc['waktu']): ?><td class="col-waktu"><?= (!$s['entry_time'] || $s['entry_time']=='99.99.99') ? 'NT' : $s['entry_time'] ?></td><?php endif; ?>
-                                                    <?php if($cc['hasil']): ?><td class="col-hasil">[.......]</td><?php endif; ?>
-                                                <?php else: ?>
-                                                    <td colspan="<?= ($activeColumnsCount - 1) ?>" style="color:#aaa; font-style:italic; padding-left:10px;">&lt;Kosong&gt;</td>
-                                                <?php endif; ?>
-                                            </tr>
-                                            <?php endforeach; ?>
-                                        </tbody>
-                                    </table>
+                                    <!-- Heats & Lanes -->
+                                    <?php foreach($data['heats'] as $heatNo => $lanes): ?>
+                                        <div class="heat-title">SERI <?= $heatNo ?></div>
+                                        <table class="data-table">
+                                            <thead>
+                                                <tr>
+                                                    <th class="col-ln">LN</th>
+                                                    <?php if($cc['uid']): ?><th class="col-uid">UID</th><?php endif; ?>
+                                                    <th class="col-nama">NAMA ATLET</th>
+                                                    <?php if($cc['lahir']): ?><th class="col-lahir">LAHIR</th><?php endif; ?>
+                                                    <?php if($cc['ku']): ?><th class="col-ku">KU</th><?php endif; ?>
+                                                    <?php if($cc['tim']): ?><th class="col-tim">TIM / KLUB</th><?php endif; ?>
+                                                    <?php if($cc['waktu']): ?><th class="col-waktu">WAKTU</th><?php endif; ?>
+                                                    <?php if($cc['hasil']): ?><th class="col-hasil">HASIL</th><?php endif; ?>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <?php foreach($activeLanes as $ln): $s = $lanes[$ln] ?? null; ?>
+                                                    <tr>
+                                                        <td class="col-ln"><?= $ln ?></td>
+                                                        <?php if($s): ?>
+                                                            <?php if($cc['uid']): ?>
+                                                                <td class="col-uid"><?= htmlspecialchars($s['uid'] ?? '-') ?></td>
+                                                            <?php endif; ?>
+                                                            <td class="col-nama">
+                                                                <?php if(isset($data['meta']['is_relay']) && $data['meta']['is_relay'] == 1): ?>
+                                                                    <div style="font-size: 8.5pt;"><strong><?= htmlspecialchars($s['club_name'] ?? 'Klub') ?> - <?= htmlspecialchars($s['team_name'] ?? 'Tim') ?></strong></div>
+                                                                    <div style="font-size: 7pt; font-weight: normal; color: #475569; line-height: 1.1;">
+                                                                        1. <?= htmlspecialchars($s['n1'] ?? '(Belum Diatur)') ?>, 
+                                                                        2. <?= htmlspecialchars($s['n2'] ?? '(Belum Diatur)') ?><br>
+                                                                        3. <?= htmlspecialchars($s['n3'] ?? '(Belum Diatur)') ?>, 
+                                                                        4. <?= htmlspecialchars($s['n4'] ?? '(Belum Diatur)') ?>
+                                                                    </div>
+                                                                <?php else: ?>
+                                                                    <?= htmlspecialchars($s['nama_atlet'] ?? '') ?>
+                                                                <?php endif; ?>
+                                                            </td>
+                                                            <?php if($cc['lahir']): ?>
+                                                                <td class="col-lahir"><?= (!empty($s['tanggal_lahir']) && $s['tanggal_lahir']!='0000-00-00') ? date('Y', strtotime($s['tanggal_lahir'])) : '-' ?></td>
+                                                            <?php endif; ?>
+                                                            <?php if($cc['ku']): ?>
+                                                                <td class="col-ku"><?= !empty($s['tanggal_lahir']) ? getKUName($s['tanggal_lahir'], $eventYear, $ageGroups) : '-' ?></td>
+                                                            <?php endif; ?>
+                                                            <?php if($cc['tim']): ?>
+                                                                <td class="col-tim"><?= htmlspecialchars(getTeamName($s, $partType)) ?></td>
+                                                            <?php endif; ?>
+                                                            <?php if($cc['waktu']): ?>
+                                                                <td class="col-waktu"><?= (!$s['entry_time'] || $s['entry_time']=='99.99.99') ? 'NT' : htmlspecialchars($s['entry_time']) ?></td>
+                                                            <?php endif; ?>
+                                                            <?php if($cc['hasil']): ?>
+                                                                <td class="col-hasil">[.......]</td>
+                                                            <?php endif; ?>
+                                                        <?php else: ?>
+                                                            <td colspan="<?= ($activeColumnsCount - 1) ?>" style="color:#94a3b8; font-style:italic; padding-left:10px;">&lt;Kosong&gt;</td>
+                                                        <?php endif; ?>
+                                                    </tr>
+                                                <?php endforeach; ?>
+                                            </tbody>
+                                        </table>
+                                    <?php endforeach; ?>
+                                    <div style="height: 6px;"></div>
                                 <?php endforeach; ?>
-                                <div style="height: 5px;"></div>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                </tbody>
+
+                <tfoot>
+                    <tr>
+                        <td>
+                            <?php if(!empty($sponsors)): ?>
+                                <div class="sponsor-footer">
+                                    <?php foreach($sponsors as $img): 
+                                        $sponUrl = getPrintImageUrl($img);
+                                        if ($sponUrl): ?>
+                                            <img src="<?= $sponUrl ?>" alt="Sponsor">
+                                        <?php endif; ?>
+                                    <?php endforeach; ?>
+                                </div>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
     </div>
+
+    <script>
+        // Zoom Management
+        let currentZoom = 1.0;
+        const zoomStep = 0.1;
+        const minZoom = 0.6;
+        const maxZoom = 1.5;
+
+        function applyZoom() {
+            const sheets = document.querySelectorAll('.print-sheet-target, .full-page');
+            sheets.forEach(sheet => {
+                if ('zoom' in sheet.style) {
+                    sheet.style.zoom = currentZoom;
+                } else {
+                    sheet.style.transform = `scale(${currentZoom})`;
+                    sheet.style.transformOrigin = 'top center';
+                }
+            });
+            const percentEl = document.getElementById('zoomPercent');
+            if (percentEl) percentEl.textContent = Math.round(currentZoom * 100) + '%';
+        }
+
+        function zoomSheet(step) {
+            currentZoom = Math.min(maxZoom, Math.max(minZoom, currentZoom + step));
+            applyZoom();
+        }
+
+        function resetZoom() {
+            currentZoom = 1.0;
+            applyZoom();
+        }
+
+        // Mobile Zoom cycling
+        const mobileZooms = [1.0, 0.8, 0.65, 1.2];
+        let mobileZoomIdx = 0;
+        function cycleZoomMobile() {
+            mobileZoomIdx = (mobileZoomIdx + 1) % mobileZooms.length;
+            currentZoom = mobileZooms[mobileZoomIdx];
+            applyZoom();
+            const lbl = document.getElementById('mobileZoomLabel');
+            if (lbl) lbl.textContent = Math.round(currentZoom * 100) + '%';
+        }
+
+        // Auto print trigger if specified
+        <?php if (isset($_REQUEST['print_trigger']) && $_REQUEST['print_trigger'] == 1): ?>
+        window.addEventListener('load', function() {
+            setTimeout(function() { window.print(); }, 600);
+        });
+        <?php endif; ?>
+    </script>
 </body>
 </html>

@@ -16,11 +16,14 @@ class SeedingController extends Controller {
         $admin_id = $_SESSION['swim_user_id'];
         
         // 2. AMBIL ID EVENT TERAKHIR
-        $targetEventId = (int)($_GET['event_id'] ?? 0);
+        $targetEventId = (int)($_GET['event_id'] ?? ($_SESSION['active_event_id'] ?? 0));
         if ($targetEventId == 0) {
             $stmtLastEvt = $pdo->prepare("SELECT id FROM swim_events WHERE user_id = ? ORDER BY id DESC LIMIT 1");
             $stmtLastEvt->execute([$admin_id]);
-            $targetEventId = $stmtLastEvt->fetchColumn() ?: 0;
+            $targetEventId = (int)($stmtLastEvt->fetchColumn() ?: 0);
+            if ($targetEventId == 0) {
+                $targetEventId = (int)($pdo->query("SELECT id FROM swim_events ORDER BY id DESC LIMIT 1")->fetchColumn() ?: 0);
+            }
         }
         
         // 3. Ambil Data Nomor Lomba
@@ -29,8 +32,14 @@ class SeedingController extends Controller {
         try {
             $sql = "SELECT en.*, 
                     IF(en.is_relay = 1, 
-                        (SELECT COUNT(re.id) FROM swim_relay_entries re WHERE re.category_id = en.id),
-                        (SELECT COUNT(ee.id) FROM swim_event_entries ee WHERE ee.category_id = en.id)
+                        (SELECT COUNT(re.id) FROM swim_relay_entries re 
+                         WHERE re.category_id = en.id 
+                           AND (re.status = 'Approved' OR EXISTS (SELECT 1 FROM swim_payments p WHERE (p.user_id = re.club_id OR p.user_id IN (SELECT user_id FROM swim_clubs WHERE id = re.club_id)) AND p.event_id = en.event_id AND p.status IN ('Paid','completed')))
+                        ),
+                        (SELECT COUNT(ee.id) FROM swim_event_entries ee 
+                         WHERE ee.category_id = en.id 
+                           AND (ee.payment_status = 'Paid' OR ee.status = 'Approved' OR EXISTS (SELECT 1 FROM swim_payments p WHERE p.user_id = ee.user_id AND p.event_id = en.event_id AND p.status IN ('Paid','completed')))
+                        )
                     ) as total_athletes
                     FROM swim_event_numbers en 
                     WHERE en.event_id = ? 
@@ -133,20 +142,44 @@ class SeedingController extends Controller {
             $isRelay = isset($info['is_relay']) && $info['is_relay'] == 1;
 
             if ($isRelay) {
-                // Hapus seeding lama untuk relay agar bersih (optional tapi disarankan)
+                // Hapus seeding lama untuk nomor relay ini agar bersih
                 $pdo->prepare("DELETE FROM swim_event_seeding WHERE entry_id IN (SELECT id FROM swim_relay_entries WHERE category_id = ?)")->execute([$categoryId]);
                 
                 $stmt = $pdo->prepare("
-                    SELECT id, seed_time as entry_time, NULL as tanggal_lahir 
-                    FROM swim_relay_entries 
-                    WHERE category_id = ?
+                    SELECT re.id, re.seed_time as entry_time, NULL as tanggal_lahir 
+                    FROM swim_relay_entries re
+                    JOIN swim_event_numbers en ON re.category_id = en.id
+                    WHERE re.category_id = ?
+                      AND (
+                          re.status = 'Approved' 
+                          OR EXISTS (
+                              SELECT 1 FROM swim_payments p 
+                              WHERE (p.user_id = re.club_id OR p.user_id IN (SELECT user_id FROM swim_clubs WHERE id = re.club_id)) 
+                                AND p.event_id = en.event_id 
+                                AND p.status IN ('Paid','completed')
+                          )
+                      )
                 ");
             } else {
+                // Hapus seeding lama untuk nomor individu ini agar bersih
+                $pdo->prepare("DELETE FROM swim_event_seeding WHERE entry_id IN (SELECT id FROM swim_event_entries WHERE category_id = ?)")->execute([$categoryId]);
+
                 $stmt = $pdo->prepare("
                     SELECT ee.id, ee.entry_time, s.tanggal_lahir 
                     FROM swim_event_entries ee
+                    JOIN swim_event_numbers en ON ee.category_id = en.id
                     JOIN swim_swimmers s ON ee.swimmer_id = s.id
                     WHERE ee.category_id = ?
+                      AND (
+                          ee.payment_status = 'Paid' 
+                          OR ee.status = 'Approved' 
+                          OR EXISTS (
+                              SELECT 1 FROM swim_payments p 
+                              WHERE p.user_id = ee.user_id 
+                                AND p.event_id = en.event_id 
+                                AND p.status IN ('Paid','completed')
+                          )
+                      )
                 ");
             }
             $stmt->execute([$categoryId]);
@@ -288,7 +321,7 @@ class SeedingController extends Controller {
         
         if (!$event) die("Event tidak ditemukan.");
         
-        // Ambil daftar klub yang memiliki peserta
+        // Ambil daftar klub yang memiliki peserta yang sudah lunas/diverifikasi
         $sql = "SELECT u.id as club_user_id, u.nama_lengkap as nama_klub, c.kota,
                        COUNT(DISTINCT s.id) as total_atlet
                 FROM swim_users u
@@ -296,6 +329,16 @@ class SeedingController extends Controller {
                 JOIN swim_swimmers s ON u.id = s.user_id
                 JOIN swim_event_entries ee ON s.id = ee.swimmer_id
                 WHERE ee.event_id = ? AND ee.category_id IS NOT NULL
+                  AND (
+                      ee.payment_status = 'Paid' 
+                      OR ee.status = 'Approved' 
+                      OR EXISTS (
+                          SELECT 1 FROM swim_payments p 
+                          WHERE p.user_id = ee.user_id 
+                            AND p.event_id = ee.event_id 
+                            AND p.status IN ('Paid','completed')
+                      )
+                  )
                 GROUP BY u.id
                 ORDER BY u.nama_lengkap ASC";
         $stmt = $pdo->prepare($sql);

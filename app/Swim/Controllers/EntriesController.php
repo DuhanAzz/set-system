@@ -221,8 +221,17 @@ class EntriesController extends Controller {
             
             if ($paymentIdApprove > 0) {
                 try {
+                    $stmtGet = $pdo->prepare("SELECT user_id FROM swim_payments WHERE id = ?");
+                    $stmtGet->execute([$paymentIdApprove]);
+                    $payUser = $stmtGet->fetchColumn();
+
                     $stmt = $pdo->prepare("UPDATE swim_payments SET status = 'Paid', updated_at = NOW() WHERE id = ? AND event_id = ?");
                     $stmt->execute([$paymentIdApprove, $targetEventId]);
+
+                    if ($payUser) {
+                        $pdo->prepare("UPDATE swim_event_entries SET payment_status = 'Paid', status = 'Approved' WHERE user_id = ? AND event_id = ?")->execute([$payUser, $targetEventId]);
+                        $pdo->prepare("UPDATE swim_relay_entries SET status = 'Approved' WHERE event_id = ? AND (club_id = ? OR club_id IN (SELECT id FROM swim_clubs WHERE user_id = ?))")->execute([$targetEventId, $payUser, $payUser]);
+                    }
                     $_SESSION['swal_type'] = 'success'; 
                     $_SESSION['swal_msg'] = 'Pembayaran Lunas! Klub dapat mencetak ID Card.';
                 } catch (\Exception $e) {}
@@ -232,8 +241,17 @@ class EntriesController extends Controller {
             
             if ($paymentIdRollback > 0) {
                 try {
+                    $stmtGet = $pdo->prepare("SELECT user_id FROM swim_payments WHERE id = ?");
+                    $stmtGet->execute([$paymentIdRollback]);
+                    $payUser = $stmtGet->fetchColumn();
+
                     $stmt = $pdo->prepare("UPDATE swim_payments SET status = 'Pending', updated_at = NOW() WHERE id = ? AND event_id = ?");
                     $stmt->execute([$paymentIdRollback, $targetEventId]);
+
+                    if ($payUser) {
+                        $pdo->prepare("UPDATE swim_event_entries SET payment_status = 'Unpaid', status = 'Pending' WHERE user_id = ? AND event_id = ?")->execute([$payUser, $targetEventId]);
+                        $pdo->prepare("UPDATE swim_relay_entries SET status = 'Pending' WHERE event_id = ? AND (club_id = ? OR club_id IN (SELECT id FROM swim_clubs WHERE user_id = ?))")->execute([$targetEventId, $payUser, $payUser]);
+                    }
                     $_SESSION['swal_type'] = 'info';
                     $_SESSION['swal_msg'] = 'Verifikasi Dibatalkan. Status kembali Pending.';
                 } catch (\Exception $e) {}
@@ -243,8 +261,17 @@ class EntriesController extends Controller {
 
             if ($paymentIdReject > 0) {
                 try {
+                    $stmtGet = $pdo->prepare("SELECT user_id FROM swim_payments WHERE id = ?");
+                    $stmtGet->execute([$paymentIdReject]);
+                    $payUser = $stmtGet->fetchColumn();
+
                     $stmt = $pdo->prepare("UPDATE swim_payments SET status = 'Rejected', updated_at = NOW() WHERE id = ? AND event_id = ?");
                     $stmt->execute([$paymentIdReject, $targetEventId]);
+
+                    if ($payUser) {
+                        $pdo->prepare("UPDATE swim_event_entries SET payment_status = 'Unpaid', status = 'Rejected' WHERE user_id = ? AND event_id = ?")->execute([$payUser, $targetEventId]);
+                        $pdo->prepare("UPDATE swim_relay_entries SET status = 'Rejected' WHERE event_id = ? AND (club_id = ? OR club_id IN (SELECT id FROM swim_clubs WHERE user_id = ?))")->execute([$targetEventId, $payUser, $payUser]);
+                    }
                     $_SESSION['swal_type'] = 'warning'; 
                     $_SESSION['swal_msg'] = 'Pembayaran Ditolak.';
                 } catch (\Exception $e) {}
@@ -415,9 +442,20 @@ class EntriesController extends Controller {
                     
                     $stmt = $pdo->prepare("UPDATE swim_payments SET status = ?, updated_at = NOW() WHERE id = ?");
                     $stmt->execute([$newStatus, $payId]);
+
+                    if ($action === 'approve') {
+                        $pdo->prepare("UPDATE swim_event_entries SET payment_status = 'Paid', status = 'Approved' WHERE user_id = ? AND event_id = ?")->execute([$targetUserId, $eventId]);
+                        $pdo->prepare("UPDATE swim_relay_entries SET status = 'Approved' WHERE event_id = ? AND (club_id = ? OR club_id IN (SELECT id FROM swim_clubs WHERE user_id = ?))")->execute([$eventId, $targetUserId, $targetUserId]);
+                    } elseif ($action === 'reject') {
+                        $pdo->prepare("UPDATE swim_event_entries SET payment_status = 'Unpaid', status = 'Rejected' WHERE user_id = ? AND event_id = ?")->execute([$targetUserId, $eventId]);
+                        $pdo->prepare("UPDATE swim_relay_entries SET status = 'Rejected' WHERE event_id = ? AND (club_id = ? OR club_id IN (SELECT id FROM swim_clubs WHERE user_id = ?))")->execute([$eventId, $targetUserId, $targetUserId]);
+                    } else {
+                        $pdo->prepare("UPDATE swim_event_entries SET payment_status = 'Unpaid', status = 'Pending' WHERE user_id = ? AND event_id = ?")->execute([$targetUserId, $eventId]);
+                        $pdo->prepare("UPDATE swim_relay_entries SET status = 'Pending' WHERE event_id = ? AND (club_id = ? OR club_id IN (SELECT id FROM swim_clubs WHERE user_id = ?))")->execute([$eventId, $targetUserId, $targetUserId]);
+                    }
                     
                     $_SESSION['swal_type'] = 'success';
-                    $_SESSION['swal_msg'] = 'Status pembayaran berhasil diperbarui!';
+                    $_SESSION['swal_msg'] = 'Status pembayaran & pendaftaran berhasil diperbarui!';
                 } catch (\Exception $e) {
                     $_SESSION['swal_type'] = 'error';
                     $_SESSION['swal_msg'] = 'Gagal memperbarui status: ' . $e->getMessage();

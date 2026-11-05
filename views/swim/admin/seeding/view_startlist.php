@@ -126,7 +126,7 @@ if ($pc['show_pool'])       $judulParts[] = $poolLabel;
 $judulAcaraTengah = empty($judulParts) ? "EVENT" : implode(" - ", $judulParts);
 $jadwalKiri = $tglMain . " | " . $jamMain;
 
-// 2. AMBIL DATA PESERTA (HANYA UNTUK 1 KATEGORI INI)
+// 2. AMBIL DATA PESERTA (HANYA UNTUK 1 KATEGORI INI, HANYA YANG SUDAH LUNAS / APPROVED)
 $heats = [];
 if (isset($raceInfo['is_relay']) && $raceInfo['is_relay'] == 1) {
     $sql = "SELECT es.heat_prelim as heat_no, es.lane_prelim as lane_no, es.time_prelim as entry_time,
@@ -140,6 +140,15 @@ if (isset($raceInfo['is_relay']) && $raceInfo['is_relay'] == 1) {
             LEFT JOIN swim_swimmers s3 ON re.swimmer_3_id = s3.id
             LEFT JOIN swim_swimmers s4 ON re.swimmer_4_id = s4.id
             WHERE re.category_id = ? 
+              AND (
+                  re.status = 'Approved'
+                  OR EXISTS (
+                      SELECT 1 FROM swim_payments p 
+                      WHERE (p.user_id = re.club_id OR p.user_id IN (SELECT user_id FROM swim_clubs WHERE id = re.club_id))
+                        AND p.event_id = re.event_id 
+                        AND p.status IN ('Paid','completed')
+                  )
+              )
             ORDER BY es.heat_prelim ASC, es.lane_prelim ASC";
 } else {
     $sql = "SELECT es.heat_prelim as heat_no, es.lane_prelim as lane_no, es.time_prelim as entry_time,
@@ -149,6 +158,16 @@ if (isset($raceInfo['is_relay']) && $raceInfo['is_relay'] == 1) {
             JOIN swim_swimmers s ON ee.swimmer_id = s.id
             LEFT JOIN swim_clubs c ON ee.club_id = c.id
             WHERE ee.category_id = ? 
+              AND (
+                  ee.payment_status = 'Paid' 
+                  OR ee.status = 'Approved'
+                  OR EXISTS (
+                      SELECT 1 FROM swim_payments p 
+                      WHERE p.user_id = ee.user_id 
+                        AND p.event_id = ee.event_id 
+                        AND p.status IN ('Paid','completed')
+                  )
+              )
             ORDER BY es.heat_prelim ASC, es.lane_prelim ASC";
 }
 $stmt = $pdo->prepare($sql);
