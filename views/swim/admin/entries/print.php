@@ -178,8 +178,11 @@
         <div id="tpl-footer">
             <div class="sheet-footer">
                 <?php if(!empty($sponsors)): ?>
-                    <?php foreach($sponsors as $img): ?>
-                        <img src="<?= BASE_URL . '/public/' . ltrim($img, '/') ?>" alt="Sponsor">
+                    <?php 
+                    $appUrl = defined('BASE_URL') ? BASE_URL : (getenv('APP_URL') ?: ''); 
+                    foreach($sponsors as $img): 
+                    ?>
+                        <img src="<?= $appUrl . '/public/' . ltrim($img, '/') ?>" alt="Sponsor">
                     <?php endforeach; ?>
                 <?php else: ?>
                     <small style="color:#ccc; font-weight:bold;">TIRTA AMANDA SWIMMING CLUB</small>
@@ -188,19 +191,48 @@
         </div>
 
         <div id="tpl-cards">
+            <?php if(!empty($relayEntries)): ?>
+            <div class="swimmer-block">
+                <div class="sb-header male" style="background-color: #e0e7ff !important; border-color: #4338ca !important;">
+                    <div style="display:flex; align-items:center;">
+                        <span class="gender-badge" style="background-color: #4f46e5 !important;">R</span>
+                        <div>
+                            <span class="name-text">TIM ESTAFET</span>
+                            <span class="meta-text"><?= count($relayEntries) ?> TIM</span>
+                        </div>
+                    </div>
+                    <div class="price-text">Rp <?= number_format($calc['totalRelay'] ?? ($totalRelay ?? 0), 0, ',', '.') ?></div>
+                </div>
+                <div>
+                    <?php foreach($relayEntries as $re): ?>
+                    <div class="event-row">
+                        <div>
+                            <span class="evt-name"><?= htmlspecialchars($re['team_name'] ?? 'Tim Estafet') ?> - <?= $re['distance'] ?>M <?= strtoupper($re['stroke']) ?></span>
+                            <?php if(!empty($re['age_group'])): ?><span class="evt-ku">(KU <?= $re['age_group'] ?>)</span><?php endif; ?>
+                        </div>
+                        <span class="evt-time"><?= $re['seed_time'] ? htmlspecialchars($re['seed_time']) : 'NT' ?></span>
+                    </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+            <?php endif; ?>
+
             <?php foreach($groupedSwimmers as $swimmer): 
                 $inf = $swimmer['info'];
-                $isMale = ($inf['jenis_kelamin'] == 'L');
+                $gender = strtoupper($inf['jenis_kelamin'] ?? ($inf['gender'] ?? ''));
+                $isMale = ($gender === 'L' || $gender === 'PA');
                 $gClass = $isMale ? 'male' : 'female';
                 $gLabel = $isMale ? 'P' : 'W';
+                $namaAtlet = $inf['nama_atlet'] ?? ($inf['nama'] ?? 'Atlet');
+                $tglLahir = $inf['tanggal_lahir'] ?? ($inf['lahir'] ?? '');
             ?>
             <div class="swimmer-block">
                 <div class="sb-header <?= $gClass ?>">
                     <div style="display:flex; align-items:center;">
                         <span class="gender-badge"><?= $gLabel ?></span>
                         <div>
-                            <span class="name-text"><?= htmlspecialchars($inf['nama_atlet']) ?></span>
-                            <span class="meta-text"><?= date('Y', strtotime($inf['tanggal_lahir'])) ?></span>
+                            <span class="name-text"><?= htmlspecialchars($namaAtlet) ?></span>
+                            <span class="meta-text"><?= !empty($tglLahir) ? date('Y', strtotime($tglLahir)) : '' ?></span>
                         </div>
                     </div>
                     <div class="price-text">Rp <?= number_format($swimmer['subtotal'], 0, ',', '.') ?></div>
