@@ -65,7 +65,7 @@ if (!function_exists('getKULabelInput')) {
                 <a href="<?= getenv('APP_URL') ?>/swim/admin/results?event_id=<?= (int)($raceInfo['event_id'] ?? 0) ?>" class="h-8 px-3 flex items-center bg-white border border-slate-300 rounded text-slate-600 font-bold text-[10px] uppercase hover:bg-slate-50">Menu</a>
                 <a href="<?= getenv('APP_URL') ?>/swim/admin/results/input?category_id=<?= $cat_id ?>&export_txt=1" class="h-8 px-3 flex items-center bg-teal-500 text-white rounded font-bold text-[10px] uppercase hover:bg-teal-600 gap-1" title="Download Data ke TXT Format Stopwatch">📤 EXPORT</a>
                 <button type="button" onclick="document.getElementById('txtUploadForm').classList.toggle('hidden')" class="h-8 px-3 flex items-center bg-emerald-500 text-white rounded font-bold text-[10px] uppercase hover:bg-emerald-600 gap-1" title="Import TXT Backup dari Stopwatch">📝 IMPORT</button>
-                <a href="?category_id=<?= $cat_id ?>&print=1" target="_blank" class="h-8 px-3 flex items-center bg-orange-500 text-white rounded font-bold text-[10px] uppercase hover:bg-orange-600 gap-1">🖨️ PDF</a>
+                <a href="?category_id=<?= $cat_id ?>&print=1" target="_blank" id="btnPdfPrint" class="h-8 px-3 flex items-center bg-orange-500 text-white rounded font-bold text-[10px] uppercase hover:bg-orange-600 gap-1">🖨️ PDF</a>
                 <button type="submit" form="formResult" class="h-8 px-4 flex items-center bg-blue-600 text-white rounded font-bold text-[10px] uppercase hover:bg-blue-700 gap-1 shadow-sm">💾 SIMPAN</button>
             </div>
             <a href="<?= $nextUrl ?? '#' ?>" class="h-10 px-4 flex items-center justify-center rounded-r-lg font-bold text-xs uppercase transition border-l border-slate-600 <?= $nextClass ?? '' ?>">NEXT &raquo;</a>
@@ -355,5 +355,26 @@ document.addEventListener("DOMContentLoaded", function() {
             this.value = formatted;
         });
     });
+
+    // 3. Sinkronisasi Link PDF Hasil dengan Konfigurasi yang Tersimpan
+    const btnPdf = document.getElementById('btnPdfPrint');
+    if (btnPdf) {
+        const syncPdfLink = () => {
+            const saved = localStorage.getItem('swim_print_results_cfg');
+            if (saved) {
+                try {
+                    const cfg = JSON.parse(saved);
+                    let q = ['print=1', 'cfg_submitted=1'];
+                    for (const k in cfg) {
+                        if (cfg[k]) q.push(encodeURIComponent(k) + '=1');
+                    }
+                    btnPdf.setAttribute('href', '?category_id=<?= $cat_id ?>&' + q.join('&'));
+                } catch(e) {}
+            }
+        };
+        btnPdf.addEventListener('mouseenter', syncPdfLink);
+        btnPdf.addEventListener('click', syncPdfLink);
+        syncPdfLink();
+    }
 });
 </script>

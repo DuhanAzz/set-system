@@ -42,12 +42,148 @@
         .btn-print:hover { background: #1d4ed8; transform: translateY(-1px); }
         .btn-close:hover { background: #334155; transform: translateY(-1px); }
 
+        /* --- PANEL PENGATURAN CETAK (DI LUAR KERTAS) --- */
+        .config-panel {
+            width: 210mm;
+            margin: 20px auto 14px auto;
+            background: #1e293b;
+            color: #f8fafc;
+            border-radius: 16px;
+            padding: 16px 20px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.35);
+            border: 1px solid #334155;
+            box-sizing: border-box;
+        }
+        .config-panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #334155;
+            padding-bottom: 12px;
+            margin-bottom: 14px;
+        }
+        .config-title-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .config-title-group .icon {
+            font-size: 22px;
+        }
+        .config-main-title {
+            font-size: 11pt;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #ffffff;
+        }
+        .config-subtitle {
+            font-size: 8pt;
+            color: #94a3b8;
+            font-weight: 600;
+        }
+        .config-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .btn-cfg {
+            padding: 8px 16px;
+            border-radius: 9px;
+            font-size: 8.5pt;
+            font-weight: 800;
+            cursor: pointer;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            transition: all 0.15s ease;
+        }
+        .btn-cfg-save {
+            background: #059669;
+            color: #ffffff;
+        }
+        .btn-cfg-save:hover { background: #047857; transform: translateY(-1px); }
+        .btn-cfg-print {
+            background: #2563eb;
+            color: #ffffff;
+        }
+        .btn-cfg-print:hover { background: #1d4ed8; transform: translateY(-1px); }
+        .btn-cfg-close {
+            background: #475569;
+            color: #ffffff;
+        }
+        .btn-cfg-close:hover { background: #334155; transform: translateY(-1px); }
+
+        .config-grid-layout {
+            display: grid;
+            grid-template-columns: 1.25fr 1fr;
+            gap: 20px;
+        }
+        .config-section-title {
+            display: block;
+            font-size: 8pt;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #cbd5e1;
+            margin-bottom: 9px;
+            padding-bottom: 4px;
+            border-bottom: 1px dashed #475569;
+        }
+        .config-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 7px 12px;
+            font-size: 8pt;
+            font-weight: 700;
+            color: #e2e8f0;
+        }
+        .config-options label {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .config-options input[type="checkbox"] {
+            cursor: pointer;
+            width: 15px;
+            height: 15px;
+            accent-color: #2563eb;
+            border-radius: 4px;
+        }
+        .highlight-nas {
+            color: #fcd34d !important;
+            font-weight: 800;
+        }
+        .highlight-evt {
+            color: #a5b4fc !important;
+            font-weight: 800;
+        }
+        .config-tip {
+            margin-top: 12px;
+            padding-top: 10px;
+            border-top: 1px solid #334155;
+            font-size: 7.5pt;
+            color: #94a3b8;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+        }
+        .hidden-elem {
+            display: none !important;
+        }
+
         /* --- STRUKTUR KERTAS (A4) --- */
         .sheet {
             width: 210mm;
             min-height: 297mm;
             background: white;
-            margin: 30px auto;
+            margin: 10px auto 30px auto;
             padding: 8mm 8mm 5mm 8mm; 
             position: relative;
             box-shadow: 0 0 15px rgba(0,0,0,0.5);
@@ -227,6 +363,31 @@ if(!empty($eventProfile['event_date_end']) && $eventProfile['event_date_end'] !=
 }
 $dateRange = strtoupper($dateRange);
 
+// Deteksi Konfigurasi Tampilan dari Request (URL/POST)
+$isSubmitted = !empty($_GET['cfg_submitted']) || isset($_GET['cfg_event_no']) || isset($_GET['col_uid']) || isset($_GET['col_tim']);
+
+$pc = [
+    'show_event_no'      => $isSubmitted ? !empty($_GET['cfg_event_no']) : true,
+    'show_date'          => $isSubmitted ? !empty($_GET['cfg_date']) : true,
+    'show_event_name'    => $isSubmitted ? !empty($_GET['cfg_event_name']) : true,
+    'show_group'         => $isSubmitted ? !empty($_GET['cfg_group']) : true,
+    'show_gender'        => $isSubmitted ? !empty($_GET['cfg_gender']) : true,
+    'show_pool'          => $isSubmitted ? !empty($_GET['cfg_pool']) : true,
+    'show_round'         => $isSubmitted ? !empty($_GET['cfg_round']) : true,
+    'show_records'       => $isSubmitted ? !empty($_GET['cfg_show_records']) : true,
+    'show_event_records' => $isSubmitted ? !empty($_GET['cfg_show_event_records']) : true
+];
+
+$cc = [
+    'uid'     => $isSubmitted ? !empty($_GET['col_uid']) : true,
+    'nama'    => $isSubmitted ? !empty($_GET['col_nama']) : true,
+    'ku'      => $isSubmitted ? !empty($_GET['col_ku']) : true,
+    'tim'     => $isSubmitted ? (!empty($_GET['col_tim']) || !empty($_GET['col_klub'])) : true,
+    'sekolah' => $isSubmitted ? !empty($_GET['col_sekolah']) : true,
+    'waktu'   => $isSubmitted ? !empty($_GET['col_waktu']) : true,
+    'hasil'   => $isSubmitted ? !empty($_GET['col_hasil']) : true,
+];
+
 // Judul Acara Tengah
 $isRelay = isset($raceInfo['is_relay']) && (int)$raceInfo['is_relay'] === 1;
 $cleanStroke = trim(str_ireplace(['Gaya', 'GAYA', 'ESTAFET', 'RELAY'], '', $raceInfo['stroke'] ?? ''));
@@ -234,6 +395,12 @@ $gender_label = (in_array($raceInfo['jenis_kelamin'] ?? '', ['L','Male','Man']))
 if (($raceInfo['jenis_kelamin'] ?? '') == 'Campuran') $gender_label = 'CAMPURAN';
 $poolSuffix = (strtoupper($eventProfile['pool_type'] ?? 'LCM') == 'SCM') ? ' - SCM' : ' - LCM';
 $distLabel = \App\Helpers\SwimEventHelper::formatDistance($raceInfo['distance'] ?? 0, $isRelay);
+
+$eventStrokeDisplay = $isRelay ? $distLabel . " ESTAFET " . strtoupper($cleanStroke) : $distLabel . " " . strtoupper($cleanStroke);
+$groupDisplay = !empty($raceInfo['age_group']) ? " - " . $raceInfo['age_group'] : "";
+$genderDisplay = " " . $gender_label;
+$poolDisplay = $poolSuffix;
+$roundDisplay = " - FINAL";
 
 if ($isRelay) {
     $judulRaw = $distLabel . " ESTAFET " . strtoupper($cleanStroke) . " - " . ($raceInfo['age_group'] ?? '') . " " . $gender_label . $poolSuffix;
@@ -336,8 +503,71 @@ foreach ($groupedResults as $key => &$rows) {
 unset($rows);
 ?>
 
+    <!-- TOMBOL CEPAT DI KANAN ATAS (NAVIGASI STICKY) -->
     <button onclick="window.print()" class="btn-print"><i class="fas fa-print"></i> Cetak Dokumen</button>
     <button onclick="window.close()" class="btn-close"><i class="fas fa-times"></i> Tutup</button>
+
+    <!-- PANEL PENGATURAN CETAK (3. KOMPONEN JUDUL ACARA & 4. KOLOM TABEL ATLET) -->
+    <div class="no-print config-panel">
+        <div class="config-panel-header">
+            <div class="config-title-group">
+                <span class="icon">⚙️</span>
+                <div>
+                    <div class="config-main-title">Pengaturan Tampilan Hasil (Acara #<?= htmlspecialchars($raceInfo['event_number'] ?? '') ?>)</div>
+                    <div class="config-subtitle">Sesuaikan komponen judul & kolom tabel hasil sebelum dicetak</div>
+                </div>
+            </div>
+            <div class="config-actions">
+                <button type="button" onclick="saveConfiguration()" class="btn-cfg btn-cfg-save"><i class="fas fa-save"></i> Simpan Pengaturan</button>
+                <button type="button" onclick="window.print()" class="btn-cfg btn-cfg-print"><i class="fas fa-print"></i> Cetak Dokumen</button>
+                <button type="button" onclick="window.close()" class="btn-cfg btn-cfg-close"><i class="fas fa-times"></i> Tutup</button>
+            </div>
+        </div>
+
+        <div class="config-grid-layout">
+            <!-- 3. Komponen Judul Acara -->
+            <div>
+                <label class="config-section-title">3. Komponen Judul Acara:</label>
+                <div class="config-options">
+                    <label><input type="checkbox" id="cfg_event_no" class="cfg-cb" <?= $pc['show_event_no'] ? 'checked' : '' ?>> Nomor Acara</label>
+                    <label><input type="checkbox" id="cfg_date" class="cfg-cb" <?= $pc['show_date'] ? 'checked' : '' ?>> Tanggal & Jam</label>
+                    <label><input type="checkbox" id="cfg_event_name" class="cfg-cb" <?= $pc['show_event_name'] ? 'checked' : '' ?>> Jarak & Gaya</label>
+                    <label><input type="checkbox" id="cfg_group" class="cfg-cb" <?= $pc['show_group'] ? 'checked' : '' ?>> Kelompok Umur</label>
+                    <label><input type="checkbox" id="cfg_gender" class="cfg-cb" <?= $pc['show_gender'] ? 'checked' : '' ?>> Jenis Kelamin</label>
+                    <label><input type="checkbox" id="cfg_pool" class="cfg-cb" <?= $pc['show_pool'] ? 'checked' : '' ?>> Tipe Kolam</label>
+                    <label><input type="checkbox" id="cfg_round" class="cfg-cb" <?= $pc['show_round'] ? 'checked' : '' ?>> Babak (FINAL)</label>
+                    <label class="highlight-nas"><input type="checkbox" id="cfg_show_records" class="cfg-cb" <?= $pc['show_records'] ? 'checked' : '' ?>> Rekor NAS</label>
+                    <label class="highlight-evt"><input type="checkbox" id="cfg_show_event_records" class="cfg-cb" <?= $pc['show_event_records'] ? 'checked' : '' ?>> Rekor Event</label>
+                </div>
+            </div>
+
+            <!-- 4. Kolom Tabel Atlet -->
+            <div>
+                <label class="config-section-title">4. Kolom Tabel Atlet:</label>
+                <div class="config-options">
+                    <?php if ($isRelay): ?>
+                    <label><input type="checkbox" id="col_tim" class="cfg-cb" <?= $cc['tim'] ? 'checked' : '' ?>> Nama Tim</label>
+                    <label><input type="checkbox" id="col_nama" class="cfg-cb" <?= $cc['nama'] ? 'checked' : '' ?>> Nama Atlet (4 Perenang)</label>
+                    <label><input type="checkbox" id="col_klub" class="cfg-cb" <?= ($cc['tim'] || $cc['sekolah']) ? 'checked' : '' ?>> Klub / Sekolah</label>
+                    <label><input type="checkbox" id="col_waktu" class="cfg-cb" <?= $cc['waktu'] ? 'checked' : '' ?>> Waktu Entry</label>
+                    <label><input type="checkbox" id="col_hasil" class="cfg-cb" <?= $cc['hasil'] ? 'checked' : '' ?>> Hasil Akhir</label>
+                    <?php else: ?>
+                    <label><input type="checkbox" id="col_uid" class="cfg-cb" <?= $cc['uid'] ? 'checked' : '' ?>> Kolom UID</label>
+                    <label><input type="checkbox" id="col_nama" class="cfg-cb" <?= $cc['nama'] ? 'checked' : '' ?>> Nama Atlet</label>
+                    <label><input type="checkbox" id="col_ku" class="cfg-cb" <?= $cc['ku'] ? 'checked' : '' ?>> Kolom KU</label>
+                    <label><input type="checkbox" id="col_tim" class="cfg-cb" <?= $cc['tim'] ? 'checked' : '' ?>> Klub / Tim</label>
+                    <label><input type="checkbox" id="col_waktu" class="cfg-cb" <?= $cc['waktu'] ? 'checked' : '' ?>> Waktu Entry</label>
+                    <label><input type="checkbox" id="col_hasil" class="cfg-cb" <?= $cc['hasil'] ? 'checked' : '' ?>> Hasil Akhir</label>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+
+        <div class="config-tip">
+            <span>💡 <b>Live Sync:</b> Setiap perubahan langsung diterapkan secara real-time dan tersinkronisasi otomatis dengan seluruh halaman terkait.</span>
+            <span style="color: #34d399; font-weight: 800;">● Status: Tersimpan Otomatis</span>
+        </div>
+    </div>
 
     <div class="sheet">
         <!-- Master table layout to enforce repeating headers and footers -->
@@ -378,11 +608,15 @@ unset($rows);
                         <!-- EVENT SUB-HEADER -->
                         <div class="event-header">
                             <div>
-                                <div class="eh-number">ACARA #<?= htmlspecialchars($raceInfo['event_number'] ?? '') ?></div>
-                                <div class="eh-date"><?= htmlspecialchars($jadwalKiri) ?></div>
+                                <div class="eh-number" id="ehNumber">ACARA #<?= htmlspecialchars($raceInfo['event_number'] ?? '') ?></div>
+                                <div class="eh-date" id="ehDate"><?= htmlspecialchars($jadwalKiri) ?></div>
                             </div>
-                            <div class="eh-title">
-                                <?= htmlspecialchars($judul_print) ?>
+                            <div class="eh-title" id="displayEventTitle">
+                                <span id="title_part_event_name"><?= htmlspecialchars($distLabel . ($isRelay ? ' ESTAFET ' : ' ') . strtoupper($cleanStroke)) ?></span>
+                                <span id="title_part_group"><?= !empty($raceInfo['age_group']) ? ' - ' . htmlspecialchars($raceInfo['age_group']) : '' ?></span>
+                                <span id="title_part_gender"> <?= htmlspecialchars($gender_label) ?></span>
+                                <span id="title_part_pool"><?= htmlspecialchars($poolSuffix) ?></span>
+                                <span id="title_part_round"> - FINAL</span>
                             </div>
                             <div style="width: 80px; text-align: right;">
                                 <img id="printQrCode" src="" alt="QR" style="width: 42px; height: 42px; object-fit: contain;">
@@ -391,7 +625,7 @@ unset($rows);
 
                         <!-- TABEL REKOR -->
                         <?php if(!empty($records)): ?>
-                            <table class="records-table">
+                            <table class="records-table" id="recordsTable">
                                 <thead>
                                     <tr>
                                         <th style="width: 140px;">REKOR</th>
@@ -405,10 +639,12 @@ unset($rows);
                                     <?php foreach($records as $rec): 
                                         $tipeLabel = strtoupper(str_replace('_', ' ', $rec['record_type']));
                                         if($tipeLabel === 'REKORNAS') $tipeLabel = 'REKOR NAS';
+                                        $isRekorNas = (stripos($tipeLabel, 'NAS') !== false || stripos($tipeLabel, 'REKORNAS') !== false);
+                                        $recClass = $isRekorNas ? 'row-rekor-nas' : 'row-rekor-event';
                                         $lokasiDisplay = !empty($rec['location']) ? strtoupper($rec['location']) : '-';
                                         $tahunDisplay = !empty($rec['record_year']) ? $rec['record_year'] : '-';
                                     ?>
-                                    <tr>
+                                    <tr class="<?= $recClass ?>">
                                         <td><?= $tipeLabel ?></td>
                                         <td><?= strtoupper($rec['holder_name']) ?></td>
                                         <td><?= $lokasiDisplay ?></td>
@@ -424,16 +660,16 @@ unset($rows);
                         <?php if(empty($groupedResults)): ?>
                             <div style="text-align:center; padding: 40px; font-style: italic; color: #666;">Belum ada data peserta.</div>
                         <?php else: ?>
-                            <table class="data-table">
+                            <table class="data-table" id="resultsTable">
                                 <thead>
                                     <?php if ($isRelay): ?>
                                     <tr>
-                                        <th style="width: 6%;">RANK</th>
-                                        <th style="width: 22%;">NAMA TIM</th>
-                                        <th style="width: 36%;">NAMA ATLET</th>
-                                        <th style="width: 20%;"><?= $isSchoolEvent ? 'SEKOLAH' : 'KLUB / SEKOLAH' ?></th>
-                                        <th style="width: 8%;">ENTRY</th>
-                                        <th style="width: 8%;">HASIL</th>
+                                        <th class="col-rank" style="width: 6%;">RANK</th>
+                                        <th class="col-relay-tim" style="width: 22%;">NAMA TIM</th>
+                                        <th class="col-relay-nama" style="width: 36%;">NAMA ATLET</th>
+                                        <th class="col-relay-klub" style="width: 20%;"><?= $isSchoolEvent ? 'SEKOLAH' : 'KLUB / SEKOLAH' ?></th>
+                                        <th class="col-waktu-awal" style="width: 8%;">ENTRY</th>
+                                        <th class="col-hasil" style="width: 8%;">HASIL</th>
                                     </tr>
                                     <?php else: ?>
                                     <tr>
@@ -476,15 +712,15 @@ unset($rows);
                                         ?>
                                         <tr>
                                             <td class="col-rank"><?= $rank_display ?></td>
-                                            <td style="font-weight: 900; text-transform: uppercase;"><?= htmlspecialchars($teamNameDisplay) ?></td>
-                                            <td style="font-size: 7.5pt; line-height: 1.35; padding: 4px 6px;">
+                                            <td class="col-relay-tim" style="font-weight: 900; text-transform: uppercase;"><?= htmlspecialchars($teamNameDisplay) ?></td>
+                                            <td class="col-relay-nama" style="font-size: 7.5pt; line-height: 1.35; padding: 4px 6px;">
                                                 <?php if(!empty($swimmerNames)): ?>
                                                     <?= implode('<br>', array_map('htmlspecialchars', $swimmerNames)) ?>
                                                 <?php else: ?>
                                                     <span style="color: #94a3b8; font-style: italic;">(Susunan atlet belum diisi)</span>
                                                 <?php endif; ?>
                                             </td>
-                                            <td style="font-size: 8pt; font-weight: bold;"><?= htmlspecialchars($clubOrSchool) ?></td>
+                                            <td class="col-relay-klub" style="font-size: 8pt; font-weight: bold;"><?= htmlspecialchars($clubOrSchool) ?></td>
                                             <td class="col-waktu-awal"><?= htmlspecialchars($seedTime) ?></td>
                                             <td class="col-hasil">
                                                 <?php 
@@ -570,7 +806,179 @@ unset($rows);
     </div>
 
     <script>
+    const CONFIG_STORAGE_KEY = 'swim_print_results_cfg';
+
+    function getCheckboxState(id, defaultVal = true) {
+        const el = document.getElementById(id);
+        return el ? el.checked : defaultVal;
+    }
+
+    function setCheckboxState(id, val) {
+        const el = document.getElementById(id);
+        if (el) el.checked = (val === true || val === '1' || val === 1);
+    }
+
+    function applyConfiguration() {
+        const showEventNo = getCheckboxState('cfg_event_no');
+        const showDate = getCheckboxState('cfg_date');
+        const showEventName = getCheckboxState('cfg_event_name');
+        const showGroup = getCheckboxState('cfg_group');
+        const showGender = getCheckboxState('cfg_gender');
+        const showPool = getCheckboxState('cfg_pool');
+        const showRound = getCheckboxState('cfg_round');
+        const showRecords = getCheckboxState('cfg_show_records');
+        const showEventRecords = getCheckboxState('cfg_show_event_records');
+
+        // Subheader elements
+        const ehNo = document.getElementById('ehNumber');
+        if (ehNo) ehNo.style.display = showEventNo ? '' : 'none';
+
+        const ehDt = document.getElementById('ehDate');
+        if (ehDt) ehDt.style.display = showDate ? '' : 'none';
+
+        const pEventName = document.getElementById('title_part_event_name');
+        if (pEventName) pEventName.style.display = showEventName ? '' : 'none';
+
+        const pGroup = document.getElementById('title_part_group');
+        if (pGroup) pGroup.style.display = showGroup ? '' : 'none';
+
+        const pGender = document.getElementById('title_part_gender');
+        if (pGender) pGender.style.display = showGender ? '' : 'none';
+
+        const pPool = document.getElementById('title_part_pool');
+        if (pPool) pPool.style.display = showPool ? '' : 'none';
+
+        const pRound = document.getElementById('title_part_round');
+        if (pRound) pRound.style.display = showRound ? '' : 'none';
+
+        // Records rows
+        document.querySelectorAll('.row-rekor-nas').forEach(el => el.style.display = showRecords ? '' : 'none');
+        document.querySelectorAll('.row-rekor-event').forEach(el => el.style.display = showEventRecords ? '' : 'none');
+        
+        const recTable = document.getElementById('recordsTable');
+        if (recTable) {
+            const hasVisibleNas = showRecords && document.querySelectorAll('.row-rekor-nas').length > 0;
+            const hasVisibleEvt = showEventRecords && document.querySelectorAll('.row-rekor-event').length > 0;
+            recTable.style.display = (hasVisibleNas || hasVisibleEvt) ? '' : 'none';
+        }
+
+        // Table columns
+        const showUid = getCheckboxState('col_uid');
+        const showNama = getCheckboxState('col_nama');
+        const showKu = getCheckboxState('col_ku');
+        const showTim = getCheckboxState('col_tim');
+        const showKlub = getCheckboxState('col_klub');
+        const showWaktu = getCheckboxState('col_waktu');
+        const showHasil = getCheckboxState('col_hasil');
+
+        document.querySelectorAll('.col-uid').forEach(el => el.style.display = showUid ? '' : 'none');
+        document.querySelectorAll('.col-nama').forEach(el => el.style.display = showNama ? '' : 'none');
+        document.querySelectorAll('.col-relay-nama').forEach(el => el.style.display = showNama ? '' : 'none');
+        document.querySelectorAll('.col-ku').forEach(el => el.style.display = showKu ? '' : 'none');
+        document.querySelectorAll('.col-tim').forEach(el => el.style.display = showTim ? '' : 'none');
+        document.querySelectorAll('.col-relay-tim').forEach(el => el.style.display = showTim ? '' : 'none');
+        document.querySelectorAll('.col-relay-klub').forEach(el => el.style.display = showKlub ? '' : 'none');
+        document.querySelectorAll('.col-waktu-awal').forEach(el => el.style.display = showWaktu ? '' : 'none');
+        document.querySelectorAll('.col-hasil').forEach(el => el.style.display = showHasil ? '' : 'none');
+
+        // Dynamic Colspan for group-row
+        const headerRow = document.querySelector('table.data-table thead tr');
+        if (headerRow) {
+            let activeCols = 0;
+            Array.from(headerRow.children).forEach(th => {
+                if (window.getComputedStyle(th).display !== 'none') activeCols++;
+            });
+            if (activeCols > 0) {
+                document.querySelectorAll('.group-row td').forEach(td => td.colSpan = activeCols);
+            }
+        }
+    }
+
+    function saveConfiguration() {
+        const configKeys = [
+            'cfg_event_no', 'cfg_date', 'cfg_event_name', 'cfg_group', 'cfg_gender', 'cfg_pool', 'cfg_round',
+            'cfg_show_records', 'cfg_show_event_records',
+            'col_uid', 'col_nama', 'col_ku', 'col_tim', 'col_klub', 'col_waktu', 'col_hasil'
+        ];
+
+        const cfgObj = {};
+        configKeys.forEach(k => {
+            const el = document.getElementById(k);
+            if (el) {
+                cfgObj[k] = el.checked;
+                // Simpan juga ke individual localStorage key agar sinkron dengan seeding/index & export
+                localStorage.setItem(k, el.checked ? '1' : '0');
+            }
+        });
+
+        localStorage.setItem(CONFIG_STORAGE_KEY, JSON.stringify(cfgObj));
+        showToast('Pengaturan tampilan berhasil disimpan dan disinkronkan!');
+    }
+
+    function showToast(msg) {
+        let toast = document.getElementById('printConfigToast');
+        if (!toast) {
+            toast = document.createElement('div');
+            toast.id = 'printConfigToast';
+            toast.style.cssText = 'position:fixed;bottom:24px;right:24px;background:#059669;color:#fff;padding:12px 22px;border-radius:12px;font-weight:bold;font-size:12px;box-shadow:0 6px 20px rgba(0,0,0,0.35);z-index:99999;display:flex;align-items:center;gap:8px;transition:all 0.3s ease;';
+            document.body.appendChild(toast);
+        }
+        toast.innerHTML = '<span>✅</span> ' + msg;
+        toast.style.opacity = '1';
+        toast.style.display = 'flex';
+        clearTimeout(toast.timer);
+        toast.timer = setTimeout(() => {
+            toast.style.opacity = '0';
+            setTimeout(() => toast.style.display = 'none', 300);
+        }, 2200);
+    }
+
     document.addEventListener("DOMContentLoaded", function() {
+        // 1. Sinkronisasi Config dari URL atau LocalStorage
+        const urlParams = new URLSearchParams(window.location.search);
+        let hasUrlCfg = false;
+        for (const [k, v] of urlParams.entries()) {
+            if (k.startsWith('cfg_') || k.startsWith('col_')) {
+                hasUrlCfg = true;
+                break;
+            }
+        }
+
+        if (hasUrlCfg) {
+            for (const [k, v] of urlParams.entries()) {
+                if (k.startsWith('cfg_') || k.startsWith('col_')) {
+                    setCheckboxState(k, v === '1' || v === 'true');
+                }
+            }
+        } else {
+            const saved = localStorage.getItem(CONFIG_STORAGE_KEY);
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    for (const k in parsed) {
+                        setCheckboxState(k, parsed[k]);
+                    }
+                } catch(e) {}
+            } else {
+                ['cfg_event_no', 'cfg_date', 'cfg_event_name', 'cfg_group', 'cfg_gender', 'cfg_pool', 'cfg_round', 'cfg_show_records', 'cfg_show_event_records', 'col_uid', 'col_nama', 'col_ku', 'col_tim', 'col_klub', 'col_waktu', 'col_hasil'].forEach(k => {
+                    const val = localStorage.getItem(k);
+                    if (val !== null) setCheckboxState(k, val === '1');
+                });
+            }
+        }
+
+        // Terapkan konfigurasi ke DOM secara langsung
+        applyConfiguration();
+
+        // Pasang event listener ke seluruh checkbox agar live preview & auto-save
+        document.querySelectorAll('.cfg-cb').forEach(cb => {
+            cb.addEventListener('change', () => {
+                applyConfiguration();
+                saveConfiguration();
+            });
+        });
+
+        // 2. Setup QR Code
         const qrImage = document.getElementById('printQrCode');
         const storageKey = "qr_link_cat_<?= $cat_id ?>"; 
         const defaultUrl = "<?= getenv('APP_URL') ?>/swim/results";
@@ -583,5 +991,7 @@ unset($rows);
         }
     });
     </script>
+</body>
+</html>
 </body>
 </html>

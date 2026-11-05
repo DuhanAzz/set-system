@@ -108,3 +108,24 @@
         </div>
     <?php endif; ?>
 </div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const saved = localStorage.getItem('swim_print_results_cfg');
+    if (saved) {
+        try {
+            const cfg = JSON.parse(saved);
+            let q = ['print=1', 'cfg_submitted=1'];
+            for (const k in cfg) {
+                if (cfg[k]) q.push(encodeURIComponent(k) + '=1');
+            }
+            if (q.length > 0) {
+                document.querySelectorAll('a[href*="print=1"]').forEach(btn => {
+                    let base = btn.getAttribute('href').split('&print=1')[0];
+                    btn.setAttribute('href', base + '&' + q.join('&'));
+                });
+            }
+        } catch(e) {}
+    }
+});
+</script>

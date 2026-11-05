@@ -73,3 +73,4 @@ assert($ageMeetStart === 11, "Meet Start calculation should be 11, got: $ageMeet
 echo "✓ Test 5: calculateSwimmerAge in Meet Start mode PASSED!\n";
 
 echo "ALL RELAY TOTAL AGE, BLANKO & RESULTS PRINT TESTS PASSED!\n";
+
