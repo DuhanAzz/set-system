@@ -38,7 +38,7 @@
             $catName = htmlspecialchars($cat['distance'] . "M " . $cat['stroke']);
             $catGender = in_array(strtoupper($cat['jenis_kelamin']), ['L', 'MALE', 'PUTRA']) ? 'PUTRA' : (in_array(strtoupper($cat['jenis_kelamin']), ['P', 'FEMALE', 'PUTRI']) ? 'PUTRI' : 'MIXED');
             $catAge = htmlspecialchars($cat['age_group']);
-            $catPrice = (float)($cat['price'] ?? 0);
+            $catPrice = ((float)($cat['price'] ?? 0) > 0) ? (float)$cat['price'] : (float)($event['price_relay'] ?? 0);
             
             $badgeBg = $catGender == 'PUTRA' ? 'bg-blue-100 text-blue-700' : ($catGender == 'PUTRI' ? 'bg-pink-100 text-pink-700' : 'bg-purple-100 text-purple-700');
         ?>
@@ -148,7 +148,12 @@
                 <?php if (!$isLocked): ?>
                 <div class="md:col-span-5 flex flex-col">
                     <div class="bg-blue-50 rounded-2xl p-6 border border-blue-100 h-full flex flex-col justify-center">
-                        <h4 class="text-xs font-black uppercase text-blue-600 tracking-widest mb-6">➕ Tambah Tim Baru</h4>
+                        <div class="mb-4">
+                            <h4 class="text-xs font-black uppercase text-blue-600 tracking-widest">➕ Tambah Tim Baru</h4>
+                            <?php if ($catPrice > 0): ?>
+                                <p class="text-[11px] font-bold text-slate-500 mt-1">Biaya: <span class="text-emerald-700 font-black">Rp <?= number_format($catPrice, 0, ',', '.') ?></span> / tim</p>
+                            <?php endif; ?>
+                        </div>
                         <form method="POST" action="<?= getenv('APP_URL') ?>/swim/user/relay_registration/store/<?= $event['id'] ?>" class="flex flex-col gap-4">
                             <input type="hidden" name="action" value="add_relay">
                             <input type="hidden" name="category_id" value="<?= $cid ?>">

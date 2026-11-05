@@ -112,6 +112,7 @@ class CheckoutController extends Controller {
         $basePrice = (float)($eventData['package_price'] ?? 0);
         $extraPrice = (float)($eventData['extra_price'] ?? 0);
         $defaultItemPrice = (float)($eventData['price_per_item'] ?? ($basePrice > 0 ? $basePrice : 0));
+        $defaultRelayPrice = (float)($eventData['price_relay'] ?? 0);
 
         $totalTagihan = 0;
         foreach ($groupedSwimmers as $sid => &$data) {
@@ -149,7 +150,14 @@ class CheckoutController extends Controller {
 
         // Kalkulasi estafet
         foreach ($relayDetails as &$re) {
-            $rePrice = ((float)($re['item_price'] ?? 0) > 0) ? (float)$re['item_price'] : $defaultItemPrice;
+            $itemP = (float)($re['item_price'] ?? 0);
+            if ($itemP > 0) {
+                $rePrice = $itemP;
+            } elseif ($defaultRelayPrice > 0) {
+                $rePrice = $defaultRelayPrice;
+            } else {
+                $rePrice = $defaultItemPrice;
+            }
             $re['effective_price'] = $rePrice;
             $totalRelay += $rePrice;
         }
@@ -167,7 +175,8 @@ class CheckoutController extends Controller {
             'basePrice' => $basePrice,
             'limit' => $limit,
             'extraPrice' => $extraPrice,
-            'defaultItemPrice' => $defaultItemPrice
+            'defaultItemPrice' => $defaultItemPrice,
+            'defaultRelayPrice' => $defaultRelayPrice
         ];
     }
 

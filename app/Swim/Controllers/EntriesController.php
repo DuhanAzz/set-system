@@ -19,14 +19,14 @@ class EntriesController extends Controller {
         $isMaster = (($_SESSION['swim_role'] ?? '') === 'master' || ($_SESSION['swim_role'] ?? '') === 'superadmin');
 
         if ($isMaster) {
-            $stmtAll = $pdo->query("SELECT id, event_name, event_date_start, pool_type, pricing_mode, package_price, package_limit, extra_price, price_per_item FROM swim_events ORDER BY id DESC");
+            $stmtAll = $pdo->query("SELECT id, event_name, event_date_start, pool_type, pricing_mode, package_price, package_limit, extra_price, price_per_item, price_relay FROM swim_events ORDER BY id DESC");
             $allEvents = $stmtAll->fetchAll(PDO::FETCH_ASSOC);
         } else {
-            $stmtAll = $pdo->prepare("SELECT id, event_name, event_date_start, pool_type, pricing_mode, package_price, package_limit, extra_price, price_per_item FROM swim_events WHERE user_id = ? ORDER BY id DESC");
+            $stmtAll = $pdo->prepare("SELECT id, event_name, event_date_start, pool_type, pricing_mode, package_price, package_limit, extra_price, price_per_item, price_relay FROM swim_events WHERE user_id = ? ORDER BY id DESC");
             $stmtAll->execute([$uid]);
             $allEvents = $stmtAll->fetchAll(PDO::FETCH_ASSOC);
             if (empty($allEvents)) {
-                $stmtAll = $pdo->query("SELECT id, event_name, event_date_start, pool_type, pricing_mode, package_price, package_limit, extra_price, price_per_item FROM swim_events ORDER BY id DESC");
+                $stmtAll = $pdo->query("SELECT id, event_name, event_date_start, pool_type, pricing_mode, package_price, package_limit, extra_price, price_per_item, price_relay FROM swim_events ORDER BY id DESC");
                 $allEvents = $stmtAll->fetchAll(PDO::FETCH_ASSOC);
             }
         }
@@ -117,6 +117,7 @@ class EntriesController extends Controller {
         $basePrice = (float)($eventData['package_price'] ?? 0);
         $extraPrice = (float)($eventData['extra_price'] ?? 0);
         $defaultItemPrice = (float)($eventData['price_per_item'] ?? ($basePrice > 0 ? $basePrice : 0));
+        $defaultRelayPrice = (float)($eventData['price_relay'] ?? 0);
 
         $totalTagihan = 0;
         foreach ($groupedSwimmers as $sid => &$data) {
@@ -155,7 +156,14 @@ class EntriesController extends Controller {
         // Kalkulasi estafet
         $totalRelay = 0;
         foreach ($relayEntries as &$re) {
-            $rePrice = ((float)($re['item_price'] ?? 0) > 0) ? (float)$re['item_price'] : $defaultItemPrice;
+            $itemP = (float)($re['item_price'] ?? 0);
+            if ($itemP > 0) {
+                $rePrice = $itemP;
+            } elseif ($defaultRelayPrice > 0) {
+                $rePrice = $defaultRelayPrice;
+            } else {
+                $rePrice = $defaultItemPrice;
+            }
             $re['effective_price'] = $rePrice;
             $totalRelay += $rePrice;
         }
@@ -174,7 +182,8 @@ class EntriesController extends Controller {
             'basePrice' => $basePrice,
             'limit' => $limit,
             'extraPrice' => $extraPrice,
-            'defaultItemPrice' => $defaultItemPrice
+            'defaultItemPrice' => $defaultItemPrice,
+            'defaultRelayPrice' => $defaultRelayPrice
         ];
     }
     

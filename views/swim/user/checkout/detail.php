@@ -183,6 +183,14 @@
                                     🏷️ Satuan: Tarif Rp <?= number_format((float)($event['price_per_item'] ?? ($event['package_price'] ?? 0)), 0, ',', '.') ?> / nomor lomba
                                 </p>
                             <?php endif; ?>
+                            <?php 
+                            $effectiveRelayRate = (float)($event['price_relay'] ?? ($calc['defaultRelayPrice'] ?? 0));
+                            if ($effectiveRelayRate > 0 || !empty($relayDetails)): 
+                            ?>
+                                <p class="text-[11px] text-indigo-700 font-bold mt-1">
+                                    👥 Estafet: Tarif Rp <?= number_format($effectiveRelayRate, 0, ',', '.') ?> / tim
+                                </p>
+                            <?php endif; ?>
                             <div class="flex items-center gap-2 mt-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                                 <span>Total Atlet: <b class="text-slate-700"><?= count($groupedSwimmers ?? []) ?></b></span>
                                 <span>•</span>

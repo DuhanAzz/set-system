@@ -90,9 +90,12 @@
                                     <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider border <?= $payBadgeColor ?>">
                                         💳 <?= $payStatusDisplay ?>
                                     </span>
-                                    <?php if ((float)($row['item_price'] ?? 0) > 0): ?>
+                                    <?php 
+                                    $relayDisplayFee = ((float)($row['item_price'] ?? 0) > 0) ? (float)$row['item_price'] : (float)($activeEvent['price_relay'] ?? 0);
+                                    if ($relayDisplayFee > 0): 
+                                    ?>
                                         <span class="text-[10px] font-bold text-slate-500">
-                                            Biaya: <b class="text-slate-800">Rp <?= number_format($row['item_price'], 0, ',', '.') ?></b>
+                                            Biaya: <b class="text-slate-800">Rp <?= number_format($relayDisplayFee, 0, ',', '.') ?></b>
                                         </span>
                                     <?php endif; ?>
                                     <?php if(!empty($row['club_user_id'])): ?>

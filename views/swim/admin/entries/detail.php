@@ -50,12 +50,21 @@
                     <span class="text-blue-400 font-bold">🏷️ Skema Satuan:</span> 
                     Rp <?= number_format((float)($eventData['price_per_item'] ?? ($eventData['package_price'] ?? 0)), 0, ',', '.') ?> / nomor lomba
                 <?php endif; ?>
+                <?php 
+                $adminRelayRate = (float)($eventData['price_relay'] ?? ($calc['defaultRelayPrice'] ?? 0));
+                if ($adminRelayRate > 0 || !empty($relayEntries)): 
+                ?>
+                    <div class="mt-1 text-indigo-300 font-medium">
+                        <span class="text-indigo-400 font-bold">👥 Tarif Estafet:</span>
+                        Rp <?= number_format($adminRelayRate, 0, ',', '.') ?> / tim
+                    </div>
+                <?php endif; ?>
             </div>
 
             <div class="mt-3 pt-3 border-t border-slate-800 flex justify-between items-center text-xs">
                 <span class="font-bold text-slate-400">Total Atlet & Nomor</span>
                 <span class="font-black bg-blue-600 px-2 py-1 rounded text-white text-[11px]">
-                    <?= count($groupedSwimmers) ?> Atlet • <?= $calc['totalEntries'] ?? 0 ?> Nomor
+                    <?= count($groupedSwimmers) ?> Atlet • <?= $calc['totalIndividual'] ?? count($groupedSwimmers) ?> No <?php if(!empty($relayEntries)): ?> • <?= count($relayEntries) ?> Estafet<?php endif; ?>
                 </span>
             </div>
         </div>

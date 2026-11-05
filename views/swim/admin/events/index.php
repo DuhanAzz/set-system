@@ -41,6 +41,34 @@
         </div>
     <?php else: ?>
 
+    <?php
+    $isPackage = ($activeEvent['pricing_mode'] ?? 'per_item') === 'package';
+    $pkgPrice = (float)($activeEvent['package_price'] ?? 0);
+    $pkgLimit = (int)($activeEvent['package_limit'] ?? 0);
+    $pkgExtra = (float)($activeEvent['extra_price'] ?? 0);
+
+    // Ambil harga standar dari nomor lomba satuan sebelumnya jika ada
+    $standardUnitPrice = 50000;
+    $standardRelayPrice = 100000;
+    if (!empty($listEvents)) {
+        foreach ($listEvents as $lev) {
+            if ((float)$lev['price'] > 0 && empty($lev['is_relay'])) {
+                $standardUnitPrice = (float)$lev['price'];
+                break;
+            }
+        }
+        foreach ($listEvents as $lev) {
+            if ((float)$lev['price'] > 0 && !empty($lev['is_relay'])) {
+                $standardRelayPrice = (float)$lev['price'];
+                break;
+            }
+        }
+    }
+
+    $suggestedDefaultPrice = $isPackage ? 0 : ((float)($activeEvent['price_per_item'] ?? 0) > 0 ? (float)$activeEvent['price_per_item'] : $standardUnitPrice);
+    $suggestedRelayPrice = (float)($activeEvent['price_relay'] ?? 0) > 0 ? (float)$activeEvent['price_relay'] : $standardRelayPrice;
+    ?>
+
     <div class="max-w-7xl mx-auto space-y-8">
         
         <!-- CARD ATURAN BIAYA (REFERENSI LEGACY SET-SWIM) -->
@@ -191,6 +219,47 @@
 
                 </div>
 
+                <!-- 3. TARIF NOMOR ESTAFET (RELAY) -->
+                <div class="pt-6 border-t border-indigo-800/80">
+                    <div class="bg-indigo-950/70 p-5 rounded-2xl border border-indigo-500/40 space-y-4">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-indigo-800/80 pb-3">
+                            <div class="flex items-center gap-2.5">
+                                <span class="text-xl">👥</span>
+                                <div>
+                                    <h4 class="font-black text-sm text-white uppercase tracking-wider">Tarif Pendaftaran Estafet (Per Tim)</h4>
+                                    <p class="text-[11px] text-indigo-300">Biaya pendaftaran beregu/estafet dihitung per tim dan terpisah dari paket atlet perorangan</p>
+                                </div>
+                            </div>
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-indigo-500/20 text-indigo-300 border border-indigo-400/30">
+                                Beregu / Per Tim
+                            </span>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                            <div>
+                                <label class="block text-[10px] font-black uppercase tracking-wider text-indigo-300 mb-1.5">
+                                    Biaya Pendaftaran Per Tim Estafet (Rp) <span class="text-rose-400">*</span>
+                                </label>
+                                <div class="relative">
+                                    <span class="absolute left-3 top-2.5 text-xs font-bold text-indigo-400">Rp</span>
+                                    <input type="number" id="priceRelayInput" name="price_relay" value="<?= (int)($activeEvent['price_relay'] ?? $suggestedRelayPrice) ?>" class="w-full bg-indigo-900/80 border border-indigo-600 rounded-xl pl-9 pr-3 py-2 text-xs font-bold text-white focus:outline-none focus:ring-2 focus:ring-indigo-400" placeholder="100000" min="0" step="1000">
+                                </div>
+                                <div class="flex items-center gap-2 mt-2">
+                                    <input type="checkbox" id="syncRelayPrice" name="sync_relay_price" value="1" checked class="rounded bg-indigo-900 border-indigo-600 text-blue-500 focus:ring-blue-500 cursor-pointer">
+                                    <label for="syncRelayPrice" class="text-[10px] text-indigo-200 cursor-pointer">Terapkan tarif ini ke seluruh nomor lomba estafet di event ini</label>
+                                </div>
+                            </div>
+
+                            <div class="bg-indigo-900/60 p-3.5 rounded-xl border border-indigo-700/50 text-[11px] text-indigo-200 space-y-1">
+                                <p class="font-bold text-amber-300">💡 Ketentuan Biaya Estafet:</p>
+                                <p class="leading-relaxed">
+                                    Tarif ini otomatis berlaku untuk setiap tim estafet yang didaftarkan pada menu pendaftaran estafet dan tertera otomatis di rincian invoice checkout klub.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="flex justify-end pt-2 border-t border-indigo-800/80">
                     <button type="submit" class="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-900 font-black px-6 py-3 rounded-xl text-xs uppercase tracking-wider shadow-lg shadow-emerald-950/40 transition flex items-center gap-2">
                         <span>💾 Simpan Aturan Biaya</span>
@@ -312,6 +381,7 @@
                                 <div class="relative">
                                     <span class="absolute left-3 top-2 text-xs font-bold text-slate-400">Rp</span>
                                     <input type="number" id="genDefaultPrice" value="<?= (int)$suggestedDefaultPrice ?>" class="w-full bg-white border border-slate-300 rounded-xl pl-9 pr-3 py-2 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500" step="1000" min="0">
+                                    <input type="hidden" id="genDefaultRelayPrice" value="<?= (int)$suggestedRelayPrice ?>">
                                 </div>
                                 <div class="flex items-center justify-between mt-1">
                                     <p id="priceModeHelp" class="text-[9px] text-slate-500 leading-tight">
@@ -321,10 +391,12 @@
                                             <span class="text-blue-700 font-bold">🏷️ Skema Satuan:</span> Dihitung akumulasi per nomor lomba.
                                         <?php endif; ?>
                                     </p>
-                                    <div class="flex gap-1 text-[9px] font-bold">
+                                    <div class="flex items-center gap-1 text-[9px] font-bold">
                                         <button type="button" onclick="setGenPrice(0)" class="text-emerald-600 hover:underline">Rp 0</button>
                                         <span class="text-slate-300">|</span>
                                         <button type="button" onclick="setGenPrice(<?= (int)$standardUnitPrice ?>)" class="text-blue-600 hover:underline">Rp <?= number_format($standardUnitPrice, 0, ',', '.') ?></button>
+                                        <span class="text-slate-300">|</span>
+                                        <span class="text-indigo-600 font-bold" title="Tarif estafet otomatis diterapkan saat membuat nomor estafet">👥 Estafet: Rp <?= number_format($suggestedRelayPrice, 0, ',', '.') ?></span>
                                     </div>
                                 </div>
                             </div>
@@ -519,7 +591,7 @@
 
                             <div>
                                 <label class="flex items-center gap-3 cursor-pointer p-4 bg-indigo-50 border border-indigo-100 rounded-xl hover:bg-indigo-100 transition shadow-sm">
-                                    <input type="checkbox" name="is_relay" value="1" class="w-5 h-5 rounded border-indigo-300 text-indigo-600 focus:ring-indigo-500 focus:ring-offset-0">
+                                    <input type="checkbox" id="manualIsRelay" name="is_relay" value="1" onchange="toggleManualRelay(this)" class="w-5 h-5 rounded border-indigo-300 text-indigo-600 focus:ring-indigo-500 focus:ring-offset-0">
                                     <div>
                                         <span class="block font-black text-sm text-indigo-900">Estafet (Relay Event)</span>
                                         <span class="block text-[10px] text-indigo-600 font-medium">Tandai jika ini adalah perlombaan beregu (mis. 4x50m)</span>
@@ -648,7 +720,7 @@
                                         <div class="flex flex-wrap gap-2 mt-1.5 items-center">
                                             <?php if($ev['is_relay']): ?>
                                             <span class="text-[10px] font-black px-2 py-0.5 rounded bg-indigo-100 text-indigo-700 border border-indigo-200">
-                                                ESTAFET
+                                                ESTAFET <?= (float)$ev['price'] > 0 ? '• Rp ' . number_format($ev['price'], 0, ',', '.') : '' ?>
                                             </span>
                                             <?php endif; ?>
                                             <span class="text-[10px] font-bold px-2 py-0.5 rounded <?= $bgBadge ?>">
@@ -1253,6 +1325,7 @@ function parseFromExcel() {
 
     const lines = raw.split(/\r?\n/);
     const defaultPrice = parseFloat(document.getElementById('genDefaultPrice')?.value) || 0;
+    const defaultRelayPrice = parseFloat(document.getElementById('genDefaultRelayPrice')?.value) || <?= (int)$suggestedRelayPrice ?>;
     const date = document.getElementById('genScheduleDate')?.value || '';
     const time = document.getElementById('genScheduleTime')?.value || '';
 
@@ -1353,7 +1426,7 @@ function parseFromExcel() {
                     selected_ku_ids: parsed.selectedKuIds,
                     age_group: parsed.kuName,
                     event_name: `${parsed.cleanTitle} - PUTRA`,
-                    price: defaultPrice,
+                    price: parsed.isRelay ? defaultRelayPrice : defaultPrice,
                     schedule_date: date,
                     schedule_time: time,
                     is_relay: parsed.isRelay
@@ -1371,7 +1444,7 @@ function parseFromExcel() {
                     selected_ku_ids: parsed.selectedKuIds,
                     age_group: parsed.kuName,
                     event_name: `${parsed.cleanTitle} - PUTRI`,
-                    price: defaultPrice,
+                    price: parsed.isRelay ? defaultRelayPrice : defaultPrice,
                     schedule_date: date,
                     schedule_time: time,
                     is_relay: parsed.isRelay
@@ -1666,11 +1739,11 @@ function renderDraftPreview(items) {
                 ${item.age_group}
             </td>
             <td class="p-3 text-right">
-                ${(item.price == 0 && window.isPackageActive) 
-                    ? `<div class="flex items-center justify-end gap-1"><span class="font-black text-emerald-600">Rp 0</span><span class="text-[9px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-black border border-emerald-200">📦 PAKET</span></div>` 
-                    : (item.is_relay == 1 
-                        ? `<div class="flex items-center justify-end gap-1"><span class="font-bold text-indigo-700">Rp ${formatRupiah(item.price)}</span><span class="text-[9px] bg-indigo-100 text-indigo-800 px-1.5 py-0.5 rounded font-black">ESTAFET</span></div>`
-                        : `<span class="font-bold text-slate-700">Rp ${formatRupiah(item.price)}</span>`)}
+                ${(item.is_relay == 1) 
+                    ? `<div class="flex items-center justify-end gap-1"><span class="font-bold text-indigo-700">Rp ${formatRupiah(item.price)}</span><span class="text-[9px] bg-indigo-100 text-indigo-800 px-1.5 py-0.5 rounded font-black">ESTAFET</span></div>`
+                    : (item.price == 0 && window.isPackageActive)
+                        ? `<div class="flex items-center justify-end gap-1"><span class="font-black text-emerald-600">Rp 0</span><span class="text-[9px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-black border border-emerald-200">📦 PAKET</span></div>`
+                        : `<span class="font-bold text-slate-700">Rp ${formatRupiah(item.price)}</span>`}
             </td>
             <td class="p-3 text-center">
                 <button type="button" onclick="removeDraftRow(${index})" class="text-slate-300 hover:text-rose-600 font-black text-lg px-2 py-0.5 rounded transition" title="Hapus Nomor Ini">&times;</button>
@@ -1811,6 +1884,29 @@ function updateSimulation() {
     if (simBase) simBase.textContent = formatRupiah(price);
     if (simExtraCount) simExtraCount.textContent = extraCount;
     if (simTotal) simTotal.textContent = formatRupiah(total);
+}
+
+function toggleManualRelay(cb) {
+    const manualPriceInput = document.getElementById('manualPriceInput');
+    const manualPriceHelp = document.getElementById('manualPriceHelp');
+    const defaultRelayPrice = parseFloat(document.getElementById('genDefaultRelayPrice')?.value) || <?= (int)$suggestedRelayPrice ?>;
+    const defaultSatuan = parseFloat(document.getElementById('perItemPriceInput')?.value) || <?= (int)$suggestedDefaultPrice ?>;
+
+    if (cb.checked) {
+        if (manualPriceInput && (parseFloat(manualPriceInput.value) === 0 || parseFloat(manualPriceInput.value) === defaultSatuan)) {
+            manualPriceInput.value = defaultRelayPrice;
+        }
+        if (manualPriceHelp) {
+            manualPriceHelp.innerHTML = '👥 Biaya pendaftaran estafet per tim';
+        }
+    } else {
+        if (manualPriceInput && parseFloat(manualPriceInput.value) === defaultRelayPrice) {
+            manualPriceInput.value = window.isPackageActive ? 0 : defaultSatuan;
+        }
+        if (manualPriceHelp) {
+            manualPriceHelp.innerHTML = window.isPackageActive ? '📦 Sistem paket aktif: set Rp 0 jika nomor reguler masuk kuota paket' : '🏷️ Biaya perorangan nomor satuan';
+        }
+    }
 }
 
 // Initial simulation calculation on page load & drag-and-drop setup

@@ -60,6 +60,11 @@ class EventsController extends Controller {
         $adminId = $_SESSION['swim_user_id'];
         $requestedEventId = isset($_GET['event_id']) ? (int)$_GET['event_id'] : 0;
 
+        // Ensure price_relay column exists in swim_events
+        try {
+            $pdo->query("ALTER TABLE swim_events ADD COLUMN price_relay DECIMAL(15,2) DEFAULT 0.00 AFTER price_per_item");
+        } catch (\Exception $e) {}
+
         list($activeEvent, $allEvents) = $this->resolveEvent($pdo, $adminId, $requestedEventId);
 
         $eventId = $activeEvent['id'] ?? 0;
@@ -152,24 +157,40 @@ class EventsController extends Controller {
                 $pkgExtra = !empty($_POST['extra_price']) ? (float)$_POST['extra_price'] : 0;
                 $pricePerItem = !empty($_POST['price_per_item']) ? (float)$_POST['price_per_item'] : 0;
                 $syncNumbers = !empty($_POST['sync_numbers_price']);
+                $priceRelay = !empty($_POST['price_relay']) ? (float)$_POST['price_relay'] : 0;
+                $syncRelay = !empty($_POST['sync_relay_price']);
 
-                // Ensure price_per_item column exists in swim_events
+                // Ensure price_per_item and price_relay columns exist in swim_events
                 try {
                     $pdo->query("ALTER TABLE swim_events ADD COLUMN price_per_item DECIMAL(15,2) DEFAULT 0.00 AFTER pricing_mode");
                 } catch (\Exception $e) {}
+                try {
+                    $pdo->query("ALTER TABLE swim_events ADD COLUMN price_relay DECIMAL(15,2) DEFAULT 0.00 AFTER price_per_item");
+                } catch (\Exception $e) {}
 
                 try {
-                    $sql = "UPDATE swim_events SET pricing_mode=?, package_price=?, package_limit=?, extra_price=?, price_per_item=? WHERE id=?";
-                    $pdo->prepare($sql)->execute([$mode, $pkgPrice, $pkgLimit, $pkgExtra, $pricePerItem, $eventId]);
+                    $sql = "UPDATE swim_events SET pricing_mode=?, package_price=?, package_limit=?, extra_price=?, price_per_item=?, price_relay=? WHERE id=?";
+                    $pdo->prepare($sql)->execute([$mode, $pkgPrice, $pkgLimit, $pkgExtra, $pricePerItem, $priceRelay, $eventId]);
                 } catch (\Exception $e) {
-                    $sql = "UPDATE swim_events SET pricing_mode=?, package_price=?, package_limit=?, extra_price=? WHERE id=?";
-                    $pdo->prepare($sql)->execute([$mode, $pkgPrice, $pkgLimit, $pkgExtra, $eventId]);
+                    try {
+                        $sql = "UPDATE swim_events SET pricing_mode=?, package_price=?, package_limit=?, extra_price=?, price_per_item=? WHERE id=?";
+                        $pdo->prepare($sql)->execute([$mode, $pkgPrice, $pkgLimit, $pkgExtra, $pricePerItem, $eventId]);
+                    } catch (\Exception $e2) {
+                        $sql = "UPDATE swim_events SET pricing_mode=?, package_price=?, package_limit=?, extra_price=? WHERE id=?";
+                        $pdo->prepare($sql)->execute([$mode, $pkgPrice, $pkgLimit, $pkgExtra, $eventId]);
+                    }
                 }
 
                 // Jika mode satuan dan sync dicentang, update seluruh nomor lomba perorangan
                 if ($mode === 'per_item' && $pricePerItem > 0 && $syncNumbers) {
                     $stmtSync = $pdo->prepare("UPDATE swim_event_numbers SET price = ? WHERE event_id = ? AND (is_relay = 0 OR is_relay IS NULL)");
                     $stmtSync->execute([$pricePerItem, $eventId]);
+                }
+
+                // Jika sync relay dicentang, update seluruh nomor lomba estafet
+                if ($priceRelay > 0 && $syncRelay) {
+                    $stmtSyncRelay = $pdo->prepare("UPDATE swim_event_numbers SET price = ? WHERE event_id = ? AND is_relay = 1");
+                    $stmtSyncRelay->execute([$priceRelay, $eventId]);
                 }
                 
                 $_SESSION['toast'] = ['type' => 'success', 'msg' => 'Aturan Biaya Berhasil Disimpan & Disinkronkan!'];
@@ -260,6 +281,11 @@ class EventsController extends Controller {
                 $tgl    = !empty($_POST['schedule_date']) ? $_POST['schedule_date'] : NULL;
                 $jam    = !empty($_POST['schedule_time']) ? $_POST['schedule_time'] : NULL;
                 $is_relay = isset($_POST['is_relay']) ? 1 : 0;
+
+                // Jika nomor estafet dan harga 0, gunakan price_relay event jika ada
+                if ($is_relay == 1 && $harga <= 0 && !empty($activeEvent['price_relay'])) {
+                    $harga = (float)$activeEvent['price_relay'];
+                }
                 
                 $selected_kus = $_POST['selected_kus'] ?? []; 
                 if (empty($selected_kus) || !is_array($selected_kus)) {
@@ -467,6 +493,11 @@ class EventsController extends Controller {
                     $tgl = !empty($item['schedule_date']) ? $item['schedule_date'] : NULL;
                     $jam = !empty($item['schedule_time']) ? $item['schedule_time'] : NULL;
                     $is_relay = !empty($item['is_relay']) ? 1 : 0;
+
+                    // Jika nomor estafet dan harga 0, gunakan price_relay event jika ada
+                    if ($is_relay == 1 && $harga <= 0 && !empty($activeEvent['price_relay'])) {
+                        $harga = (float)$activeEvent['price_relay'];
+                    }
 
                     // Resolve KUs
                     $selectedKuIds = [];
