@@ -2,9 +2,9 @@
 use App\Core\Database;
 $pdo = Database::getInstance()->getConnection();
 
-// Fetch sliders
+// Fetch sliders (maksimal 5 untuk efisiensi)
 try {
-    $sliders = $pdo->query("SELECT * FROM roll_hero_images ORDER BY id DESC")->fetchAll();
+    $sliders = $pdo->query("SELECT id, image_path FROM roll_hero_images ORDER BY id DESC LIMIT 5")->fetchAll();
 } catch (Exception $e) {
     $sliders = [];
 }
@@ -16,19 +16,22 @@ try {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - SET System Roll</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdn.tailwindcss.com">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; }
-        .bg-slide { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: 0; transition: opacity 1.5s ease-in-out; }
+        .bg-slide { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: 0; transition: opacity 1.5s ease-in-out; will-change: opacity; }
         .bg-slide.active { opacity: 1; }
         @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-10px); } 100% { transform: translateY(0px); } }
-        .logo-float { animation: float 6s ease-in-out infinite; }
+        .logo-float { animation: float 6s ease-in-out infinite; will-change: transform; }
     </style>
 </head>
-<body class="bg-white h-screen w-full flex overflow-hidden">
+<body class="bg-white min-h-screen w-full flex flex-col lg:flex-row selection:bg-orange-500 selection:text-white">
     
-    <div class="hidden lg:flex w-1/2 relative bg-slate-900 items-center justify-center overflow-hidden">
+    <div class="hidden lg:flex w-1/2 relative bg-slate-900 items-center justify-center overflow-hidden min-h-screen sticky top-0 h-screen shrink-0">
         <div id="login-slider-container" class="absolute inset-0 w-full h-full">
             <?php if (!empty($sliders)): ?>
                 <?php foreach($sliders as $index => $slide): ?>
@@ -36,7 +39,6 @@ try {
                         $src = $slide['image_path'];
                         if (strpos($src, 'http') !== 0) {
                             $src = rtrim(getenv('APP_URL'), '/') . '/uploads/hero/' . ltrim(str_replace('img/hero/', '', $src), '/');
-                            $src .= "?t=" . time();
                         }
                     ?>
                     <div class="bg-slide <?= $index === 0 ? 'active' : '' ?>" style="background-image: url('<?= htmlspecialchars($src) ?>');"></div>
@@ -45,13 +47,13 @@ try {
                 <div class="bg-slide active" style="background-image: url('<?= rtrim(getenv('APP_URL'), '/') ?>/img/hero-inline-skaters.jpg');"></div>
             <?php endif; ?>
         </div>
-        <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-[2px]"></div>
+        <div class="absolute inset-0 bg-slate-900/60"></div>
         <div class="relative z-10 p-12 logo-float">
             <img src="<?= getenv('APP_URL') ?>/img/logo.png" class="w-64 h-auto drop-shadow-2xl filter brightness-110" alt="Logo SET System">
         </div>
     </div>
 
-    <div class="w-full lg:w-1/2 flex flex-col justify-center items-center p-6 bg-white overflow-y-auto relative">
+    <div class="w-full lg:w-1/2 flex flex-col justify-center items-center p-6 md:p-12 bg-white min-h-screen relative">
         
         <a href="<?= getenv('APP_URL') ?>/roll" class="absolute top-6 left-6 md:top-10 md:left-10 flex items-center gap-2 text-slate-400 hover:text-orange-600 transition duration-300 font-bold text-xs uppercase tracking-widest group">
             <span class="text-xl group-hover:-translate-x-1 transition-transform">&larr;</span> 

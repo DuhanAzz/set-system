@@ -40,7 +40,7 @@
         </div>
 
         <?php if(empty($row)): ?>
-            <div class="bg-slate-50/50 rounded-2xl border border-slate-200/50 shadow-xl p-12 text-center backdrop-blur-sm">
+            <div class="bg-slate-50 rounded-2xl border border-slate-200 shadow-md p-12 text-center">
                 <span class="text-6xl mb-4 block">⚠️</span>
                 <h3 class="text-xl font-bold text-slate-600 mb-2">Tidak Ada Event Aktif</h3>
                 <p class="text-slate-500">Silakan buat atau pilih event aktif melalui Dashboard terlebih dahulu.</p>
@@ -49,8 +49,8 @@
 
         <div class="space-y-8">
             <!-- Kelas Lomba -->
-            <div class="bg-slate-50/50 rounded-2xl border border-slate-200/50 shadow-xl backdrop-blur-sm w-full flex flex-col">
-                <div class="p-6 border-b border-slate-200/50 flex justify-between items-center bg-white rounded-t-2xl">
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm w-full flex flex-col">
+                <div class="p-6 border-b border-slate-200 flex justify-between items-center bg-white rounded-t-2xl">
                     <h3 class="text-lg font-bold text-slate-800 uppercase tracking-widest">Matriks Kelas Lomba</h3>
                     <span class="text-[10px] text-slate-500 bg-slate-100 px-3 py-1 rounded-full border border-slate-200 font-bold uppercase tracking-widest">Isi Nomor Lomba (Misal: 104)</span>
                 </div>
@@ -128,7 +128,7 @@
                                 <tbody class="divide-y divide-slate-100 text-sm">
                                     <?php foreach($speedKUs as $ku): ?>
                                     <tr class="hover:bg-slate-50 transition-colors">
-                                        <td class="p-4 text-slate-800 font-bold sticky left-0 bg-white z-10 border-r border-slate-200 text-xs shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                                        <td class="p-4 text-slate-800 font-bold sticky left-0 bg-white z-10 border-r border-slate-200 text-xs">
                                             <?= htmlspecialchars($ku['group_name']) ?>
                                         </td>
                                         <?php foreach($speedDists as $d): 
@@ -158,7 +158,7 @@
                                 <tbody class="divide-y divide-slate-100 text-sm">
                                     <?php foreach($stdKUs as $ku): ?>
                                     <tr class="hover:bg-slate-50 transition-colors">
-                                        <td class="p-4 text-slate-800 font-bold sticky left-0 bg-white z-10 border-r border-slate-200 text-xs shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                                        <td class="p-4 text-slate-800 font-bold sticky left-0 bg-white z-10 border-r border-slate-200 text-xs">
                                             <?= htmlspecialchars($ku['group_name']) ?>
                                         </td>
                                         <?php foreach($stdDists as $d): 
@@ -188,7 +188,7 @@
                                 <tbody class="divide-y divide-slate-100 text-sm">
                                     <?php foreach($pemulaKUs as $ku): ?>
                                     <tr class="hover:bg-slate-50 transition-colors">
-                                        <td class="p-4 text-slate-800 font-bold sticky left-0 bg-white z-10 border-r border-slate-200 text-xs shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                                        <td class="p-4 text-slate-800 font-bold sticky left-0 bg-white z-10 border-r border-slate-200 text-xs">
                                             <?= htmlspecialchars($ku['group_name']) ?>
                                         </td>
                                         <?php foreach($pemulaDists as $d): 

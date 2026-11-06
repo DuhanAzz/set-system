@@ -55,15 +55,18 @@ $showBanner = ($globalSettings && $globalSettings['show_announcement'] == 1 && !
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SET System Dashboard</title>
     <link rel="icon" type="image/png" href="<?= getenv('APP_URL') ?>/favicon.png?v=2">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdn.tailwindcss.com">
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.2.0/flowbite.min.css" rel="stylesheet" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.2.0/flowbite.min.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap');
         body { font-family: 'Inter', sans-serif; background-color: #F8FAFC; }
     </style>
 </head>
-<body class="bg-slate-50 font-sans text-slate-800 antialiased overflow-x-hidden selection:bg-orange-500 selection:text-white">
+<body class="bg-slate-50 font-sans text-slate-800 antialiased selection:bg-orange-500 selection:text-white">
 
 <?php if ($showBanner): ?>
 <div class="bg-gradient-to-r from-red-600 to-orange-500 text-white px-4 py-2 text-center text-xs font-black tracking-widest uppercase shadow-md flex items-center justify-center gap-3 animate-pulse">
@@ -76,7 +79,7 @@ $showBanner = ($globalSettings && $globalSettings['show_announcement'] == 1 && !
 <!-- Flash Message Global -->
 <?php include_once __DIR__ . '/../notifikasi.php'; ?>
 
-<nav class="fixed top-0 left-0 right-0 z-40 bg-white border-b border-gray-200 h-16 shadow-sm sm:ml-64 transition-all">
+<nav class="fixed top-0 left-0 right-0 z-40 bg-white border-b border-gray-200 h-16 shadow-sm sm:ml-64">
   <div class="px-3 py-3 lg:px-5 lg:pl-3 h-full">
     <div class="flex items-center justify-between h-full">
       

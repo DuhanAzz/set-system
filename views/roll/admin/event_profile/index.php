@@ -47,7 +47,7 @@
         </div>
 
         <?php if(empty($row)): ?>
-            <div class="bg-slate-50/50 rounded-2xl border border-slate-200/50 shadow-xl p-12 text-center backdrop-blur-sm">
+            <div class="bg-slate-50 rounded-2xl border border-slate-200 shadow-md p-12 text-center">
                 <span class="text-6xl mb-4 block">⚠️</span>
                 <h3 class="text-xl font-bold text-slate-600 mb-2">Tidak Ada Event Aktif</h3>
                 <p class="text-slate-500">Silakan buat atau pilih event aktif melalui Dashboard terlebih dahulu.</p>
@@ -56,7 +56,7 @@
 
         <div class="space-y-8">
             <!-- Profil Kejuaraan -->
-            <div class="bg-slate-50/50 rounded-2xl border border-slate-200/50 shadow-xl backdrop-blur-sm p-6 w-full">
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 w-full">
                 <h3 class="text-lg font-bold text-slate-800 uppercase tracking-widest mb-4 border-b border-slate-200 pb-2">Profil Utama</h3>
                 <form id="profile-form" action="<?= getenv('APP_URL') ?>/roll/admin/events/update_profile" method="POST" enctype="multipart/form-data" class="space-y-6">
                     <input type="hidden" name="event_id" value="<?= $row['id'] ?>">

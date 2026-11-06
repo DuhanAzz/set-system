@@ -16,7 +16,7 @@
         </div>
 
         <!-- TABEL ATLET -->
-        <div class="bg-slate-50/50 rounded-2xl border border-slate-200/50 shadow-xl backdrop-blur-sm p-6 w-full">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 w-full">
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse">
                     <thead>

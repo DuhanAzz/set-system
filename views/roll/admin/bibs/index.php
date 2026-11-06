@@ -28,7 +28,7 @@
         </div>
 
         <?php if($eventId == 0): ?>
-            <div class="bg-slate-50/50 rounded-2xl border border-slate-200/50 shadow-xl p-12 text-center backdrop-blur-sm">
+            <div class="bg-slate-50 rounded-2xl border border-slate-200 shadow-md p-12 text-center">
                 <span class="text-6xl mb-4 block">⚠️</span>
                 <h3 class="text-xl font-bold text-slate-600 mb-2">Tidak Ada Event Aktif</h3>
                 <p class="text-slate-500">Silakan pilih event aktif melalui Dashboard terlebih dahulu.</p>
@@ -36,7 +36,7 @@
         <?php else: ?>
 
             <!-- TABEL DAFTAR KLUB -->
-            <div class="bg-slate-50/50 rounded-2xl border border-slate-200/50 shadow-xl backdrop-blur-sm p-6 w-full">
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 w-full">
                 <h3 class="text-lg font-bold text-slate-800 uppercase tracking-widest mb-4 border-b border-slate-200 pb-2">Daftar Klub Pendaftar</h3>
                 
                 <div class="overflow-x-auto">
