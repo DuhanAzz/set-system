@@ -12,17 +12,9 @@ class Controller {
             $db = \App\Core\Database::getInstance()->getConnection();
             $today = date('Y-m-d');
             
-            // Cek apakah sudah ada catatan untuk hari ini & modul ini
-            $stmt = $db->prepare("SELECT id FROM site_visitors WHERE module = ? AND visit_date = ?");
+            // Single atomic query untuk performa maksimal tanpa round-trip ganda
+            $stmt = $db->prepare("INSERT INTO site_visitors (module, visit_date, views_count) VALUES (?, ?, 1) ON DUPLICATE KEY UPDATE views_count = views_count + 1");
             $stmt->execute([$module, $today]);
-            
-            if ($stmt->rowCount() > 0) {
-                // Update
-                $db->prepare("UPDATE site_visitors SET views_count = views_count + 1 WHERE module = ? AND visit_date = ?")->execute([$module, $today]);
-            } else {
-                // Insert
-                $db->prepare("INSERT INTO site_visitors (module, visit_date, views_count) VALUES (?, ?, 1)")->execute([$module, $today]);
-            }
         } catch (\Exception $e) {
             // Abaikan error DB agar tidak merusak halaman utama
         }

@@ -15,8 +15,6 @@ $heroSubtitle = $s['hero_subtitle'] ?? 'Professional Event Organizer';
 $appName      = $s['app_name'] ?? 'SET Roll System';
 
 // Gambar Tambahan
-$aboutImg = !empty($s['about_image']) ? rtrim(getenv('APP_URL'), '/') . '/public/' . ltrim($s['about_image'], '/') : 'https://images.unsplash.com/photo-1506141381389-13019318b2c2?q=80&w=1000&auto=format&fit=crop';
-$footerImg = !empty($s['footer_image']) ? rtrim(getenv('APP_URL'), '/') . '/public/' . ltrim($s['footer_image'], '/') : 'https://images.unsplash.com/photo-1563212046-2428581e220a?q=80&w=2000&auto=format&fit=crop';
 $eventFallbackImg = !empty($s['event_fallback_image']) ? rtrim(getenv('APP_URL'), '/') . '/public/' . ltrim($s['event_fallback_image'], '/') : 'https://images.unsplash.com/photo-1520045892732-304bc3ac5d8e?q=80&w=800&auto=format&fit=crop';
 ?>
 <!DOCTYPE html>
@@ -26,6 +24,9 @@ $eventFallbackImg = !empty($s['event_fallback_image']) ? rtrim(getenv('APP_URL')
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= htmlspecialchars($s['app_name'] ?? 'SET Roll System') ?></title>
     
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdn.tailwindcss.com">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="icon" type="image/png" href="<?= getenv('APP_URL') ?>/favicon.png?v=2">
@@ -33,22 +34,21 @@ $eventFallbackImg = !empty($s['event_fallback_image']) ? rtrim(getenv('APP_URL')
         body { font-family: 'Inter', sans-serif; }
         
         /* --- SPEED INLINE SKATE PRELOADER --- */
-        #preloader { position: fixed; inset: 0; z-index: 9999; background-color: #0F172A; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s ease, visibility 0.5s ease; overflow: hidden; }
+        #preloader { position: fixed; inset: 0; z-index: 9999; background-color: #0F172A; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.35s ease, visibility 0.35s ease; overflow: hidden; will-change: opacity, visibility; }
         .skate-chassis { position: relative; padding-bottom: 12px; display: flex; gap: 6px; z-index: 2; }
-        .inline-wheel { width: 45px; height: 45px; border: 7px solid #ea580c; border-radius: 50%; border-top-color: #fb923c; border-right-color: #fb923c; animation: spin-fast 0.3s linear infinite; box-shadow: 0 0 20px rgba(234, 88, 12, 0.5); position: relative; }
+        .inline-wheel { width: 45px; height: 45px; border: 7px solid #ea580c; border-radius: 50%; border-top-color: #fb923c; border-right-color: #fb923c; animation: spin-fast 0.5s linear infinite; box-shadow: 0 0 10px rgba(234, 88, 12, 0.4); position: relative; will-change: transform; transform: translateZ(0); }
         .inline-wheel::before { content: ''; position: absolute; inset: 5px; background: #94a3b8; border-radius: 50%; border: 3px solid #0f172a; }
-        .speed-lines { position: absolute; bottom: -4px; left: -100%; width: 300%; height: 4px; background: repeating-linear-gradient(90deg, transparent, transparent 20px, #ea580c 20px, #ea580c 80px); animation: move-lines 0.3s linear infinite; opacity: 0.8; z-index: 3; }
+        .speed-lines { position: absolute; bottom: -4px; left: -100%; width: 300%; height: 4px; background: repeating-linear-gradient(90deg, transparent, transparent 20px, #ea580c 20px, #ea580c 80px); animation: move-lines 0.4s linear infinite; opacity: 0.8; z-index: 3; }
         @keyframes spin-fast { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         @keyframes move-lines { 0% { transform: translateX(0); } 100% { transform: translateX(-100px); } }
         
         .load-text-container { margin-top: 35px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
-        .load-text { color: white; font-weight: 900; letter-spacing: 0.3em; font-size: 14px; text-transform: uppercase; animation: pulse-text 1s infinite alternate; }
+        .load-text { color: white; font-weight: 900; letter-spacing: 0.3em; font-size: 14px; text-transform: uppercase; }
         .load-perc { color: #ea580c; font-size: 32px; font-weight: 900; text-shadow: 0 0 15px rgba(234, 88, 12, 0.6); }
-        @keyframes pulse-text { from { opacity: 0.6; } to { opacity: 1; } }
         .loader-finish { opacity: 0; visibility: hidden; pointer-events: none; }
 
         /* --- NAV & HEADER STYLE --- */
-        #navbar { transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); height: 110px; display: flex; align-items: center; }
+        #navbar { transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, height 0.3s ease; height: 110px; display: flex; align-items: center; }
         #navbar.scrolled { background-color: #0F172A; height: 85px; border-bottom: 1px solid #1e293b; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
         .nav-link { position: relative; color: white; transition: all 0.3s ease; font-size: 0.95rem; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; }
         .nav-link::after { content: ''; position: absolute; width: 0; height: 3px; bottom: -8px; left: 0; background-color: #f97316; transition: width 0.3s ease; }
@@ -56,7 +56,7 @@ $eventFallbackImg = !empty($s['event_fallback_image']) ? rtrim(getenv('APP_URL')
         .nav-link:hover { color: #f97316; }
 
         /* --- HERO SLIDER STYLE --- */
-        .hero-slide { position: absolute; inset: 0; width: 100%; height: 100%; background-size: cover; background-position: center; opacity: 0; transition: opacity 1.5s ease-in-out; z-index: -1; }
+        .hero-slide { position: absolute; inset: 0; width: 100%; height: 100%; background-size: cover; background-position: center; opacity: 0; transition: opacity 1.2s ease-in-out; z-index: -1; will-change: opacity; }
         .hero-slide.active { opacity: 1; }
         .hero-overlay { background: linear-gradient(to bottom, rgba(15, 23, 42, 0.85), rgba(15, 23, 42, 0.4), rgba(15, 23, 42, 0.9)); }
     </style>
@@ -157,7 +157,7 @@ $eventFallbackImg = !empty($s['event_fallback_image']) ? rtrim(getenv('APP_URL')
             <?php foreach($sliders as $index => $slide): 
                 $slideImg = (strpos($slide['image_path'], 'http') === 0) ? $slide['image_path'] : rtrim(getenv('APP_URL'), '/') . '/uploads/hero/' . ltrim(str_replace('img/hero/', '', $slide['image_path']), '/');
             ?>
-                <div class="hero-slide <?= $index === 0 ? 'active' : '' ?>" style="background-image: url('<?= htmlspecialchars($slideImg) ?>');"></div>
+                <div class="hero-slide <?= $index === 0 ? 'active' : '' ?>" <?= $index === 0 ? 'style="background-image: url(\'' . htmlspecialchars($slideImg) . '\');"' : 'data-bg="' . htmlspecialchars($slideImg) . '"' ?>></div>
             <?php endforeach; ?>
             <div class="absolute inset-0 hero-overlay"></div>
         </div>
@@ -226,7 +226,7 @@ $eventFallbackImg = !empty($s['event_fallback_image']) ? rtrim(getenv('APP_URL')
                 </div>
 
                 <div class="w-full sm:w-2/5 aspect-[1/1.4] sm:aspect-auto sm:min-h-[350px] bg-slate-900 relative overflow-hidden shrink-0">
-                    <img src="<?= htmlspecialchars($imgSrc) ?>" class="w-full h-full object-cover opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-700">
+                    <img src="<?= htmlspecialchars($imgSrc) ?>" alt="<?= htmlspecialchars($e['event_name']) ?>" loading="lazy" decoding="async" class="w-full h-full object-cover opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-700">
                     <div class="absolute inset-0 bg-gradient-to-t from-slate-900/80 sm:bg-gradient-to-r sm:from-transparent sm:to-slate-900/10 to-transparent"></div>
                 </div>
                 
@@ -324,53 +324,86 @@ $eventFallbackImg = !empty($s['event_fallback_image']) ? rtrim(getenv('APP_URL')
     </footer>
 
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const textPerc = document.getElementById('load-perc');
+        // PRELOADER SNAPPY DISMISS (Zero artificial delay)
+        (function() {
             const preloader = document.getElementById('preloader');
-            let progress = 0;
-            const duration = 1000; // 1.5 detik
-            const intervalTime = 30; // update setiap 30ms
-            const step = 100 / (duration / intervalTime);
-            
-            const interval = setInterval(() => {
-                progress += step;
-                if (progress >= 100) progress = 100;
-                if (textPerc) textPerc.innerText = Math.floor(progress) + '%';
-                
-                if (progress === 100) {
-                    clearInterval(interval);
-                    setTimeout(() => { 
-                        if(preloader) {
-                            preloader.classList.add('loader-finish'); 
-                            setTimeout(() => preloader.remove(), 600);
-                        }
-                    }, 200); 
-                }
-            }, intervalTime);
-        });
+            const textPerc = document.getElementById('load-perc');
+            let isDismissed = false;
 
-        // NAVBAR SCROLL
+            function dismiss() {
+                if (isDismissed || !preloader) return;
+                isDismissed = true;
+                if (textPerc) textPerc.innerText = '100%';
+                preloader.classList.add('loader-finish');
+                setTimeout(() => { if (preloader.parentNode) preloader.remove(); }, 350);
+            }
+
+            // Quick smooth ticker (max 250ms)
+            let progress = 0;
+            const timer = setInterval(() => {
+                progress += 20;
+                if (progress >= 100) {
+                    progress = 100;
+                    clearInterval(timer);
+                    dismiss();
+                }
+                if (textPerc) textPerc.innerText = progress + '%';
+            }, 25);
+
+            // Hard safety dismiss on window load or max 400ms
+            window.addEventListener('load', () => { clearInterval(timer); dismiss(); });
+            setTimeout(() => { clearInterval(timer); dismiss(); }, 400);
+        })();
+
+        // NAVBAR SCROLL (Throttled with requestAnimationFrame & passive listener)
         const navbar = document.getElementById('navbar');
         const logo = document.getElementById('nav-logo');
-        window.addEventListener('scroll', () => { 
-            if(window.scrollY > 50) { 
-                navbar.classList.add('scrolled'); 
-                if(logo) logo.classList.replace('h-24', 'h-16'); 
-            } 
-            else { 
-                navbar.classList.remove('scrolled'); 
-                if(logo) logo.classList.replace('h-16', 'h-24'); 
-            }
-        });
+        let isScrolled = false;
+        let scrollTicking = false;
 
-        // SLIDER LOGIC
+        window.addEventListener('scroll', () => { 
+            if (!scrollTicking) {
+                window.requestAnimationFrame(() => {
+                    const shouldScroll = window.scrollY > 50;
+                    if (shouldScroll !== isScrolled) {
+                        isScrolled = shouldScroll;
+                        if (isScrolled) { 
+                            navbar.classList.add('scrolled'); 
+                            if (logo) logo.classList.replace('h-24', 'h-16'); 
+                        } else { 
+                            navbar.classList.remove('scrolled'); 
+                            if (logo) logo.classList.replace('h-16', 'h-24'); 
+                        }
+                    }
+                    scrollTicking = false;
+                });
+                scrollTicking = true;
+            }
+        }, { passive: true });
+
+        // HERO SLIDER LOGIC (Lazy loads background images for instant first paint)
         let cur = 0;
-        const s = document.querySelectorAll('.hero-slide');
-        if(s.length > 1) {
+        const slides = document.querySelectorAll('.hero-slide');
+
+        function loadSlideBg(slideEl) {
+            if (slideEl && slideEl.dataset.bg) {
+                slideEl.style.backgroundImage = `url('${slideEl.dataset.bg}')`;
+                delete slideEl.dataset.bg;
+            }
+        }
+
+        if (slides.length > 1) {
+            // Preload 2nd slide after first paint
+            setTimeout(() => { loadSlideBg(slides[1]); }, 800);
+
             setInterval(() => { 
-                s[cur].classList.remove('active'); 
-                cur = (cur + 1) % s.length; 
-                s[cur].classList.add('active'); 
+                slides[cur].classList.remove('active'); 
+                cur = (cur + 1) % slides.length; 
+                loadSlideBg(slides[cur]);
+                // Preload the next one ahead of time
+                const nextIdx = (cur + 1) % slides.length;
+                loadSlideBg(slides[nextIdx]);
+                slides[cur].classList.add('active'); 
             }, 6000);
         }
 

@@ -34,8 +34,8 @@ class HomeController extends Controller {
         try {
             $s = $this->settings;
             
-            // 2. Tarik data slider/hero images (roll_hero_images)
-            $stmt_sliders = $db->query("SELECT * FROM roll_hero_images ORDER BY id DESC");
+            // 2. Tarik data slider/hero images (roll_hero_images) - Batasi maksimal 5 untuk efisiensi
+            $stmt_sliders = $db->query("SELECT id, image_path FROM roll_hero_images ORDER BY id DESC LIMIT 5");
             $sliders = $stmt_sliders->fetchAll(PDO::FETCH_ASSOC);
             
             // 3. Tarik data event terbaru (roll_events)

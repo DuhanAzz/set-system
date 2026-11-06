@@ -146,3 +146,4 @@ assert(strpos($detailCode, "toggleEntrySparing") !== false, "detail.php must hav
 echo "✓ Test 4: Views markup, toggle handlers & SP badges verified PASSED!\n";
 
 echo "ALL SPARING PARTNER TESTS PASSED!\n";
+
