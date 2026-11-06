@@ -222,7 +222,7 @@ foreach ($rawData as $row) {
         
         /* FOOTER SPONSOR (BOTTOM OF PAGE) */
         .footer-fixed { margin-top: auto; border-top: 2px double #000; padding: 5mm 0; display: flex; justify-content: center; align-items: center; }
-        .footer-fixed img { height: 40px; margin: 0 10px; object-fit: contain; }
+        .footer-fixed img { height: 40px; max-height: 40px; max-width: 130px; width: auto; margin: 0 10px; object-fit: contain; }
 
         /* JUDUL NOMOR ACARA (IDENTIK DENGAN PRINT_FULL_BOOK) */
         .event-header { position: relative; display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #000; padding: 2px 0; margin-top: 10px; margin-bottom: 0px; background: #fff; min-height: 35px; }

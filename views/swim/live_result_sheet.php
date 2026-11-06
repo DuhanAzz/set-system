@@ -108,9 +108,12 @@
         }
         .sponsor-footer img {
             height: 32px;
+            max-height: 32px;
+            max-width: 120px;
             width: auto;
             object-fit: contain;
             margin: 0 8px;
+            vertical-align: middle;
         }
 
         /* --- DESKTOP FLOATING BAR --- */

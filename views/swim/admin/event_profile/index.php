@@ -123,8 +123,8 @@
                         <div class="flex items-center gap-4">
                             <?php if(!empty($row['poster_image'])): ?>
                                 <div class="flex flex-col items-center gap-2">
-                                    <a href="<?= getUrlPreview($row['poster_image']) ?>" target="_blank" class="shrink-0 h-16 w-16 bg-slate-100 rounded-xl border border-slate-200 overflow-hidden flex items-center justify-center">
-                                        <img src="<?= getUrlPreview($row['poster_image']) ?>" class="max-h-full max-w-full object-cover">
+                                    <a href="<?= getUrlPreview($row['poster_image']) ?>" target="_blank" class="shrink-0 h-16 w-16 bg-slate-100 rounded-xl border border-slate-200 overflow-hidden flex items-center justify-center p-1">
+                                        <img src="<?= getUrlPreview($row['poster_image']) ?>" class="max-h-full max-w-full object-contain">
                                     </a>
                                     <a href="<?= getenv('APP_URL') ?>/swim/admin/profile/delete_image?type=poster_image&event_id=<?= $eventId ?>" onclick="return confirm('Apakah Anda yakin ingin menghapus gambar ini?');" class="bg-red-600 hover:bg-red-700 text-white text-[9px] px-2 py-1 rounded-md font-bold text-center w-full block">Hapus</a>
                                 </div>
@@ -250,15 +250,20 @@
                 <hr class="my-4 border-slate-100">
 
                 <div>
-                    <p class="text-[10px] font-bold text-slate-400 uppercase mb-2">Sponsor (Bisa Banyak)</p>
+                    <div class="flex items-center justify-between mb-2">
+                        <p class="text-[10px] font-bold text-slate-400 uppercase">Logo Sponsor / Footer (Bisa Banyak)</p>
+                        <span class="text-[9px] text-slate-400 italic">Format asli dipertahankan</span>
+                    </div>
                     <input type="file" name="sponsor_files[]" multiple class="block w-full text-[10px] text-slate-500 file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-[10px] file:font-bold file:bg-yellow-50 file:text-yellow-700 hover:file:bg-yellow-100 mb-3">
                     
                     <?php if(count($sponsors) > 0): ?>
-                        <div class="grid grid-cols-3 gap-2">
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                             <?php foreach($sponsors as $sp): ?>
-                                <div class="relative group bg-slate-50 border rounded-md h-12 flex items-center justify-center overflow-hidden">
-                                    <img src="<?= getUrlPreview($sp['image_path']) ?>" class="max-h-full max-w-full p-1 object-contain">
-                                    <a href="<?= getenv('APP_URL') ?>/swim/admin/profile/delete_sponsor?id=<?= $sp['id'] ?>&event_id=<?= $eventId ?>" onclick="return confirm('Hapus?')" class="absolute inset-0 bg-red-500/80 text-white flex items-center justify-center text-xs font-bold opacity-0 group-hover:opacity-100 transition cursor-pointer">×</a>
+                                <div class="relative group bg-white border border-slate-200 rounded-xl h-16 p-1.5 flex items-center justify-center overflow-hidden shadow-sm hover:border-slate-300 transition">
+                                    <img src="<?= getUrlPreview($sp['image_path']) ?>" class="max-h-full max-w-full w-auto h-auto object-contain" alt="Logo Sponsor">
+                                    <a href="<?= getenv('APP_URL') ?>/swim/admin/profile/delete_sponsor?id=<?= $sp['id'] ?>&event_id=<?= $eventId ?>" onclick="return confirm('Hapus sponsor ini?')" class="absolute inset-0 bg-red-600/90 text-white flex items-center justify-center text-[10px] font-bold opacity-0 group-hover:opacity-100 transition cursor-pointer gap-1">
+                                        <span>✕ Hapus</span>
+                                    </a>
                                 </div>
                             <?php endforeach; ?>
                         </div>

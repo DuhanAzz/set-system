@@ -36,37 +36,12 @@ class UploadService {
         $targetWidth = $origWidth;
         $targetHeight = $origHeight;
         
-        $isLogos = (basename($destinationFolder) === 'logos');
-        
-        if ($isLogos) {
-            $minDim = min($origWidth, $origHeight);
-            $cropX = ($origWidth - $minDim) / 2;
-            $cropY = ($origHeight - $minDim) / 2;
-            
-            $croppedImg = imagecreatetruecolor($minDim, $minDim);
-            
-            if ($mime === 'image/png' || $mime === 'image/webp') {
-                imagealphablending($croppedImg, false);
-                imagesavealpha($croppedImg, true);
-                $transparent = imagecolorallocatealpha($croppedImg, 255, 255, 255, 127);
-                imagefilledrectangle($croppedImg, 0, 0, $minDim, $minDim, $transparent);
-            }
-
-            imagecopy($croppedImg, $srcImg, 0, 0, $cropX, $cropY, $minDim, $minDim);
-            imagedestroy($srcImg);
-            
-            $srcImg = $croppedImg;
-            $origWidth = $minDim;
-            $origHeight = $minDim;
-            
-            $targetWidth = min($maxWidth, $minDim);
-            $targetHeight = $targetWidth;
-        } else {
-            if ($origWidth > $maxWidth) {
-                $ratio = $maxWidth / $origWidth;
-                $targetWidth = $maxWidth;
-                $targetHeight = round($origHeight * $ratio);
-            }
+        // Sesuaikan dimensi secara proporsional sesuai rasio asli (Preserve aspect ratio tanpa crop)
+        // Mendukung logo sponsor, poster, header dalam berbagai bentuk (persegi, lanskap/melebar, atau meninggi)
+        if ($origWidth > $maxWidth || $origHeight > $maxWidth) {
+            $ratio = min($maxWidth / $origWidth, $maxWidth / $origHeight);
+            $targetWidth = max(1, (int)round($origWidth * $ratio));
+            $targetHeight = max(1, (int)round($origHeight * $ratio));
         }
 
         $dstImg = imagecreatetruecolor($targetWidth, $targetHeight);

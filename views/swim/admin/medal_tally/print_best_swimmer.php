@@ -33,7 +33,7 @@
         
         /* FOOTER SPONSOR */
         .footer-fixed { position: fixed; bottom: 0; left: 0; right: 0; height: 20mm; background: white; border-top: 2px double #000; display: flex; justify-content: center; align-items: center; padding: 0 10mm; z-index: 999; display: none; }
-        .footer-fixed img { height: 40px; margin: 0 10px; object-fit: contain; }
+        .footer-fixed img { height: 40px; max-height: 40px; max-width: 130px; width: auto; margin: 0 10px; object-fit: contain; }
 
         /* SPACER TABEL CETAK */
         .layout-table { width: 100%; border-collapse: collapse; border: none; }

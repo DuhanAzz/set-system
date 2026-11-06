@@ -23,7 +23,7 @@
     /* FOOTER SPONSOR */
     .footer-fixed { position: fixed; bottom: 0; left: 0; right: 0; height: 20mm; background: white; border-top: 2px double #000; display: flex; justify-content: center; align-items: center; padding: 0 10mm; z-index: 999; display: none; }
     .footer-sponsors { display: flex; gap: 10px; align-items: center; justify-content: center; flex: 1; }
-    .footer-sponsors img { height: 45px; object-fit: contain; } 
+    .footer-sponsors img { height: 45px; max-height: 45px; max-width: 130px; width: auto; object-fit: contain; } 
 
     /* SPACER TABEL CETAK */
     .layout-table { width: 100%; border-collapse: collapse; border: none; }
