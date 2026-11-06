@@ -17,6 +17,14 @@ class MedalTallyController extends Controller {
     }
 
     private function getActiveEventId($pdo, $uid) {
+        // Defensive migration: ensure is_sparing exists
+        try {
+            $pdo->query("ALTER TABLE swim_event_entries ADD COLUMN is_sparing TINYINT(1) NOT NULL DEFAULT 0 AFTER status");
+        } catch (\Exception $e) {}
+        try {
+            $pdo->query("ALTER TABLE swim_relay_entries ADD COLUMN is_sparing TINYINT(1) NOT NULL DEFAULT 0 AFTER status");
+        } catch (\Exception $e) {}
+
         $eventId = (int)($_GET['event_id'] ?? ($_SESSION['active_event_id'] ?? 0));
         if ($eventId > 0) {
             $_SESSION['active_event_id'] = $eventId;
@@ -147,7 +155,14 @@ class MedalTallyController extends Controller {
 
         // 1. Menghitung Medali secara Live (Tanpa harus is_published = 1)
         // 2. Mencegah Medali Hantu (Hanya time_final IS NOT NULL dan bukan DQ)
-        $whereClauses = ["en.event_id = ?", "es.time_final IS NOT NULL", "es.time_final != 'NT'", "es.is_dq_final = 0"];
+        // 3. Eksklusi Atlet Sparing Partner (is_sparing = 1 tidak dihitung medali / best swimmer)
+        $whereClauses = [
+            "en.event_id = ?", 
+            "es.time_final IS NOT NULL", 
+            "es.time_final != 'NT'", 
+            "es.is_dq_final = 0",
+            "COALESCE(ee.is_sparing, 0) = 0"
+        ];
         $params = [$eventId];
 
         if ($mode == 'athlete' && $filter_gender !== 'all') {
@@ -156,7 +171,7 @@ class MedalTallyController extends Controller {
         }
 
         $whereSql = implode(" AND ", $whereClauses);
-        $whereSqlRelay = str_replace("s.jenis_kelamin", "en.jenis_kelamin", $whereSql);
+        $whereSqlRelay = str_replace(["s.jenis_kelamin", "ee.is_sparing"], ["en.jenis_kelamin", "re.is_sparing"], $whereSql);
 
         if ($mode == 'athlete') {
             $sqlRaw = "SELECT 

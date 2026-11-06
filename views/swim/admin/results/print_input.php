@@ -693,8 +693,11 @@ unset($rows);
                                         $rank = 1; $real_rank = 1; $prev_time = null;
                                         foreach($swimmers as $p): 
                                             $is_valid = (($p['is_dq'] ?? 0) == 0 && !empty($p['final_time']) && strtoupper($p['final_time']) != 'NT' && strpos($p['final_time'], '99') === false);
+                                            $is_sparing = ((int)($p['is_sparing'] ?? 0)) === 1;
                                             $rank_display = '-';
-                                            if ($is_valid) {
+                                            if ($is_sparing) {
+                                                $rank_display = 'SP';
+                                            } elseif ($is_valid) {
                                                 if ($p['ms_sort'] !== $prev_time) { $real_rank = $rank; }
                                                 $rank_display = $real_rank;
                                                 $prev_time = $p['ms_sort'];
@@ -714,8 +717,13 @@ unset($rows);
                                             $clubOrSchool = $isSchoolEvent ? (!empty($p['asal_sekolah']) ? $p['asal_sekolah'] : ($p['club_name'] ?? '')) : ($p['club_name'] ?? '');
                                         ?>
                                         <tr>
-                                            <td class="col-rank"><?= $rank_display ?></td>
-                                            <td class="col-relay-tim" style="font-weight: 900; text-transform: uppercase;"><?= htmlspecialchars($teamNameDisplay) ?></td>
+                                            <td class="col-rank"><?= $rank_display === 'SP' ? '<span style="font-weight:900; color:#b45309;">SP</span>' : $rank_display ?></td>
+                                            <td class="col-relay-tim" style="font-weight: 900; text-transform: uppercase;">
+                                                <?= htmlspecialchars($teamNameDisplay) ?>
+                                                <?php if($is_sparing): ?>
+                                                    <span style="font-size:7pt; font-weight:800; background:#fef3c7; color:#b45309; border:1px solid #fde68a; padding:1px 4px; border-radius:3px; margin-left:4px;">SP</span>
+                                                <?php endif; ?>
+                                            </td>
                                             <td class="col-relay-nama" style="font-size: 7.5pt; line-height: 1.35; padding: 4px 6px;">
                                                 <?php if(!empty($swimmerNames)): ?>
                                                     <?= implode('<br>', array_map('htmlspecialchars', $swimmerNames)) ?>
@@ -744,9 +752,14 @@ unset($rows);
                                             $teamName = $isSchoolEvent ? (!empty($p['asal_sekolah']) ? $p['asal_sekolah'] : ($p['club_name'] ?? '')) : ($p['club_name'] ?? '');
                                         ?>
                                         <tr>
-                                            <td class="col-rank"><?= $rank_display ?></td>
+                                            <td class="col-rank"><?= $rank_display === 'SP' ? '<span style="font-weight:900; color:#b45309;">SP</span>' : $rank_display ?></td>
                                             <td class="col-uid"><?= htmlspecialchars($p['uid'] ?? '-') ?></td>
-                                            <td class="col-nama"><?= htmlspecialchars($p['nama_atlet'] ?? '') ?></td>
+                                            <td class="col-nama">
+                                                <?= htmlspecialchars($p['nama_atlet'] ?? '') ?>
+                                                <?php if($is_sparing): ?>
+                                                    <span style="font-size:7pt; font-weight:800; background:#fef3c7; color:#b45309; border:1px solid #fde68a; padding:1px 4px; border-radius:3px; margin-left:4px;">SP</span>
+                                                <?php endif; ?>
+                                            </td>
                                             <td class="col-ku"><?= htmlspecialchars($kuLabel) ?></td>
                                             <td class="col-tim"><?= htmlspecialchars($teamName) ?></td>
                                             <td class="col-waktu-awal"><?= htmlspecialchars($seedTime) ?></td>

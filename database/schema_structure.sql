@@ -834,6 +834,7 @@ CREATE TABLE `swim_event_entries` (
   `entry_time` varchar(15) DEFAULT '00:00.00',
   `entry_time_ms` int(11) DEFAULT 999999999,
   `status` enum('Pending','Approved','Rejected','Scratched') DEFAULT 'Pending',
+  `is_sparing` tinyint(1) NOT NULL DEFAULT 0,
   `payment_status` enum('Unpaid','Paid') DEFAULT 'Unpaid',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp()
@@ -996,6 +997,7 @@ CREATE TABLE `swim_relay_entries` (
   `swimmer_4_id` int(11) DEFAULT NULL,
   `seed_time` varchar(15) DEFAULT '00:00.00',
   `status` enum('Pending','Approved','Rejected') DEFAULT 'Pending',
+  `is_sparing` tinyint(1) NOT NULL DEFAULT 0,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;

@@ -17,6 +17,14 @@ class ResultsController extends Controller {
     }
 
     private function getActiveEventId($pdo, $uid) {
+        // Defensive migration: ensure is_sparing exists
+        try {
+            $pdo->query("ALTER TABLE swim_event_entries ADD COLUMN is_sparing TINYINT(1) NOT NULL DEFAULT 0 AFTER status");
+        } catch (\Exception $e) {}
+        try {
+            $pdo->query("ALTER TABLE swim_relay_entries ADD COLUMN is_sparing TINYINT(1) NOT NULL DEFAULT 0 AFTER status");
+        } catch (\Exception $e) {}
+
         $eventId = (int)($_GET['event_id'] ?? ($_SESSION['active_event_id'] ?? 0));
         if ($eventId > 0) {
             $_SESSION['active_event_id'] = $eventId;
@@ -190,6 +198,8 @@ class ResultsController extends Controller {
                         c.nama_klub as club_name, 
                         es.rank_final,
                         re.id as relay_id,
+                        re.id as entry_id,
+                        COALESCE(re.is_sparing, 0) as is_sparing,
                         re.team_name,
                         re.club_id,
                         re.swimmer_1_id, re.swimmer_2_id, re.swimmer_3_id, re.swimmer_4_id,
@@ -207,7 +217,9 @@ class ResultsController extends Controller {
                         WHERE re.category_id = ? AND es.heat_prelim IS NOT NULL ORDER BY es.heat_prelim ASC, es.lane_prelim ASC";
             } else {
                 $sql = "SELECT es.id, es.heat_prelim as heat, es.lane_prelim as lane, es.time_final as final_time, es.is_dq_final as is_dq, es.dq_reason_final as dq_reason, es.time_prelim as entry_time,
-                        s.uid, s.nama_atlet, s.tanggal_lahir, s.asal_sekolah, c.nama_klub as club_name, es.rank_final
+                        s.uid, s.nama_atlet, s.tanggal_lahir, s.asal_sekolah, c.nama_klub as club_name, es.rank_final,
+                        ee.id as entry_id,
+                        COALESCE(ee.is_sparing, 0) as is_sparing
                         FROM swim_event_entries ee JOIN swim_event_seeding es ON ee.id = es.entry_id JOIN swim_swimmers s ON ee.swimmer_id = s.id LEFT JOIN swim_clubs c ON ee.club_id = c.id 
                         WHERE ee.category_id = ? AND es.heat_prelim IS NOT NULL ORDER BY es.heat_prelim ASC, es.lane_prelim ASC";
             }
@@ -373,13 +385,15 @@ class ResultsController extends Controller {
         $isRelay = isset($raceInfo['is_relay']) && $raceInfo['is_relay'] == 1;
         if ($isRelay) {
             $stmtAll = $pdo->prepare("
-                SELECT es.id, es.time_final as final_time, es.is_dq_final as is_dq, '0000-00-00' as tanggal_lahir
+                SELECT es.id, es.time_final as final_time, es.is_dq_final as is_dq, '0000-00-00' as tanggal_lahir,
+                       COALESCE(re.is_sparing, 0) as is_sparing
                 FROM swim_relay_entries re JOIN swim_event_seeding es ON re.id = es.entry_id 
                 WHERE re.category_id = ?
             ");
         } else {
             $stmtAll = $pdo->prepare("
-                SELECT es.id, es.time_final as final_time, es.is_dq_final as is_dq, s.tanggal_lahir
+                SELECT es.id, es.time_final as final_time, es.is_dq_final as is_dq, s.tanggal_lahir,
+                       COALESCE(ee.is_sparing, 0) as is_sparing
                 FROM swim_event_entries ee JOIN swim_event_seeding es ON ee.id = es.entry_id JOIN swim_swimmers s ON ee.swimmer_id = s.id 
                 WHERE ee.category_id = ?
             ");
@@ -398,8 +412,13 @@ class ResultsController extends Controller {
             usort($valid, function($a, $b) { return $a['ms'] - $b['ms']; });
             $rank = 1; $counter = 1; $prevMs = null;
             foreach ($valid as $s) {
-                if ($prevMs !== null && $s['ms'] != $prevMs) { $rank = $counter; }
-                $stmtRank->execute([$rank, $s['id']]); $prevMs = $s['ms']; $counter++;
+                if ((int)($s['is_sparing'] ?? 0) === 1) {
+                    // Sparing partner: rank_final di-set NULL agar tidak mengambil gelar juara atlet reguler
+                    $stmtRank->execute([NULL, $s['id']]);
+                } else {
+                    if ($prevMs !== null && $s['ms'] != $prevMs) { $rank = $counter; }
+                    $stmtRank->execute([$rank, $s['id']]); $prevMs = $s['ms']; $counter++;
+                }
             }
             foreach ($invalid as $s) { $stmtRank->execute([NULL, $s['id']]); }
         } else {
@@ -418,13 +437,71 @@ class ResultsController extends Controller {
                 usort($valid, function($a, $b) { return $a['ms'] - $b['ms']; });
                 $rank = 1; $counter = 1; $prevMs = null;
                 foreach ($valid as $s) {
-                    if ($prevMs !== null && $s['ms'] != $prevMs) { $rank = $counter; }
-                    $stmtRank->execute([$rank, $s['id']]); $prevMs = $s['ms']; $counter++;
+                    if ((int)($s['is_sparing'] ?? 0) === 1) {
+                        // Sparing partner: rank_final di-set NULL agar tidak mengambil gelar juara atlet reguler
+                        $stmtRank->execute([NULL, $s['id']]);
+                    } else {
+                        if ($prevMs !== null && $s['ms'] != $prevMs) { $rank = $counter; }
+                        $stmtRank->execute([$rank, $s['id']]); $prevMs = $s['ms']; $counter++;
+                    }
                 }
                 foreach ($invalid as $s) { $stmtRank->execute([NULL, $s['id']]); }
             }
         }
         return true;
+    }
+
+    public function toggle_sparing() {
+        $this->checkAccess();
+        header('Content-Type: application/json');
+        
+        $pdo = Database::getInstance()->getConnection();
+        $seedingId = (int)($_POST['seeding_id'] ?? ($_GET['seeding_id'] ?? 0));
+        $isRelay   = (int)($_POST['is_relay'] ?? ($_GET['is_relay'] ?? 0));
+        $categoryId = (int)($_POST['category_id'] ?? ($_GET['category_id'] ?? 0));
+
+        if ($seedingId <= 0) {
+            echo json_encode(['success' => false, 'message' => 'ID Seeding tidak valid']);
+            exit;
+        }
+
+        $stmtSeed = $pdo->prepare("SELECT entry_id FROM swim_event_seeding WHERE id = ?");
+        $stmtSeed->execute([$seedingId]);
+        $entryId = (int)$stmtSeed->fetchColumn();
+
+        if ($entryId <= 0) {
+            echo json_encode(['success' => false, 'message' => 'Data entri tidak ditemukan']);
+            exit;
+        }
+
+        if ($isRelay) {
+            $stmtCek = $pdo->prepare("SELECT COALESCE(is_sparing, 0) FROM swim_relay_entries WHERE id = ?");
+            $stmtCek->execute([$entryId]);
+            $current = (int)$stmtCek->fetchColumn();
+            $newVal = $current === 1 ? 0 : 1;
+
+            $stmtUpd = $pdo->prepare("UPDATE swim_relay_entries SET is_sparing = ? WHERE id = ?");
+            $stmtUpd->execute([$newVal, $entryId]);
+        } else {
+            $stmtCek = $pdo->prepare("SELECT COALESCE(is_sparing, 0) FROM swim_event_entries WHERE id = ?");
+            $stmtCek->execute([$entryId]);
+            $current = (int)$stmtCek->fetchColumn();
+            $newVal = $current === 1 ? 0 : 1;
+
+            $stmtUpd = $pdo->prepare("UPDATE swim_event_entries SET is_sparing = ? WHERE id = ?");
+            $stmtUpd->execute([$newVal, $entryId]);
+        }
+
+        if ($categoryId > 0) {
+            $this->recalculateRanks($pdo, $categoryId);
+        }
+
+        echo json_encode([
+            'success' => true,
+            'is_sparing' => $newVal,
+            'message' => $newVal === 1 ? 'Status berhasil diubah menjadi Sparing Partner' : 'Status berhasil diubah menjadi Atlet Reguler'
+        ]);
+        exit;
     }
 
     private function getAgeGroupLabel($dob, $eventYear, $ageGroups) {

@@ -16,12 +16,18 @@ class EntriesController extends Controller {
     }
 
     private function resolveEvent($pdo, $uid) {
-        // Defensive migration: ensure columns exist in swim_events
+        // Defensive migration: ensure columns exist in swim_events and entries
         try {
             $pdo->query("ALTER TABLE swim_events ADD COLUMN price_per_item DECIMAL(15,2) DEFAULT 0.00 AFTER pricing_mode");
         } catch (\Exception $e) {}
         try {
             $pdo->query("ALTER TABLE swim_events ADD COLUMN price_relay DECIMAL(15,2) DEFAULT 0.00 AFTER price_per_item");
+        } catch (\Exception $e) {}
+        try {
+            $pdo->query("ALTER TABLE swim_event_entries ADD COLUMN is_sparing TINYINT(1) NOT NULL DEFAULT 0 AFTER status");
+        } catch (\Exception $e) {}
+        try {
+            $pdo->query("ALTER TABLE swim_relay_entries ADD COLUMN is_sparing TINYINT(1) NOT NULL DEFAULT 0 AFTER status");
         } catch (\Exception $e) {}
 
         $isMaster = (($_SESSION['swim_role'] ?? '') === 'master' || ($_SESSION['swim_role'] ?? '') === 'superadmin');
@@ -78,7 +84,7 @@ class EntriesController extends Controller {
         // 1. Ambil pendaftaran individu
         $stmtEntries = $pdo->prepare("
             SELECT 
-                ent.id as entry_id, ent.entry_time,
+                ent.id as entry_id, ent.entry_time, COALESCE(ent.is_sparing, 0) as is_sparing,
                 s.id as swimmer_id, s.nama_atlet, s.jenis_kelamin as swimmer_gender, s.tanggal_lahir,
                 en.id as category_id, en.event_number, en.distance, en.stroke, en.age_group, en.price as item_price
             FROM swim_event_entries ent
@@ -94,7 +100,7 @@ class EntriesController extends Controller {
         $relayEntries = [];
         $stmtRelay = $pdo->prepare("
             SELECT 
-                re.id as relay_id, re.team_name, re.seed_time,
+                re.id as relay_id, re.team_name, re.seed_time, COALESCE(re.is_sparing, 0) as is_sparing,
                 en.distance, en.stroke, en.age_group, en.price as item_price, en.jenis_kelamin
             FROM swim_relay_entries re
             JOIN swim_event_numbers en ON re.category_id = en.id
@@ -525,5 +531,48 @@ class EntriesController extends Controller {
 
         // Render file TANPA bungkus layout master
         require_once __DIR__ . '/../../../views/swim/admin/entries/print.php';
+    }
+
+    public function toggle_sparing() {
+        $this->checkAccess();
+        header('Content-Type: application/json');
+        
+        $pdo = Database::getInstance()->getConnection();
+        $entryId = (int)($_POST['entry_id'] ?? ($_GET['entry_id'] ?? 0));
+        $type    = $_POST['type'] ?? ($_GET['type'] ?? 'individual');
+
+        if ($entryId <= 0) {
+            echo json_encode(['success' => false, 'message' => 'ID Entri tidak valid']);
+            exit;
+        }
+
+        if ($type === 'relay') {
+            $stmtCek = $pdo->prepare("SELECT COALESCE(is_sparing, 0) as is_sparing, category_id FROM swim_relay_entries WHERE id = ?");
+            $stmtCek->execute([$entryId]);
+            $row = $stmtCek->fetch(PDO::FETCH_ASSOC);
+            if (!$row) {
+                echo json_encode(['success' => false, 'message' => 'Entri estafet tidak ditemukan']);
+                exit;
+            }
+            $newVal = ((int)$row['is_sparing']) === 1 ? 0 : 1;
+            $pdo->prepare("UPDATE swim_relay_entries SET is_sparing = ? WHERE id = ?")->execute([$newVal, $entryId]);
+        } else {
+            $stmtCek = $pdo->prepare("SELECT COALESCE(is_sparing, 0) as is_sparing, category_id FROM swim_event_entries WHERE id = ?");
+            $stmtCek->execute([$entryId]);
+            $row = $stmtCek->fetch(PDO::FETCH_ASSOC);
+            if (!$row) {
+                echo json_encode(['success' => false, 'message' => 'Entri perorangan tidak ditemukan']);
+                exit;
+            }
+            $newVal = ((int)$row['is_sparing']) === 1 ? 0 : 1;
+            $pdo->prepare("UPDATE swim_event_entries SET is_sparing = ? WHERE id = ?")->execute([$newVal, $entryId]);
+        }
+
+        echo json_encode([
+            'success' => true,
+            'is_sparing' => $newVal,
+            'message' => $newVal === 1 ? 'Status berhasil diubah menjadi Sparing Partner' : 'Status berhasil dikembalikan ke Atlet Reguler'
+        ]);
+        exit;
     }
 }

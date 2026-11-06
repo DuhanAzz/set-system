@@ -111,3 +111,4 @@ assert(strpos($viewContent, 'h-16') !== false, "View should use expanded height 
 echo "✓ Test 4: View markup and CSS container adaptations PASSED!\n";
 
 echo "ALL SPONSOR ASPECT RATIO TESTS PASSED!\n";
+

@@ -167,7 +167,7 @@ if (!function_exists('getTeamName')) {
 $sqlAll = "(
             SELECT en.id as cat_id, en.event_number, en.distance, en.stroke, en.age_group, en.jenis_kelamin, en.schedule_date, en.schedule_time, en.is_relay,
             es.heat_prelim as heat_no, es.lane_prelim as lane_no, es.time_prelim as entry_time,
-            s.uid, s.nama_atlet, s.tanggal_lahir, c.nama_klub as club_name, s.asal_sekolah,
+            s.uid, s.nama_atlet, s.tanggal_lahir, c.nama_klub as club_name, s.asal_sekolah, COALESCE(ee.is_sparing, 0) as is_sparing,
             '' as team_name, '' as n1, '' as n2, '' as n3, '' as n4
            FROM swim_event_numbers en
            JOIN swim_event_entries ee ON ee.category_id = en.id
@@ -190,7 +190,7 @@ $sqlAll = "(
            (
             SELECT en.id as cat_id, en.event_number, en.distance, en.stroke, en.age_group, en.jenis_kelamin, en.schedule_date, en.schedule_time, en.is_relay,
             es.heat_prelim as heat_no, es.lane_prelim as lane_no, es.time_prelim as entry_time,
-            NULL as uid, '' as nama_atlet, NULL as tanggal_lahir, COALESCE(NULLIF(c.nama_klub, ''), s1.asal_sekolah, '') as club_name, COALESCE(NULLIF(s1.asal_sekolah, ''), c.nama_klub, '') as asal_sekolah,
+            NULL as uid, '' as nama_atlet, NULL as tanggal_lahir, COALESCE(NULLIF(c.nama_klub, ''), s1.asal_sekolah, '') as club_name, COALESCE(NULLIF(s1.asal_sekolah, ''), c.nama_klub, '') as asal_sekolah, COALESCE(re.is_sparing, 0) as is_sparing,
             re.team_name as team_name, s1.nama_atlet as n1, s2.nama_atlet as n2, s3.nama_atlet as n3, s4.nama_atlet as n4
            FROM swim_event_numbers en
            JOIN swim_relay_entries re ON re.category_id = en.id
@@ -872,7 +872,12 @@ if ($showScheduleAuto) {
                                                                 $klubSekolah = $s['club_name'] ?: ($s['asal_sekolah'] ?: '-');
                                                             ?>
                                                                 <td class="col-nama">
-                                                                    <div style="font-size: 8.5pt;"><strong><?= htmlspecialchars($teamTitle) ?></strong></div>
+                                                                    <div style="font-size: 8.5pt;">
+                                                                        <strong><?= htmlspecialchars($teamTitle) ?></strong>
+                                                                        <?php if(!empty($s['is_sparing'])): ?>
+                                                                            <span style="font-size: 6.5pt; font-weight: 800; background: #fef3c7; color: #b45309; border: 1px solid #fde68a; padding: 1px 3px; border-radius: 3px; margin-left: 3px;">SP</span>
+                                                                        <?php endif; ?>
+                                                                    </div>
                                                                     <div style="font-size: 7pt; font-weight: normal; color: #475569; line-height: 1.1;">
                                                                         1. <?= htmlspecialchars($s['n1'] ?? '(Belum Diatur)') ?>, 
                                                                         2. <?= htmlspecialchars($s['n2'] ?? '(Belum Diatur)') ?><br>
@@ -891,7 +896,12 @@ if ($showScheduleAuto) {
                                                                 <?php if($cc['uid']): ?>
                                                                     <td class="col-uid"><?= htmlspecialchars($s['uid'] ?? '-') ?></td>
                                                                 <?php endif; ?>
-                                                                <td class="col-nama"><?= htmlspecialchars($s['nama_atlet'] ?? '') ?></td>
+                                                                <td class="col-nama">
+                                                                    <?= htmlspecialchars($s['nama_atlet'] ?? '') ?>
+                                                                    <?php if(!empty($s['is_sparing'])): ?>
+                                                                        <span style="font-size: 6.5pt; font-weight: 800; background: #fef3c7; color: #b45309; border: 1px solid #fde68a; padding: 1px 3px; border-radius: 3px; margin-left: 3px;">SP</span>
+                                                                    <?php endif; ?>
+                                                                </td>
                                                                 <?php if($cc['lahir']): ?>
                                                                     <td class="col-lahir"><?= (!empty($s['tanggal_lahir']) && $s['tanggal_lahir']!='0000-00-00') ? date('Y', strtotime($s['tanggal_lahir'])) : '-' ?></td>
                                                                 <?php endif; ?>

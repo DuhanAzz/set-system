@@ -138,25 +138,39 @@ if (!function_exists('getKULabelInput')) {
                                 }
                             ?>
                                 <td class="px-4 py-3">
-                                    <?php if(isset($raceInfo['is_relay']) && $raceInfo['is_relay'] == 1): 
-                                        $teamDisplay = !empty($s['nama_tim']) ? $s['nama_tim'] : (!empty($s['team_name']) ? $s['team_name'] : ($s['nama_atlet'] ?? 'Tim Estafet'));
-                                        $swimmerList = [];
-                                        if (!empty($s['s1_nama'])) $swimmerList[] = "1. " . $s['s1_nama'];
-                                        if (!empty($s['s2_nama'])) $swimmerList[] = "2. " . $s['s2_nama'];
-                                        if (!empty($s['s3_nama'])) $swimmerList[] = "3. " . $s['s3_nama'];
-                                        if (!empty($s['s4_nama'])) $swimmerList[] = "4. " . $s['s4_nama'];
-                                    ?>
-                                        <div class="font-black text-slate-900 uppercase text-xs"><?= htmlspecialchars($teamDisplay) ?></div>
-                                        <?php if (!empty($swimmerList)): ?>
-                                            <div class="text-[10px] text-slate-500 font-normal mt-0.5 leading-snug">
-                                                <?= htmlspecialchars(implode(', ', $swimmerList)) ?>
-                                            </div>
-                                        <?php else: ?>
-                                            <div class="text-[10px] text-amber-600 italic mt-0.5">⚠️ Blanko atlet belum diisi</div>
-                                        <?php endif; ?>
-                                    <?php else: ?>
-                                        <div class="font-bold"><?= htmlspecialchars($s['nama_atlet'] ?? '') ?></div>
-                                    <?php endif; ?>
+                                    <div class="flex items-center justify-between gap-2">
+                                        <div class="flex-1">
+                                            <?php if(isset($raceInfo['is_relay']) && $raceInfo['is_relay'] == 1): 
+                                                $teamDisplay = !empty($s['nama_tim']) ? $s['nama_tim'] : (!empty($s['team_name']) ? $s['team_name'] : ($s['nama_atlet'] ?? 'Tim Estafet'));
+                                                $swimmerList = [];
+                                                if (!empty($s['s1_nama'])) $swimmerList[] = "1. " . $s['s1_nama'];
+                                                if (!empty($s['s2_nama'])) $swimmerList[] = "2. " . $s['s2_nama'];
+                                                if (!empty($s['s3_nama'])) $swimmerList[] = "3. " . $s['s3_nama'];
+                                                if (!empty($s['s4_nama'])) $swimmerList[] = "4. " . $s['s4_nama'];
+                                            ?>
+                                                <div class="font-black text-slate-900 uppercase text-xs"><?= htmlspecialchars($teamDisplay) ?></div>
+                                                <?php if (!empty($swimmerList)): ?>
+                                                    <div class="text-[10px] text-slate-500 font-normal mt-0.5 leading-snug">
+                                                        <?= htmlspecialchars(implode(', ', $swimmerList)) ?>
+                                                    </div>
+                                                <?php else: ?>
+                                                    <div class="text-[10px] text-amber-600 italic mt-0.5">⚠️ Blanko atlet belum diisi</div>
+                                                <?php endif; ?>
+                                            <?php else: ?>
+                                                <div class="font-bold"><?= htmlspecialchars($s['nama_atlet'] ?? '') ?></div>
+                                            <?php endif; ?>
+                                        </div>
+                                        <?php 
+                                            $isSparing = ((int)($s['is_sparing'] ?? 0)) === 1;
+                                            $relayFlag = (isset($raceInfo['is_relay']) && $raceInfo['is_relay'] == 1) ? 1 : 0;
+                                        ?>
+                                        <button type="button" 
+                                                onclick="toggleSparing(<?= (int)$s['id'] ?>, <?= $relayFlag ?>, this)" 
+                                                class="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider transition shrink-0 cursor-pointer <?= $isSparing ? 'bg-amber-100 text-amber-800 border border-amber-300 shadow-sm' : 'bg-slate-100 text-slate-400 border border-slate-200 hover:bg-slate-200 hover:text-slate-600' ?>"
+                                                title="<?= $isSparing ? 'Sparing Partner: Waktu tetap dicatat resmi tapi tidak mengambil medali/ranking juara atlet reguler. Klik untuk jadikan reguler.' : 'Klik untuk jadikan Sparing Partner' ?>">
+                                            <?= $isSparing ? '⚡ SP' : '+ SP' ?>
+                                        </button>
+                                    </div>
                                 </td>
                                 <td class="px-4 py-3 text-center text-[10px] text-slate-700 font-bold"><?= htmlspecialchars($kuLabel) ?></td>
                                 <td class="px-4 py-3 text-xs"><?= htmlspecialchars($teamName) ?></td>
@@ -325,6 +339,51 @@ function filterDq() {
     items.forEach(item => {
         let text = item.innerText.toLowerCase();
         item.style.display = text.includes(input) ? 'flex' : 'none';
+    });
+}
+
+function toggleSparing(seedingId, isRelay, btn) {
+    btn.disabled = true;
+    const origText = btn.innerHTML;
+    btn.innerHTML = '...';
+
+    const formData = new FormData();
+    formData.append('seeding_id', seedingId);
+    formData.append('is_relay', isRelay);
+    formData.append('category_id', '<?= $cat_id ?>');
+
+    fetch('<?= getenv('APP_URL') ?>/swim/admin/results/toggle_sparing', {
+        method: 'POST',
+        body: formData
+    })
+    .then(r => r.json())
+    .then(data => {
+        btn.disabled = false;
+        if (data.success) {
+            if (data.is_sparing === 1) {
+                btn.className = 'px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider transition shrink-0 cursor-pointer bg-amber-100 text-amber-800 border border-amber-300 shadow-sm';
+                btn.innerHTML = '⚡ SP';
+                btn.title = 'Sparing Partner: Waktu tetap dicatat resmi tapi tidak mengambil medali/ranking juara atlet reguler. Klik untuk jadikan reguler.';
+            } else {
+                btn.className = 'px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider transition shrink-0 cursor-pointer bg-slate-100 text-slate-400 border border-slate-200 hover:bg-slate-200 hover:text-slate-600';
+                btn.innerHTML = '+ SP';
+                btn.title = 'Klik untuk jadikan Sparing Partner';
+            }
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    toast: true, position: 'top-end', showConfirmButton: false, timer: 2000,
+                    icon: 'success', title: data.message
+                });
+            }
+        } else {
+            btn.innerHTML = origText;
+            alert(data.message || 'Gagal mengubah status');
+        }
+    })
+    .catch(err => {
+        btn.disabled = false;
+        btn.innerHTML = origText;
+        alert('Terjadi kesalahan jaringan');
     });
 }
 

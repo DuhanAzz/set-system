@@ -110,14 +110,16 @@ class LiveResultController extends Controller {
         // Ambil data seeding/hasil
         if ($isRelay) {
             $sql = "SELECT es.id, es.heat_prelim as heat, es.lane_prelim as lane, es.time_final as final_time, es.is_dq_final as is_dq, es.dq_reason_final as dq_reason, es.time_prelim as entry_time,
-                    NULL as uid, COALESCE(NULLIF(re.team_name, ''), c.nama_klub) as nama_atlet, '0000-00-00' as tanggal_lahir, NULL as asal_sekolah, c.nama_klub as club_name, es.rank_final
+                    NULL as uid, COALESCE(NULLIF(re.team_name, ''), c.nama_klub) as nama_atlet, '0000-00-00' as tanggal_lahir, NULL as asal_sekolah, c.nama_klub as club_name, es.rank_final,
+                    COALESCE(re.is_sparing, 0) as is_sparing
                     FROM swim_relay_entries re 
                     JOIN swim_event_seeding es ON re.id = es.entry_id 
                     LEFT JOIN swim_clubs c ON re.club_id = c.id 
                     WHERE re.category_id = ? AND es.heat_prelim IS NOT NULL ORDER BY es.heat_prelim ASC, es.lane_prelim ASC";
         } else {
             $sql = "SELECT es.id, es.heat_prelim as heat, es.lane_prelim as lane, es.time_final as final_time, es.is_dq_final as is_dq, es.dq_reason_final as dq_reason, es.time_prelim as entry_time,
-                    s.uid, s.nama_atlet, s.tanggal_lahir, s.asal_sekolah, c.nama_klub as club_name, es.rank_final
+                    s.uid, s.nama_atlet, s.tanggal_lahir, s.asal_sekolah, c.nama_klub as club_name, es.rank_final,
+                    COALESCE(ee.is_sparing, 0) as is_sparing
                     FROM swim_event_entries ee JOIN swim_event_seeding es ON ee.id = es.entry_id JOIN swim_swimmers s ON ee.swimmer_id = s.id LEFT JOIN swim_clubs c ON ee.club_id = c.id 
                     WHERE ee.category_id = ? AND es.heat_prelim IS NOT NULL ORDER BY es.heat_prelim ASC, es.lane_prelim ASC";
         }

@@ -187,6 +187,13 @@
                                     </span>
                                 </div>
                                 <div class="text-right flex items-center gap-3">
+                                    <?php $isSpRelay = ((int)($re['is_sparing'] ?? 0)) === 1; ?>
+                                    <button type="button" 
+                                            onclick="toggleEntrySparing(<?= (int)$re['relay_id'] ?>, 'relay', this)" 
+                                            class="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider transition shrink-0 cursor-pointer <?= $isSpRelay ? 'bg-amber-100 text-amber-800 border border-amber-300 shadow-sm' : 'bg-slate-100 text-slate-400 border border-slate-200 hover:bg-slate-200 hover:text-slate-600' ?>"
+                                            title="<?= $isSpRelay ? 'Status: Sparing Partner (Klik untuk jadikan Reguler)' : 'Klik untuk jadikan Sparing Partner' ?>">
+                                        <?= $isSpRelay ? '⚡ SP' : '+ SP' ?>
+                                    </button>
                                     <span class="font-mono text-xs font-bold text-slate-400">
                                         Seed: <b class="text-slate-600"><?= $re["seed_time"] ? htmlspecialchars($re["seed_time"]) : "NT" ?></b>
                                     </span>
@@ -264,6 +271,13 @@
                                     </div>
                                 </div>
                                 <div class="text-right flex items-center gap-3">
+                                    <?php $isSpInd = ((int)($ev['is_sparing'] ?? 0)) === 1; ?>
+                                    <button type="button" 
+                                            onclick="toggleEntrySparing(<?= (int)$ev['entry_id'] ?>, 'individual', this)" 
+                                            class="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider transition shrink-0 cursor-pointer <?= $isSpInd ? 'bg-amber-100 text-amber-800 border border-amber-300 shadow-sm' : 'bg-slate-100 text-slate-400 border border-slate-200 hover:bg-slate-200 hover:text-slate-600' ?>"
+                                            title="<?= $isSpInd ? 'Status: Sparing Partner (Klik untuk jadikan Reguler)' : 'Klik untuk jadikan Sparing Partner' ?>">
+                                        <?= $isSpInd ? '⚡ SP' : '+ SP' ?>
+                                    </button>
                                     <span class="font-mono text-xs font-bold text-slate-400">
                                         Seed: <b class="text-slate-600"><?= $ev['entry_time'] ? htmlspecialchars($ev['entry_time']) : 'NT' ?></b>
                                     </span>
@@ -299,6 +313,50 @@
 </form>
 
 <script>
+function toggleEntrySparing(entryId, type, btn) {
+    btn.disabled = true;
+    const origText = btn.innerHTML;
+    btn.innerHTML = '...';
+
+    const formData = new FormData();
+    formData.append('entry_id', entryId);
+    formData.append('type', type);
+
+    fetch('<?= getenv('APP_URL') ?>/swim/admin/entries/toggle_sparing', {
+        method: 'POST',
+        body: formData
+    })
+    .then(r => r.json())
+    .then(data => {
+        btn.disabled = false;
+        if (data.success) {
+            if (data.is_sparing === 1) {
+                btn.className = 'px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider transition shrink-0 cursor-pointer bg-amber-100 text-amber-800 border border-amber-300 shadow-sm';
+                btn.innerHTML = '⚡ SP';
+                btn.title = 'Status: Sparing Partner (Klik untuk jadikan Reguler)';
+            } else {
+                btn.className = 'px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider transition shrink-0 cursor-pointer bg-slate-100 text-slate-400 border border-slate-200 hover:bg-slate-200 hover:text-slate-600';
+                btn.innerHTML = '+ SP';
+                btn.title = 'Klik untuk jadikan Sparing Partner';
+            }
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    toast: true, position: 'top-end', showConfirmButton: false, timer: 2000,
+                    icon: 'success', title: data.message
+                });
+            }
+        } else {
+            btn.innerHTML = origText;
+            alert(data.message || 'Gagal mengubah status');
+        }
+    })
+    .catch(err => {
+        btn.disabled = false;
+        btn.innerHTML = origText;
+        alert('Terjadi kesalahan jaringan');
+    });
+}
+
 function openModal(action) {
     let msg = 'Apakah Anda yakin ingin memproses aksi ini?';
     if (action === 'approve') msg = 'Verifikasi LUNAS pendaftaran ini? Klub akan dapat mencetak ID Card.';

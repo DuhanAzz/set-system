@@ -139,7 +139,7 @@ $jadwalKiri = $tglMain . " | " . $jamMain;
 $heats = [];
 if (isset($raceInfo['is_relay']) && $raceInfo['is_relay'] == 1) {
     $sql = "SELECT es.heat_prelim as heat_no, es.lane_prelim as lane_no, es.time_prelim as entry_time,
-            re.team_name as team_name, 
+            re.team_name as team_name, COALESCE(re.is_sparing, 0) as is_sparing,
             COALESCE(NULLIF(c.nama_klub, ''), s1.asal_sekolah, '') as club_name, 
             COALESCE(NULLIF(s1.asal_sekolah, ''), c.nama_klub, '') as asal_sekolah,
             s1.nama_atlet as n1, s2.nama_atlet as n2, s3.nama_atlet as n3, s4.nama_atlet as n4
@@ -163,7 +163,8 @@ if (isset($raceInfo['is_relay']) && $raceInfo['is_relay'] == 1) {
             ORDER BY es.heat_prelim ASC, es.lane_prelim ASC";
 } else {
     $sql = "SELECT es.heat_prelim as heat_no, es.lane_prelim as lane_no, es.time_prelim as entry_time,
-            s.uid, s.nama_atlet, s.tanggal_lahir, c.nama_klub as club_name, s.asal_sekolah
+            s.uid, s.nama_atlet, s.tanggal_lahir, c.nama_klub as club_name, s.asal_sekolah,
+            COALESCE(ee.is_sparing, 0) as is_sparing
             FROM swim_event_entries ee
             JOIN swim_event_seeding es ON es.entry_id = ee.id
             JOIN swim_swimmers s ON ee.swimmer_id = s.id
@@ -423,7 +424,12 @@ foreach ($rawData as $row) {
                                         $klubSekolah = $s['club_name'] ?: ($s['asal_sekolah'] ?: '-');
                                     ?>
                                         <td class="col-nama">
-                                            <span style="font-size:8.5pt;"><strong><?= htmlspecialchars($teamTitle) ?></strong></span><br>
+                                            <span style="font-size:8.5pt;">
+                                                <strong><?= htmlspecialchars($teamTitle) ?></strong>
+                                                <?php if(!empty($s['is_sparing'])): ?>
+                                                    <span style="font-size: 6.5pt; font-weight: 800; background: #fef3c7; color: #b45309; border: 1px solid #fde68a; padding: 1px 3px; border-radius: 3px; margin-left: 3px;">SP</span>
+                                                <?php endif; ?>
+                                            </span><br>
                                             <span style="font-size:7pt; font-weight:normal; color:#444; line-height:1;">
                                                 1. <?= htmlspecialchars($s['n1'] ?? '(Belum Diatur)') ?>, 
                                                 2. <?= htmlspecialchars($s['n2'] ?? '(Belum Diatur)') ?><br>
@@ -440,7 +446,12 @@ foreach ($rawData as $row) {
                                 <?php else: ?>
                                     <?php if($s): ?>
                                         <?php if($cc['uid']): ?><td class="col-uid"><?= htmlspecialchars($s['uid'] ?? '-') ?></td><?php endif; ?>
-                                        <td class="col-nama"><?= htmlspecialchars($s['nama_atlet'] ?? '') ?></td>
+                                        <td class="col-nama">
+                                            <?= htmlspecialchars($s['nama_atlet'] ?? '') ?>
+                                            <?php if(!empty($s['is_sparing'])): ?>
+                                                <span style="font-size: 6.5pt; font-weight: 800; background: #fef3c7; color: #b45309; border: 1px solid #fde68a; padding: 1px 3px; border-radius: 3px; margin-left: 3px;">SP</span>
+                                            <?php endif; ?>
+                                        </td>
                                         <?php if($cc['lahir']): ?><td class="col-lahir"><?= (!empty($s['tanggal_lahir']) && $s['tanggal_lahir']!='0000-00-00') ? date('Y', strtotime($s['tanggal_lahir'])) : '-' ?></td><?php endif; ?>
                                         <?php if($cc['ku']): ?><td class="col-ku"><?= !empty($s['tanggal_lahir']) ? getKUName($s['tanggal_lahir'], $eventYear, $ageGroups) : '-' ?></td><?php endif; ?>
                                         <?php if($cc['klub']): ?><td class="col-tim"><?= htmlspecialchars($s['club_name'] ?: '-') ?></td><?php endif; ?>
