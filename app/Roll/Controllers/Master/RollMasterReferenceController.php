@@ -20,8 +20,22 @@ class RollMasterReferenceController extends Controller {
         $db->exec("CREATE TABLE IF NOT EXISTS roll_ref_distances (
             id INT AUTO_INCREMENT PRIMARY KEY, 
             distance_name VARCHAR(50) NOT NULL, 
+            skate_class_id INT NULL DEFAULT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )");
+
+        // Ensure skate_class_id exists in roll_ref_distances
+        try {
+            $db->exec("ALTER TABLE roll_ref_distances ADD COLUMN skate_class_id INT NULL DEFAULT NULL AFTER distance_name");
+        } catch (\Exception $e) {}
+
+        // Auto-seed skate_class_id for existing standard distances if not set
+        try {
+            $db->exec("UPDATE roll_ref_distances SET skate_class_id = (SELECT id FROM roll_ref_skate_classes WHERE class_name LIKE '%Speed%' LIMIT 1) WHERE skate_class_id IS NULL AND (distance_name LIKE '%ITT%' OR distance_name LIKE '%DTT%' OR distance_name LIKE '%+D%' OR distance_name LIKE '%Eliminasi%' OR distance_name LIKE '%PTP%' OR distance_name LIKE '%Pair%' OR distance_name LIKE '%Relay 3000%' OR distance_name LIKE '%TTT%')");
+            $db->exec("UPDATE roll_ref_distances SET skate_class_id = (SELECT id FROM roll_ref_skate_classes WHERE class_name LIKE '%Pemula%' LIMIT 1) WHERE skate_class_id IS NULL AND distance_name IN ('100m', '200m')");
+            $db->exec("UPDATE roll_ref_distances SET skate_class_id = (SELECT id FROM roll_ref_skate_classes WHERE class_name LIKE '%Standar%' OR class_name LIKE '%Standart%' LIMIT 1) WHERE skate_class_id IS NULL AND distance_name IN ('300m', '500m', 'Relay 1000m', 'Relay 1800m')");
+            $db->exec("UPDATE roll_ref_distances SET skate_class_id = (SELECT id FROM roll_ref_skate_classes WHERE class_name LIKE '%Speed%' LIMIT 1) WHERE skate_class_id IS NULL AND distance_name = '1000m'");
+        } catch (\Exception $e) {}
         
         // Ensure the schema matches user request by attempting to add columns or we can just assume it will create correctly if not exists.
         // If the table exists with old schema, we might get errors. Let's just create if not exists with correct names.
@@ -49,7 +63,10 @@ class RollMasterReferenceController extends Controller {
 
     public function index() {
         $db = Database::getInstance()->getConnection();
-        $distances = $db->query("SELECT * FROM roll_ref_distances ORDER BY id ASC")->fetchAll(PDO::FETCH_ASSOC);
+        $distances = $db->query("SELECT d.*, sc.class_name 
+                                 FROM roll_ref_distances d 
+                                 LEFT JOIN roll_ref_skate_classes sc ON d.skate_class_id = sc.id 
+                                 ORDER BY d.skate_class_id ASC, d.id ASC")->fetchAll(PDO::FETCH_ASSOC);
         $ageGroups = $db->query("SELECT * FROM roll_ref_age_groups ORDER BY min_year ASC")->fetchAll(PDO::FETCH_ASSOC);
         $skateClasses = $db->query("SELECT * FROM roll_ref_skate_classes ORDER BY id ASC")->fetchAll(PDO::FETCH_ASSOC);
 
@@ -64,9 +81,10 @@ class RollMasterReferenceController extends Controller {
     public function storeDistance() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $db = Database::getInstance()->getConnection();
-            $distance_name = $_POST['distance_name'] ?? '';
-            $stmt = $db->prepare("INSERT INTO roll_ref_distances (distance_name) VALUES (?)");
-            $stmt->execute([$distance_name]);
+            $distance_name = trim($_POST['distance_name'] ?? '');
+            $skate_class_id = !empty($_POST['skate_class_id']) ? (int)$_POST['skate_class_id'] : null;
+            $stmt = $db->prepare("INSERT INTO roll_ref_distances (distance_name, skate_class_id) VALUES (?, ?)");
+            $stmt->execute([$distance_name, $skate_class_id]);
             $_SESSION['flash_message'] = "Jarak tempuh berhasil ditambahkan.";
             $_SESSION['flash_type'] = "success";
             header("Location: " . getenv('APP_URL') . "/roll/master/reference");
@@ -77,9 +95,10 @@ class RollMasterReferenceController extends Controller {
     public function updateDistance($id) {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $db = Database::getInstance()->getConnection();
-            $distance_name = $_POST['distance_name'] ?? '';
-            $stmt = $db->prepare("UPDATE roll_ref_distances SET distance_name = ? WHERE id = ?");
-            $stmt->execute([$distance_name, $id]);
+            $distance_name = trim($_POST['distance_name'] ?? '');
+            $skate_class_id = !empty($_POST['skate_class_id']) ? (int)$_POST['skate_class_id'] : null;
+            $stmt = $db->prepare("UPDATE roll_ref_distances SET distance_name = ?, skate_class_id = ? WHERE id = ?");
+            $stmt->execute([$distance_name, $skate_class_id, $id]);
             $_SESSION['flash_message'] = "Jarak tempuh berhasil diperbarui.";
             $_SESSION['flash_type'] = "success";
             header("Location: " . getenv('APP_URL') . "/roll/master/reference");

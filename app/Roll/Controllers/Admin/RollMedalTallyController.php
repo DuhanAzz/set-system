@@ -129,7 +129,7 @@ class RollMedalTallyController extends Controller {
             'eventInfo' => $eventInfo,
             'labelTitle' => $labelTitle,
             'groupBy' => $groupBy,
-            'partType' => $partType
+            'partType' => $partType,
             'eventId' => $eventId
         ]);
     }

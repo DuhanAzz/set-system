@@ -55,6 +55,9 @@ class RollEventController extends Controller {
         $ageGroups = [];
         $skateClasses = [];
         try {
+            $db->exec("ALTER TABLE roll_ref_distances ADD COLUMN skate_class_id INT NULL DEFAULT NULL AFTER distance_name");
+        } catch (\Exception $e) {}
+        try {
             $distances = $db->query("SELECT * FROM roll_ref_distances ORDER BY id ASC")->fetchAll(PDO::FETCH_ASSOC);
             $ageGroups = $db->query("SELECT * FROM roll_ref_age_groups ORDER BY min_year ASC")->fetchAll(PDO::FETCH_ASSOC);
             $skateClasses = $db->query("SELECT * FROM roll_ref_skate_classes ORDER BY id ASC")->fetchAll(PDO::FETCH_ASSOC);
@@ -134,6 +137,9 @@ class RollEventController extends Controller {
         $distances = [];
         $ageGroups = [];
         $skateClasses = [];
+        try {
+            $db->exec("ALTER TABLE roll_ref_distances ADD COLUMN skate_class_id INT NULL DEFAULT NULL AFTER distance_name");
+        } catch (\Exception $e) {}
         try {
             $distances = $db->query("SELECT * FROM roll_ref_distances ORDER BY id ASC")->fetchAll(PDO::FETCH_ASSOC);
             $ageGroups = $db->query("SELECT * FROM roll_ref_age_groups ORDER BY min_year ASC")->fetchAll(PDO::FETCH_ASSOC);

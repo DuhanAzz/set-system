@@ -56,14 +56,18 @@
                 </div>
                 
                 <?php
-                // Logic to prepare matrix data
-                $speedKuNames = ['Ku A (< 7 Thn)', 'Ku B (8-9 Thn)', 'Ku C (10-11 Thn)', 'Ku D (12-14 Thn)', 'Junior (15-18 Thn)', 'Senior (>= 19 Thn)'];
-                $speedDistNames = ['ITT 100m', 'ITT 200m', 'DTT 200m', '500m +D', '1000m', '3000m Eliminasi', '5000m Eliminasi', '10.000m Eliminasi', '3000m PTP', '5000m PTP', 'Pair 500m', 'Relay 3000m', 'TTT'];
+                // Get skate_class_id
+                $scSpeed = 3; $scStd = 2; $scPemula = 1;
+                foreach($skateClasses as $sc) {
+                    $cn = strtolower($sc['class_name']);
+                    if($cn == 'speed') $scSpeed = $sc['id'];
+                    if($cn == 'standart' || $cn == 'standar') $scStd = $sc['id'];
+                    if($cn == 'pemula') $scPemula = $sc['id'];
+                }
 
-                $stdKuNames = ['Ku A (< 7 Thn)', 'Ku B (8-9 Thn)', 'Ku C (10-11 Thn)', 'Ku D (12-14 Thn)'];
+                // Default standard distances for sorting & fallback
+                $speedDistNames = ['ITT 100m', 'ITT 200m', 'DTT 200m', '500m +D', '1000m', '3000m Eliminasi', '5000m Eliminasi', '10.000m Eliminasi', '3000m PTP', '5000m PTP', 'Pair 500m', 'Relay 3000m', 'TTT'];
                 $stdDistNames = ['300m', '500m', '1000m', 'Relay 1000m', 'Relay 1800m'];
-                
-                $pemulaKuNames = ['Ku I (< 7 Thn)', 'Ku II (7-9 Thn)', 'Ku III (> 9 Thn)'];
                 $pemulaDistNames = ['100m', '200m'];
 
                 // Tampilkan semua KU dari master referensi agar dinamis jika ada perubahan/penambahan
@@ -71,14 +75,51 @@
                 $stdKUs = $ageGroups;
                 $pemulaKUs = $ageGroups;
 
-                $speedDists = array_filter($distances, fn($d) => in_array($d['distance_name'], $speedDistNames));
-                usort($speedDists, fn($a, $b) => array_search($a['distance_name'], $speedDistNames) - array_search($b['distance_name'], $speedDistNames));
+                // Jarak dinamis sesuai Kamus Standar (skate_class_id)
+                $speedDists = array_filter($distances, function($d) use ($scSpeed, $speedDistNames) {
+                    if (!empty($d['skate_class_id'])) {
+                        return (int)$d['skate_class_id'] === (int)$scSpeed;
+                    }
+                    return in_array($d['distance_name'], $speedDistNames);
+                });
+                usort($speedDists, function($a, $b) use ($speedDistNames) {
+                    $idxA = array_search($a['distance_name'], $speedDistNames);
+                    $idxB = array_search($b['distance_name'], $speedDistNames);
+                    if ($idxA !== false && $idxB !== false) return $idxA - $idxB;
+                    if ($idxA !== false) return -1;
+                    if ($idxB !== false) return 1;
+                    return $a['id'] - $b['id'];
+                });
 
-                $stdDists = array_filter($distances, fn($d) => in_array($d['distance_name'], $stdDistNames));
-                usort($stdDists, fn($a, $b) => array_search($a['distance_name'], $stdDistNames) - array_search($b['distance_name'], $stdDistNames));
+                $stdDists = array_filter($distances, function($d) use ($scStd, $stdDistNames) {
+                    if (!empty($d['skate_class_id'])) {
+                        return (int)$d['skate_class_id'] === (int)$scStd;
+                    }
+                    return in_array($d['distance_name'], $stdDistNames);
+                });
+                usort($stdDists, function($a, $b) use ($stdDistNames) {
+                    $idxA = array_search($a['distance_name'], $stdDistNames);
+                    $idxB = array_search($b['distance_name'], $stdDistNames);
+                    if ($idxA !== false && $idxB !== false) return $idxA - $idxB;
+                    if ($idxA !== false) return -1;
+                    if ($idxB !== false) return 1;
+                    return $a['id'] - $b['id'];
+                });
 
-                $pemulaDists = array_filter($distances, fn($d) => in_array($d['distance_name'], $pemulaDistNames));
-                usort($pemulaDists, fn($a, $b) => array_search($a['distance_name'], $pemulaDistNames) - array_search($b['distance_name'], $pemulaDistNames));
+                $pemulaDists = array_filter($distances, function($d) use ($scPemula, $pemulaDistNames) {
+                    if (!empty($d['skate_class_id'])) {
+                        return (int)$d['skate_class_id'] === (int)$scPemula;
+                    }
+                    return in_array($d['distance_name'], $pemulaDistNames);
+                });
+                usort($pemulaDists, function($a, $b) use ($pemulaDistNames) {
+                    $idxA = array_search($a['distance_name'], $pemulaDistNames);
+                    $idxB = array_search($b['distance_name'], $pemulaDistNames);
+                    if ($idxA !== false && $idxB !== false) return $idxA - $idxB;
+                    if ($idxA !== false) return -1;
+                    if ($idxB !== false) return 1;
+                    return $a['id'] - $b['id'];
+                });
 
                 // Existing matrix: $matrixData[skate_class_id][age_group_id][distance_id] = race_number
                 $matrixData = [];
@@ -90,14 +131,6 @@
                             $matrixData[$c['skate_class_id']][$c['age_group_id']][$c['distance_id']] = $c['race_number'];
                         }
                     }
-                }
-
-                // Get skate_class_id
-                $scSpeed = 3; $scStd = 2; $scPemula = 1;
-                foreach($skateClasses as $sc) {
-                    if(strtolower($sc['class_name']) == 'speed') $scSpeed = $sc['id'];
-                    if(strtolower($sc['class_name']) == 'standart') $scStd = $sc['id'];
-                    if(strtolower($sc['class_name']) == 'pemula') $scPemula = $sc['id'];
                 }
                 ?>
 

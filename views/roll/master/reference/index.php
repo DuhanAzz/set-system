@@ -30,6 +30,7 @@
                         <tr class="bg-slate-50 text-slate-500 text-[10px] uppercase tracking-widest font-black border-b border-slate-200">
                             <th class="p-4 pl-6 w-12 text-center">No</th>
                             <th class="p-4">Nama Jarak</th>
+                            <th class="p-4 text-center">Kategori Roller</th>
                             <th class="p-4 pr-6 text-center w-28">Aksi</th>
                         </tr>
                     </thead>
@@ -38,9 +39,18 @@
                         <tr class="border-b border-slate-100 hover:bg-slate-50 transition">
                             <td class="p-4 pl-6 text-center font-bold text-slate-400"><?= $no++ ?></td>
                             <td class="p-4 font-bold text-slate-700"><?= htmlspecialchars($d['distance_name']) ?></td>
+                            <td class="p-4 text-center">
+                                <?php if(!empty($d['class_name'])): ?>
+                                    <span class="bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full text-xs font-black uppercase tracking-wider">
+                                        <?= htmlspecialchars($d['class_name']) ?>
+                                    </span>
+                                <?php else: ?>
+                                    <span class="text-slate-400 text-xs italic">Semua</span>
+                                <?php endif; ?>
+                            </td>
                             <td class="p-4 pr-6">
                                 <div class="flex items-center justify-center gap-2">
-                                    <button onclick="editDistance(<?= $d['id'] ?>, '<?= htmlspecialchars(addslashes($d['distance_name'])) ?>')" class="bg-amber-100 hover:bg-amber-200 text-amber-700 px-2 py-1 rounded font-bold text-xs" title="Edit">
+                                    <button onclick="editDistance(<?= $d['id'] ?>, '<?= htmlspecialchars(addslashes($d['distance_name'])) ?>', <?= !empty($d['skate_class_id']) ? $d['skate_class_id'] : 'null' ?>)" class="bg-amber-100 hover:bg-amber-200 text-amber-700 px-2 py-1 rounded font-bold text-xs" title="Edit">
                                         ✏️
                                     </button>
                                     <form action="<?= getenv('APP_URL') ?>/roll/master/reference/deleteDistance/<?= $d['id'] ?>" method="POST" onsubmit="return confirm('Hapus Jarak Tempuh ini?');">
@@ -54,7 +64,7 @@
                         <?php endforeach; ?>
                         <?php if(empty($distances)): ?>
                         <tr>
-                            <td colspan="3" class="p-6 text-center text-slate-400 font-bold text-sm">Belum ada data jarak tempuh.</td>
+                            <td colspan="4" class="p-6 text-center text-slate-400 font-bold text-sm">Belum ada data jarak tempuh.</td>
                         </tr>
                         <?php endif; ?>
                     </tbody>
@@ -179,7 +189,17 @@
                 <div class="space-y-4">
                     <div>
                         <label class="block text-xs font-black text-slate-700 uppercase tracking-widest mb-2">Nama Jarak</label>
-                        <input type="text" id="distance_name" name="distance_name" class="w-full rounded-xl border border-slate-300 px-4 py-2.5 focus:ring-blue-500 focus:border-blue-500" placeholder="Contoh: 100m, 200m DTT" required>
+                        <input type="text" id="distance_name" name="distance_name" class="w-full rounded-xl border border-slate-300 px-4 py-2.5 focus:ring-blue-500 focus:border-blue-500 font-bold text-slate-800" placeholder="Contoh: 100m, 200m DTT" required>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-black text-slate-700 uppercase tracking-widest mb-2">Kategori Roller</label>
+                        <select id="skate_class_id" name="skate_class_id" class="w-full rounded-xl border border-slate-300 px-4 py-2.5 focus:ring-blue-500 focus:border-blue-500 font-bold text-slate-700">
+                            <option value="">-- Semua / Belum Ditentukan --</option>
+                            <?php foreach($skateClasses as $sc): ?>
+                                <option value="<?= $sc['id'] ?>"><?= htmlspecialchars($sc['class_name']) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                        <p class="text-[10px] text-slate-400 mt-1.5 font-bold uppercase tracking-wider">Menentukan tab kategori mana jarak ini akan muncul di Matriks Lomba.</p>
                     </div>
                 </div>
                 <div class="mt-8">
@@ -256,10 +276,11 @@
 </div>
 
 <script>
-function editDistance(id, name) {
+function editDistance(id, name, skateClassId) {
     document.getElementById('distanceModalTitle').innerText = 'Edit Jarak Tempuh';
     document.getElementById('distanceForm').action = '<?= getenv("APP_URL") ?>/roll/master/reference/updateDistance/' + id;
     document.getElementById('distance_name').value = name;
+    document.getElementById('skate_class_id').value = skateClassId || '';
     document.getElementById('modalDistance').classList.remove('hidden');
 }
 
@@ -267,6 +288,7 @@ function closeDistanceModal() {
     document.getElementById('distanceModalTitle').innerText = 'Tambah Jarak Tempuh';
     document.getElementById('distanceForm').action = '<?= getenv("APP_URL") ?>/roll/master/reference/storeDistance';
     document.getElementById('distance_name').value = '';
+    document.getElementById('skate_class_id').value = '';
     document.getElementById('modalDistance').classList.add('hidden');
 }
 
