@@ -60,7 +60,7 @@
                 <?php foreach ($tableStructure as $strokeName => $distances): ?>
                     <?php foreach ($distances as $distKey => $eventsInDist): ?>
                         <th scope="col" class="sticky-top-2 px-1 py-2 text-center border-l border-slate-200 min-w-[70px] bg-white font-bold text-slate-600">
-                            <?= ($distKey === 0) ? "25M PAPAN" : htmlspecialchars($distKey) . " M" ?>
+                            <?= ($distKey === 0) ? "25M PAPAN KAKI" : htmlspecialchars($distKey) . " M" ?>
                         </th>
                     <?php endforeach; ?>
                 <?php endforeach; ?>

@@ -166,7 +166,7 @@ $eventFallbackImg = !empty($s['event_fallback_image']) ? rtrim(getenv('APP_URL')
                 <div class="inline-flex items-center gap-2 mb-6 text-orange-400">
                     <div class="h-1 w-12 bg-orange-500"></div><span class="font-bold tracking-[0.3em] uppercase text-xs md:text-sm"><?= htmlspecialchars($heroSubtitle) ?></span>
                 </div>
-                <h1 class="text-7xl md:text-9xl font-black uppercase tracking-tighter leading-none mb-10 drop-shadow-2xl"><?= htmlspecialchars($heroTitle) ?></h1>
+                <h1 class="text-7xl md:text-9xl font-black uppercase tracking-tighter leading-none mb-10 drop-shadow"><?= htmlspecialchars($heroTitle) ?></h1>
                 
                 <?php if(!empty($runningText)): ?>
                 <div class="mb-12 w-full md:w-3/4 bg-yellow-400 text-slate-900 px-1 py-1 rounded font-bold overflow-hidden shadow-2xl border-l-8 border-slate-900 transform -skew-x-6">
@@ -260,7 +260,7 @@ $eventFallbackImg = !empty($s['event_fallback_image']) ? rtrim(getenv('APP_URL')
                         
                         <?php if ($e['is_result_published'] == 1): ?>
                             <a href="<?= getenv('APP_URL') ?>/roll/results?event_id=<?= $e['id'] ?>" class="py-3.5 px-2 rounded-xl flex items-center justify-center gap-2 bg-orange-50 border-2 border-orange-100 text-orange-600 hover:bg-orange-600 hover:text-white transition-all uppercase text-[10px] font-black tracking-widest">
-                                <span class="animate-bounce">🏆</span> Hasil
+                                <span>🏆</span> Hasil
                             </a>
                         <?php else: ?>
                             <div class="py-3.5 px-2 rounded-xl flex items-center justify-center gap-2 text-slate-400 uppercase text-[10px] font-black tracking-widest cursor-not-allowed bg-slate-50 border-2 border-slate-100" title="Hasil Belum Dipublikasikan">
@@ -324,7 +324,7 @@ $eventFallbackImg = !empty($s['event_fallback_image']) ? rtrim(getenv('APP_URL')
     </footer>
 
     <script>
-        // PRELOADER SNAPPY DISMISS (Zero artificial delay)
+        // PRELOADER INSTANT DISMISS (Zero blocking delay - Instant Paint)
         (function() {
             const preloader = document.getElementById('preloader');
             const textPerc = document.getElementById('load-perc');
@@ -335,24 +335,17 @@ $eventFallbackImg = !empty($s['event_fallback_image']) ? rtrim(getenv('APP_URL')
                 isDismissed = true;
                 if (textPerc) textPerc.innerText = '100%';
                 preloader.classList.add('loader-finish');
-                setTimeout(() => { if (preloader.parentNode) preloader.remove(); }, 350);
+                setTimeout(() => { if (preloader.parentNode) preloader.parentNode.removeChild(preloader); }, 250);
             }
 
-            // Quick smooth ticker (max 250ms)
-            let progress = 0;
-            const timer = setInterval(() => {
-                progress += 20;
-                if (progress >= 100) {
-                    progress = 100;
-                    clearInterval(timer);
-                    dismiss();
-                }
-                if (textPerc) textPerc.innerText = progress + '%';
-            }, 25);
-
-            // Hard safety dismiss on window load or max 400ms
-            window.addEventListener('load', () => { clearInterval(timer); dismiss(); });
-            setTimeout(() => { clearInterval(timer); dismiss(); }, 400);
+            // Langsung dismiss saat DOM siap atau halaman selesai dimuat tanpa menunggu timer buatan
+            if (document.readyState === 'complete' || document.readyState === 'interactive') {
+                dismiss();
+            } else {
+                document.addEventListener('DOMContentLoaded', dismiss, { once: true });
+                window.addEventListener('load', dismiss, { once: true });
+                setTimeout(dismiss, 120); // Fallback pengaman maksimal 120ms
+            }
         })();
 
         // NAVBAR SCROLL (Throttled with requestAnimationFrame & passive listener)

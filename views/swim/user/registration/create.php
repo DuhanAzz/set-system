@@ -59,7 +59,7 @@
                                     if (preg_match('/(?:^|\D)(25|50|100|200|400|800|1500)\s*M?(?:\D|$)/', $fullText, $dm)) $dist = (int)$dm[1];
                                     else $dist = $isKickEv ? 25 : 50;
                                 }
-                                $displayLine = $isKickEv ? ("25M PAPAN " . $sName) : ("{$dist}M " . $sName);
+                                $displayLine = $isKickEv ? ("25M PAPAN KAKI " . $sName) : ("{$dist}M " . $sName);
                                 ?>
                                 <p class="text-sm md:text-base font-black text-slate-800 uppercase italic"><?= htmlspecialchars($displayLine) ?></p>
                             </div>

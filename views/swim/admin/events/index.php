@@ -466,7 +466,7 @@
                                         <tbody class="divide-y divide-slate-100 font-mono text-[11px] text-slate-700">
                                             <tr class="hover:bg-indigo-50/40">
                                                 <td class="py-2 px-4 font-black text-blue-600">1</td>
-                                                <td class="py-2 px-4 font-sans font-bold text-slate-900">25M PAPAN BEBAS KU 2020</td>
+                                                <td class="py-2 px-4 font-sans font-bold text-slate-900">25M PAPAN KAKI BEBAS KU 2020</td>
                                                 <td class="py-2 px-4 font-black text-pink-600">2</td>
                                             </tr>
                                             <tr class="hover:bg-indigo-50/40">
@@ -509,7 +509,7 @@
                                 </label>
                                 <span class="text-[10px] text-slate-400 font-medium">Mendukung pemisah Tab (copy dari Excel), Koma (CSV), atau Titik-Koma (;)</span>
                             </div>
-                            <textarea id="excelPasteArea" rows="8" class="w-full bg-slate-50 border border-slate-300 rounded-2xl p-4 font-mono text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition placeholder:text-slate-400" placeholder="PUTRA	NOMOR	PUTRI&#10;1	25M PAPAN BEBAS KU 2020	2&#10;3	25M GAYA BEBAS KU 2020	4&#10;5	50M GAYA BEBAS KU 2020	6&#10;7	25M PAPAN DADA KU 2020	8&#10;9	25M GAYA DADA KU 2020	10&#10;11	50M GAYA DADA KU 2020	12"></textarea>
+                            <textarea id="excelPasteArea" rows="8" class="w-full bg-slate-50 border border-slate-300 rounded-2xl p-4 font-mono text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition placeholder:text-slate-400" placeholder="PUTRA	NOMOR	PUTRI&#10;1	25M PAPAN KAKI BEBAS KU 2020	2&#10;3	25M GAYA BEBAS KU 2020	4&#10;5	50M GAYA BEBAS KU 2020	6&#10;7	25M PAPAN KAKI DADA KU 2020	8&#10;9	25M GAYA DADA KU 2020	10&#10;11	50M GAYA DADA KU 2020	12"></textarea>
                         </div>
 
                         <button type="button" onclick="parseFromExcel()" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-black py-4 px-6 rounded-2xl shadow-lg shadow-blue-500/25 transition flex items-center justify-center gap-2 text-xs uppercase tracking-widest">
@@ -550,10 +550,10 @@
                                         <option value="Gaya Punggung">Gaya Punggung</option>
                                         <option value="Gaya Kupu-kupu">Gaya Kupu-kupu</option>
                                         <option value="Gaya Ganti">Gaya Ganti</option>
-                                        <option value="Papan Bebas">25M Papan Bebas</option>
-                                        <option value="Papan Dada">25M Papan Dada</option>
-                                        <option value="Papan Punggung">25M Papan Punggung</option>
-                                        <option value="Papan Kupu-kupu">25M Papan Kupu-kupu</option>
+                                        <option value="Papan Kaki Bebas">25M Papan Kaki Bebas</option>
+                                        <option value="Papan Kaki Dada">25M Papan Kaki Dada</option>
+                                        <option value="Papan Kaki Punggung">25M Papan Kaki Punggung</option>
+                                        <option value="Papan Kaki Kupu-kupu">25M Papan Kaki Kupu-kupu</option>
                                     </select>
                                 </div>
                             </div>
@@ -1485,12 +1485,12 @@ function parseJuknisAcara(acaraText) {
     
     // 2. Deteksi Gaya / Stroke
     let stroke = 'Gaya Bebas';
-    if (upper.includes('PAPAN BEBAS')) stroke = 'Papan Bebas';
-    else if (upper.includes('PAPAN DADA')) stroke = 'Papan Dada';
-    else if (upper.includes('PAPAN PUNGGUNG')) stroke = 'Papan Punggung';
-    else if (upper.includes('PAPAN KUPU')) stroke = 'Papan Kupu-kupu';
-    else if (upper.includes('PAPAN LUNCUR') || upper.includes('KICKING') || upper.includes('KICK BEBAS')) stroke = 'Papan Bebas';
-    else if (upper.includes('PAPAN')) stroke = 'Papan Bebas';
+    if (upper.includes('PAPAN BEBAS') || upper.includes('PAPAN KAKI BEBAS')) stroke = 'Papan Kaki Bebas';
+    else if (upper.includes('PAPAN DADA') || upper.includes('PAPAN KAKI DADA')) stroke = 'Papan Kaki Dada';
+    else if (upper.includes('PAPAN PUNGGUNG') || upper.includes('PAPAN KAKI PUNGGUNG')) stroke = 'Papan Kaki Punggung';
+    else if (upper.includes('PAPAN KUPU') || upper.includes('PAPAN KAKI KUPU')) stroke = 'Papan Kaki Kupu-kupu';
+    else if (upper.includes('PAPAN LUNCUR') || upper.includes('KICKING') || upper.includes('KICK BEBAS')) stroke = 'Papan Kaki Bebas';
+    else if (upper.includes('PAPAN')) stroke = 'Papan Kaki Bebas';
     else if (upper.includes('GAYA GANTI') || upper.includes('INDIVIDUAL MEDLEY') || upper.includes(' IM ')) stroke = 'Gaya Ganti Perorangan';
     else if (upper.includes('GAYA BEBAS') || upper.includes(' BEBAS') || upper.startsWith('BEBAS')) stroke = 'Gaya Bebas';
     else if (upper.includes('GAYA DADA') || upper.includes(' DADA') || upper.startsWith('DADA') || upper.includes('BREAST')) stroke = 'Gaya Dada';
@@ -1606,16 +1606,16 @@ function downloadTemplateCSV() {
     let paNo = 1;
     let piNo = 2;
     const strokes = [
-        '25M PAPAN BEBAS',
+        '25M PAPAN KAKI BEBAS',
         '25 M GAYA BEBAS',
         '50 M GAYA BEBAS',
-        '25M PAPAN DADA',
+        '25M PAPAN KAKI DADA',
         '25 M GAYA DADA',
         '50 M GAYA DADA',
-        '25M PAPAN PUNGGUNG',
+        '25M PAPAN KAKI PUNGGUNG',
         '25 M GAYA PUNGGUNG',
         '50 M GAYA PUNGGUNG',
-        '25M PAPAN KUPU-KUPU',
+        '25M PAPAN KAKI KUPU-KUPU',
         '25 M GAYA KUPU-KUPU',
         '50 M GAYA KUPU-KUPU'
     ];
@@ -1666,10 +1666,10 @@ function readFileToTextarea(file) {
 function loadSampleToTextarea() {
     const sample = 
 `PUTRA\tNOMOR\tPUTRI
-1\t25M PAPAN BEBAS KU 2020\t2
-3\t25M PAPAN BEBAS KU 2019\t4
-5\t25M PAPAN BEBAS KU 2018\t6
-7\t25M PAPAN BEBAS KU 2017\t8
+1\t25M PAPAN KAKI BEBAS KU 2020\t2
+3\t25M PAPAN KAKI BEBAS KU 2019\t4
+5\t25M PAPAN KAKI BEBAS KU 2018\t6
+7\t25M PAPAN KAKI BEBAS KU 2017\t8
 9\t25M GAYA BEBAS KU 2020\t10
 11\t25M GAYA BEBAS KU 2019\t12
 13\t25M GAYA BEBAS KU 2018\t14
@@ -1680,10 +1680,10 @@ function loadSampleToTextarea() {
 23\t50M GAYA BEBAS KU 2018\t24
 25\t50M GAYA BEBAS KU 2017\t26
 27\t50M GAYA BEBAS KU 2016\t28
-29\t25M PAPAN DADA KU 2020\t30
-31\t25M PAPAN DADA KU 2019\t32
-33\t25M PAPAN DADA KU 2018\t34
-35\t25M PAPAN DADA KU 2017\t36
+29\t25M PAPAN KAKI DADA KU 2020\t30
+31\t25M PAPAN KAKI DADA KU 2019\t32
+33\t25M PAPAN KAKI DADA KU 2018\t34
+35\t25M PAPAN KAKI DADA KU 2017\t36
 37\t25M GAYA DADA KU 2020\t38
 39\t25M GAYA DADA KU 2019\t40
 41\t25M GAYA DADA KU 2018\t42
@@ -1694,10 +1694,10 @@ function loadSampleToTextarea() {
 51\t50M GAYA DADA KU 2018\t52
 53\t50M GAYA DADA KU 2017\t54
 55\t50M GAYA DADA KU 2016\t56
-57\t25M PAPAN PUNGGUNG KU 2020\t58
-59\t25M PAPAN PUNGGUNG KU 2019\t60
-61\t25M PAPAN PUNGGUNG KU 2018\t62
-63\t25M PAPAN PUNGGUNG KU 2017\t64
+57\t25M PAPAN KAKI PUNGGUNG KU 2020\t58
+59\t25M PAPAN KAKI PUNGGUNG KU 2019\t60
+61\t25M PAPAN KAKI PUNGGUNG KU 2018\t62
+63\t25M PAPAN KAKI PUNGGUNG KU 2017\t64
 65\t25M GAYA PUNGGUNG KU 2020\t66
 67\t25M GAYA PUNGGUNG KU 2019\t68
 69\t25M GAYA PUNGGUNG KU 2018\t70
@@ -1708,10 +1708,10 @@ function loadSampleToTextarea() {
 79\t50M GAYA PUNGGUNG KU 2018\t80
 81\t50M GAYA PUNGGUNG KU 2017\t82
 83\t50M GAYA PUNGGUNG KU 2016\t84
-85\t25M PAPAN KUPU-KUPU KU 2020\t86
-87\t25M PAPAN KUPU-KUPU KU 2019\t88
-89\t25M PAPAN KUPU-KUPU KU 2018\t90
-91\t25M PAPAN KUPU-KUPU KU 2017\t92
+85\t25M PAPAN KAKI KUPU-KUPU KU 2020\t86
+87\t25M PAPAN KAKI KUPU-KUPU KU 2019\t88
+89\t25M PAPAN KAKI KUPU-KUPU KU 2018\t90
+91\t25M PAPAN KAKI KUPU-KUPU KU 2017\t92
 93\t25M GAYA KUPU-KUPU KU 2020\t94
 95\t25M GAYA KUPU-KUPU KU 2019\t96
 97\t25M GAYA KUPU-KUPU KU 2018\t98

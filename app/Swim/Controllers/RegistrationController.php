@@ -418,7 +418,7 @@ class RegistrationController extends Controller {
                 }
 
                 if ($isKickPop) {
-                    $displayName = "25M PAPAN " . $shortStroke;
+                    $displayName = "25M PAPAN KAKI " . $shortStroke;
                 } else {
                     $dist = (int)($ev['distance'] ?? 0);
                     if ($dist <= 0) {

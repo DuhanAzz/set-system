@@ -351,9 +351,9 @@ class EventsController extends Controller {
                     }
                     $eventName = "$distLabel $cleanRelayStroke $labelJK - $poolLabel";
                 } elseif (strpos(strtoupper($gaya), 'PAPAN') !== false || strpos(strtoupper($gaya), 'KICK') !== false) {
-                    $normGaya = trim(str_ireplace(['25m', '25 m', 'kick', 'papan', 'gaya'], '', $gaya));
+                    $normGaya = trim(str_ireplace(['25m', '25 m', 'kick', 'papan', 'gaya', 'kaki'], '', $gaya));
                     if (strtoupper($normGaya) === 'LUNCUR' || empty($normGaya)) $normGaya = 'Bebas';
-                    $eventName = "25 M PAPAN " . strtoupper($normGaya) . " $labelJK - $poolLabel";
+                    $eventName = "25 M PAPAN KAKI " . strtoupper($normGaya) . " $labelJK - $poolLabel";
                 } else {
                     $eventName = "$jarak M " . strtoupper($gaya) . " $labelJK - $poolLabel";
                 }
@@ -592,9 +592,9 @@ class EventsController extends Controller {
                         }
                         $eventName = "$distLabel $cleanRelayStroke $labelJK - $poolLabel";
                     } elseif (strpos(strtoupper($gaya), 'PAPAN') !== false || strpos(strtoupper($gaya), 'KICK') !== false) {
-                        $normGaya = trim(str_ireplace(['25m', '25 m', 'kick', 'papan', 'gaya'], '', $gaya));
+                        $normGaya = trim(str_ireplace(['25m', '25 m', 'kick', 'papan', 'gaya', 'kaki'], '', $gaya));
                         if (strtoupper($normGaya) === 'LUNCUR' || empty($normGaya)) $normGaya = 'Bebas';
-                        $eventName = "25 M PAPAN " . strtoupper($normGaya) . " $labelJK - $poolLabel";
+                        $eventName = "25 M PAPAN KAKI " . strtoupper($normGaya) . " $labelJK - $poolLabel";
                     } else {
                         $eventName = "$jarak M " . strtoupper($gaya) . " $labelJK - $poolLabel";
                     }
@@ -702,16 +702,16 @@ class EventsController extends Controller {
         $paNo = 1;
         $piNo = 2;
         $strokes = [
-            '25M PAPAN BEBAS',
+            '25M PAPAN KAKI BEBAS',
             '25 M GAYA BEBAS',
             '50 M GAYA BEBAS',
-            '25M PAPAN DADA',
+            '25M PAPAN KAKI DADA',
             '25 M GAYA DADA',
             '50 M GAYA DADA',
-            '25M PAPAN PUNGGUNG',
+            '25M PAPAN KAKI PUNGGUNG',
             '25 M GAYA PUNGGUNG',
             '50 M GAYA PUNGGUNG',
-            '25M PAPAN KUPU-KUPU',
+            '25M PAPAN KAKI KUPU-KUPU',
             '25 M GAYA KUPU-KUPU',
             '50 M GAYA KUPU-KUPU'
         ];

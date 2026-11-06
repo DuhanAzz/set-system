@@ -54,8 +54,14 @@ class SwimEventHelper {
      */
     public static function formatEventName($eventName, $isRelay = false, $distance = 0) {
         $name = trim((string)$eventName);
+
+        // Standarisasi penamaan nomor papan: "PAPAN [GAYA]" -> "PAPAN KAKI [GAYA]"
+        if (stripos($name, 'PAPAN') !== false && stripos($name, 'PAPAN KAKI') === false) {
+            $name = preg_replace('/\bPAPAN\b(?!\s*KAKI\b)/i', 'PAPAN KAKI', $name);
+        }
+
         if (!$isRelay && stripos($name, 'ESTAFET') === false && stripos($name, 'RELAY') === false) {
-            return $name;
+            return trim(preg_replace('/\s+/', ' ', $name));
         }
 
         // Tentukan label estafet
@@ -127,8 +133,40 @@ class SwimEventHelper {
                 SET event_name = REPLACE(REPLACE(event_name, '50 M ', '4 x 50 M '), '50M ', '4 x 50 M ') 
                 WHERE event_id = ? AND is_relay = 1 AND (event_name LIKE '50 M%' OR event_name LIKE '50M%')
             ")->execute([$eventId]);
+
+            // Sinkronisasi nomor papan kaki
+            self::syncEventPapanNames($pdo, $eventId);
         } catch (\Throwable $t) {
             // Non-blocking: Abaikan kegagalan SQL agar proses utama tetap jalan
+        }
+    }
+
+    /**
+     * Otomatis standarisasi penamaan nomor papan menjadi papan kaki di database (mis. PAPAN KUPU-KUPU -> PAPAN KAKI KUPU-KUPU)
+     *
+     * @param PDO $pdo Koneksi PDO
+     * @param int|null $eventId ID Event yang sedang aktif (opsional)
+     * @return void
+     */
+    public static function syncEventPapanNames(PDO $pdo, $eventId = null) {
+        try {
+            $sqlWhere = ($eventId && (int)$eventId > 0) ? "WHERE event_id = " . (int)$eventId . " AND" : "WHERE";
+            
+            // 1. Standarisasi event_name
+            $pdo->exec("
+                UPDATE swim_event_numbers 
+                SET event_name = REPLACE(event_name, 'PAPAN ', 'PAPAN KAKI ') 
+                {$sqlWhere} event_name LIKE '%PAPAN %' AND event_name NOT LIKE '%PAPAN KAKI %'
+            ");
+
+            // 2. Standarisasi stroke
+            $pdo->exec("
+                UPDATE swim_event_numbers 
+                SET stroke = REPLACE(stroke, 'Papan ', 'Papan Kaki ') 
+                {$sqlWhere} stroke LIKE '%Papan %' AND stroke NOT LIKE '%Papan Kaki %'
+            ");
+        } catch (\Throwable $t) {
+            // Non-blocking
         }
     }
 
