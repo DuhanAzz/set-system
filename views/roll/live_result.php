@@ -64,11 +64,40 @@ $siteDesc     = $s['site_description'] ?? 'Platform manajemen lomba sepatu roda 
                     </p>
                 </div>
 
-                <?php if(!empty($event['logo_left'])): ?>
-                    <div class="hidden md:block shrink-0 bg-slate-950/40 p-3 rounded-2xl border border-slate-800/60">
-                        <img src="<?= getenv('APP_URL') . '/public/' . htmlspecialchars(ltrim($event['logo_left'], '/')) ?>" alt="Logo Event" class="h-14 w-14 object-contain">
-                    </div>
-                <?php endif; ?>
+                <div class="flex items-center gap-3 shrink-0 w-full md:w-auto">
+                    <?php 
+                    // Fallback pengecekan series jika belum di-set oleh controller
+                    if (!isset($seriesInfo) && !empty($event['id'])) {
+                        try {
+                            $dbSide = \App\Core\Database::getInstance()->getConnection();
+                            $stmtS = $dbSide->prepare("
+                                SELECT s.id, s.series_name, s.slug 
+                                FROM roll_series s
+                                JOIN roll_series_events se ON s.id = se.series_id
+                                WHERE se.event_id = ? AND s.status = 'Published'
+                                LIMIT 1
+                            ");
+                            $stmtS->execute([$event['id']]);
+                            $seriesInfo = $stmtS->fetch(\PDO::FETCH_ASSOC);
+                        } catch (\Exception $ex) {
+                            $seriesInfo = null;
+                        }
+                    }
+                    ?>
+                    <?php if (!empty($seriesInfo) && !empty($seriesInfo['slug'])): ?>
+                        <a href="<?= getenv('APP_URL') ?>/<?= htmlspecialchars($seriesInfo['slug']) ?>" target="_blank" class="group flex items-center justify-center gap-2.5 px-5 py-3 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-amber-500/20 hover:shadow-amber-500/40 hover:scale-105 transition-all duration-300 w-full md:w-auto border border-amber-300/50">
+                            <span class="text-base group-hover:scale-125 transition-transform duration-300">🏆</span>
+                            <span class="font-black text-xs tracking-wider">Lihat Series</span>
+                            <svg class="w-4 h-4 ml-0.5 transform group-hover:translate-x-1 transition-transform duration-300 text-slate-950" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                        </a>
+                    <?php endif; ?>
+
+                    <?php if(!empty($event['logo_left'])): ?>
+                        <div class="hidden md:block shrink-0 bg-slate-950/40 p-3 rounded-2xl border border-slate-800/60">
+                            <img src="<?= getenv('APP_URL') . '/public/' . htmlspecialchars(ltrim($event['logo_left'], '/')) ?>" alt="Logo Event" class="h-14 w-14 object-contain">
+                        </div>
+                    <?php endif; ?>
+                </div>
             </div>
         </div>
 

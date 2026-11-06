@@ -244,10 +244,27 @@ class HomeController extends Controller {
             }
         }
 
+        // Cek apakah event ini tergabung dalam suatu Series (Published)
+        $seriesInfo = null;
+        try {
+            $stmtSeries = $db->prepare("
+                SELECT s.id, s.series_name, s.slug, s.theme_color, s.logo_image 
+                FROM roll_series s
+                JOIN roll_series_events se ON s.id = se.series_id
+                WHERE se.event_id = ? AND s.status = 'Published'
+                LIMIT 1
+            ");
+            $stmtSeries->execute([$event_id]);
+            $seriesInfo = $stmtSeries->fetch(PDO::FETCH_ASSOC);
+        } catch (\Exception $e) {
+            $seriesInfo = null;
+        }
+
         return $this->view('roll/live_result', [
             's' => $s,
             'event' => $event,
-            'publishedClasses' => $publishedClasses
+            'publishedClasses' => $publishedClasses,
+            'seriesInfo' => $seriesInfo
         ]);
     }
 
