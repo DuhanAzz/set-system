@@ -17,7 +17,7 @@ class RollUserDashboardController extends Controller {
 
     public function index() {
         $db = Database::getInstance()->getConnection();
-        $club_id = $_SESSION['roll_club_id'];
+        $club_id = $_SESSION['roll_club_id'] ?? 0;
 
         $stmt = $db->prepare("
             SELECT 

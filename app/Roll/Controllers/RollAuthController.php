@@ -63,13 +63,47 @@ class RollAuthController extends Controller {
                 
                 // Khusus klub (user) set club_id & tipe organisasi
                 if ($user['role'] === 'user') {
-                    $_SESSION['roll_club_id'] = $user['club_id'] ?? 0;
-                    $stmtClub = $db->prepare("SELECT club_name, club_type, city_province, province FROM roll_clubs WHERE id = ?");
-                    $stmtClub->execute([$user['club_id'] ?? 0]);
-                    $clubData = $stmtClub->fetch(PDO::FETCH_ASSOC);
-                    $_SESSION['roll_club_name'] = $clubData['club_name'] ?? '';
-                    $_SESSION['roll_club_type'] = $clubData['club_type'] ?? 'club';
-                    $_SESSION['roll_province']  = $clubData['province'] ?? $clubData['city_province'] ?? '';
+                    $clubId = $user['club_id'] ?? 0;
+                    $_SESSION['roll_club_id'] = $clubId;
+                    
+                    try {
+                        // Self-healing migration jika tabel di production belum di-alter
+                        try { $db->exec("ALTER TABLE roll_clubs ADD COLUMN club_type ENUM('club','contingent','school') DEFAULT 'club'"); } catch (\Exception $ex) {}
+                        try { $db->exec("ALTER TABLE roll_clubs ADD COLUMN province VARCHAR(100) DEFAULT NULL"); } catch (\Exception $ex) {}
+
+                        $stmtClub = $db->prepare("SELECT club_name, club_type, city_province, province FROM roll_clubs WHERE id = ?");
+                        $stmtClub->execute([$clubId]);
+                        $clubData = $stmtClub->fetch(PDO::FETCH_ASSOC);
+                        if (is_array($clubData)) {
+                            $_SESSION['roll_club_name'] = $clubData['club_name'] ?? '';
+                            $_SESSION['roll_club_type'] = $clubData['club_type'] ?? 'club';
+                            $_SESSION['roll_province']  = $clubData['province'] ?? $clubData['city_province'] ?? '';
+                        } else {
+                            $_SESSION['roll_club_name'] = '';
+                            $_SESSION['roll_club_type'] = 'club';
+                            $_SESSION['roll_province']  = '';
+                        }
+                    } catch (\Exception $e) {
+                        // Fallback aman jika query kolom baru gagal total
+                        try {
+                            $stmtFallback = $db->prepare("SELECT club_name, city_province FROM roll_clubs WHERE id = ?");
+                            $stmtFallback->execute([$clubId]);
+                            $cData = $stmtFallback->fetch(PDO::FETCH_ASSOC);
+                            if (is_array($cData)) {
+                                $_SESSION['roll_club_name'] = $cData['club_name'] ?? '';
+                                $_SESSION['roll_club_type'] = 'club';
+                                $_SESSION['roll_province']  = $cData['city_province'] ?? '';
+                            } else {
+                                $_SESSION['roll_club_name'] = '';
+                                $_SESSION['roll_club_type'] = 'club';
+                                $_SESSION['roll_province']  = '';
+                            }
+                        } catch (\Exception $ex2) {
+                            $_SESSION['roll_club_name'] = '';
+                            $_SESSION['roll_club_type'] = 'club';
+                            $_SESSION['roll_province']  = '';
+                        }
+                    }
                 }
 
                 // Redirect sesuai role

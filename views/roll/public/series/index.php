@@ -236,8 +236,8 @@
                     <div class="inline-block px-4 py-1.5 rounded-full glass border border-theme text-theme font-bold text-xs uppercase tracking-widest">
                         Klasemen Sementara
                     </div>
-                    <h2 class="text-4xl md:text-5xl font-display font-bold uppercase text-white tracking-tighter">MVP Standings</h2>
-                    <p class="text-slate-400 font-medium">Akumulasi poin Pemain Terbaik (MVP) dari seluruh event seri yang telah berlangsung.</p>
+                    <h2 class="text-4xl md:text-5xl font-display font-bold uppercase text-white tracking-tighter">Point IRS Placement Standings</h2>
+                    <p class="text-slate-400 font-medium">Akumulasi poin Pemain dari seluruh event seri yang telah berlangsung.</p>
                 </div>
 
                 <!-- Navigation Tabs -->
@@ -439,11 +439,11 @@
     <?php if (!empty($series['sponsor_images'])): ?>
         <?php $sponsors = json_decode($series['sponsor_images'], true) ?: []; ?>
         <?php if(!empty($sponsors)): ?>
-        <section id="sponsors" class="py-16 bg-[#0c0c0e] border-t border-white/5">
+        <section id="sponsors" class="py-16 bg-[#f1f5f9] border-t border-slate-300">
             <div class="max-w-7xl mx-auto px-6">
-                <div class="flex flex-wrap justify-center items-center gap-8 md:gap-16 opacity-70">
+                <div class="flex flex-wrap justify-center items-center gap-8 md:gap-16">
                     <?php foreach($sponsors as $sponsor): ?>
-                        <img src="<?= getenv('APP_URL') ?>/uploads/series/<?= htmlspecialchars($sponsor) ?>" class="h-10 md:h-14 object-contain grayscale hover:grayscale-0 hover:scale-110 transition-all duration-300">
+                        <img src="<?= getenv('APP_URL') ?>/uploads/series/<?= htmlspecialchars($sponsor) ?>" class="h-10 md:h-14 object-contain hover:scale-110 transition-all duration-300">
                     <?php endforeach; ?>
                 </div>
             </div>
@@ -452,16 +452,16 @@
     <?php endif; ?>
 
     <!-- FOOTER -->
-    <footer class="bg-black py-12 border-t border-white/10">
+    <footer class="bg-[#e2e8f0] py-12 border-t border-slate-300">
         <div class="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6">
             <div class="flex items-center gap-6">
                 <?php if (!empty($series['logo_image'])): ?>
-                    <img src="<?= getenv('APP_URL') ?>/uploads/series/<?= htmlspecialchars($series['logo_image']) ?>" class="h-8 grayscale opacity-50 hover:grayscale-0 hover:opacity-100 transition">
+                    <img src="<?= getenv('APP_URL') ?>/uploads/series/<?= htmlspecialchars($series['logo_image']) ?>" class="h-8 object-contain hover:opacity-80 transition">
                 <?php endif; ?>
-                <img src="<?= getenv('APP_URL') ?>/img/logo.png" class="h-6 opacity-70 hover:opacity-100 transition">
+                <img src="<?= getenv('APP_URL') ?>/img/logo.png" class="h-6 object-contain hover:opacity-80 transition">
             </div>
             
-            <div class="text-xs text-slate-600 uppercase tracking-widest font-bold">
+            <div class="text-xs text-slate-700 uppercase tracking-widest font-bold">
                 &copy; <?= date('Y') ?> SET SYSTEM. All rights reserved.
             </div>
         </div>

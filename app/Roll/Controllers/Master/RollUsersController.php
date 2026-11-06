@@ -19,6 +19,9 @@ class RollUsersController extends Controller {
     public function index() {
         $db = Database::getInstance()->getConnection();
         
+        try { $db->exec("ALTER TABLE roll_clubs ADD COLUMN club_type ENUM('club','contingent','school') DEFAULT 'club'"); } catch (\Exception $ex) {}
+        try { $db->exec("ALTER TABLE roll_clubs ADD COLUMN province VARCHAR(100) DEFAULT NULL"); } catch (\Exception $ex) {}
+        
         $roleFilter = $_GET['role'] ?? 'admin';
         $search = $_GET['q'] ?? '';
         $whereClause = "WHERE 1=1";
