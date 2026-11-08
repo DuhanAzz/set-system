@@ -195,6 +195,78 @@ if (!function_exists('getKULabelInput')) {
                             <?php endif; ?>
                         </tr>
                         <?php endfor; ?>
+
+                        <?php 
+                        // Fallback: Pastikan perenang yang berada di nomor lintasan > 9 atau non-integer tetap tampil dan memiliki input waktu
+                        foreach ($lanesData as $extraLn => $s):
+                            if (is_int($extraLn) && $extraLn >= 0 && $extraLn <= 9) continue;
+                            if (!$s) continue;
+                            $is_real_dq = (($s['is_dq']??0) == 1 && !in_array($s['dq_reason'], ['DNF', 'DNS', '']));
+                            $dq_text = $is_real_dq ? ($s['dq_reason'] ?? '') : '';
+                            
+                            $kuLabel = getKULabelInput($s['tanggal_lahir'] ?? '0000-00-00', $eventYear, $ageGroups ?? []);
+                            if (isset($raceInfo['is_relay']) && $raceInfo['is_relay'] == 1) {
+                                $teamName = $s['club_name'] ?? '';
+                            } else {
+                                $teamName = $isSchoolEvent ? (!empty($s['asal_sekolah']) ? $s['asal_sekolah'] : ($s['club_name'] ?? '')) : ($s['club_name'] ?? '');
+                            }
+                        ?>
+                        <tr class="border-b bg-amber-50/40 hover:bg-amber-100/50">
+                            <td class="px-4 py-3 text-center font-bold whitespace-nowrap text-amber-700"><?= htmlspecialchars((string)$extraLn) ?></td>
+                            <td class="px-4 py-3">
+                                <div class="flex items-center justify-between gap-2">
+                                    <div class="flex-1">
+                                        <?php if(isset($raceInfo['is_relay']) && $raceInfo['is_relay'] == 1): 
+                                            $teamDisplay = !empty($s['nama_tim']) ? $s['nama_tim'] : (!empty($s['team_name']) ? $s['team_name'] : ($s['nama_atlet'] ?? 'Tim Estafet'));
+                                            $swimmerList = [];
+                                            if (!empty($s['s1_nama'])) $swimmerList[] = "1. " . $s['s1_nama'];
+                                            if (!empty($s['s2_nama'])) $swimmerList[] = "2. " . $s['s2_nama'];
+                                            if (!empty($s['s3_nama'])) $swimmerList[] = "3. " . $s['s3_nama'];
+                                            if (!empty($s['s4_nama'])) $swimmerList[] = "4. " . $s['s4_nama'];
+                                        ?>
+                                            <div class="font-black text-slate-900 uppercase text-xs"><?= htmlspecialchars($teamDisplay) ?></div>
+                                            <?php if (!empty($swimmerList)): ?>
+                                                <div class="text-[10px] text-slate-500 font-normal mt-0.5 leading-snug">
+                                                    <?= htmlspecialchars(implode(', ', $swimmerList)) ?>
+                                                </div>
+                                            <?php else: ?>
+                                                <div class="text-[10px] text-amber-600 italic mt-0.5">⚠️ Blanko atlet belum diisi</div>
+                                            <?php endif; ?>
+                                        <?php else: ?>
+                                            <div class="font-bold"><?= htmlspecialchars($s['nama_atlet'] ?? '') ?></div>
+                                        <?php endif; ?>
+                                    </div>
+                                    <?php 
+                                        $isSparing = ((int)($s['is_sparing'] ?? 0)) === 1;
+                                        $relayFlag = (isset($raceInfo['is_relay']) && $raceInfo['is_relay'] == 1) ? 1 : 0;
+                                    ?>
+                                    <button type="button" 
+                                            onclick="toggleSparing(<?= (int)$s['id'] ?>, <?= $relayFlag ?>, this)" 
+                                            class="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider transition shrink-0 cursor-pointer <?= $isSparing ? 'bg-amber-100 text-amber-800 border border-amber-300 shadow-sm' : 'bg-slate-100 text-slate-400 border border-slate-200 hover:bg-slate-200 hover:text-slate-600' ?>"
+                                            title="<?= $isSparing ? 'Sparing Partner: Waktu tetap dicatat resmi tapi tidak mengambil medali/ranking juara atlet reguler. Klik untuk jadikan reguler.' : 'Klik untuk jadikan Sparing Partner' ?>">
+                                        <?= $isSparing ? '⚡ SP' : '+ SP' ?>
+                                    </button>
+                                </div>
+                            </td>
+                            <td class="px-4 py-3 text-center text-[10px] text-slate-700 font-bold"><?= htmlspecialchars($kuLabel) ?></td>
+                            <td class="px-4 py-3 text-xs"><?= htmlspecialchars($teamName) ?></td>
+                            <td class="px-4 py-3 text-right">
+                                <input type="text" name="entries[<?= $s['id'] ?>][time]" value="<?= htmlspecialchars($s['final_time'] ?? '') ?>" class="input-time" autocomplete="off" <?= (($s['is_dq']??0) == 1) ? 'disabled style="background:#eee;color:#ccc;"' : '' ?>>
+                            </td>
+                            <td class="px-4 py-3 text-center relative">
+                                <select name="entries[<?= $s['id'] ?>][status]" class="input-status" onchange="handleStatusChange(this, '<?= $s['id'] ?>')">
+                                    <option value="" <?= empty($s['dq_reason']) ? 'selected' : '' ?>></option>
+                                    <option value="DQ" class="text-red-600 font-black" <?= $is_real_dq ? 'selected' : '' ?>>DQ</option>
+                                    <option value="DNF" class="text-orange-600 font-black" <?= ($s['dq_reason']=='DNF') ? 'selected' : '' ?>>DNF</option>
+                                    <option value="DNS" class="text-gray-500 font-black" <?= ($s['dq_reason']=='DNS') ? 'selected' : '' ?>>DNS</option>
+                                </select>
+                                <input type="hidden" name="entries[<?= $s['id'] ?>][dq_reason]" id="dq_reason_<?= $s['id'] ?>" value="<?= htmlspecialchars($dq_text) ?>">
+                                <div id="dq_display_<?= $s['id'] ?>" class="text-[9px] text-red-600 font-bold mt-0.5 text-center truncate w-full" title="<?= htmlspecialchars($dq_text) ?>">
+                                    <?= htmlspecialchars($dq_text) ?>
+                                </div>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
                     </tbody>
                 </table>
             </div>

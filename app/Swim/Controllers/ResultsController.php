@@ -158,7 +158,19 @@ class ResultsController extends Controller {
             $raw_data = $stmtEx->fetchAll(\PDO::FETCH_ASSOC);
 
             $heats = [];
-            foreach ($raw_data as $row) { $heats[$row['heat']][$row['lane']] = $row; }
+            foreach ($raw_data as $row) {
+                $h = (int)($row['heat'] ?? 1);
+                $l = isset($row['lane']) && $row['lane'] !== null && $row['lane'] !== '' ? (int)$row['lane'] : 0;
+                if ($l <= 0 || isset($heats[$h][$l])) {
+                    for ($cand = 1; $cand <= 10; $cand++) {
+                        if (!isset($heats[$h][$cand])) {
+                            $l = $cand;
+                            break;
+                        }
+                    }
+                }
+                $heats[$h][$l] = $row;
+            }
 
             ksort($heats);
             foreach($heats as $heatNo => $lanesData) {
@@ -168,6 +180,13 @@ class ResultsController extends Controller {
                     if ($s) {
                         $timeStr = !empty($s['final_time']) ? $s['final_time'] : "00:00.00";
                         echo "Lintasan " . $ln . " [" . $s['nama_atlet'] . "] |ID:" . $s['id'] . "|: " . $timeStr . "\r\n";
+                    }
+                }
+                foreach($lanesData as $extraLn => $s) {
+                    if (is_int($extraLn) && $extraLn >= 0 && $extraLn <= 9) continue;
+                    if ($s) {
+                        $timeStr = !empty($s['final_time']) ? $s['final_time'] : "00:00.00";
+                        echo "Lintasan " . $extraLn . " [" . $s['nama_atlet'] . "] |ID:" . $s['id'] . "|: " . $timeStr . "\r\n";
                     }
                 }
                 echo "\r\n";
@@ -185,6 +204,63 @@ class ResultsController extends Controller {
 
         $stmtDq = $pdo->query("SELECT * FROM swim_dq_rules ORDER BY id ASC");
         $dq_rules_list = $stmtDq->fetchAll(PDO::FETCH_ASSOC);
+
+        $stmtEvent = $pdo->prepare("SELECT * FROM swim_events WHERE id = ?");
+        $stmtEvent->execute([$currentEventId]);
+        $eventProfile = $stmtEvent->fetch(PDO::FETCH_ASSOC);
+
+        $usedLanesStr = $eventProfile['used_lanes'] ?? '';
+        $usedLanes = [];
+        if (!empty($usedLanesStr)) {
+            $usedLanes = array_map('trim', explode(',', $usedLanesStr));
+            $usedLanes = array_map('intval', $usedLanes);
+        } else {
+            $laneCount = $eventProfile['lane_count'] ?? 8;
+            for ($i = 1; $i <= $laneCount; $i++) {
+                $usedLanes[] = $i;
+            }
+        }
+
+        // Auto-heal: Pastikan semua entri yang terdaftar memiliki baris seeding dan nomor seri (heat) yang valid
+        try {
+            if ($isRelay) {
+                $stmtMiss = $pdo->prepare("
+                    SELECT re.id, re.seed_time as entry_time
+                    FROM swim_relay_entries re
+                    LEFT JOIN swim_event_seeding es ON re.id = es.entry_id
+                    WHERE re.category_id = ? AND (es.id IS NULL OR es.heat_prelim IS NULL)
+                ");
+            } else {
+                $stmtMiss = $pdo->prepare("
+                    SELECT ee.id, ee.entry_time
+                    FROM swim_event_entries ee
+                    LEFT JOIN swim_event_seeding es ON ee.id = es.entry_id
+                    WHERE ee.category_id = ? AND (es.id IS NULL OR es.heat_prelim IS NULL)
+                ");
+            }
+            $stmtMiss->execute([$cat_id]);
+            $missingSeeds = $stmtMiss->fetchAll(PDO::FETCH_ASSOC);
+
+            if (!empty($missingSeeds)) {
+                $stmtMaxH = $pdo->prepare("
+                    SELECT MAX(es.heat_prelim) FROM swim_event_seeding es
+                    " . ($isRelay ? "JOIN swim_relay_entries re ON es.entry_id = re.id WHERE re.category_id = ?" : "JOIN swim_event_entries ee ON es.entry_id = ee.id WHERE ee.category_id = ?")
+                );
+                $stmtMaxH->execute([$cat_id]);
+                $maxH = (int)($stmtMaxH->fetchColumn() ?: 1);
+
+                foreach ($missingSeeds as $ms) {
+                    $chk = $pdo->prepare("SELECT id FROM swim_event_seeding WHERE entry_id = ?");
+                    $chk->execute([$ms['id']]);
+                    $exId = $chk->fetchColumn();
+                    if ($exId) {
+                        $pdo->prepare("UPDATE swim_event_seeding SET heat_prelim = ? WHERE id = ?")->execute([$maxH, $exId]);
+                    } else {
+                        $pdo->prepare("INSERT INTO swim_event_seeding (entry_id, heat_prelim, time_prelim) VALUES (?, ?, ?)")->execute([$ms['id'], $maxH, $ms['entry_time'] ?? 'NT']);
+                    }
+                }
+            }
+        } catch (\Exception $e) {}
 
         // Fetch Seeding Data
         try {
@@ -228,8 +304,85 @@ class ResultsController extends Controller {
             $raw_data = $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (Exception $e) { die("Error Database: " . $e->getMessage()); }
         
+        // Sanitasi Lintasan: Pastikan setiap perenang dalam raw_data tersimpan di heats tanpa tabrakan / null key
         $heats = [];
-        foreach ($raw_data as $row) { $heats[$row['heat']][$row['lane']] = $row; }
+        $occupiedLanes = [];
+        $needsLaneAssignment = [];
+
+        foreach ($raw_data as &$row) {
+            $h = (int)($row['heat'] ?? 1);
+            if ($h <= 0) $h = 1;
+            $row['heat'] = $h;
+
+            $laneVal = $row['lane'];
+            $l = ($laneVal !== null && $laneVal !== '' && is_numeric($laneVal)) ? (int)$laneVal : null;
+
+            if ($l !== null && $l > 0 && empty($occupiedLanes[$h][$l])) {
+                $occupiedLanes[$h][$l] = $row['id'];
+                $row['lane'] = $l;
+                $heats[$h][$l] = $row;
+            } else {
+                // Lintasan NULL, 0, atau duplikat di seri ini
+                $needsLaneAssignment[] = &$row;
+            }
+        }
+        unset($row);
+
+        if (!empty($needsLaneAssignment)) {
+            $candidateLanes = !empty($usedLanes) ? $usedLanes : [1, 2, 3, 4, 5, 6, 7, 8];
+
+            foreach ($needsLaneAssignment as &$row) {
+                $h = $row['heat'];
+                $assignedLane = null;
+
+                // Cari lintasan kosong di heat yang sama dari candidateLanes
+                foreach ($candidateLanes as $candLane) {
+                    if (empty($occupiedLanes[$h][$candLane])) {
+                        $assignedLane = $candLane;
+                        break;
+                    }
+                }
+
+                // Jika semua candidateLanes di heat ini penuh, cari di lintasan 1..10
+                if ($assignedLane === null) {
+                    for ($candLane = 1; $candLane <= 10; $candLane++) {
+                        if (empty($occupiedLanes[$h][$candLane])) {
+                            $assignedLane = $candLane;
+                            break;
+                        }
+                    }
+                }
+
+                // Jika heat ini sudah penuh sampai 10 lintasan, alokasikan ke heat berikutnya
+                if ($assignedLane === null) {
+                    $h = max(array_keys($heats) ?: [1]) + 1;
+                    $row['heat'] = $h;
+                    $assignedLane = $candidateLanes[0] ?? 1;
+                }
+
+                $occupiedLanes[$h][$assignedLane] = $row['id'];
+                $row['lane'] = $assignedLane;
+                $heats[$h][$assignedLane] = $row;
+
+                // Persist update ke database agar sinkron dan permanen
+                if (!empty($row['id'])) {
+                    $pdo->prepare("UPDATE swim_event_seeding SET heat_prelim = ?, lane_prelim = ? WHERE id = ?")
+                        ->execute([$h, $assignedLane, $row['id']]);
+                }
+            }
+            unset($row);
+
+            usort($raw_data, function($a, $b) {
+                if ($a['heat'] != $b['heat']) return $a['heat'] - $b['heat'];
+                return ($a['lane'] ?? 0) - ($b['lane'] ?? 0);
+            });
+        }
+
+        ksort($heats);
+        foreach ($heats as $hNum => &$lanesArr) {
+            ksort($lanesArr);
+        }
+        unset($lanesArr);
 
         $currentEventId = (int)$raceInfo['event_id'];
         $currentEvNo = (int)($raceInfo['event_number'] ?? 0);
@@ -244,22 +397,6 @@ class ResultsController extends Controller {
         $rowNext = $stmtNext->fetch(PDO::FETCH_ASSOC);
         $nextUrl = $rowNext ? getenv('APP_URL') . "/swim/admin/results/input?category_id=" . $rowNext['id'] : "#";
         $nextClass = $rowNext ? "bg-slate-700 hover:bg-slate-800 text-white" : "bg-slate-200 text-slate-400 cursor-not-allowed pointer-events-none";    
-
-        $stmtEvent = $pdo->prepare("SELECT * FROM swim_events WHERE id = ?");
-        $stmtEvent->execute([$currentEventId]);
-        $eventProfile = $stmtEvent->fetch(PDO::FETCH_ASSOC);
-
-        $usedLanesStr = $eventProfile['used_lanes'] ?? '';
-        $usedLanes = [];
-        if (!empty($usedLanesStr)) {
-            $usedLanes = array_map('trim', explode(',', $usedLanesStr));
-            $usedLanes = array_map('intval', $usedLanes);
-        } else {
-            $laneCount = $eventProfile['lane_count'] ?? 8;
-            for ($i = 1; $i <= $laneCount; $i++) {
-                $usedLanes[] = $i;
-            }
-        }
 
         $stmtAge = $pdo->prepare("SELECT group_name, min_age, max_age FROM swim_event_age_groups WHERE event_id = ?");
         $stmtAge->execute([$currentEventId]);
@@ -347,7 +484,7 @@ class ResultsController extends Controller {
 
             $pdo->commit();
             $_SESSION['success'] = "Hasil lomba berhasil disimpan!";
-            $_SESSION['active_event_id'] = $actualEventId;
+            $_SESSION['active_event_id'] = $eventId;
         } catch (Exception $e) {
             $pdo->rollBack();
             $_SESSION['error'] = "Terjadi kesalahan: " . $e->getMessage();
