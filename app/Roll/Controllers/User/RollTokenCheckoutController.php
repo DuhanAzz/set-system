@@ -57,9 +57,9 @@ class RollTokenCheckoutController extends Controller {
             $status = $paymentStatus ?: 'Unpaid';
 
             // Ambil biaya per kategori
-            $stmtFee = $db->prepare("SELECT fee_speed, fee_standart, fee_pemula, allow_pemula_standart_mix FROM roll_events WHERE id = ?");
+            $stmtFee = $db->prepare("SELECT fee_speed, fee_speed_extra, fee_standart, fee_standart_extra, fee_pemula, fee_pemula_extra, allow_pemula_standart_mix FROM roll_events WHERE id = ?");
             $stmtFee->execute([$eid]);
-            $eventFees = $stmtFee->fetch(PDO::FETCH_ASSOC) ?: ['fee_speed'=>450000, 'fee_standart'=>350000, 'fee_pemula'=>350000, 'allow_pemula_standart_mix'=>0];
+            $eventFees = $stmtFee->fetch(PDO::FETCH_ASSOC) ?: ['fee_speed'=>400000, 'fee_speed_extra'=>0, 'fee_standart'=>350000, 'fee_standart_extra'=>0, 'fee_pemula'=>250000, 'fee_pemula_extra'=>0, 'allow_pemula_standart_mix'=>0];
             
             // Override dengan harga khusus token jika ada
             try {
@@ -135,9 +135,9 @@ class RollTokenCheckoutController extends Controller {
         $status = $paymentStatus ?: 'Unpaid';
 
         // Entry Fee per kategori
-        $stmtFee = $db->prepare("SELECT fee_speed, fee_standart, fee_pemula, allow_pemula_standart_mix FROM roll_events WHERE id = ?");
+        $stmtFee = $db->prepare("SELECT fee_speed, fee_speed_extra, fee_standart, fee_standart_extra, fee_pemula, fee_pemula_extra, allow_pemula_standart_mix FROM roll_events WHERE id = ?");
         $stmtFee->execute([$event_id]);
-        $eventFees = $stmtFee->fetch(PDO::FETCH_ASSOC) ?: ['fee_speed'=>450000, 'fee_standart'=>350000, 'fee_pemula'=>350000, 'allow_pemula_standart_mix'=>0];
+        $eventFees = $stmtFee->fetch(PDO::FETCH_ASSOC) ?: ['fee_speed'=>400000, 'fee_speed_extra'=>0, 'fee_standart'=>350000, 'fee_standart_extra'=>0, 'fee_pemula'=>250000, 'fee_pemula_extra'=>0, 'allow_pemula_standart_mix'=>0];
         
         // Override dengan harga khusus token jika ada
         try {
@@ -155,6 +155,8 @@ class RollTokenCheckoutController extends Controller {
         $unpaidEntries = [];
         $historyEntries = [];
         $totalFee = 0;
+        $skaterBreakdowns = [];
+        $financeSummary = [];
 
         if ($status === 'Unpaid' || $status === 'Rejected') {
             // All entries are unpaid
@@ -175,6 +177,8 @@ class RollTokenCheckoutController extends Controller {
             // Assign payment amount for display
             $financeCalc = \App\Helpers\RollFinanceHelper::calculateTotalTagihan($unpaidEntries, $eventFees);
             $skaterFees = $financeCalc['skater_fees'];
+            $skaterBreakdowns = $financeCalc['skater_breakdowns'] ?? [];
+            $financeSummary = $financeCalc['summary'] ?? [];
             
             $chargedSkaters = [];
             foreach ($unpaidEntries as &$ue) {
@@ -208,6 +212,8 @@ class RollTokenCheckoutController extends Controller {
             // Assign payment amount for display
             $financeCalc = \App\Helpers\RollFinanceHelper::calculateTotalTagihan($historyEntries, $eventFees);
             $skaterFees = $financeCalc['skater_fees'];
+            $skaterBreakdowns = $financeCalc['skater_breakdowns'] ?? [];
+            $financeSummary = $financeCalc['summary'] ?? [];
             
             $chargedSkaters = [];
             foreach ($historyEntries as &$he) {
@@ -276,7 +282,9 @@ class RollTokenCheckoutController extends Controller {
             'historyEntries' => $historyEntries,
             'totalFee' => $totalFee,
             'paymentStatus' => $status,
-            'summaryCounts' => $summaryCounts
+            'summaryCounts' => $summaryCounts,
+            'financeSummary' => $financeSummary,
+            'skaterBreakdowns' => $skaterBreakdowns
         ]);
     }
 
@@ -407,9 +415,9 @@ class RollTokenCheckoutController extends Controller {
                 $db->beginTransaction();
                 
                 // Hitung total tagihan
-                $stmtFee = $db->prepare("SELECT fee_speed, fee_standart, fee_pemula, allow_pemula_standart_mix FROM roll_events WHERE id = ?");
+                $stmtFee = $db->prepare("SELECT fee_speed, fee_speed_extra, fee_standart, fee_standart_extra, fee_pemula, fee_pemula_extra, allow_pemula_standart_mix FROM roll_events WHERE id = ?");
                 $stmtFee->execute([$event_id]);
-                $eventFees = $stmtFee->fetch(PDO::FETCH_ASSOC) ?: ['fee_speed'=>450000, 'fee_standart'=>350000, 'fee_pemula'=>350000, 'allow_pemula_standart_mix'=>0];
+                $eventFees = $stmtFee->fetch(PDO::FETCH_ASSOC) ?: ['fee_speed'=>400000, 'fee_speed_extra'=>0, 'fee_standart'=>350000, 'fee_standart_extra'=>0, 'fee_pemula'=>250000, 'fee_pemula_extra'=>0, 'allow_pemula_standart_mix'=>0];
                 
                 // Override dengan harga khusus token jika ada
                 try {
@@ -428,10 +436,11 @@ class RollTokenCheckoutController extends Controller {
                 if (!empty($entry_ids)) {
                     $placeholders = str_repeat('?,', count($entry_ids) - 1) . '?';
                     $stmtCls = $db->prepare("
-                        SELECT e.skater_id, sc.class_name, e.team_name 
+                        SELECT e.skater_id, sc.class_name, d.distance_name, e.team_name, e.race_class_id
                         FROM roll_entries e
                         LEFT JOIN roll_event_details ed ON e.race_class_id = ed.id
                         LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
+                        LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
                         WHERE e.id IN ($placeholders)
                     ");
                     $stmtCls->execute($entry_ids);

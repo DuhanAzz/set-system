@@ -106,23 +106,58 @@
                         </div>
                     </div>
 
-                    <!-- Kategori Biaya Lomba -->
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6 pt-4 border-t border-slate-200">
-                        <div>
-                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Biaya Speed (Rp)</label>
-                            <input type="number" name="fee_speed" value="<?= htmlspecialchars($row['fee_speed'] ?? '450000') ?>" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 text-slate-800 focus:ring-2 focus:ring-fuchsia-500 font-bold text-fuchsia-700" required>
+                    <!-- Kategori Biaya Lomba (Paket Basic & Nomor Tambahan) -->
+                    <div class="mb-6 pt-4 border-t border-slate-200">
+                        <div class="flex items-center justify-between mb-3">
+                            <h4 class="text-xs font-black text-slate-800 uppercase tracking-widest flex items-center gap-1.5">
+                                <span>💰 Biaya Pendaftaran per Atlet</span>
+                                <span class="bg-blue-100 text-blue-700 text-[10px] px-2 py-0.5 rounded-full font-bold">Paket Dasar (2 Nomor) + Nomor Tambahan</span>
+                            </h4>
                         </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Biaya Standart (Rp)</label>
-                            <input type="number" name="fee_standart" value="<?= htmlspecialchars($row['fee_standart'] ?? '350000') ?>" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 text-slate-800 focus:ring-2 focus:ring-amber-500 font-bold text-amber-600" required>
+
+                        <!-- Baris 1: Paket Basic (Mencakup Kuota Dasar 2 Nomor Individu + 1 Beregu) -->
+                        <div class="p-4 bg-slate-50 border border-slate-200 rounded-xl mb-4">
+                            <p class="text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-3">1. Biaya Paket Basic (Mencakup Kuota 2 Nomor Individu & 1 Nomor Beregu)</p>
+                            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                <div>
+                                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Basic Speed (Rp)</label>
+                                    <input type="number" name="fee_speed" value="<?= htmlspecialchars($row['fee_speed'] ?? '400000') ?>" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-fuchsia-500 font-bold text-fuchsia-700" required>
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Basic Standart (Rp)</label>
+                                    <input type="number" name="fee_standart" value="<?= htmlspecialchars($row['fee_standart'] ?? '350000') ?>" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-amber-500 font-bold text-amber-600" required>
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Basic Pemula (Rp)</label>
+                                    <input type="number" name="fee_pemula" value="<?= htmlspecialchars($row['fee_pemula'] ?? '250000') ?>" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-emerald-500 font-bold text-emerald-600" required>
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Biaya Eksebisi (Rp)</label>
+                                    <input type="number" name="fee_eksebisi" value="<?= htmlspecialchars($row['fee_eksebisi'] ?? '150000') ?>" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-red-500 font-bold text-red-600" required>
+                                </div>
+                            </div>
                         </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Biaya Pemula (Rp)</label>
-                            <input type="number" name="fee_pemula" value="<?= htmlspecialchars($row['fee_pemula'] ?? '350000') ?>" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 text-slate-800 focus:ring-2 focus:ring-emerald-500 font-bold text-emerald-600" required>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Biaya Eksebisi (Rp)</label>
-                            <input type="number" name="fee_eksebisi" value="<?= htmlspecialchars($row['fee_eksebisi'] ?? '150000') ?>" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 text-slate-800 focus:ring-2 focus:ring-red-500 font-bold text-red-600" required>
+
+                        <!-- Baris 2: Biaya Nomor Tambahan (Extra Race Fee) -->
+                        <div class="p-4 bg-amber-50/60 border border-amber-200 rounded-xl">
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-3">
+                                <p class="text-[11px] font-bold text-amber-900 uppercase tracking-wider">2. Biaya Nomor Tambahan (Tambahan per 1 Nomor Individu Ekstra)</p>
+                                <span class="text-[10px] text-amber-700 italic font-medium">*Dikenakan otomatis jika atlet memilih nomor ke-3 individual</span>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div>
+                                    <label class="block text-[10px] font-bold text-amber-800 uppercase tracking-widest mb-1">Tambahan Speed (+Rp / nomor)</label>
+                                    <input type="number" name="fee_speed_extra" value="<?= htmlspecialchars($row['fee_speed_extra'] ?? '200000') ?>" placeholder="Contoh: 200000" class="w-full bg-white border border-amber-300 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-amber-500 font-bold text-fuchsia-700">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold text-amber-800 uppercase tracking-widest mb-1">Tambahan Standart (+Rp / nomor)</label>
+                                    <input type="number" name="fee_standart_extra" value="<?= htmlspecialchars($row['fee_standart_extra'] ?? '0') ?>" placeholder="Kosongkan / 0 jika tidak ada" class="w-full bg-white border border-amber-300 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-amber-500 font-bold text-amber-600">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold text-amber-800 uppercase tracking-widest mb-1">Tambahan Pemula (+Rp / nomor)</label>
+                                    <input type="number" name="fee_pemula_extra" value="<?= htmlspecialchars($row['fee_pemula_extra'] ?? '100000') ?>" placeholder="Contoh: 100000" class="w-full bg-white border border-amber-300 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-amber-500 font-bold text-emerald-600">
+                                </div>
+                            </div>
                         </div>
                     </div>
 

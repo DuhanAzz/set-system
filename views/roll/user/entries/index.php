@@ -590,11 +590,12 @@ function onSkaterChange(sel) {
 }
 
 const limits = {
-    speed: <?= (int)($event['limit_speed_ind'] ?? 2) ?>,
+    speed: <?= (int)($event['limit_speed_ind'] ?? 3) ?>,
     standar: <?= (int)($event['limit_std_ind'] ?? 2) ?>,
-    pemula: <?= (int)($event['limit_pemula_ind'] ?? 2) ?>
+    pemula: <?= (int)($event['limit_pemula_ind'] ?? 3) ?>
 };
 let maxIndv = 99;
+let currentAthleteExistingIndvCount = 0;
 
 function filterClasses() {
     try {
@@ -673,6 +674,8 @@ function filterClasses() {
                 }
             });
         }
+        
+        currentAthleteExistingIndvCount = existingIndvCountForCategory;
         
         if (maxIndv !== 99) {
             maxIndv = maxIndv - existingIndvCountForCategory;
@@ -771,8 +774,15 @@ function checkIndividualLimits(checkbox) {
         btn.disabled = false;
         btn.className = 'w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-black text-xs shadow-lg shadow-blue-200 transition-all uppercase tracking-widest cursor-pointer';
         
+        let totalIndvNow = (currentAthleteExistingIndvCount || 0) + checked.length;
+        let extraNoticeHtml = '';
+        if (totalIndvNow > 2) {
+            let extraCount = totalIndvNow - 2;
+            extraNoticeHtml = `<div class="mt-2 text-[10px] font-bold text-amber-800 bg-amber-100/70 p-2 rounded-lg border border-amber-300">ℹ️ Termasuk ${extraCount} Nomor Tambahan (dikenakan biaya nomor tambahan saat checkout).</div>`;
+        }
+        
         let selectedNames = Array.from(checked).map(cb => '✅ ' + cb.nextElementSibling.innerHTML).join('<br>');
-        alertBox.innerHTML = `<div class="text-emerald-600 bg-emerald-50 text-left p-3 rounded-lg"><div class="text-[10px] uppercase tracking-widest mb-1 opacity-50">Nomor Terpilih:</div>${selectedNames}</div>`;
+        alertBox.innerHTML = `<div class="text-emerald-600 bg-emerald-50 text-left p-3 rounded-lg"><div class="text-[10px] uppercase tracking-widest mb-1 opacity-50">Nomor Terpilih:</div>${selectedNames}${extraNoticeHtml}</div>`;
         alertBox.classList.remove('hidden', 'text-red-600', 'bg-red-50', 'border-red-200');
         alertBox.classList.add('text-emerald-600', 'bg-emerald-50', 'border-emerald-200');
     } else {

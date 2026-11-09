@@ -58,6 +58,12 @@ class RollEventController extends Controller {
             $db->exec("ALTER TABLE roll_ref_distances ADD COLUMN skate_class_id INT NULL DEFAULT NULL AFTER distance_name");
         } catch (\Exception $e) {}
         try {
+            $db->exec("ALTER TABLE roll_events 
+                ADD COLUMN fee_speed_extra DECIMAL(10,2) DEFAULT 0.00 AFTER fee_speed,
+                ADD COLUMN fee_standart_extra DECIMAL(10,2) DEFAULT 0.00 AFTER fee_standart,
+                ADD COLUMN fee_pemula_extra DECIMAL(10,2) DEFAULT 0.00 AFTER fee_pemula");
+        } catch (\Exception $e) {}
+        try {
             $distances = $db->query("SELECT * FROM roll_ref_distances ORDER BY id ASC")->fetchAll(PDO::FETCH_ASSOC);
             $ageGroups = $db->query("SELECT * FROM roll_ref_age_groups ORDER BY min_year ASC")->fetchAll(PDO::FETCH_ASSOC);
             $skateClasses = $db->query("SELECT * FROM roll_ref_skate_classes ORDER BY id ASC")->fetchAll(PDO::FETCH_ASSOC);
@@ -417,9 +423,12 @@ class RollEventController extends Controller {
                     }
                 }
             }
-            $feeSpeed = $_POST['fee_speed'] ?? 450000;
+            $feeSpeed = $_POST['fee_speed'] ?? 400000;
+            $feeSpeedExtra = $_POST['fee_speed_extra'] ?? 0;
             $feeStandart = $_POST['fee_standart'] ?? 350000;
-            $feePemula = $_POST['fee_pemula'] ?? 350000;
+            $feeStandartExtra = $_POST['fee_standart_extra'] ?? 0;
+            $feePemula = $_POST['fee_pemula'] ?? 250000;
+            $feePemulaExtra = $_POST['fee_pemula_extra'] ?? 0;
             $feeEksebisi = $_POST['fee_eksebisi'] ?? 150000;
             $allowPemulaStandartMix = isset($_POST['allow_pemula_standart_mix']) ? 1 : 0;
             $bankName = $_POST['bank_name'] ?? null;
@@ -429,17 +438,20 @@ class RollEventController extends Controller {
             $headerLogosJson = json_encode($headerLogosArray);
 
             try {
-                $stmt = $db->prepare("UPDATE roll_events SET event_name=?, event_date_start=?, event_date_end=?, event_location=?, event_city=?, race_format=?, status=?, participation_type=?, fee_speed=?, fee_standart=?, fee_pemula=?, fee_eksebisi=?, allow_pemula_standart_mix=?, bank_name=?, bank_account=?, bank_account_name=?, contact_phone=?, poster_image=?, sponsor_logos=?, header_logos=? WHERE id=?");
-                $stmt->execute([$eventName, $eventDateStart, $eventDateEnd, $eventLoc, $eventCity, $raceFormat, $status, $participationType, $feeSpeed, $feeStandart, $feePemula, $feeEksebisi, $allowPemulaStandartMix, $bankName, $bankAccount, $bankAccountName, $contactPhone, $posterImage, $sponsorLogosJson, $headerLogosJson, $eventId]);
+                $stmt = $db->prepare("UPDATE roll_events SET event_name=?, event_date_start=?, event_date_end=?, event_location=?, event_city=?, race_format=?, status=?, participation_type=?, fee_speed=?, fee_speed_extra=?, fee_standart=?, fee_standart_extra=?, fee_pemula=?, fee_pemula_extra=?, fee_eksebisi=?, allow_pemula_standart_mix=?, bank_name=?, bank_account=?, bank_account_name=?, contact_phone=?, poster_image=?, sponsor_logos=?, header_logos=? WHERE id=?");
+                $stmt->execute([$eventName, $eventDateStart, $eventDateEnd, $eventLoc, $eventCity, $raceFormat, $status, $participationType, $feeSpeed, $feeSpeedExtra, $feeStandart, $feeStandartExtra, $feePemula, $feePemulaExtra, $feeEksebisi, $allowPemulaStandartMix, $bankName, $bankAccount, $bankAccountName, $contactPhone, $posterImage, $sponsorLogosJson, $headerLogosJson, $eventId]);
             } catch (\Exception $e) {
                 try { $db->exec("ALTER TABLE roll_events ADD COLUMN status ENUM('Draft','Published','Open Registration','Official Registration','Close Registration','Running','Finished') DEFAULT 'Draft'"); } catch (\Exception $ex) {}
                 try { $db->exec("ALTER TABLE roll_events MODIFY COLUMN status ENUM('Draft','Published','Open Registration','Official Registration','Close Registration','Running','Finished') DEFAULT 'Draft'"); } catch (\Exception $ex) {}
                 try { $db->exec("ALTER TABLE roll_events ADD COLUMN participation_type ENUM('club','school','contingent_province','contingent_city') DEFAULT 'club'"); } catch (\Exception $ex) {}
                 try { $db->exec("ALTER TABLE roll_events ADD COLUMN event_city VARCHAR(255) NULL"); } catch (\Exception $ex) {}
                 try { $db->exec("ALTER TABLE roll_events ADD COLUMN race_format VARCHAR(50) DEFAULT 'SPRINT'"); } catch (\Exception $ex) {}
-                try { $db->exec("ALTER TABLE roll_events ADD COLUMN fee_speed DECIMAL(10,2) DEFAULT 450000"); } catch (\Exception $ex) {}
+                try { $db->exec("ALTER TABLE roll_events ADD COLUMN fee_speed DECIMAL(10,2) DEFAULT 400000"); } catch (\Exception $ex) {}
+                try { $db->exec("ALTER TABLE roll_events ADD COLUMN fee_speed_extra DECIMAL(10,2) DEFAULT 0.00 AFTER fee_speed"); } catch (\Exception $ex) {}
                 try { $db->exec("ALTER TABLE roll_events ADD COLUMN fee_standart DECIMAL(10,2) DEFAULT 350000"); } catch (\Exception $ex) {}
-                try { $db->exec("ALTER TABLE roll_events ADD COLUMN fee_pemula DECIMAL(10,2) DEFAULT 350000"); } catch (\Exception $ex) {}
+                try { $db->exec("ALTER TABLE roll_events ADD COLUMN fee_standart_extra DECIMAL(10,2) DEFAULT 0.00 AFTER fee_standart"); } catch (\Exception $ex) {}
+                try { $db->exec("ALTER TABLE roll_events ADD COLUMN fee_pemula DECIMAL(10,2) DEFAULT 250000"); } catch (\Exception $ex) {}
+                try { $db->exec("ALTER TABLE roll_events ADD COLUMN fee_pemula_extra DECIMAL(10,2) DEFAULT 0.00 AFTER fee_pemula"); } catch (\Exception $ex) {}
                 try { $db->exec("ALTER TABLE roll_events ADD COLUMN fee_eksebisi DECIMAL(10,2) DEFAULT 150000"); } catch (\Exception $ex) {}
                 try { $db->exec("ALTER TABLE roll_events ADD COLUMN allow_pemula_standart_mix TINYINT(1) DEFAULT 0"); } catch (\Exception $ex) {}
                 try { $db->exec("ALTER TABLE roll_events ADD COLUMN poster_image VARCHAR(255) NULL"); } catch (\Exception $ex) {}
@@ -447,8 +459,8 @@ class RollEventController extends Controller {
                 try { $db->exec("ALTER TABLE roll_events ADD COLUMN header_logos TEXT NULL"); } catch (\Exception $ex) {}
                 
                 // Retry after migration
-                $stmt = $db->prepare("UPDATE roll_events SET event_name=?, event_date_start=?, event_date_end=?, event_location=?, event_city=?, race_format=?, status=?, participation_type=?, fee_speed=?, fee_standart=?, fee_pemula=?, fee_eksebisi=?, allow_pemula_standart_mix=?, bank_name=?, bank_account=?, bank_account_name=?, contact_phone=?, poster_image=?, sponsor_logos=?, header_logos=? WHERE id=?");
-                $stmt->execute([$eventName, $eventDateStart, $eventDateEnd, $eventLoc, $eventCity, $raceFormat, $status, $participationType, $feeSpeed, $feeStandart, $feePemula, $feeEksebisi, $allowPemulaStandartMix, $bankName, $bankAccount, $bankAccountName, $contactPhone, $posterImage, $sponsorLogosJson, $headerLogosJson, $eventId]);
+                $stmt = $db->prepare("UPDATE roll_events SET event_name=?, event_date_start=?, event_date_end=?, event_location=?, event_city=?, race_format=?, status=?, participation_type=?, fee_speed=?, fee_speed_extra=?, fee_standart=?, fee_standart_extra=?, fee_pemula=?, fee_pemula_extra=?, fee_eksebisi=?, allow_pemula_standart_mix=?, bank_name=?, bank_account=?, bank_account_name=?, contact_phone=?, poster_image=?, sponsor_logos=?, header_logos=? WHERE id=?");
+                $stmt->execute([$eventName, $eventDateStart, $eventDateEnd, $eventLoc, $eventCity, $raceFormat, $status, $participationType, $feeSpeed, $feeSpeedExtra, $feeStandart, $feeStandartExtra, $feePemula, $feePemulaExtra, $feeEksebisi, $allowPemulaStandartMix, $bankName, $bankAccount, $bankAccountName, $contactPhone, $posterImage, $sponsorLogosJson, $headerLogosJson, $eventId]);
             }
 
             $_SESSION['flash_message'] = "Profil Event berhasil diperbarui!";

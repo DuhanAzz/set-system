@@ -86,9 +86,9 @@ class RollEntryController extends Controller {
         }
 
         // Fetch entry fees for dynamic calculation
-        $stmtFee = $db->prepare("SELECT fee_speed, fee_standart, fee_pemula, allow_pemula_standart_mix FROM roll_events WHERE id = ?");
+        $stmtFee = $db->prepare("SELECT fee_speed, fee_speed_extra, fee_standart, fee_standart_extra, fee_pemula, fee_pemula_extra, allow_pemula_standart_mix FROM roll_events WHERE id = ?");
         $stmtFee->execute([$targetEventId]);
-        $eventFees = $stmtFee->fetch(PDO::FETCH_ASSOC) ?: ['fee_speed'=>450000, 'fee_standart'=>350000, 'fee_pemula'=>350000, 'allow_pemula_standart_mix'=>0];
+        $eventFees = $stmtFee->fetch(PDO::FETCH_ASSOC) ?: ['fee_speed'=>400000, 'fee_speed_extra'=>0, 'fee_standart'=>350000, 'fee_standart_extra'=>0, 'fee_pemula'=>250000, 'fee_pemula_extra'=>0, 'allow_pemula_standart_mix'=>0];
 
         // Query List Klub & Payments
         try {
@@ -117,11 +117,12 @@ class RollEntryController extends Controller {
             // Calculate dynamic amount always to ensure correctness regardless of old DB values
             foreach ($listData as &$row) {
                 $stmtEntries = $db->prepare("
-                    SELECT s.id as skater_id, sc.class_name 
+                    SELECT s.id as skater_id, sc.class_name, d.distance_name, e.team_name, e.race_class_id
                     FROM roll_entries e
                     JOIN roll_skaters s ON e.skater_id = s.id
                     JOIN roll_event_details ed ON e.race_class_id = ed.id
                     LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
+                    LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
                     WHERE s.club_id = ? AND e.event_id = ? AND (e.manual_invoice_code IS NULL OR e.manual_invoice_code NOT LIKE 'MAN-TOK-%')
                 ");
                 $stmtEntries->execute([$row['club_id'], $targetEventId]);
@@ -562,16 +563,17 @@ class RollEntryController extends Controller {
             if ($entry_type === 'team' && $successCount > 0 && !empty($manualEntriesInserted)) {
                 // Hitung tagihan khusus entri Tim yang baru masuk
                 $inQuery = implode(',', array_fill(0, count($manualEntriesInserted), '?'));
-                $sqlM = "SELECT e.skater_id, sc.class_name 
+                $sqlM = "SELECT e.skater_id, sc.class_name, d.distance_name, e.team_name, e.race_class_id 
                          FROM roll_entries e
                          JOIN roll_event_details ed ON e.race_class_id = ed.id
                          LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
+                         LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
                          WHERE e.id IN ($inQuery)";
                 $stmtM = $db->prepare($sqlM);
                 $stmtM->execute($manualEntriesInserted);
                 $mRows = $stmtM->fetchAll(PDO::FETCH_ASSOC);
 
-                $stmtFee = $db->prepare("SELECT fee_speed, fee_standart, fee_pemula, allow_pemula_standart_mix FROM roll_events WHERE id = ?");
+                $stmtFee = $db->prepare("SELECT fee_speed, fee_speed_extra, fee_standart, fee_standart_extra, fee_pemula, fee_pemula_extra, allow_pemula_standart_mix FROM roll_events WHERE id = ?");
                 $stmtFee->execute([$targetEventId]);
                 $eventFees = $stmtFee->fetch(PDO::FETCH_ASSOC);
                 

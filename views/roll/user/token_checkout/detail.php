@@ -70,7 +70,17 @@
                                     </p>
                                     <?php endforeach; ?>
                                 </div>
-                                <p class="text-xs font-black text-slate-800">Rp <?= number_format($g['amount'], 0, ',', '.') ?></p>
+                                <div class="flex items-baseline justify-between">
+                                    <p class="text-xs font-black text-slate-800">Rp <?= number_format($g['amount'], 0, ',', '.') ?></p>
+                                    <?php 
+                                    $bk = $skaterBreakdowns[$sId] ?? null;
+                                    if ($bk && !empty($bk['extra_count'])): 
+                                    ?>
+                                    <span class="text-[9px] font-bold text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                                        Termasuk <?= $bk['extra_count'] ?> Nomor Tambahan (+Rp <?= number_format($bk['extra_amount'], 0, ',', '.') ?>)
+                                    </span>
+                                    <?php endif; ?>
+                                </div>
                             </div>
                             <?php endforeach; ?>
                         <?php endif; ?>
@@ -90,7 +100,17 @@
                                     </p>
                                     <?php endforeach; ?>
                                 </div>
-                                <p class="text-xs font-black text-slate-800">Rp <?= number_format($g['amount'], 0, ',', '.') ?></p>
+                                <div class="flex items-baseline justify-between">
+                                    <p class="text-xs font-black text-slate-800">Rp <?= number_format($g['amount'], 0, ',', '.') ?></p>
+                                    <?php 
+                                    $bk = $skaterBreakdowns[$sId] ?? null;
+                                    if ($bk && !empty($bk['extra_count'])): 
+                                    ?>
+                                    <span class="text-[9px] font-bold text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                                        Termasuk <?= $bk['extra_count'] ?> Nomor Tambahan (+Rp <?= number_format($bk['extra_amount'], 0, ',', '.') ?>)
+                                    </span>
+                                    <?php endif; ?>
+                                </div>
                             </div>
                             <?php endforeach; ?>
                         <?php endif; ?>
@@ -102,28 +122,52 @@
                     <div class="mb-4">
                         <p class="text-xs font-black text-slate-800 uppercase italic mb-2">Ringkasan Tagihan</p>
                         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <?php if (!empty($summaryCounts['Speed'])): ?>
+                            <?php if (!empty($summaryCounts['Speed']) || !empty($financeSummary['Speed']['skaters'])): 
+                                $spSkaters = $financeSummary['Speed']['skaters'] ?? $summaryCounts['Speed'];
+                                $spExtraCount = $financeSummary['Speed']['extra_count'] ?? 0;
+                                $spExtraFee = $financeSummary['Speed']['extra_fee'] ?? ($event['fee_speed_extra'] ?? 0);
+                                $spTotal = $financeSummary['Speed']['total'] ?? ($spSkaters * ($event['fee_speed'] ?? 0));
+                            ?>
                             <div class="bg-slate-50 border border-slate-200 p-3 rounded-xl text-center">
                                 <p class="text-[10px] text-slate-500 uppercase font-bold">Speed</p>
-                                <p class="text-lg font-black text-fuchsia-600"><?= $summaryCounts['Speed'] ?> <span class="text-[10px]">Atlet</span></p>
-                                <p class="text-[9px] font-bold text-slate-400 mt-1"><?= $summaryCounts['Speed'] ?> x Rp <?= number_format($event['fee_speed'] ?? 0, 0, ',', '.') ?></p>
-                                <p class="text-xs font-black text-fuchsia-700 mt-0.5">Rp <?= number_format($summaryCounts['Speed'] * ($event['fee_speed'] ?? 0), 0, ',', '.') ?></p>
+                                <p class="text-lg font-black text-fuchsia-600"><?= $spSkaters ?> <span class="text-[10px]">Atlet</span></p>
+                                <p class="text-[9px] font-bold text-slate-400 mt-1"><?= $spSkaters ?> Basic x Rp <?= number_format($event['fee_speed'] ?? 0, 0, ',', '.') ?></p>
+                                <?php if ($spExtraCount > 0): ?>
+                                    <p class="text-[9px] font-bold text-amber-600">+<?= $spExtraCount ?> Tambahan x Rp <?= number_format($spExtraFee, 0, ',', '.') ?></p>
+                                <?php endif; ?>
+                                <p class="text-xs font-black text-fuchsia-700 mt-0.5">Rp <?= number_format($spTotal, 0, ',', '.') ?></p>
                             </div>
                             <?php endif; ?>
-                            <?php if (!empty($summaryCounts['Standart'])): ?>
+                            <?php if (!empty($summaryCounts['Standart']) || !empty($financeSummary['Standart']['skaters'])): 
+                                $stdSkaters = $financeSummary['Standart']['skaters'] ?? $summaryCounts['Standart'];
+                                $stdExtraCount = $financeSummary['Standart']['extra_count'] ?? 0;
+                                $stdExtraFee = $financeSummary['Standart']['extra_fee'] ?? ($event['fee_standart_extra'] ?? 0);
+                                $stdTotal = $financeSummary['Standart']['total'] ?? ($stdSkaters * ($event['fee_standart'] ?? 0));
+                            ?>
                             <div class="bg-slate-50 border border-slate-200 p-3 rounded-xl text-center">
                                 <p class="text-[10px] text-slate-500 uppercase font-bold">Standart</p>
-                                <p class="text-lg font-black text-amber-500"><?= $summaryCounts['Standart'] ?> <span class="text-[10px]">Atlet</span></p>
-                                <p class="text-[9px] font-bold text-slate-400 mt-1"><?= $summaryCounts['Standart'] ?> x Rp <?= number_format($event['fee_standart'] ?? 0, 0, ',', '.') ?></p>
-                                <p class="text-xs font-black text-amber-600 mt-0.5">Rp <?= number_format($summaryCounts['Standart'] * ($event['fee_standart'] ?? 0), 0, ',', '.') ?></p>
+                                <p class="text-lg font-black text-amber-500"><?= $stdSkaters ?> <span class="text-[10px]">Atlet</span></p>
+                                <p class="text-[9px] font-bold text-slate-400 mt-1"><?= $stdSkaters ?> Basic x Rp <?= number_format($event['fee_standart'] ?? 0, 0, ',', '.') ?></p>
+                                <?php if ($stdExtraCount > 0): ?>
+                                    <p class="text-[9px] font-bold text-amber-600">+<?= $stdExtraCount ?> Tambahan x Rp <?= number_format($stdExtraFee, 0, ',', '.') ?></p>
+                                <?php endif; ?>
+                                <p class="text-xs font-black text-amber-600 mt-0.5">Rp <?= number_format($stdTotal, 0, ',', '.') ?></p>
                             </div>
                             <?php endif; ?>
-                            <?php if (!empty($summaryCounts['Pemula'])): ?>
+                            <?php if (!empty($summaryCounts['Pemula']) || !empty($financeSummary['Pemula']['skaters'])): 
+                                $pemSkaters = $financeSummary['Pemula']['skaters'] ?? $summaryCounts['Pemula'];
+                                $pemExtraCount = $financeSummary['Pemula']['extra_count'] ?? 0;
+                                $pemExtraFee = $financeSummary['Pemula']['extra_fee'] ?? ($event['fee_pemula_extra'] ?? 0);
+                                $pemTotal = $financeSummary['Pemula']['total'] ?? ($pemSkaters * ($event['fee_pemula'] ?? 0));
+                            ?>
                             <div class="bg-slate-50 border border-slate-200 p-3 rounded-xl text-center">
                                 <p class="text-[10px] text-slate-500 uppercase font-bold">Pemula</p>
-                                <p class="text-lg font-black text-emerald-500"><?= $summaryCounts['Pemula'] ?> <span class="text-[10px]">Atlet</span></p>
-                                <p class="text-[9px] font-bold text-slate-400 mt-1"><?= $summaryCounts['Pemula'] ?> x Rp <?= number_format($event['fee_pemula'] ?? 0, 0, ',', '.') ?></p>
-                                <p class="text-xs font-black text-emerald-600 mt-0.5">Rp <?= number_format($summaryCounts['Pemula'] * ($event['fee_pemula'] ?? 0), 0, ',', '.') ?></p>
+                                <p class="text-lg font-black text-emerald-500"><?= $pemSkaters ?> <span class="text-[10px]">Atlet</span></p>
+                                <p class="text-[9px] font-bold text-slate-400 mt-1"><?= $pemSkaters ?> Basic x Rp <?= number_format($event['fee_pemula'] ?? 0, 0, ',', '.') ?></p>
+                                <?php if ($pemExtraCount > 0): ?>
+                                    <p class="text-[9px] font-bold text-amber-600">+<?= $pemExtraCount ?> Tambahan x Rp <?= number_format($pemExtraFee, 0, ',', '.') ?></p>
+                                <?php endif; ?>
+                                <p class="text-xs font-black text-emerald-600 mt-0.5">Rp <?= number_format($pemTotal, 0, ',', '.') ?></p>
                             </div>
                             <?php endif; ?>
                             <?php if (!empty($summaryCounts['Team'])): ?>

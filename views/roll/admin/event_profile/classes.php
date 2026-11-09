@@ -254,11 +254,13 @@
                                     <div class="flex gap-3">
                                         <div class="flex flex-col text-center">
                                             <span class="text-[9px] text-fuchsia-500 font-bold mb-1">Max Individu</span>
-                                            <input type="number" name="limit_speed_ind" value="<?= htmlspecialchars($row['limit_speed_ind'] ?? 2) ?>" class="w-16 h-8 text-center bg-white border border-fuchsia-300 rounded text-fuchsia-700 font-bold text-xs focus:ring-1 focus:ring-fuchsia-500 outline-none" min="1">
+                                            <input type="number" name="limit_speed_ind" value="<?= htmlspecialchars($row['limit_speed_ind'] ?? 3) ?>" class="w-16 h-8 text-center bg-white border border-fuchsia-300 rounded text-fuchsia-700 font-bold text-xs focus:ring-1 focus:ring-fuchsia-500 outline-none" min="1">
+                                            <span class="text-[7.5px] text-slate-400 mt-0.5">Dasar+Tambahan</span>
                                         </div>
                                         <div class="flex flex-col text-center">
                                             <span class="text-[9px] text-fuchsia-500 font-bold mb-1">Max Beregu</span>
                                             <input type="number" name="limit_speed_team" value="<?= htmlspecialchars($row['limit_speed_team'] ?? 1) ?>" class="w-16 h-8 text-center bg-white border border-fuchsia-300 rounded text-fuchsia-700 font-bold text-xs focus:ring-1 focus:ring-fuchsia-500 outline-none" min="0">
+                                            <span class="text-[7.5px] text-slate-400 mt-0.5">Termasuk</span>
                                         </div>
                                     </div>
                                 </div>
@@ -277,10 +279,12 @@
                                         <div class="flex flex-col text-center">
                                             <span class="text-[9px] text-amber-500 font-bold mb-1">Max Individu</span>
                                             <input type="number" name="limit_std_ind" value="<?= htmlspecialchars($row['limit_std_ind'] ?? 2) ?>" class="w-16 h-8 text-center bg-white border border-amber-300 rounded text-amber-700 font-bold text-xs focus:ring-1 focus:ring-amber-500 outline-none" min="1">
+                                            <span class="text-[7.5px] text-slate-400 mt-0.5">Dasar (Maks 2)</span>
                                         </div>
                                         <div class="flex flex-col text-center">
                                             <span class="text-[9px] text-amber-500 font-bold mb-1">Max Beregu</span>
                                             <input type="number" name="limit_std_team" value="<?= htmlspecialchars($row['limit_std_team'] ?? 1) ?>" class="w-16 h-8 text-center bg-white border border-amber-300 rounded text-amber-700 font-bold text-xs focus:ring-1 focus:ring-amber-500 outline-none" min="0">
+                                            <span class="text-[7.5px] text-slate-400 mt-0.5">Termasuk</span>
                                         </div>
                                     </div>
                                 </div>
@@ -298,11 +302,13 @@
                                     <div class="flex gap-3">
                                         <div class="flex flex-col text-center">
                                             <span class="text-[9px] text-emerald-500 font-bold mb-1">Max Individu</span>
-                                            <input type="number" name="limit_pemula_ind" value="<?= htmlspecialchars($row['limit_pemula_ind'] ?? 2) ?>" class="w-16 h-8 text-center bg-white border border-emerald-300 rounded text-emerald-700 font-bold text-xs focus:ring-1 focus:ring-emerald-500 outline-none" min="1">
+                                            <input type="number" name="limit_pemula_ind" value="<?= htmlspecialchars($row['limit_pemula_ind'] ?? 3) ?>" class="w-16 h-8 text-center bg-white border border-emerald-300 rounded text-emerald-700 font-bold text-xs focus:ring-1 focus:ring-emerald-500 outline-none" min="1">
+                                            <span class="text-[7.5px] text-slate-400 mt-0.5">Dasar+Tambahan</span>
                                         </div>
                                         <div class="flex flex-col text-center">
                                             <span class="text-[9px] text-emerald-500 font-bold mb-1">Max Beregu</span>
-                                            <input type="number" name="limit_pemula_team" value="<?= htmlspecialchars($row['limit_pemula_team'] ?? 1) ?>" class="w-16 h-8 text-center bg-white border border-emerald-300 rounded text-emerald-700 font-bold text-xs focus:ring-1 focus:ring-emerald-500 outline-none" min="0">
+                                            <input type="number" name="limit_pemula_team" value="<?= htmlspecialchars($row['limit_pemula_team'] ?? 0) ?>" class="w-16 h-8 text-center bg-white border border-emerald-300 rounded text-emerald-700 font-bold text-xs focus:ring-1 focus:ring-emerald-500 outline-none" min="0">
+                                            <span class="text-[7.5px] text-slate-400 mt-0.5">Tanpa Beregu</span>
                                         </div>
                                     </div>
                                 </div>
