@@ -52,6 +52,7 @@ class RollUserSkaterController extends Controller {
             $db = Database::getInstance()->getConnection();
             $club_id = $_SESSION['roll_club_id'] ?? 0;
             
+            $nik = preg_replace('/[^0-9]/', '', trim($_POST['nik'] ?? ''));
             $skaterName = strtoupper(trim($_POST['skater_name'] ?? ''));
             $gender = $_POST['gender'] ?? '';
             $birthDate = $_POST['birth_date'] ?? '';
@@ -70,8 +71,8 @@ class RollUserSkaterController extends Controller {
                 exit;
             }
 
-            $stmt = $db->prepare("INSERT INTO roll_skaters (skater_name, club_id, gender, birth_date, asal_sekolah, provinsi, kota_kabupaten, status_bpjs) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-            $stmt->execute([$skaterName, $club_id, $gender, $birthDate, $asalSekolah ?: null, $provinsi ?: null, $kotaKabupaten ?: null, $statusBpjs]);
+            $stmt = $db->prepare("INSERT INTO roll_skaters (nik, skater_name, club_id, gender, birth_date, asal_sekolah, provinsi, kota_kabupaten, status_bpjs) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt->execute([$nik ?: null, $skaterName, $club_id, $gender, $birthDate, $asalSekolah ?: null, $provinsi ?: null, $kotaKabupaten ?: null, $statusBpjs]);
 
             $_SESSION['flash_message'] = "Skater berhasil ditambahkan ke roster!";
             $_SESSION['flash_type'] = "success";

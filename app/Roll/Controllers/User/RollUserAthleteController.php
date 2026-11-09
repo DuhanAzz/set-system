@@ -17,6 +17,9 @@ class RollUserAthleteController extends Controller {
         // Self-healing migration for new columns
         $db = Database::getInstance()->getConnection();
         try {
+            $db->exec("ALTER TABLE roll_skaters ADD COLUMN nik VARCHAR(20) DEFAULT NULL AFTER uid");
+        } catch (\Exception $ex) {}
+        try {
             $db->query("SELECT asal_sekolah FROM roll_skaters LIMIT 1");
         } catch (\Exception $e) {
             try {
@@ -100,13 +103,18 @@ class RollUserAthleteController extends Controller {
         $athletes = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         $currentYear = (int)date('Y');
+        $missingNikCount = 0;
         foreach ($athletes as &$s) {
             if (!empty($s['birth_date'])) {
                 $year = (int)date('Y', strtotime($s['birth_date']));
                 $age = $currentYear - $year;
                 $s['age_group'] = $age . " Thn";
             }
-            $s['is_data_incomplete'] = empty($s['asal_sekolah']) || empty($s['provinsi']) || empty($s['kota_kabupaten']);
+            $s['is_nik_missing'] = empty($s['nik']) || strlen(trim((string)$s['nik'])) < 16;
+            if ($s['is_nik_missing']) {
+                $missingNikCount++;
+            }
+            $s['is_data_incomplete'] = $s['is_nik_missing'] || empty($s['asal_sekolah']) || empty($s['provinsi']) || empty($s['kota_kabupaten']);
             $s['institusi_puspernas'] = \App\Helpers\SchoolHelper::formatInstitusi($s['asal_sekolah'], $s['kota_kabupaten'], $s['provinsi']);
             $s['transition_info'] = \App\Helpers\SchoolHelper::checkTransition($s['birth_date'], $s['asal_sekolah']);
         }
@@ -114,7 +122,8 @@ class RollUserAthleteController extends Controller {
 
         return $this->view('roll/user/athletes/index', [
             'athletes' => $athletes,
-            'search' => $search
+            'search' => $search,
+            'missingNikCount' => $missingNikCount
         ]);
     }
 
@@ -123,6 +132,7 @@ class RollUserAthleteController extends Controller {
             $db = Database::getInstance()->getConnection();
             $club_id = $_SESSION['roll_club_id'];
 
+            $nik = preg_replace('/[^0-9]/', '', trim($_POST['nik'] ?? ''));
             $skater_name = strtoupper(trim($_POST['skater_name'] ?? ''));
             $gender = $_POST['gender'] ?? '';
             $birth_date = $_POST['birth_date'] ?? '';
@@ -130,6 +140,13 @@ class RollUserAthleteController extends Controller {
             $provinsi = trim($_POST['provinsi'] ?? '');
             $kota_kabupaten = trim($_POST['kota_kabupaten'] ?? '');
             $status_bpjs = (isset($_POST['status_bpjs']) && $_POST['status_bpjs'] === 'sudah') ? 'sudah' : 'belum';
+
+            if (empty($nik) || strlen($nik) !== 16) {
+                $_SESSION['flash_message'] = "Gagal menambah atlet: NIK wajib diisi 16 digit angka.";
+                $_SESSION['flash_type'] = "error";
+                header("Location: " . getenv('APP_URL') . "/roll/user/athletes");
+                exit;
+            }
 
             // Hitung KU berdasarkan birth_date
             $year = (int)date('Y', strtotime($birth_date));
@@ -140,10 +157,11 @@ class RollUserAthleteController extends Controller {
             $uid = $this->generateSkaterUID($db, $skater_name, $birth_date, $gender);
 
             $stmt = $db->prepare("
-                INSERT INTO roll_skaters (uid, club_id, skater_name, gender, birth_date, asal_sekolah, provinsi, kota_kabupaten, status_bpjs, age_group) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO roll_skaters (nik, uid, club_id, skater_name, gender, birth_date, asal_sekolah, provinsi, kota_kabupaten, status_bpjs, age_group) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
             $stmt->execute([
+                $nik,
                 $uid,
                 $club_id,
                 $skater_name,
@@ -175,6 +193,7 @@ class RollUserAthleteController extends Controller {
             $current = $check->fetch(PDO::FETCH_ASSOC);
 
             if ($current) {
+                $nik = preg_replace('/[^0-9]/', '', trim($_POST['nik'] ?? ''));
                 $skater_name = strtoupper(trim($_POST['skater_name'] ?? ''));
                 $gender = $_POST['gender'] ?? '';
                 $birth_date = $_POST['birth_date'] ?? '';
@@ -182,6 +201,13 @@ class RollUserAthleteController extends Controller {
                 $provinsi = trim($_POST['provinsi'] ?? '');
                 $kota_kabupaten = trim($_POST['kota_kabupaten'] ?? '');
                 $status_bpjs = (isset($_POST['status_bpjs']) && $_POST['status_bpjs'] === 'sudah') ? 'sudah' : 'belum';
+
+                if (empty($nik) || strlen($nik) !== 16) {
+                    $_SESSION['flash_message'] = "Gagal memperbarui atlet: NIK wajib diisi 16 digit angka.";
+                    $_SESSION['flash_type'] = "error";
+                    header("Location: " . getenv('APP_URL') . "/roll/user/athletes");
+                    exit;
+                }
 
                 $year = (int)date('Y', strtotime($birth_date));
                 $currentYear = (int)date('Y');
@@ -196,10 +222,11 @@ class RollUserAthleteController extends Controller {
 
                 $stmt = $db->prepare("
                     UPDATE roll_skaters 
-                    SET uid = ?, skater_name = ?, gender = ?, birth_date = ?, asal_sekolah = ?, provinsi = ?, kota_kabupaten = ?, status_bpjs = ?, age_group = ? 
+                    SET nik = ?, uid = ?, skater_name = ?, gender = ?, birth_date = ?, asal_sekolah = ?, provinsi = ?, kota_kabupaten = ?, status_bpjs = ?, age_group = ? 
                     WHERE id = ? AND club_id = ?
                 ");
                 $stmt->execute([
+                    $nik,
                     $uid,
                     $skater_name,
                     $gender,
@@ -259,18 +286,18 @@ class RollUserAthleteController extends Controller {
 
         // Cari atlet dari klub lain yang cocok dengan keyword
         $query = "
-            SELECT s.id, s.uid, s.skater_name, s.gender, s.birth_date, s.asal_sekolah, s.kota_kabupaten, s.provinsi, s.status_bpjs,
+            SELECT s.id, s.nik, s.uid, s.skater_name, s.gender, s.birth_date, s.asal_sekolah, s.kota_kabupaten, s.provinsi, s.status_bpjs,
                    c.club_name as origin_club, c.city_province as club_city
             FROM roll_skaters s
             LEFT JOIN roll_clubs c ON s.club_id = c.id
             WHERE s.club_id != ? 
-              AND (s.skater_name LIKE ? OR s.uid LIKE ? OR s.asal_sekolah LIKE ? OR s.kota_kabupaten LIKE ? OR s.provinsi LIKE ?)
+              AND (s.nik LIKE ? OR s.skater_name LIKE ? OR s.uid LIKE ? OR s.asal_sekolah LIKE ? OR s.kota_kabupaten LIKE ? OR s.provinsi LIKE ?)
             ORDER BY s.skater_name ASC
             LIMIT 25
         ";
         $wildcard = "%$q%";
         $stmt = $db->prepare($query);
-        $stmt->execute([$club_id, $wildcard, $wildcard, $wildcard, $wildcard, $wildcard]);
+        $stmt->execute([$club_id, $wildcard, $wildcard, $wildcard, $wildcard, $wildcard, $wildcard]);
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         // Tandai apakah sudah ada di roster kontingen
@@ -329,10 +356,11 @@ class RollUserAthleteController extends Controller {
         // Insert ke roster kontingen dengan UID dan data yang terintegrasi penuh
         $ins = $db->prepare("
             INSERT INTO roll_skaters 
-            (uid, club_id, skater_name, gender, birth_date, asal_sekolah, provinsi, kota_kabupaten, status_bpjs, is_pon_veteran, age_group)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (nik, uid, club_id, skater_name, gender, birth_date, asal_sekolah, provinsi, kota_kabupaten, status_bpjs, is_pon_veteran, age_group)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
         $ins->execute([
+            $skater['nik'] ?? null,
             $skater['uid'],
             $club_id,
             $skater['skater_name'],

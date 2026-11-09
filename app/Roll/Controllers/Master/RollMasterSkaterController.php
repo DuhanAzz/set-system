@@ -27,6 +27,9 @@ class RollMasterSkaterController extends Controller {
 
         // Self-healing migration for new columns
         try {
+            $db->exec("ALTER TABLE roll_skaters ADD COLUMN nik VARCHAR(20) DEFAULT NULL AFTER uid");
+        } catch (\Exception $ex) {}
+        try {
             $db->query("SELECT asal_sekolah FROM roll_skaters LIMIT 1");
         } catch (\Exception $e) {
             try {
@@ -102,7 +105,9 @@ class RollMasterSkaterController extends Controller {
         $params = [];
         
         if (!empty($search)) {
-            $whereClause .= " AND (s.skater_name LIKE ? OR c.club_name LIKE ? OR s.asal_sekolah LIKE ? OR s.kota_kabupaten LIKE ? OR s.provinsi LIKE ?)";
+            $whereClause .= " AND (s.skater_name LIKE ? OR s.nik LIKE ? OR s.uid LIKE ? OR c.club_name LIKE ? OR s.asal_sekolah LIKE ? OR s.kota_kabupaten LIKE ? OR s.provinsi LIKE ?)";
+            $params[] = "%$search%";
+            $params[] = "%$search%";
             $params[] = "%$search%";
             $params[] = "%$search%";
             $params[] = "%$search%";
@@ -118,9 +123,9 @@ class RollMasterSkaterController extends Controller {
         }
 
         if ($completenessFilter === 'incomplete') {
-            $havingClauses[] = "(s.asal_sekolah IS NULL OR TRIM(s.asal_sekolah) = '' OR s.kota_kabupaten IS NULL OR TRIM(s.kota_kabupaten) = '' OR s.provinsi IS NULL OR TRIM(s.provinsi) = '')";
+            $havingClauses[] = "(s.nik IS NULL OR TRIM(s.nik) = '' OR LENGTH(TRIM(s.nik)) < 16 OR s.asal_sekolah IS NULL OR TRIM(s.asal_sekolah) = '' OR s.kota_kabupaten IS NULL OR TRIM(s.kota_kabupaten) = '' OR s.provinsi IS NULL OR TRIM(s.provinsi) = '')";
         } elseif ($completenessFilter === 'complete') {
-            $havingClauses[] = "(s.asal_sekolah IS NOT NULL AND TRIM(s.asal_sekolah) != '' AND s.kota_kabupaten IS NOT NULL AND TRIM(s.kota_kabupaten) != '' AND s.provinsi IS NOT NULL AND TRIM(s.provinsi) != '')";
+            $havingClauses[] = "(s.nik IS NOT NULL AND TRIM(s.nik) != '' AND LENGTH(TRIM(s.nik)) >= 16 AND s.asal_sekolah IS NOT NULL AND TRIM(s.asal_sekolah) != '' AND s.kota_kabupaten IS NOT NULL AND TRIM(s.kota_kabupaten) != '' AND s.provinsi IS NOT NULL AND TRIM(s.provinsi) != '')";
         }
 
         $havingSql = !empty($havingClauses) ? "HAVING " . implode(" AND ", $havingClauses) : "";
@@ -205,6 +210,7 @@ class RollMasterSkaterController extends Controller {
             $id = $_POST['id'] ?? null;
             
             if ($id) {
+                $nik = preg_replace('/[^0-9]/', '', trim($_POST['nik'] ?? ''));
                 $skater_name = strtoupper(trim($_POST['skater_name'] ?? ''));
                 $gender = $_POST['gender'] ?? '';
                 $birth_date = $_POST['birth_date'] ?? '';
@@ -222,10 +228,11 @@ class RollMasterSkaterController extends Controller {
 
                 $stmt = $db->prepare("
                     UPDATE roll_skaters 
-                    SET skater_name = ?, gender = ?, birth_date = ?, asal_sekolah = ?, provinsi = ?, kota_kabupaten = ?, status_bpjs = ?, age_group = ?, is_pon_veteran = ? 
+                    SET nik = ?, skater_name = ?, gender = ?, birth_date = ?, asal_sekolah = ?, provinsi = ?, kota_kabupaten = ?, status_bpjs = ?, age_group = ?, is_pon_veteran = ? 
                     WHERE id = ?
                 ");
                 $stmt->execute([
+                    $nik ?: null,
                     $skater_name, 
                     $gender, 
                     $birth_date, 
@@ -257,7 +264,9 @@ class RollMasterSkaterController extends Controller {
         $params = [];
         
         if (!empty($search)) {
-            $whereClause .= " AND (s.skater_name LIKE ? OR c.club_name LIKE ? OR s.asal_sekolah LIKE ? OR s.kota_kabupaten LIKE ? OR s.provinsi LIKE ?)";
+            $whereClause .= " AND (s.skater_name LIKE ? OR s.nik LIKE ? OR s.uid LIKE ? OR c.club_name LIKE ? OR s.asal_sekolah LIKE ? OR s.kota_kabupaten LIKE ? OR s.provinsi LIKE ?)";
+            $params[] = "%$search%";
+            $params[] = "%$search%";
             $params[] = "%$search%";
             $params[] = "%$search%";
             $params[] = "%$search%";
@@ -273,9 +282,9 @@ class RollMasterSkaterController extends Controller {
         }
 
         if ($completenessFilter === 'incomplete') {
-            $havingClauses[] = "(s.asal_sekolah IS NULL OR TRIM(s.asal_sekolah) = '' OR s.kota_kabupaten IS NULL OR TRIM(s.kota_kabupaten) = '' OR s.provinsi IS NULL OR TRIM(s.provinsi) = '')";
+            $havingClauses[] = "(s.nik IS NULL OR TRIM(s.nik) = '' OR LENGTH(TRIM(s.nik)) < 16 OR s.asal_sekolah IS NULL OR TRIM(s.asal_sekolah) = '' OR s.kota_kabupaten IS NULL OR TRIM(s.kota_kabupaten) = '' OR s.provinsi IS NULL OR TRIM(s.provinsi) = '')";
         } elseif ($completenessFilter === 'complete') {
-            $havingClauses[] = "(s.asal_sekolah IS NOT NULL AND TRIM(s.asal_sekolah) != '' AND s.kota_kabupaten IS NOT NULL AND TRIM(s.kota_kabupaten) != '' AND s.provinsi IS NOT NULL AND TRIM(s.provinsi) != '')";
+            $havingClauses[] = "(s.nik IS NOT NULL AND TRIM(s.nik) != '' AND LENGTH(TRIM(s.nik)) >= 16 AND s.asal_sekolah IS NOT NULL AND TRIM(s.asal_sekolah) != '' AND s.kota_kabupaten IS NOT NULL AND TRIM(s.kota_kabupaten) != '' AND s.provinsi IS NOT NULL AND TRIM(s.provinsi) != '')";
         }
 
         $havingSql = !empty($havingClauses) ? "HAVING " . implode(" AND ", $havingClauses) : "";
@@ -327,6 +336,7 @@ class RollMasterSkaterController extends Controller {
         fputcsv($output, [
             'No',
             'UID',
+            'NIK',
             'Nama Lengkap Atlet',
             'Jenis Kelamin',
             'Tanggal Lahir',
@@ -356,6 +366,7 @@ class RollMasterSkaterController extends Controller {
             fputcsv($output, [
                 $no++,
                 $r['uid'] ?? '',
+                !empty($r['nik']) ? ("'" . $r['nik']) : '',
                 $r['skater_name'] ?? '',
                 $jk,
                 $r['birth_date'] ?? '',

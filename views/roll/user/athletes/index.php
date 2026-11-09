@@ -12,6 +12,19 @@
         <?php unset($_SESSION['flash_message']); unset($_SESSION['flash_type']); ?>
     <?php endif; ?>
 
+    <!-- NIK Missing Reminder Banner -->
+    <?php if (($missingNikCount ?? 0) > 0): ?>
+        <div class="mb-5 p-4 text-xs text-rose-800 bg-rose-50 border-rose-200 rounded-xl border shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+                <span class="text-2xl">⚠️</span>
+                <div>
+                    <h4 class="font-black uppercase tracking-wider text-rose-900 text-sm">Peringatan: Terdapat <?= $missingNikCount ?> Atlet Belum Mengisi NIK!</h4>
+                    <p class="mt-0.5 text-rose-700 font-medium">Sesuai ketentuan lomba, setiap atlet wajib melengkapi NIK (16 digit nomor KTP/KIA/Kartu Keluarga) untuk verifikasi berkas & BPJS. Silakan klik tombol <strong>Edit</strong> pada atlet yang ditandai untuk melengkapinya.</p>
+                </div>
+            </div>
+        </div>
+    <?php endif; ?>
+
     <div class="flex flex-col md:flex-row justify-between items-end gap-4 mb-6">
         <div>
             <h1 class="text-3xl font-black text-slate-800 uppercase italic tracking-tighter">Database Atlet</h1>
@@ -71,10 +84,15 @@
                                         <?= substr($s['skater_name'], 0, 1) ?>
                                     </div>
                                     <div>
-                                        <div class="flex items-center gap-2">
+                                        <div class="flex items-center gap-2 flex-wrap">
                                             <span class="font-black text-slate-800 text-xs uppercase"><?= htmlspecialchars($s['skater_name']) ?></span>
                                             <?php if (!empty($s['uid'])): ?>
-                                                <span class="text-[9px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded font-mono font-bold"><?= htmlspecialchars($s['uid']) ?></span>
+                                                <span class="text-[9px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded font-mono font-bold">UID: <?= htmlspecialchars($s['uid']) ?></span>
+                                            <?php endif; ?>
+                                            <?php if (!empty($s['nik'])): ?>
+                                                <span class="text-[9px] bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded font-mono font-bold tracking-wider">NIK: <?= htmlspecialchars($s['nik']) ?></span>
+                                            <?php else: ?>
+                                                <span class="text-[9px] bg-rose-50 text-rose-600 border border-rose-200 px-1.5 py-0.5 rounded font-bold animate-pulse">⚠️ Belum Ada NIK</span>
                                             <?php endif; ?>
                                         </div>
                                         <div class="font-mono text-slate-400 text-[10px] tracking-wide mt-0.5">
@@ -177,6 +195,11 @@
                         <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Nama Lengkap Atlet *</label>
                         <input type="text" name="skater_name" required placeholder="Contoh: BAGUS KURNIAWAN" class="w-full bg-white border border-slate-300 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none uppercase">
                     </div>
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">NIK Atlet (16 Digit KTP / KIA / KK) *</label>
+                        <input type="text" name="nik" required maxlength="16" minlength="16" pattern="[0-9]{16}" placeholder="Contoh: 3304012345670001 (16 digit angka)" class="w-full bg-white border border-slate-300 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none font-mono tracking-wider">
+                        <span class="text-[10px] text-slate-400">Wajib 16 digit angka sesuai KTP/KIA/KK untuk verifikasi berkas lomba & BPJS.</span>
+                    </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Jenis Kelamin *</label>
@@ -267,6 +290,11 @@
                         <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Nama Lengkap Atlet *</label>
                         <input type="text" name="skater_name" id="edit_skater_name" required class="w-full bg-white border border-slate-300 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none uppercase">
                     </div>
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">NIK Atlet (16 Digit KTP / KIA / KK) *</label>
+                        <input type="text" name="nik" id="edit_nik" required maxlength="16" minlength="16" pattern="[0-9]{16}" placeholder="Contoh: 3304012345670001 (16 digit angka)" class="w-full bg-white border border-slate-300 rounded-lg px-4 py-2.5 text-sm font-bold text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none font-mono tracking-wider">
+                        <span class="text-[10px] text-slate-400">Wajib 16 digit angka sesuai KTP/KIA/KK untuk verifikasi identitas atlet.</span>
+                    </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Jenis Kelamin *</label>
@@ -327,6 +355,7 @@
 function openEditModal(data) {
     document.getElementById('edit_id').value = data.id;
     document.getElementById('edit_skater_name').value = data.skater_name || '';
+    document.getElementById('edit_nik').value = data.nik || '';
     document.getElementById('edit_gender').value = (data.gender || 'M').toUpperCase();
     document.getElementById('edit_birth_date').value = data.birth_date || '';
     document.getElementById('edit_asal_sekolah').value = data.asal_sekolah || '';
@@ -393,6 +422,7 @@ function searchPoolAthletes() {
                                 <div class="flex items-center gap-2 flex-wrap">
                                     <span class="font-black text-slate-800 text-sm">${item.skater_name}</span>
                                     <span class="text-[9px] font-black px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200">UID: ${item.uid || '-'}</span>
+                                    ${item.nik ? `<span class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">NIK: ${item.nik}</span>` : ''}
                                     <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-50 text-blue-600 border border-blue-100">${jk} • ${dob}</span>
                                 </div>
                                 <div class="text-[11px] text-slate-500 font-medium mt-1 flex flex-wrap gap-x-3 gap-y-0.5">

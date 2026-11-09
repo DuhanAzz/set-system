@@ -152,8 +152,14 @@
                                                 <span class="bg-amber-100 text-amber-700 text-[9px] px-2 py-0.5 rounded-full font-black tracking-widest border border-amber-200" title="Veteran PON (Wajib Senior)">🏅 PON</span>
                                             <?php endif; ?>
                                         </div>
-                                        <div class="font-mono text-slate-400 text-[10px] tracking-wide mt-0.5 flex items-center gap-2">
+                                        <div class="font-mono text-slate-400 text-[10px] tracking-wide mt-0.5 flex items-center gap-2 flex-wrap">
                                             <span>UID: <strong class="text-blue-600"><?= htmlspecialchars($s['uid'] ?? '-') ?></strong></span>
+                                            <span>•</span>
+                                            <?php if (!empty($s['nik'])): ?>
+                                                <span>NIK: <strong class="text-slate-700 font-bold"><?= htmlspecialchars($s['nik']) ?></strong></span>
+                                            <?php else: ?>
+                                                <span class="text-rose-600 font-bold bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200">⚠️ NIK Kosong</span>
+                                            <?php endif; ?>
                                             <span>•</span>
                                             <span>Reg: <?= date('d M Y', strtotime($s['created_at'])) ?></span>
                                         </div>
@@ -259,6 +265,11 @@
                 <input type="text" name="skater_name" id="edit_skater_name" class="w-full px-4 py-2.5 border border-slate-200 bg-slate-50 rounded-xl text-sm font-bold focus:bg-white focus:border-blue-500 outline-none uppercase" required>
             </div>
 
+            <div>
+                <label class="text-[10px] font-bold text-slate-500 uppercase">NIK Atlet (16 Digit KTP / KIA / KK) *</label>
+                <input type="text" name="nik" id="edit_nik" maxlength="16" placeholder="Contoh: 3304012345670001 (16 digit angka)" class="w-full px-4 py-2.5 border border-slate-200 bg-slate-50 rounded-xl text-sm font-bold focus:bg-white focus:border-blue-500 outline-none font-mono tracking-wider">
+            </div>
+
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                     <label class="text-[10px] font-bold text-slate-500 uppercase">Jenis Kelamin *</label>
@@ -322,6 +333,7 @@
 function openEditModal(data) {
     document.getElementById('edit_id').value = data.id;
     document.getElementById('edit_skater_name').value = data.skater_name || '';
+    document.getElementById('edit_nik').value = data.nik || '';
     document.getElementById('edit_gender').value = (data.gender || 'M').toUpperCase();
     document.getElementById('edit_birth_date').value = data.birth_date || '';
     document.getElementById('edit_asal_sekolah').value = data.asal_sekolah || '';

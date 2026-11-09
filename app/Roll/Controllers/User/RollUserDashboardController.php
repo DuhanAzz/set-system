@@ -45,14 +45,30 @@ class RollUserDashboardController extends Controller {
             error_log("Dashboard query error: " . $e->getMessage());
         }
 
-        // Hitung atlet yang data Puspernas-nya belum lengkap (sekolah, provinsi, kota/kabupaten)
+        // Self-healing migration for NIK column
+        try {
+            $db->exec("ALTER TABLE roll_skaters ADD COLUMN nik VARCHAR(20) DEFAULT NULL AFTER uid");
+        } catch (\Exception $ex) {}
+
+        // Hitung atlet yang belum memiliki NIK (wajib 16 digit)
+        $missingNikCount = 0;
+        try {
+            $stmtNik = $db->prepare("SELECT COUNT(*) FROM roll_skaters WHERE club_id = ? AND (nik IS NULL OR TRIM(nik) = '' OR LENGTH(TRIM(nik)) < 16)");
+            $stmtNik->execute([$club_id]);
+            $missingNikCount = (int)$stmtNik->fetchColumn();
+        } catch (\Exception $e) {
+            $missingNikCount = 0;
+        }
+
+        // Hitung atlet yang data Puspernas / NIK-nya belum lengkap
         $incompleteAthletesCount = 0;
         try {
             $stmtInc = $db->prepare("
                 SELECT COUNT(*) 
                 FROM roll_skaters 
                 WHERE club_id = ? 
-                  AND (asal_sekolah IS NULL OR TRIM(asal_sekolah) = '' 
+                  AND (nik IS NULL OR TRIM(nik) = '' OR LENGTH(TRIM(nik)) < 16
+                       OR asal_sekolah IS NULL OR TRIM(asal_sekolah) = '' 
                        OR provinsi IS NULL OR TRIM(provinsi) = '' 
                        OR kota_kabupaten IS NULL OR TRIM(kota_kabupaten) = '')
             ");
@@ -85,6 +101,7 @@ class RollUserDashboardController extends Controller {
             'stats' => $stats,
             'clubName' => $clubName,
             'clubCity' => $clubCity,
+            'missingNikCount' => $missingNikCount,
             'incompleteAthletesCount' => $incompleteAthletesCount,
             'transitionAthletesCount' => $transitionAthletesCount
         ]);

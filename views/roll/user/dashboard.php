@@ -15,11 +15,21 @@
     </div>
     <?php endif; ?>
 
+    <?php if(($missingNikCount ?? 0) > 0): ?>
+    <div class="bg-rose-50 border-l-4 border-rose-500 text-rose-900 p-6 rounded-2xl mb-8 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+            <h3 class="font-black uppercase tracking-widest text-sm mb-1 text-rose-800">⚠️ Peringatan: NIK Atlet Belum Diisi</h3>
+            <p class="text-xs font-medium text-rose-700 leading-relaxed">Terdapat <strong><?= $missingNikCount ?> atlet</strong> di klub Anda yang belum mengisi <strong>NIK (Nomor Induk Kependudukan 16 digit)</strong>. NIK wajib diisi untuk verifikasi data atlet, validasi pendaftaran kejuaraan, dan pendaftaran BPJS.</p>
+        </div>
+        <a href="<?= getenv('APP_URL') ?>/roll/user/athletes" class="whitespace-nowrap bg-rose-600 hover:bg-rose-700 text-white px-5 py-2.5 rounded-xl font-black uppercase text-[10px] tracking-widest transition shadow-sm">Lengkapi NIK Sekarang</a>
+    </div>
+    <?php endif; ?>
+
     <?php if(($incompleteAthletesCount ?? 0) > 0): ?>
     <div class="bg-amber-50 border-l-4 border-amber-500 text-amber-800 p-6 rounded-2xl mb-8 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
             <h3 class="font-black uppercase tracking-widest text-sm mb-1">⚠️ Data Atlet Belum Lengkap</h3>
-            <p class="text-xs font-medium opacity-90">Terdapat <strong><?= $incompleteAthletesCount ?> atlet</strong> di klub Anda yang belum melengkapi data <strong>Nama Sekolah, Kota/Kabupaten, atau Provinsi</strong> untuk keperluan Puspernas & verifikasi berkas lomba.</p>
+            <p class="text-xs font-medium opacity-90">Terdapat <strong><?= $incompleteAthletesCount ?> atlet</strong> di klub Anda yang belum melengkapi data <strong>NIK, Nama Sekolah, Kota/Kabupaten, atau Provinsi</strong> untuk keperluan Puspernas & verifikasi berkas lomba.</p>
         </div>
         <a href="<?= getenv('APP_URL') ?>/roll/user/athletes" class="whitespace-nowrap bg-amber-500 hover:bg-amber-600 text-white px-5 py-2.5 rounded-xl font-black uppercase text-[10px] tracking-widest transition shadow-sm">Lengkapi Sekarang</a>
     </div>
