@@ -229,25 +229,27 @@ foreach($rawData as $row) {
     if (!isset($scheduleData[$cid])) {
         $tglRaw = !empty($row['schedule_date']) ? $row['schedule_date'] : $eventDate;
         $jamRaw = !empty($row['schedule_time']) ? $row['schedule_time'] : '00:00:00';
-        $cleanStroke = trim(str_ireplace(['Gaya', 'GAYA'], '', $row['stroke']));
+        $strokeRaw = preg_replace('/\b(ESTAFET|RELAY)\b/i', '', $row['stroke'] ?? '');
+        $cleanStroke = \App\Helpers\SwimEventHelper::formatStrokeName(trim($strokeRaw));
         $genderLabel = (in_array($row['jenis_kelamin'], ['L','Male'])) ? 'PUTRA' : 'PUTRI';
         $scheduleData[$cid] = [
             'no' => $row['event_number'],
             'jam' => date('H:i', strtotime($jamRaw)),
             'tgl_display' => strtoupper(date('l, d F Y', strtotime($tglRaw))),
-            'uraian' => $distStr . " " . strtoupper($cleanStroke) . $relayUraianSuffix,
+            'uraian' => \App\Helpers\SwimEventHelper::ensureGayaPrefix($distStr . " " . strtoupper($cleanStroke) . $relayUraianSuffix),
             'kategori' => $row['age_group'] . " - " . strtoupper($genderLabel),
             'babak' => 'FINAL'
         ];
     }
     if(!isset($fullBook[$cid])) {
-        $cleanStroke = trim(str_ireplace(['Gaya', 'GAYA'], '', $row['stroke']));
+        $strokeRaw = preg_replace('/\b(ESTAFET|RELAY)\b/i', '', $row['stroke'] ?? '');
+        $cleanStroke = \App\Helpers\SwimEventHelper::formatStrokeName(trim($strokeRaw));
         $genderLabel = (in_array($row['jenis_kelamin'], ['L','Male'])) ? 'PUTRA' : 'PUTRI';
         $tglMain = !empty($row['schedule_date']) ? strtoupper(date('d F Y', strtotime($row['schedule_date']))) : $displayDate;
         $jamMain = !empty($row['schedule_time']) ? date('H:i', strtotime($row['schedule_time'])) . ' WIB' : '08:00 WIB';
         
         $judulParts = [];
-        if ($pc['show_event_name']) $judulParts[] = $distStr . " " . strtoupper($cleanStroke) . $relayUraianSuffix; 
+        if ($pc['show_event_name']) $judulParts[] = \App\Helpers\SwimEventHelper::ensureGayaPrefix($distStr . " " . strtoupper($cleanStroke) . $relayUraianSuffix); 
         if ($pc['show_group'])      $judulParts[] = $row['age_group']; 
         if ($pc['show_gender'])     $judulParts[] = strtoupper($genderLabel); 
         if ($pc['show_pool'])       $judulParts[] = $poolLabel; 
@@ -255,10 +257,10 @@ foreach($rawData as $row) {
         $fullBook[$cid] = [
             'meta' => [
                 'nomor'  => $row['event_number'],
-                'judul'  => empty($judulParts) ? "EVENT" : implode(" - ", $judulParts),
+                'judul'  => empty($judulParts) ? "EVENT" : \App\Helpers\SwimEventHelper::formatEventName(implode(" - ", $judulParts), $isRelayRow, $row['distance'] ?? 0),
                 'jadwal' => $tglMain . " | " . $jamMain,
                 'distance' => $row['distance'],
-                'stroke' => $row['stroke'],
+                'stroke' => \App\Helpers\SwimEventHelper::formatStrokeName($row['stroke']),
                 'jenis_kelamin' => $row['jenis_kelamin'],
                 'age_group' => $row['age_group'],
                 'is_relay' => $row['is_relay'] ?? 0
@@ -281,7 +283,8 @@ if ($showScheduleAuto) {
                 $cid = $cat['id'];
                 $tglRaw = !empty($cat['schedule_date']) ? $cat['schedule_date'] : $eventDate;
                 $jamRaw = !empty($cat['schedule_time']) ? $cat['schedule_time'] : '00:00:00';
-                $cleanStroke = trim(str_ireplace(['Gaya', 'GAYA'], '', $cat['stroke']));
+                $strokeRaw = preg_replace('/\b(ESTAFET|RELAY)\b/i', '', $cat['stroke'] ?? '');
+                $cleanStroke = \App\Helpers\SwimEventHelper::formatStrokeName(trim($strokeRaw));
                 $genderLabel = (in_array($cat['jenis_kelamin'], ['L','Male'])) ? 'PUTRA' : ((in_array($cat['jenis_kelamin'], ['P','Female'])) ? 'PUTRI' : 'CAMPURAN');
                 
                 $heatCount = isset($fullBook[$cid]['heats']) ? count($fullBook[$cid]['heats']) : 0;
@@ -290,7 +293,7 @@ if ($showScheduleAuto) {
                     'no' => $cat['event_number'],
                     'jam' => date('H:i', strtotime($jamRaw)),
                     'tgl_display' => strtoupper(date('l, d F Y', strtotime($tglRaw))),
-                    'uraian' => $cat['distance']."M ".strtoupper($cleanStroke),
+                    'uraian' => \App\Helpers\SwimEventHelper::ensureGayaPrefix($cat['distance']."M ".strtoupper($cleanStroke)),
                     'kategori' => $cat['age_group'] . " - " . strtoupper($genderLabel),
                     'total_heats' => $heatCount,
                     'babak' => 'FINAL'

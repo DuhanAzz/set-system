@@ -147,7 +147,7 @@
                         <td class="px-6 py-4 text-center font-black text-slate-400 text-lg">#<?= htmlspecialchars($race['event_number']) ?></td>
                         <td class="px-6 py-4">
                             <a href="<?= getenv('APP_URL') ?>/swim/admin/results/input?category_id=<?= $race['id'] ?>" class="font-black text-slate-800 hover:text-blue-600 transition uppercase text-sm leading-tight mb-1 block">
-                                <?= htmlspecialchars($distLabel) ?> <?= htmlspecialchars($race['stroke']) ?> <?= $isRelayRace ? '(ESTAFET)' : '' ?>
+                                <?= htmlspecialchars($distLabel) ?> <?= htmlspecialchars(\App\Helpers\SwimEventHelper::formatStrokeName($race['stroke'] ?? '')) ?> <?= $isRelayRace ? '(ESTAFET)' : '' ?>
                             </a>
                             <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
                                 <?= htmlspecialchars($race['age_group'] ?? 'OPEN') ?> • <?= strtoupper($race['jenis_kelamin'] ?? '') === 'L' ? 'PUTRA' : 'PUTRI' ?>

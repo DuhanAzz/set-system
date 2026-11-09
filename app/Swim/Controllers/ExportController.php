@@ -1173,10 +1173,11 @@ exit;
             if (!isset($groupedResults[$groupKey])) {
                 $poolLabel = (stripos($event['pool_type']??'', '25m') !== false || stripos($event['pool_type']??'', 'SCM') !== false) ? 'SCM' : 'LCM';
                 
-                $cleanStroke = trim(str_ireplace(['Gaya', 'GAYA'], '', $r['stroke']));
+                $strokeRaw = preg_replace('/\b(ESTAFET|RELAY)\b/i', '', $r['stroke'] ?? '');
+                $cleanStroke = \App\Helpers\SwimEventHelper::formatStrokeName(trim($strokeRaw));
                 
                 $judulParts = [];
-                if ($cfg_event_name) $judulParts[] = $r['distance']."M ".strtoupper($cleanStroke); 
+                if ($cfg_event_name) $judulParts[] = \App\Helpers\SwimEventHelper::ensureGayaPrefix($r['distance']."M ".strtoupper($cleanStroke)); 
                 if ($cfg_group) $judulParts[] = $realKU; 
                 if ($cfg_gender) $judulParts[] = strtoupper($genderLabel); 
                 if ($cfg_pool) $judulParts[] = $poolLabel; 

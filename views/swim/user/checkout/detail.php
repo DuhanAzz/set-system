@@ -70,7 +70,7 @@
                                     <div>
                                         <p class="font-black text-indigo-900 uppercase leading-snug"><?= htmlspecialchars($r['team_name'] ?? 'Tim Estafet') ?></p>
                                         <p class="text-[10px] font-semibold text-slate-500 uppercase mt-0.5">
-                                            <?= $r['distance'] ?>m <?= htmlspecialchars($r['stroke']) ?>
+                                            <?= $r['distance'] ?>m <?= htmlspecialchars(\App\Helpers\SwimEventHelper::formatStrokeName($r['stroke'] ?? '')) ?>
                                             <?php if(!empty($r['age_group'])): ?> • KU <?= htmlspecialchars($r['age_group']) ?><?php endif; ?>
                                         </p>
                                     </div>
@@ -134,7 +134,7 @@
                                         </span>
                                         <div>
                                             <span class="font-bold text-slate-800 uppercase italic">
-                                                <?= $ev['distance'] ?>m <?= htmlspecialchars($ev['stroke']) ?>
+                                                <?= $ev['distance'] ?>m <?= htmlspecialchars(\App\Helpers\SwimEventHelper::formatStrokeName($ev['stroke'] ?? '')) ?>
                                             </span>
                                             <?php if(!empty($ev['age_group'])): ?>
                                                 <span class="text-[10px] font-semibold text-slate-400 ml-1.5 uppercase">KU <?= htmlspecialchars($ev['age_group']) ?></span>

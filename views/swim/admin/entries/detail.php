@@ -182,7 +182,7 @@
                                 <div class="flex flex-col">
                                     <span class="text-xs font-bold text-slate-800 uppercase"><?= htmlspecialchars($re["team_name"] ?? 'Tim Estafet') ?></span>
                                     <span class="text-[10px] text-slate-400 font-medium mt-0.5 uppercase">
-                                        <?= $relayDistStr ?> <?= strtoupper($re["stroke"]) ?> (<?= $re["jenis_kelamin"] ?>)
+                                        <?= $relayDistStr ?> <?= strtoupper(\App\Helpers\SwimEventHelper::formatStrokeName($re["stroke"] ?? '')) ?> (<?= $re["jenis_kelamin"] ?>)
                                         <?php if(!empty($re["age_group"])): ?> • KU <?= $re["age_group"] ?><?php endif; ?>
                                     </span>
                                 </div>
@@ -261,7 +261,7 @@
                                     </span>
                                     <div class="flex flex-col">
                                         <span class="text-xs font-bold text-slate-700 uppercase">
-                                            <?= $ev['distance'] ?>M <?= strtoupper($ev['stroke']) ?>
+                                            <?= $ev['distance'] ?>M <?= strtoupper(\App\Helpers\SwimEventHelper::formatStrokeName($ev['stroke'] ?? '')) ?>
                                         </span>
                                         <?php if(!empty($ev['age_group'])): ?>
                                             <span class="text-[10px] text-slate-400 font-medium uppercase">

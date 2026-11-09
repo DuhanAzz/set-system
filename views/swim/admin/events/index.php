@@ -1485,12 +1485,12 @@ function parseJuknisAcara(acaraText) {
     
     // 2. Deteksi Gaya / Stroke
     let stroke = 'Gaya Bebas';
-    if (upper.includes('PAPAN BEBAS') || upper.includes('PAPAN KAKI BEBAS')) stroke = 'Papan Kaki Bebas';
-    else if (upper.includes('PAPAN DADA') || upper.includes('PAPAN KAKI DADA')) stroke = 'Papan Kaki Dada';
-    else if (upper.includes('PAPAN PUNGGUNG') || upper.includes('PAPAN KAKI PUNGGUNG')) stroke = 'Papan Kaki Punggung';
-    else if (upper.includes('PAPAN KUPU') || upper.includes('PAPAN KAKI KUPU')) stroke = 'Papan Kaki Kupu-kupu';
-    else if (upper.includes('PAPAN LUNCUR') || upper.includes('KICKING') || upper.includes('KICK BEBAS')) stroke = 'Papan Kaki Bebas';
-    else if (upper.includes('PAPAN')) stroke = 'Papan Kaki Bebas';
+    if (upper.includes('PAPAN BEBAS') || upper.includes('PAPAN KAKI BEBAS')) stroke = 'Papan Kaki Gaya Bebas';
+    else if (upper.includes('PAPAN DADA') || upper.includes('PAPAN KAKI DADA')) stroke = 'Papan Kaki Gaya Dada';
+    else if (upper.includes('PAPAN PUNGGUNG') || upper.includes('PAPAN KAKI PUNGGUNG')) stroke = 'Papan Kaki Gaya Punggung';
+    else if (upper.includes('PAPAN KUPU') || upper.includes('PAPAN KAKI KUPU')) stroke = 'Papan Kaki Gaya Kupu-kupu';
+    else if (upper.includes('PAPAN LUNCUR') || upper.includes('KICKING') || upper.includes('KICK BEBAS')) stroke = 'Papan Kaki Gaya Bebas';
+    else if (upper.includes('PAPAN')) stroke = 'Papan Kaki Gaya Bebas';
     else if (upper.includes('GAYA GANTI') || upper.includes('INDIVIDUAL MEDLEY') || upper.includes(' IM ')) stroke = 'Gaya Ganti Perorangan';
     else if (upper.includes('GAYA BEBAS') || upper.includes(' BEBAS') || upper.startsWith('BEBAS')) stroke = 'Gaya Bebas';
     else if (upper.includes('GAYA DADA') || upper.includes(' DADA') || upper.startsWith('DADA') || upper.includes('BREAST')) stroke = 'Gaya Dada';
@@ -1606,16 +1606,16 @@ function downloadTemplateCSV() {
     let paNo = 1;
     let piNo = 2;
     const strokes = [
-        '25M PAPAN KAKI BEBAS',
+        '25M PAPAN KAKI GAYA BEBAS',
         '25 M GAYA BEBAS',
         '50 M GAYA BEBAS',
-        '25M PAPAN KAKI DADA',
+        '25M PAPAN KAKI GAYA DADA',
         '25 M GAYA DADA',
         '50 M GAYA DADA',
-        '25M PAPAN KAKI PUNGGUNG',
+        '25M PAPAN KAKI GAYA PUNGGUNG',
         '25 M GAYA PUNGGUNG',
         '50 M GAYA PUNGGUNG',
-        '25M PAPAN KAKI KUPU-KUPU',
+        '25M PAPAN KAKI GAYA KUPU-KUPU',
         '25 M GAYA KUPU-KUPU',
         '50 M GAYA KUPU-KUPU'
     ];

@@ -87,7 +87,7 @@
                     <?= htmlspecialchars($nameDisp) ?>
                 </h3>
                 <p class="text-xs font-bold text-slate-400 mt-1">
-                    <?= $distDisp ?> <?= strtoupper($ev['stroke']) ?> • <span class="text-slate-600"><?= $ev['count_seeded'] ?> <?= $isRelay ? 'Tim (' . ($ev['count_seeded'] * 4) . ' Atlet)' : 'Peserta' ?></span>
+                    <?= $distDisp ?> <?= strtoupper(\App\Helpers\SwimEventHelper::formatStrokeName($ev['stroke'] ?? '')) ?> • <span class="text-slate-600"><?= $ev['count_seeded'] ?> <?= $isRelay ? 'Tim (' . ($ev['count_seeded'] * 4) . ' Atlet)' : 'Peserta' ?></span>
                 </p>
             </div>
 

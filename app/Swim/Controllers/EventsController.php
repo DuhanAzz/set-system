@@ -342,6 +342,7 @@ class EventsController extends Controller {
                 $ageGroupString = implode(", ", $kuNames);
                 $selectedIdsString = implode(",", $selected_kus);
 
+                $gaya = \App\Helpers\SwimEventHelper::formatStrokeName($gaya);
                 $labelJK = ($jk == 'L') ? 'PUTRA' : (($jk == 'P') ? 'PUTRI' : 'MIXED');
                 if ($is_relay == 1) {
                     $distLabel = \App\Helpers\SwimEventHelper::formatDistance($jarak, true, ' M', ' x ');
@@ -353,10 +354,11 @@ class EventsController extends Controller {
                 } elseif (strpos(strtoupper($gaya), 'PAPAN') !== false || strpos(strtoupper($gaya), 'KICK') !== false) {
                     $normGaya = trim(str_ireplace(['25m', '25 m', 'kick', 'papan', 'gaya', 'kaki'], '', $gaya));
                     if (strtoupper($normGaya) === 'LUNCUR' || empty($normGaya)) $normGaya = 'Bebas';
-                    $eventName = "25 M PAPAN KAKI " . strtoupper($normGaya) . " $labelJK - $poolLabel";
+                    $eventName = "25 M PAPAN KAKI GAYA " . strtoupper($normGaya) . " $labelJK - $poolLabel";
                 } else {
                     $eventName = "$jarak M " . strtoupper($gaya) . " $labelJK - $poolLabel";
                 }
+                $eventName = \App\Helpers\SwimEventHelper::formatEventName($eventName, $is_relay == 1, $jarak);
 
                 $sql = "INSERT INTO swim_event_numbers 
                         (organizer_id, event_id, event_number, event_name, distance, stroke, jenis_kelamin, 
@@ -582,6 +584,7 @@ class EventsController extends Controller {
                         }
                     }
 
+                    $gaya = \App\Helpers\SwimEventHelper::formatStrokeName($gaya);
                     $selectedIdsString = implode(",", $selectedKuIds);
                     $labelJK = ($jk == 'L') ? 'PUTRA' : (($jk == 'P') ? 'PUTRI' : 'MIXED');
                     if ($is_relay == 1) {
@@ -594,10 +597,11 @@ class EventsController extends Controller {
                     } elseif (strpos(strtoupper($gaya), 'PAPAN') !== false || strpos(strtoupper($gaya), 'KICK') !== false) {
                         $normGaya = trim(str_ireplace(['25m', '25 m', 'kick', 'papan', 'gaya', 'kaki'], '', $gaya));
                         if (strtoupper($normGaya) === 'LUNCUR' || empty($normGaya)) $normGaya = 'Bebas';
-                        $eventName = "25 M PAPAN KAKI " . strtoupper($normGaya) . " $labelJK - $poolLabel";
+                        $eventName = "25 M PAPAN KAKI GAYA " . strtoupper($normGaya) . " $labelJK - $poolLabel";
                     } else {
                         $eventName = "$jarak M " . strtoupper($gaya) . " $labelJK - $poolLabel";
                     }
+                    $eventName = \App\Helpers\SwimEventHelper::formatEventName($eventName, $is_relay == 1, $jarak);
 
                     $stmt->execute([
                         $organizerId, $eventId, $nomor, $eventName, $jarak, $gaya, $jk,
@@ -702,16 +706,16 @@ class EventsController extends Controller {
         $paNo = 1;
         $piNo = 2;
         $strokes = [
-            '25M PAPAN KAKI BEBAS',
+            '25M PAPAN KAKI GAYA BEBAS',
             '25 M GAYA BEBAS',
             '50 M GAYA BEBAS',
-            '25M PAPAN KAKI DADA',
+            '25M PAPAN KAKI GAYA DADA',
             '25 M GAYA DADA',
             '50 M GAYA DADA',
-            '25M PAPAN KAKI PUNGGUNG',
+            '25M PAPAN KAKI GAYA PUNGGUNG',
             '25 M GAYA PUNGGUNG',
             '50 M GAYA PUNGGUNG',
-            '25M PAPAN KAKI KUPU-KUPU',
+            '25M PAPAN KAKI GAYA KUPU-KUPU',
             '25 M GAYA KUPU-KUPU',
             '50 M GAYA KUPU-KUPU'
         ];

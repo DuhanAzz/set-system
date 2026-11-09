@@ -7,7 +7,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Acara #<?= htmlspecialchars($raceInfo['event_number'] ?? '') ?> - <?= htmlspecialchars($raceInfo['distance'] ?? '') ?>M <?= htmlspecialchars($raceInfo['stroke'] ?? '') ?> - <?= htmlspecialchars($eventProfile['event_name'] ?? 'Live Result') ?></title>
+    <title>Acara #<?= htmlspecialchars($raceInfo['event_number'] ?? '') ?> - <?= htmlspecialchars($raceInfo['distance'] ?? '') ?>M <?= htmlspecialchars(\App\Helpers\SwimEventHelper::formatStrokeName($raceInfo['stroke'] ?? '')) ?> - <?= htmlspecialchars($eventProfile['event_name'] ?? 'Live Result') ?></title>
     <link rel="icon" type="image/png" href="<?= getenv('APP_URL') ?>/favicon.png?v=2">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
@@ -410,11 +410,15 @@ if(!empty($eventProfile['event_date_end']) && $eventProfile['event_date_end'] !=
 $dateRange = strtoupper($dateRange);
 
 // Judul Acara Tengah
-$cleanStroke = trim(str_ireplace(['Gaya', 'GAYA'], '', $raceInfo['stroke'] ?? ''));
+$isRelay = isset($raceInfo['is_relay']) && (int)$raceInfo['is_relay'] === 1;
+$strokeRaw = preg_replace('/\b(ESTAFET|RELAY)\b/i', '', $raceInfo['stroke'] ?? '');
+$cleanStroke = \App\Helpers\SwimEventHelper::formatStrokeName(trim($strokeRaw));
 $gender_label = (in_array($raceInfo['jenis_kelamin'] ?? '', ['L','Male','Man'])) ? 'PUTRA' : 'PUTRI';
 if (($raceInfo['jenis_kelamin'] ?? '') == 'Campuran') $gender_label = 'CAMPURAN';
 $poolSuffix = (strtoupper($eventProfile['pool_type'] ?? 'LCM') == 'SCM') ? ' - SCM' : ' - LCM';
-$judul_print = $raceInfo['distance'] . "M " . strtoupper($cleanStroke) . " - " . ($raceInfo['age_group'] ?? '') . " " . $gender_label . $poolSuffix;
+$distLabel = \App\Helpers\SwimEventHelper::formatDistance($raceInfo['distance'] ?? 0, $isRelay);
+$judulRaw = $distLabel . ($isRelay ? " ESTAFET " : " ") . strtoupper($cleanStroke) . " - " . ($raceInfo['age_group'] ?? '') . " " . $gender_label . $poolSuffix;
+$judul_print = \App\Helpers\SwimEventHelper::formatEventName($judulRaw, $isRelay, $raceInfo['distance'] ?? 0);
 
 // Jadwal Acara Kiri
 $jadwalKiri = $displayDate . " | " . (empty($raceInfo['schedule_time']) ? '08:00 WIB' : date('H:i', strtotime($raceInfo['schedule_time'])) . ' WIB');
@@ -514,7 +518,7 @@ unset($rows);
         <div class="divider"></div>
         <div class="class-tag">
             <span class="badge">ACARA #<?= htmlspecialchars($raceInfo['event_number']) ?></span>
-            <span><?= htmlspecialchars($raceInfo['distance']) ?>M <?= htmlspecialchars($raceInfo['stroke']) ?> - <?= htmlspecialchars($raceInfo['age_group'] ?? '') ?> <?= $gender_label ?></span>
+            <span><?= htmlspecialchars($raceInfo['distance']) ?>M <?= htmlspecialchars(\App\Helpers\SwimEventHelper::formatStrokeName($raceInfo['stroke'] ?? '')) ?> - <?= htmlspecialchars($raceInfo['age_group'] ?? '') ?> <?= $gender_label ?></span>
         </div>
         <?php if (!empty($allPublishedNumbers) && count($allPublishedNumbers) > 1): ?>
             <div class="divider"></div>
@@ -523,7 +527,7 @@ unset($rows);
                     $optGender = (strtoupper($opt['jenis_kelamin'] ?? '') === 'L') ? 'PA' : ((strtoupper($opt['jenis_kelamin'] ?? '') === 'P') ? 'PI' : 'MIX');
                 ?>
                     <option value="<?= getenv('APP_URL') ?>/swim/live_result/view/<?= $opt['id'] ?>" <?= $opt['id'] == $cat_id ? 'selected' : '' ?>>
-                        #<?= htmlspecialchars($opt['event_number']) ?> - <?= htmlspecialchars($opt['distance']) ?>M <?= htmlspecialchars($opt['stroke']) ?> (<?= htmlspecialchars($opt['age_group']) ?> <?= $optGender ?>)
+                        #<?= htmlspecialchars($opt['event_number']) ?> - <?= htmlspecialchars($opt['distance']) ?>M <?= htmlspecialchars(\App\Helpers\SwimEventHelper::formatStrokeName($opt['stroke'] ?? '')) ?> (<?= htmlspecialchars($opt['age_group']) ?> <?= $optGender ?>)
                     </option>
                 <?php endforeach; ?>
             </select>
@@ -770,7 +774,7 @@ unset($rows);
                 <a href="<?= getenv('APP_URL') ?>/swim/live_result/view/<?= $opt['id'] ?>" class="nav-modal-option <?= $isActive ? 'active' : '' ?>">
                     <span>
                         <span style="display:inline-block; width:45px; font-weight:900;">#<?= htmlspecialchars($opt['event_number']) ?></span>
-                        <?= htmlspecialchars($opt['distance']) ?>M <?= htmlspecialchars($opt['stroke']) ?> (<?= htmlspecialchars($opt['age_group']) ?> <?= $optGender ?>)
+                        <?= htmlspecialchars($opt['distance']) ?>M <?= htmlspecialchars(\App\Helpers\SwimEventHelper::formatStrokeName($opt['stroke'] ?? '')) ?> (<?= htmlspecialchars($opt['age_group']) ?> <?= $optGender ?>)
                     </span>
                     <?php if ($isActive): ?>
                         <i class="fas fa-check"></i>

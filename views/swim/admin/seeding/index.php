@@ -151,7 +151,7 @@
                     <div class="flex-1 text-center md:text-left">
                         <div class="inline-flex items-center gap-2 mb-1">
                             <span class="px-2 py-1 rounded-md <?= $bg ?> <?= $txt ?> text-[9px] font-black uppercase tracking-widest border border-slate-100"><?= $icon ?> <?= $lbl ?></span>
-                            <span class="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded-md uppercase border border-slate-200"><?= htmlspecialchars($distDisplay) ?> <?= htmlspecialchars($ev['stroke'] ?? '-') ?> <?= $isRelay ? '(ESTAFET)' : '' ?></span>
+                            <span class="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded-md uppercase border border-slate-200"><?= htmlspecialchars($distDisplay) ?> <?= htmlspecialchars(\App\Helpers\SwimEventHelper::formatStrokeName($ev['stroke'] ?? '-')) ?> <?= $isRelay ? '(ESTAFET)' : '' ?></span>
                             <span class="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md uppercase border border-emerald-200">👥 <?= $ev['total_athletes'] ?> <?= $isRelay ? 'Tim (' . ($ev['total_athletes'] * 4) . ' Atlet)' : 'Atlet' ?></span>
                         </div>
                         <h3 class="text-xl font-black text-slate-800 uppercase italic tracking-tight"><?= htmlspecialchars($dispEventName) ?></h3>

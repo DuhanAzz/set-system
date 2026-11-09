@@ -30,7 +30,7 @@
                             <tr><td colspan="6" class="p-12 text-center text-slate-400 font-medium italic">Tidak ada data rekor di paket ini.</td></tr>
                         <?php else: foreach($records as $r): ?>
                             <tr class="hover:bg-slate-50 transition">
-                                <td class="p-4 font-bold text-slate-900"><?= $r['distance'] ?>M <?= htmlspecialchars($r['stroke']) ?></td>
+                                <td class="p-4 font-bold text-slate-900"><?= $r['distance'] ?>M <?= htmlspecialchars(\App\Helpers\SwimEventHelper::formatStrokeName($r['stroke'])) ?></td>
                                 <td class="p-4"><span class="px-2 py-1 text-[10px] font-bold rounded-md <?= ($r['jenis_kelamin']=='L' || $r['jenis_kelamin']=='M')?'bg-sky-100 text-sky-700':'bg-rose-100 text-rose-700' ?>"><?= ($r['jenis_kelamin']=='L' || $r['jenis_kelamin']=='M')?'PUTRA':(($r['jenis_kelamin']=='P' || $r['jenis_kelamin']=='F')?'PUTRI':$r['jenis_kelamin']) ?></span></td>
                                 <td class="p-4 text-slate-700 font-semibold"><?= htmlspecialchars($r['age_group']) ?></td>
                                 <td class="p-4 font-bold text-slate-900 uppercase"><?= htmlspecialchars($r['holder_name']) ?></td>

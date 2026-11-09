@@ -118,6 +118,7 @@ class ResultsController extends Controller {
 
         $currentEventId = (int)$raceInfo['event_id'];
         $_SESSION['active_event_id'] = $currentEventId;
+        \App\Helpers\SwimEventHelper::syncEventGayaNames($pdo, $currentEventId);
         
         // Simpan referensi ke request untuk method POST
         if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
@@ -128,10 +129,11 @@ class ResultsController extends Controller {
         // Logika Export TXT
         if (isset($_GET['export_txt'])) {
             $nomor_acara = $raceInfo['event_number'];
-            $cleanStroke = trim(str_ireplace(['Gaya', 'GAYA'], '', $raceInfo['stroke'] ?? ''));
+            $strokeRaw = preg_replace('/\b(ESTAFET|RELAY)\b/i', '', $raceInfo['stroke'] ?? '');
+            $cleanStroke = \App\Helpers\SwimEventHelper::formatStrokeName(trim($strokeRaw));
             $gender_label = (in_array($raceInfo['jenis_kelamin'], ['L','Male','Man'])) ? 'PUTRA' : 'PUTRI';
             
-            $judul_tengah = $raceInfo['distance'] . " M " . strtoupper($cleanStroke) . " - " . ($raceInfo['age_group']??'') . " " . $gender_label . " - LCM";
+            $judul_tengah = \App\Helpers\SwimEventHelper::ensureGayaPrefix($raceInfo['distance'] . " M " . strtoupper($cleanStroke) . " - " . ($raceInfo['age_group']??'') . " " . $gender_label . " - LCM");
             
             header('Content-Type: text/plain');
             header('Content-Disposition: attachment; filename="Backup_Acara_' . preg_replace('/[^a-zA-Z0-9]/', '_', $nomor_acara) . '.txt"');

@@ -207,7 +207,7 @@
                     <?php foreach($relayEntries as $re): ?>
                     <div class="event-row">
                         <div>
-                            <span class="evt-name"><?= htmlspecialchars($re['team_name'] ?? 'Tim Estafet') ?> - <?= $re['distance'] ?>M <?= strtoupper($re['stroke']) ?></span>
+                            <span class="evt-name"><?= htmlspecialchars($re['team_name'] ?? 'Tim Estafet') ?> - <?= $re['distance'] ?>M <?= strtoupper(\App\Helpers\SwimEventHelper::formatStrokeName($re['stroke'] ?? '')) ?></span>
                             <?php if(!empty($re['age_group'])): ?><span class="evt-ku">(KU <?= $re['age_group'] ?>)</span><?php endif; ?>
                         </div>
                         <span class="evt-time"><?= $re['seed_time'] ? htmlspecialchars($re['seed_time']) : 'NT' ?></span>
@@ -241,7 +241,7 @@
                     <?php foreach($swimmer['items'] as $item): ?>
                     <div class="event-row">
                         <div>
-                            <span class="evt-name"><?= $item['distance'] ?>M <?= strtoupper($item['stroke']) ?></span>
+                            <span class="evt-name"><?= $item['distance'] ?>M <?= strtoupper(\App\Helpers\SwimEventHelper::formatStrokeName($item['stroke'] ?? '')) ?></span>
                             <span class="evt-ku">(KU <?= $item['age_group'] ?>)</span>
                         </div>
                         <span class="evt-time"><?= $item['entry_time'] ? htmlspecialchars($item['entry_time']) : 'NT' ?></span>

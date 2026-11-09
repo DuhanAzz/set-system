@@ -90,7 +90,7 @@
                             <span class="font-black text-slate-300 text-xl group-hover:text-blue-500 transition">#<?= htmlspecialchars($race['event_number']) ?></span>
                         </td>
                         <td class="px-6 py-4 font-black text-slate-700 uppercase tracking-tight text-base">
-                            <?= htmlspecialchars($race['distance']) ?>M <?= htmlspecialchars($race['stroke']) ?>
+                            <?= htmlspecialchars($race['distance']) ?>M <?= htmlspecialchars(\App\Helpers\SwimEventHelper::formatStrokeName($race['stroke'] ?? '')) ?>
                         </td>
                         <td class="px-6 py-4 text-center">
                             <span class="px-3 py-1.5 bg-slate-100 border border-slate-200 text-slate-600 rounded-lg text-[10px] font-black uppercase tracking-widest">

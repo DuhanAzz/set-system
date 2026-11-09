@@ -46,7 +46,7 @@
                         <?php foreach($rekornas_data as $index => $r): ?>
                             <tr class="hover:bg-slate-50">
                                 <td class="p-3 text-slate-400 text-center"><?= $index + 1 ?></td>
-                                <td class="p-3 font-bold text-slate-900"><?= $r['distance'] ?>M <?= $r['stroke'] ?></td>
+                                <td class="p-3 font-bold text-slate-900"><?= $r['distance'] ?>M <?= \App\Helpers\SwimEventHelper::formatStrokeName($r['stroke']) ?></td>
                                 <td class="p-3 text-center">
                                     <span class="px-2 py-0.5 rounded <?= $r['jk']=='L'?'bg-sky-100 text-sky-700':'bg-rose-100 text-rose-700' ?>"><?= $r['jk'] ?></span>
                                 </td>

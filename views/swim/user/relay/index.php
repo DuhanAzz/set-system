@@ -35,7 +35,9 @@
     <div class="space-y-6">
         <?php foreach ($relayCategories as $cat): 
             $cid = $cat['id'];
-            $catName = htmlspecialchars($cat['distance'] . "M " . $cat['stroke']);
+            $catDist = \App\Helpers\SwimEventHelper::formatDistance($cat['distance'] ?? 0, true);
+            $catStroke = \App\Helpers\SwimEventHelper::formatStrokeName($cat['stroke'] ?? '');
+            $catName = htmlspecialchars($catDist . " " . $catStroke);
             $catGender = in_array(strtoupper($cat['jenis_kelamin']), ['L', 'MALE', 'PUTRA']) ? 'PUTRA' : (in_array(strtoupper($cat['jenis_kelamin']), ['P', 'FEMALE', 'PUTRI']) ? 'PUTRI' : 'MIXED');
             $catAge = htmlspecialchars($cat['age_group']);
             $catPrice = ((float)($cat['price'] ?? 0) > 0) ? (float)$cat['price'] : (float)($event['price_relay'] ?? 0);

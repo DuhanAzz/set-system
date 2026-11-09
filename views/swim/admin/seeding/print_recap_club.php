@@ -182,7 +182,7 @@ foreach ($recapData as $row) {
                                 <tr class="hover:bg-slate-50 transition-colors">
                                     <td class="py-2 px-3">
                                         <div class="text-xs sm:text-sm font-extrabold text-slate-800 uppercase leading-tight">
-                                            <?= htmlspecialchars($row['distance']) ?>M <?= htmlspecialchars($row['stroke']) ?>
+                                            <?= htmlspecialchars($row['distance']) ?>M <?= htmlspecialchars(\App\Helpers\SwimEventHelper::formatStrokeName($row['stroke'] ?? '')) ?>
                                         </div>
                                         <span class="sub-text text-[9px] font-bold text-slate-500 uppercase tracking-wider">
                                             <?= htmlspecialchars($row['jenis_kelamin']) ?> (<?= htmlspecialchars($row['age_group']) ?>)

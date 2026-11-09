@@ -117,7 +117,8 @@ function getTeamName($row, $type) {
 }
 
 // FORMAT JUDUL SESUAI KOMPONEN PRINT_FULL_BOOK
-$cleanStroke = trim(str_ireplace(['Gaya', 'GAYA'], '', $raceInfo['stroke']));
+$strokeRaw = preg_replace('/\b(ESTAFET|RELAY)\b/i', '', $raceInfo['stroke'] ?? '');
+$cleanStroke = \App\Helpers\SwimEventHelper::formatStrokeName(trim($strokeRaw));
 $genderLabel = (in_array($raceInfo['jenis_kelamin'], ['L','Male'])) ? 'PUTRA' : 'PUTRI';
 $tglMain = !empty($raceInfo['schedule_date']) ? strtoupper(date('d F Y', strtotime($raceInfo['schedule_date']))) : $displayDate;
 $jamMain = !empty($raceInfo['schedule_time']) ? date('H:i', strtotime($raceInfo['schedule_time'])) . ' WIB' : '08:00 WIB';
@@ -127,12 +128,12 @@ $distStr = \App\Helpers\SwimEventHelper::formatDistance($raceInfo['distance'] ??
 $relayUraianSuffix = $isRelayRace ? (stripos($raceInfo['stroke'], 'ESTAFET') === false ? ' (ESTAFET)' : '') : '';
 
 $judulParts = [];
-if ($pc['show_event_name']) $judulParts[] = $distStr . " " . strtoupper($cleanStroke) . $relayUraianSuffix; 
+if ($pc['show_event_name']) $judulParts[] = \App\Helpers\SwimEventHelper::ensureGayaPrefix($distStr . " " . strtoupper($cleanStroke) . $relayUraianSuffix); 
 if ($pc['show_group'])      $judulParts[] = $raceInfo['age_group']; 
 if ($pc['show_gender'])     $judulParts[] = strtoupper($genderLabel); 
 if ($pc['show_pool'])       $judulParts[] = $poolLabel; 
 
-$judulAcaraTengah = empty($judulParts) ? "EVENT" : implode(" - ", $judulParts);
+$judulAcaraTengah = empty($judulParts) ? "EVENT" : \App\Helpers\SwimEventHelper::formatEventName(implode(" - ", $judulParts), $isRelayRace, $raceInfo['distance'] ?? 0);
 $jadwalKiri = $tglMain . " | " . $jamMain;
 
 // 2. AMBIL DATA PESERTA (HANYA UNTUK 1 KATEGORI INI, HANYA YANG SUDAH LUNAS / APPROVED)

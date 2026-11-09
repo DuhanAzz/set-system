@@ -62,7 +62,7 @@ $teams = $stmtTeams->fetchAll(PDO::FETCH_ASSOC);
 $isRelay = true;
 $distDisplay = \App\Helpers\SwimEventHelper::formatDistance($raceInfo['distance'], true);
 $dispEventName = \App\Helpers\SwimEventHelper::formatEventName($raceInfo['event_name'], true, $raceInfo['distance']);
-$cleanStroke = strtoupper(trim(str_ireplace(['Gaya', 'GAYA', 'ESTAFET', 'RELAY'], '', $raceInfo['stroke'] ?? '')));
+$cleanStroke = strtoupper(trim(\App\Helpers\SwimEventHelper::formatStrokeName($raceInfo['stroke'] ?? '')));
 $isMedley = (stripos($cleanStroke, 'GANTI') !== false || stripos($cleanStroke, 'MEDLEY') !== false);
 
 $legLabels = [
@@ -246,7 +246,7 @@ if (($raceInfo['jenis_kelamin'] ?? '') == 'Campuran') $gender_label = 'CAMPURAN'
                 <div style="margin-top: 2px;"><span>Acara:</span> <?= htmlspecialchars($dispEventName) ?></div>
             </div>
             <div class="meta-box">
-                <div><span>Jarak / Gaya:</span> <?= htmlspecialchars($distDisplay) ?> <?= htmlspecialchars($raceInfo['stroke']) ?></div>
+                <div><span>Jarak / Gaya:</span> <?= htmlspecialchars($distDisplay) ?> <?= htmlspecialchars(\App\Helpers\SwimEventHelper::formatStrokeName($raceInfo['stroke'] ?? '')) ?></div>
                 <div style="margin-top: 2px;"><span>Kategori:</span> <?= htmlspecialchars($raceInfo['age_group']) ?> - <?= $gender_label ?></div>
             </div>
             <div>

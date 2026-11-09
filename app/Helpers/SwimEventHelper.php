@@ -44,8 +44,76 @@ class SwimEventHelper {
     }
 
     /**
+     * Pastikan kata "GAYA" selalu ada sebelum nama 4 gaya renang (Bebas, Punggung, Kupu-kupu, Dada).
+     * Mencegah duplikasi seperti "GAYA GAYA BEBAS" dan mendukung variasi casing serta strip.
+     *
+     * @param string $str
+     * @return string
+     */
+    public static function ensureGayaPrefix($str) {
+        if (empty($str)) return '';
+        $s = trim((string)$str);
+
+        // 1. KUPU-KUPU / KUPU - KUPU
+        $s = preg_replace('/(?<!\bGAYA\s)(?<!\bGaya\s)(?<!\bgaya\s)\bKUPU\s*[-–—]?\s*KUPU\b/u', 'GAYA KUPU-KUPU', $s);
+        $s = preg_replace('/(?<!\bGAYA\s)(?<!\bGaya\s)(?<!\bgaya\s)\bKupu\s*[-–—]?\s*kupu\b/u', 'Gaya Kupu-kupu', $s);
+        $s = preg_replace('/(?<!\bGAYA\s)(?<!\bGaya\s)(?<!\bgaya\s)\bkupu\s*[-–—]?\s*kupu\b/u', 'gaya kupu-kupu', $s);
+        $s = preg_replace('/(?<!\bGAYA\s)(?<!\bGaya\s)(?<!\bgaya\s)\bKUPU\s*[-–—]?\s*KUPU\b/i', 'GAYA KUPU-KUPU', $s);
+
+        // 2. BEBAS
+        $s = preg_replace('/(?<!\bGAYA\s)(?<!\bGaya\s)(?<!\bgaya\s)\bBEBAS\b/u', 'GAYA BEBAS', $s);
+        $s = preg_replace('/(?<!\bGAYA\s)(?<!\bGaya\s)(?<!\bgaya\s)\bBebas\b/u', 'Gaya Bebas', $s);
+        $s = preg_replace('/(?<!\bGAYA\s)(?<!\bGaya\s)(?<!\bgaya\s)\bbebas\b/u', 'gaya bebas', $s);
+        $s = preg_replace('/(?<!\bGAYA\s)(?<!\bGaya\s)(?<!\bgaya\s)\bBEBAS\b/i', 'GAYA BEBAS', $s);
+
+        // 3. PUNGGUNG
+        $s = preg_replace('/(?<!\bGAYA\s)(?<!\bGaya\s)(?<!\bgaya\s)\bPUNGGUNG\b/u', 'GAYA PUNGGUNG', $s);
+        $s = preg_replace('/(?<!\bGAYA\s)(?<!\bGaya\s)(?<!\bgaya\s)\bPunggung\b/u', 'Gaya Punggung', $s);
+        $s = preg_replace('/(?<!\bGAYA\s)(?<!\bGaya\s)(?<!\bgaya\s)\bpunggung\b/u', 'gaya punggung', $s);
+        $s = preg_replace('/(?<!\bGAYA\s)(?<!\bGaya\s)(?<!\bgaya\s)\bPUNGGUNG\b/i', 'GAYA PUNGGUNG', $s);
+
+        // 4. DADA
+        $s = preg_replace('/(?<!\bGAYA\s)(?<!\bGaya\s)(?<!\bgaya\s)\bDADA\b/u', 'GAYA DADA', $s);
+        $s = preg_replace('/(?<!\bGAYA\s)(?<!\bGaya\s)(?<!\bgaya\s)\bDada\b/u', 'Gaya Dada', $s);
+        $s = preg_replace('/(?<!\bGAYA\s)(?<!\bGaya\s)(?<!\bgaya\s)\bdada\b/u', 'gaya dada', $s);
+        $s = preg_replace('/(?<!\bGAYA\s)(?<!\bGaya\s)(?<!\bgaya\s)\bDADA\b/i', 'GAYA DADA', $s);
+
+        // 5. GANTI PERORANGAN
+        $s = preg_replace('/(?<!\bGAYA\s)(?<!\bGaya\s)(?<!\bgaya\s)\bGANTI\s+PERORANGAN\b/u', 'GAYA GANTI PERORANGAN', $s);
+        $s = preg_replace('/(?<!\bGAYA\s)(?<!\bGaya\s)(?<!\bgaya\s)\bGanti\s+Perorangan\b/u', 'Gaya Ganti Perorangan', $s);
+        $s = preg_replace('/(?<!\bGAYA\s)(?<!\bGaya\s)(?<!\bgaya\s)\bganti\s+perorangan\b/u', 'gaya ganti perorangan', $s);
+        $s = preg_replace('/(?<!\bGAYA\s)(?<!\bGaya\s)(?<!\bgaya\s)\bGANTI\s+PERORANGAN\b/i', 'GAYA GANTI PERORANGAN', $s);
+
+        // Standarisasi strip untuk Kupu-kupu
+        $s = preg_replace('/\bKUPU\s+KUPU\b/i', 'KUPU-KUPU', $s);
+        $s = preg_replace('/\bKupu\s+kupu\b/', 'Kupu-kupu', $s);
+
+        return trim(preg_replace('/\s+/', ' ', $s));
+    }
+
+    /**
+     * Format nama gaya (stroke) agar rapi, papan memiliki kata Kaki, dan selalu diawali "Gaya".
+     *
+     * @param string $stroke
+     * @return string
+     */
+    public static function formatStrokeName($stroke) {
+        $str = trim((string)$stroke);
+        if ($str === '' || $str === '-') return $str;
+
+        // Pastikan nomor papan memiliki kata "Kaki" jika belum
+        if (stripos($str, 'PAPAN') !== false && stripos($str, 'PAPAN KAKI') === false) {
+            $str = preg_replace('/\bPAPAN\b(?!\s*KAKI\b)/', 'PAPAN KAKI', $str);
+            $str = preg_replace('/\bPapan\b(?!\s*kaki\b)/i', 'Papan Kaki', $str);
+        }
+
+        return self::ensureGayaPrefix($str);
+    }
+
+    /**
      * Format nama nomor acara renang.
      * Untuk nomor estafet, pastikan diawali dengan format "4 x 25 M" dan bukan "100 M".
+     * Pastikan semua gaya memiliki kata GAYA di depannya.
      *
      * @param string $eventName Nama acara (contoh: "100 M ESTAFET GAYA BEBAS PUTRA - LCM")
      * @param bool $isRelay Apakah nomor estafet
@@ -59,6 +127,9 @@ class SwimEventHelper {
         if (stripos($name, 'PAPAN') !== false && stripos($name, 'PAPAN KAKI') === false) {
             $name = preg_replace('/\bPAPAN\b(?!\s*KAKI\b)/i', 'PAPAN KAKI', $name);
         }
+
+        // Pastikan kata "GAYA" selalu ada sebelum nama gaya renang
+        $name = self::ensureGayaPrefix($name);
 
         if (!$isRelay && stripos($name, 'ESTAFET') === false && stripos($name, 'RELAY') === false) {
             return trim(preg_replace('/\s+/', ' ', $name));
@@ -84,7 +155,7 @@ class SwimEventHelper {
             $name = preg_replace('/^(4\s*[xX]\s*\d{2,3}\s*M)\s*/i', '$1 ESTAFET ', $name);
         }
 
-        return trim(preg_replace('/\s+/', ' ', $name));
+        return trim(preg_replace('/\s+/', ' ', self::ensureGayaPrefix($name)));
     }
 
     /**
@@ -136,6 +207,8 @@ class SwimEventHelper {
 
             // Sinkronisasi nomor papan kaki
             self::syncEventPapanNames($pdo, $eventId);
+            // Sinkronisasi nama gaya renang
+            self::syncEventGayaNames($pdo, $eventId);
         } catch (\Throwable $t) {
             // Non-blocking: Abaikan kegagalan SQL agar proses utama tetap jalan
         }
@@ -165,6 +238,74 @@ class SwimEventHelper {
                 SET stroke = REPLACE(stroke, 'Papan ', 'Papan Kaki ') 
                 {$sqlWhere} stroke LIKE '%Papan %' AND stroke NOT LIKE '%Papan Kaki %'
             ");
+        } catch (\Throwable $t) {
+            // Non-blocking
+        }
+    }
+
+    /**
+     * Otomatis standarisasi penamaan gaya renang dengan awalan "GAYA" di database (mis. BEBAS -> GAYA BEBAS, PAPAN KAKI DADA -> PAPAN KAKI GAYA DADA)
+     *
+     * @param PDO $pdo Koneksi PDO
+     * @param int|null $eventId ID Event yang sedang aktif (opsional)
+     * @return void
+     */
+    public static function syncEventGayaNames(PDO $pdo, $eventId = null) {
+        try {
+            $sqlWhere = ($eventId && (int)$eventId > 0) ? "WHERE event_id = " . (int)$eventId : "";
+            $whereClause = $sqlWhere ? $sqlWhere . " AND" : "WHERE";
+
+            // 1. Standarisasi Papan Kaki di stroke
+            $pdo->exec("UPDATE swim_event_numbers SET stroke = REPLACE(stroke, 'Papan Kaki Bebas', 'Papan Kaki Gaya Bebas') {$whereClause} stroke LIKE '%Papan Kaki Bebas%'");
+            $pdo->exec("UPDATE swim_event_numbers SET stroke = REPLACE(stroke, 'Papan Kaki Dada', 'Papan Kaki Gaya Dada') {$whereClause} stroke LIKE '%Papan Kaki Dada%'");
+            $pdo->exec("UPDATE swim_event_numbers SET stroke = REPLACE(stroke, 'Papan Kaki Punggung', 'Papan Kaki Gaya Punggung') {$whereClause} stroke LIKE '%Papan Kaki Punggung%'");
+            $pdo->exec("UPDATE swim_event_numbers SET stroke = REPLACE(stroke, 'Papan Kaki Kupu-kupu', 'Papan Kaki Gaya Kupu-kupu') {$whereClause} stroke LIKE '%Papan Kaki Kupu-kupu%'");
+            $pdo->exec("UPDATE swim_event_numbers SET stroke = REPLACE(stroke, 'PAPAN KAKI BEBAS', 'PAPAN KAKI GAYA BEBAS') {$whereClause} stroke LIKE '%PAPAN KAKI BEBAS%'");
+            $pdo->exec("UPDATE swim_event_numbers SET stroke = REPLACE(stroke, 'PAPAN KAKI DADA', 'PAPAN KAKI GAYA DADA') {$whereClause} stroke LIKE '%PAPAN KAKI DADA%'");
+            $pdo->exec("UPDATE swim_event_numbers SET stroke = REPLACE(stroke, 'PAPAN KAKI PUNGGUNG', 'PAPAN KAKI GAYA PUNGGUNG') {$whereClause} stroke LIKE '%PAPAN KAKI PUNGGUNG%'");
+            $pdo->exec("UPDATE swim_event_numbers SET stroke = REPLACE(stroke, 'PAPAN KAKI KUPU-KUPU', 'PAPAN KAKI GAYA KUPU-KUPU') {$whereClause} stroke LIKE '%PAPAN KAKI KUPU%'");
+
+            // 2. Standarisasi stroke langsung
+            $pdo->exec("UPDATE swim_event_numbers SET stroke = 'Gaya Bebas' {$whereClause} stroke = 'Bebas'");
+            $pdo->exec("UPDATE swim_event_numbers SET stroke = 'GAYA BEBAS' {$whereClause} stroke = 'BEBAS'");
+            $pdo->exec("UPDATE swim_event_numbers SET stroke = 'Gaya Dada' {$whereClause} stroke = 'Dada'");
+            $pdo->exec("UPDATE swim_event_numbers SET stroke = 'GAYA DADA' {$whereClause} stroke = 'DADA'");
+            $pdo->exec("UPDATE swim_event_numbers SET stroke = 'Gaya Punggung' {$whereClause} stroke = 'Punggung'");
+            $pdo->exec("UPDATE swim_event_numbers SET stroke = 'GAYA PUNGGUNG' {$whereClause} stroke = 'PUNGGUNG'");
+            $pdo->exec("UPDATE swim_event_numbers SET stroke = 'Gaya Kupu-kupu' {$whereClause} (stroke = 'Kupu-kupu' OR stroke = 'Kupu - kupu' OR stroke = 'Kupu-Kupu')");
+            $pdo->exec("UPDATE swim_event_numbers SET stroke = 'GAYA KUPU-KUPU' {$whereClause} (stroke = 'KUPU-KUPU' OR stroke = 'KUPU - KUPU')");
+
+            // 3. Standarisasi event_name untuk nomor papan kaki
+            $pdo->exec("UPDATE swim_event_numbers SET event_name = REPLACE(event_name, 'PAPAN KAKI BEBAS', 'PAPAN KAKI GAYA BEBAS') {$whereClause} event_name LIKE '%PAPAN KAKI BEBAS%'");
+            $pdo->exec("UPDATE swim_event_numbers SET event_name = REPLACE(event_name, 'PAPAN KAKI DADA', 'PAPAN KAKI GAYA DADA') {$whereClause} event_name LIKE '%PAPAN KAKI DADA%'");
+            $pdo->exec("UPDATE swim_event_numbers SET event_name = REPLACE(event_name, 'PAPAN KAKI PUNGGUNG', 'PAPAN KAKI GAYA PUNGGUNG') {$whereClause} event_name LIKE '%PAPAN KAKI PUNGGUNG%'");
+            $pdo->exec("UPDATE swim_event_numbers SET event_name = REPLACE(REPLACE(event_name, 'PAPAN KAKI KUPU-KUPU', 'PAPAN KAKI GAYA KUPU-KUPU'), 'PAPAN KAKI KUPU - KUPU', 'PAPAN KAKI GAYA KUPU-KUPU') {$whereClause} event_name LIKE '%PAPAN KAKI KUPU%'");
+
+            // 4. Standarisasi event_name untuk nomor estafet
+            $pdo->exec("UPDATE swim_event_numbers SET event_name = REPLACE(event_name, 'ESTAFET BEBAS', 'ESTAFET GAYA BEBAS') {$whereClause} event_name LIKE '%ESTAFET BEBAS%'");
+            $pdo->exec("UPDATE swim_event_numbers SET event_name = REPLACE(event_name, 'ESTAFET DADA', 'ESTAFET GAYA DADA') {$whereClause} event_name LIKE '%ESTAFET DADA%'");
+            $pdo->exec("UPDATE swim_event_numbers SET event_name = REPLACE(event_name, 'ESTAFET PUNGGUNG', 'ESTAFET GAYA PUNGGUNG') {$whereClause} event_name LIKE '%ESTAFET PUNGGUNG%'");
+            $pdo->exec("UPDATE swim_event_numbers SET event_name = REPLACE(event_name, 'ESTAFET KUPU-KUPU', 'ESTAFET GAYA KUPU-KUPU') {$whereClause} event_name LIKE '%ESTAFET KUPU%'");
+
+            // 5. Standarisasi event_name standar (contoh: " M BEBAS " -> " M GAYA BEBAS ")
+            $pdo->exec("UPDATE swim_event_numbers SET event_name = REPLACE(event_name, ' M BEBAS ', ' M GAYA BEBAS ') {$whereClause} event_name LIKE '% M BEBAS %'");
+            $pdo->exec("UPDATE swim_event_numbers SET event_name = REPLACE(event_name, ' M DADA ', ' M GAYA DADA ') {$whereClause} event_name LIKE '% M DADA %'");
+            $pdo->exec("UPDATE swim_event_numbers SET event_name = REPLACE(event_name, ' M PUNGGUNG ', ' M GAYA PUNGGUNG ') {$whereClause} event_name LIKE '% M PUNGGUNG %'");
+            $pdo->exec("UPDATE swim_event_numbers SET event_name = REPLACE(REPLACE(event_name, ' M KUPU-KUPU ', ' M GAYA KUPU-KUPU '), ' M KUPU - KUPU ', ' M GAYA KUPU-KUPU ') {$whereClause} event_name LIKE '% M KUPU%'");
+
+            // 6. Evaluasi komprehensif baris per baris
+            $stmt = $pdo->query("SELECT id, event_name, stroke, distance, is_relay FROM swim_event_numbers {$sqlWhere}");
+            if ($stmt) {
+                $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                $updateStmt = $pdo->prepare("UPDATE swim_event_numbers SET event_name = ?, stroke = ? WHERE id = ?");
+                foreach ($rows as $r) {
+                    $newName = self::formatEventName($r['event_name'], (int)($r['is_relay'] ?? 0) === 1, $r['distance']);
+                    $newStroke = self::formatStrokeName($r['stroke']);
+                    if ($newName !== $r['event_name'] || $newStroke !== $r['stroke']) {
+                        $updateStmt->execute([$newName, $newStroke, $r['id']]);
+                    }
+                }
+            }
         } catch (\Throwable $t) {
             // Non-blocking
         }

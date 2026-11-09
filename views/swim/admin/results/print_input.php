@@ -396,16 +396,15 @@ $cc = [
 
 // Judul Acara Tengah
 $isRelay = isset($raceInfo['is_relay']) && (int)$raceInfo['is_relay'] === 1;
-$cleanStroke = trim(str_ireplace(['Gaya', 'GAYA', 'ESTAFET', 'RELAY'], '', $raceInfo['stroke'] ?? ''));
-if (stripos($cleanStroke, 'PAPAN') !== false && stripos($cleanStroke, 'PAPAN KAKI') === false) {
-    $cleanStroke = preg_replace('/\bPAPAN\b(?!\s*KAKI\b)/i', 'PAPAN KAKI', $cleanStroke);
-}
+$strokeRaw = preg_replace('/\b(ESTAFET|RELAY)\b/i', '', $raceInfo['stroke'] ?? '');
+$cleanStroke = \App\Helpers\SwimEventHelper::formatStrokeName(trim($strokeRaw));
 $gender_label = (in_array($raceInfo['jenis_kelamin'] ?? '', ['L','Male','Man'])) ? 'PUTRA' : 'PUTRI';
 if (($raceInfo['jenis_kelamin'] ?? '') == 'Campuran') $gender_label = 'CAMPURAN';
 $poolSuffix = (strtoupper($eventProfile['pool_type'] ?? 'LCM') == 'SCM') ? ' - SCM' : ' - LCM';
 $distLabel = \App\Helpers\SwimEventHelper::formatDistance($raceInfo['distance'] ?? 0, $isRelay);
 
 $eventStrokeDisplay = $isRelay ? $distLabel . " ESTAFET " . strtoupper($cleanStroke) : $distLabel . " " . strtoupper($cleanStroke);
+$eventStrokeDisplay = \App\Helpers\SwimEventHelper::ensureGayaPrefix($eventStrokeDisplay);
 $groupDisplay = !empty($raceInfo['age_group']) ? " - " . $raceInfo['age_group'] : "";
 $genderDisplay = " " . $gender_label;
 $poolDisplay = $poolSuffix;

@@ -87,7 +87,7 @@
                                     $relayDistLabel = \App\Helpers\SwimEventHelper::formatDistance($row['distance'] ?? 0, true);
                                 ?>
                                 <div class="inline-flex items-center text-[10px] font-black bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
-                                    #<?= $row['event_number'] ?> - <?= $relayDistLabel ?> <?= $row['stroke'] ?> (<?= $row['jenis_kelamin'] ?>) - <?= htmlspecialchars($row['age_group']) ?>
+                                    #<?= $row['event_number'] ?> - <?= $relayDistLabel ?> <?= \App\Helpers\SwimEventHelper::formatStrokeName($row['stroke'] ?? '') ?> (<?= $row['jenis_kelamin'] ?>) - <?= htmlspecialchars($row['age_group']) ?>
                                 </div>
                                 <div class="mt-1.5 flex items-center gap-2">
                                     <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider border <?= $payBadgeColor ?>">
@@ -152,7 +152,7 @@
                         <div class="flex items-center gap-2">
                             <!-- Tombol Susun Perenang TM -->
                             <button type="button" 
-                                onclick="openAdminSwimmerModal(<?= (int)$row['relay_id'] ?>, <?= (int)$row['club_id'] ?>, '<?= htmlspecialchars(addslashes($row['nama_klub'] . (!empty($row['team_name']) ? ' - ' . $row['team_name'] : ''))) ?>', '<?= htmlspecialchars(addslashes('#' . $row['event_number'] . ' ' . $relayDistLabel . ' ' . $row['stroke'] . ' (' . $row['jenis_kelamin'] . ')')) ?>', <?= (int)($row['swimmer_1_id'] ?? 0) ?>, <?= (int)($row['swimmer_2_id'] ?? 0) ?>, <?= (int)($row['swimmer_3_id'] ?? 0) ?>, <?= (int)($row['swimmer_4_id'] ?? 0) ?>)"
+                                onclick="openAdminSwimmerModal(<?= (int)$row['relay_id'] ?>, <?= (int)$row['club_id'] ?>, '<?= htmlspecialchars(addslashes($row['nama_klub'] . (!empty($row['team_name']) ? ' - ' . $row['team_name'] : ''))) ?>', '<?= htmlspecialchars(addslashes('#' . $row['event_number'] . ' ' . $relayDistLabel . ' ' . \App\Helpers\SwimEventHelper::formatStrokeName($row['stroke'] ?? '') . ' (' . $row['jenis_kelamin'] . ')')) ?>', <?= (int)($row['swimmer_1_id'] ?? 0) ?>, <?= (int)($row['swimmer_2_id'] ?? 0) ?>, <?= (int)($row['swimmer_3_id'] ?? 0) ?>, <?= (int)($row['swimmer_4_id'] ?? 0) ?>)"
                                 class="px-3 py-2 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-200 font-bold text-xs uppercase hover:bg-indigo-100 transition shadow-sm flex items-center gap-1">
                                 <span>✏️</span> Susun Atlet
                             </button>

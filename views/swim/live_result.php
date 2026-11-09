@@ -100,7 +100,8 @@
             <div id="resultContainer" class="space-y-4">
                 <?php foreach ($publishedNumbers as $num): 
                     $genderLabel = (strtoupper($num['jenis_kelamin'] ?? '') === 'L') ? 'PUTRA' : ((strtoupper($num['jenis_kelamin'] ?? '') === 'P') ? 'PUTRI' : 'CAMPURAN');
-                    $acaraName = "ACARA #{$num['event_number']} - {$num['distance']}M {$num['stroke']} - {$num['age_group']} {$genderLabel}";
+                    $formattedStroke = \App\Helpers\SwimEventHelper::formatStrokeName($num['stroke'] ?? '');
+                    $acaraName = "ACARA #{$num['event_number']} - {$num['distance']}M {$formattedStroke} - {$num['age_group']} {$genderLabel}";
                     $rankModeLabel = ($num['rank_mode'] ?? 'split') === 'overall' ? 'OVERALL' : 'SPLIT KU';
                 ?>
                     <div class="bg-slate-900 rounded-2xl border border-slate-800 shadow-xl overflow-hidden result-card transition-all duration-300 hover:border-slate-700" data-search="<?= strtolower(htmlspecialchars($acaraName)) ?>">
@@ -112,7 +113,7 @@
                                 </div>
                                 <div>
                                     <h2 class="text-xs sm:text-sm font-black text-white uppercase italic tracking-tight group-hover:text-blue-300 transition-colors">
-                                        <?= htmlspecialchars($num['distance']) ?>M <?= htmlspecialchars($num['stroke']) ?>
+                                        <?= htmlspecialchars($num['distance']) ?>M <?= htmlspecialchars($formattedStroke) ?>
                                     </h2>
                                     <div class="flex items-center gap-2 mt-1 flex-wrap">
                                         <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider bg-slate-800 px-2 py-0.5 rounded border border-slate-700">

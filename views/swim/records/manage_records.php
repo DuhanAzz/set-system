@@ -61,7 +61,7 @@
                             </tr>
                         <?php else: foreach($listRecords as $r): ?>
                             <tr class="hover:bg-slate-50 transition">
-                                <td class="p-4 text-slate-900 font-bold"><?= $r['distance'] ?>M <?= htmlspecialchars($r['stroke']) ?></td>
+                                <td class="p-4 text-slate-900 font-bold"><?= $r['distance'] ?>M <?= htmlspecialchars(\App\Helpers\SwimEventHelper::formatStrokeName($r['stroke'])) ?></td>
                                 <td class="p-4"><span class="px-2 py-1 text-xs font-bold rounded-md <?= $r['jenis_kelamin']=='L'?'bg-sky-100 text-sky-700':'bg-rose-100 text-rose-700' ?>"><?= $r['jenis_kelamin'] ?></span></td>
                                 <td class="p-4 text-slate-700 font-semibold"><?= htmlspecialchars($r['age_group']) ?></td>
                                 <td class="p-4 text-slate-900 font-bold uppercase tracking-wide"><?= htmlspecialchars($r['holder_name']) ?></td>

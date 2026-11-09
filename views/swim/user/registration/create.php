@@ -48,11 +48,11 @@
                                 $rawName   = strtoupper(trim($ev['event_name'] ?? ''));
                                 $fullText  = $rawStroke . ' ' . $rawName;
                                 $isKickEv  = (strpos($fullText, 'PAPAN') !== false || strpos($fullText, 'KICK') !== false);
-                                if (strpos($fullText, 'DADA') !== false || strpos($fullText, 'BREAST') !== false) $sName = 'DADA';
-                                elseif (strpos($fullText, 'PUNGGUNG') !== false || strpos($fullText, 'BACK') !== false) $sName = 'PUNGGUNG';
-                                elseif (strpos($fullText, 'KUPU') !== false || strpos($fullText, 'FLY') !== false) $sName = 'KUPU-KUPU';
+                                if (strpos($fullText, 'DADA') !== false || strpos($fullText, 'BREAST') !== false) $sName = 'GAYA DADA';
+                                elseif (strpos($fullText, 'PUNGGUNG') !== false || strpos($fullText, 'BACK') !== false) $sName = 'GAYA PUNGGUNG';
+                                elseif (strpos($fullText, 'KUPU') !== false || strpos($fullText, 'FLY') !== false) $sName = 'GAYA KUPU-KUPU';
                                 elseif (strpos($fullText, 'GANTI') !== false || strpos($fullText, 'MEDLEY') !== false || strpos($fullText, ' IM ') !== false) $sName = 'GAYA GANTI';
-                                else $sName = 'BEBAS';
+                                else $sName = 'GAYA BEBAS';
 
                                 $dist = (int)($ev['distance'] ?? 0);
                                 if ($dist <= 0) {
@@ -60,6 +60,7 @@
                                     else $dist = $isKickEv ? 25 : 50;
                                 }
                                 $displayLine = $isKickEv ? ("25M PAPAN KAKI " . $sName) : ("{$dist}M " . $sName);
+                                $displayLine = \App\Helpers\SwimEventHelper::ensureGayaPrefix($displayLine);
                                 ?>
                                 <p class="text-sm md:text-base font-black text-slate-800 uppercase italic"><?= htmlspecialchars($displayLine) ?></p>
                             </div>
