@@ -308,13 +308,16 @@ if (!function_exists('getKULabelInput')) {
 if (!function_exists('timeToMsPrint')) {
     function timeToMsPrint($time) {
         $time = trim($time);
-        if (empty($time) || strtoupper($time) == 'NT' || strpos($time, '99') !== false || $time == '-') return 9999999999; 
+        if (empty($time) || strtoupper($time) == 'NT' || preg_match('/^99[:.]99/', $time) || $time == '-') return 9999999999; 
         $parts = preg_split('/[:.]/', $time);
         $menit = 0; $detik = 0; $ms = 0;
         if (count($parts) == 3) { $menit = (int)$parts[0]; $detik = (int)$parts[1]; $ms = (int)$parts[2]; } 
         elseif (count($parts) == 2) { $detik = (int)$parts[0]; $ms = (int)$parts[1]; } 
         elseif (count($parts) == 1) { $detik = (int)$parts[0]; }
-        return ($menit * 60000) + ($detik * 1000) + ($ms * 10);
+        $lastLen = isset($parts[count($parts)-1]) ? strlen($parts[count($parts)-1]) : 0;
+        if ($lastLen == 2) $ms *= 10;
+        elseif ($lastLen == 1) $ms *= 100;
+        return ($menit * 60000) + ($detik * 1000) + $ms;
     }
 }
 
@@ -473,7 +476,7 @@ if ($currentMode === 'overall') {
             $row['ms_sort'] = 9999999999;
             if (($row['is_dq'] ?? 0) == 1) {
                 $row['ms_sort'] = 9999999999 + 100;
-            } elseif (!empty($row['final_time']) && strtoupper($row['final_time']) != 'NT' && strpos($row['final_time'], '99') === false) {
+            } elseif (!empty($row['final_time']) && strtoupper($row['final_time']) != 'NT' && !preg_match('/^99[:.]99/', trim($row['final_time']))) {
                 $row['ms_sort'] = timeToMsPrint($row['final_time']);
             }
             $groupedResults[$groupTitle][] = $row;
@@ -490,7 +493,7 @@ if ($currentMode === 'overall') {
             $row['ms_sort'] = 9999999999;
             if (($row['is_dq'] ?? 0) == 1) {
                 $row['ms_sort'] = 9999999999 + 100;
-            } elseif (!empty($row['final_time']) && strtoupper($row['final_time']) != 'NT' && strpos($row['final_time'], '99') === false) {
+            } elseif (!empty($row['final_time']) && strtoupper($row['final_time']) != 'NT' && !preg_match('/^99[:.]99/', trim($row['final_time']))) {
                 $row['ms_sort'] = timeToMsPrint($row['final_time']);
             }
             $groupedResults[$groupName][] = $row;
@@ -696,7 +699,7 @@ unset($rows);
                                         <?php 
                                         $rank = 1; $real_rank = 1; $prev_time = null;
                                         foreach($swimmers as $p): 
-                                            $is_valid = (($p['is_dq'] ?? 0) == 0 && !empty($p['final_time']) && strtoupper($p['final_time']) != 'NT' && strpos($p['final_time'], '99') === false);
+                                            $is_valid = (($p['is_dq'] ?? 0) == 0 && !empty($p['final_time']) && strtoupper($p['final_time']) != 'NT' && !preg_match('/^99[:.]99/', trim($p['final_time'])));
                                             $is_sparing = ((int)($p['is_sparing'] ?? 0)) === 1;
                                             $rank_display = '-';
                                             if ($is_sparing) {

@@ -167,4 +167,47 @@ assert(isset($ranks[110]), "ARFAN IZZAN SIDIK must receive a rank");
 assert($ranks[110] === 3, "ARFAN IZZAN SIDIK (00:35.00) should be Rank 3");
 echo "✓ Test 3 Passed: Rank calculated correctly for all 10 swimmers.\n\n";
 
+// 4. Test Millisecond .99 Handling (strpos vs preg_match bug)
+echo "Test 4: Millisecond .99 Handling (Anti-Regression for strpos 99 bug)\n";
+
+$timeWith99 = "00:48.99";
+$dummyTimeColon = "99:99.99";
+$dummyTimeDot = "99.99.99";
+$ntTime = "NT";
+
+// Test is_valid logic
+$isValidTimeWith99 = (!empty($timeWith99) && strtoupper($timeWith99) != 'NT' && !preg_match('/^99[:.]99/', trim($timeWith99)));
+$isValidDummyColon = (!empty($dummyTimeColon) && strtoupper($dummyTimeColon) != 'NT' && !preg_match('/^99[:.]99/', trim($dummyTimeColon)));
+$isValidDummyDot = (!empty($dummyTimeDot) && strtoupper($dummyTimeDot) != 'NT' && !preg_match('/^99[:.]99/', trim($dummyTimeDot)));
+$isValidNT = (!empty($ntTime) && strtoupper($ntTime) != 'NT' && !preg_match('/^99[:.]99/', trim($ntTime)));
+
+assert($isValidTimeWith99 === true, "Time '00:48.99' must be recognized as valid!");
+assert($isValidDummyColon === false, "Dummy time '99:99.99' must be recognized as invalid!");
+assert($isValidDummyDot === false, "Dummy time '99.99.99' must be recognized as invalid!");
+assert($isValidNT === false, "Time 'NT' must be recognized as invalid!");
+
+// Test timeToMsPrint logic with 00:48.99
+function timeToMsPrintTest($time) {
+    $time = trim($time);
+    if (empty($time) || strtoupper($time) == 'NT' || preg_match('/^99[:.]99/', $time) || $time == '-') return 9999999999; 
+    $parts = preg_split('/[:.]/', $time);
+    $menit = 0; $detik = 0; $ms = 0;
+    if (count($parts) == 3) { $menit = (int)$parts[0]; $detik = (int)$parts[1]; $ms = (int)$parts[2]; } 
+    elseif (count($parts) == 2) { $detik = (int)$parts[0]; $ms = (int)$parts[1]; } 
+    elseif (count($parts) == 1) { $detik = (int)$parts[0]; }
+    $lastLen = isset($parts[count($parts)-1]) ? strlen($parts[count($parts)-1]) : 0;
+    if ($lastLen == 2) $ms *= 10;
+    elseif ($lastLen == 1) $ms *= 100;
+    return ($menit * 60000) + ($detik * 1000) + $ms;
+}
+
+$ms48_99 = timeToMsPrintTest("00:48.99");
+assert($ms48_99 === 48990, "00:48.99 must convert to 48990 ms (got: $ms48_99)");
+
+$msDummy = timeToMsPrintTest("99:99.99");
+assert($msDummy === 9999999999, "99:99.99 must convert to 9999999999 ms sentinel");
+
+echo "✓ Test 4 Passed: Times ending in .99 are correctly recognized as valid and converted to exact milliseconds.\n\n";
+
 echo "ALL TESTS PASSED SUCCESSFULLY!\n";
+
