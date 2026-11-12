@@ -314,60 +314,10 @@ class RegistrationController extends Controller {
             }
         }
 
-        $strokeOrder = [
-            'GAYA BEBAS'            => 1,
-            'GAYA DADA'             => 2,
-            'GAYA PUNGGUNG'         => 3,
-            'GAYA KUPU-KUPU'        => 4,
-            'GAYA GANTI'            => 5,
-            'GAYA GANTI PERORANGAN' => 5
-        ];
-
-        $tableStructure = []; 
-        foreach ($allEvents as $ev) { 
-            $rawStroke = strtoupper(trim($ev['stroke'] ?? ''));
-            $rawName   = strtoupper(trim($ev['event_name'] ?? ''));
-            $fullText  = $rawStroke . ' ' . $rawName;
-            $isKick    = (strpos($fullText, 'PAPAN') !== false || strpos($fullText, 'KICK') !== false);
-
-            if (strpos($fullText, 'DADA') !== false || strpos($fullText, 'BREAST') !== false) {
-                $cleanStrokeName = 'GAYA DADA';
-            } elseif (strpos($fullText, 'PUNGGUNG') !== false || strpos($fullText, 'BACK') !== false) {
-                $cleanStrokeName = 'GAYA PUNGGUNG';
-            } elseif (strpos($fullText, 'KUPU') !== false || strpos($fullText, 'FLY') !== false) {
-                $cleanStrokeName = 'GAYA KUPU-KUPU';
-            } elseif (strpos($fullText, 'GANTI') !== false || strpos($fullText, 'MEDLEY') !== false || strpos($fullText, ' IM ') !== false) {
-                $cleanStrokeName = 'GAYA GANTI';
-            } else {
-                $cleanStrokeName = 'GAYA BEBAS';
-            }
-
-            if ($isKick) {
-                $jarakKey = 0;
-            } else {
-                $dist = (int)($ev['distance'] ?? 0);
-                if ($dist <= 0) {
-                    if (preg_match('/(?:^|\D)(25|50|100|200|400|800|1500)\s*M?(?:\D|$)/', $fullText, $dm)) {
-                        $dist = (int)$dm[1];
-                    } else {
-                        $dist = 50;
-                    }
-                }
-                $jarakKey = $dist;
-            }
-
-            $tableStructure[$cleanStrokeName][$jarakKey][] = $ev; 
-        }
-
-        uksort($tableStructure, function($a, $b) use ($strokeOrder) {
-            $orderA = $strokeOrder[$a] ?? 99; 
-            $orderB = $strokeOrder[$b] ?? 99;
-            return $orderA - $orderB;
-        });
-
-        foreach ($tableStructure as $s => $distArray) {
-            ksort($tableStructure[$s]); 
-        }
+        $formA3Structure = \App\Helpers\SwimEventHelper::buildFormA3Structure($allEvents);
+        $tableStructure = $formA3Structure['table_structure'];
+        $formA3Summary = $formA3Structure['summary'];
+        $formA3IsFallback = $formA3Structure['is_fallback'];
 
         $jsonData = [];
         $eligibleMap = [];
@@ -400,36 +350,13 @@ class RegistrationController extends Controller {
                     continue;
                 }
 
-                $rawStroke = strtoupper(trim($ev['stroke'] ?? ''));
-                $rawName   = strtoupper(trim($ev['event_name'] ?? ''));
-                $fullText  = $rawStroke . ' ' . $rawName;
-                $isKickPop = (strpos($fullText, 'PAPAN') !== false || strpos($fullText, 'KICK') !== false);
-
-                if (strpos($fullText, 'DADA') !== false || strpos($fullText, 'BREAST') !== false) {
-                    $shortStroke = 'DADA';
-                } elseif (strpos($fullText, 'PUNGGUNG') !== false || strpos($fullText, 'BACK') !== false) {
-                    $shortStroke = 'PUNGGUNG';
-                } elseif (strpos($fullText, 'KUPU') !== false || strpos($fullText, 'FLY') !== false) {
-                    $shortStroke = 'KUPU-KUPU';
-                } elseif (strpos($fullText, 'GANTI') !== false || strpos($fullText, 'MEDLEY') !== false || strpos($fullText, ' IM ') !== false) {
-                    $shortStroke = 'GAYA GANTI';
-                } else {
-                    $shortStroke = 'BEBAS';
-                }
-
-                if ($isKickPop) {
-                    $displayName = "25M PAPAN KAKI " . $shortStroke;
-                } else {
-                    $dist = (int)($ev['distance'] ?? 0);
-                    if ($dist <= 0) {
-                        if (preg_match('/(?:^|\D)(25|50|100|200|400|800|1500)\s*M?(?:\D|$)/', $fullText, $dm)) {
-                            $dist = (int)$dm[1];
-                        } else {
-                            $dist = 50;
-                        }
-                    }
-                    $displayName = "{$dist}M " . $shortStroke;
-                }
+                $evClass = \App\Helpers\SwimEventHelper::classifyEventForMatrix($ev);
+                $shortStroke = $evClass['stroke_short'];
+                $dist = $evClass['distance'];
+                $displayName = $evClass['is_kick']
+                    ? "{$dist}M PAPAN KAKI GAYA " . $shortStroke
+                    : "{$dist}M " . ($shortStroke === 'GAYA GANTI' ? 'GAYA GANTI' : "GAYA " . $shortStroke);
+                $displayName = \App\Helpers\SwimEventHelper::ensureGayaPrefix($displayName);
 
                 $hasSaved = isset($savedData[$sid][$ev['id']]) && $savedData[$sid][$ev['id']] !== '';
                 $myEvents[] = [
@@ -462,6 +389,8 @@ class RegistrationController extends Controller {
             'allSwimmers' => $allSwimmers,
             'visibleSwimmers' => $visibleSwimmers,
             'tableStructure' => $tableStructure,
+            'formA3Summary' => $formA3Summary,
+            'formA3IsFallback' => $formA3IsFallback,
             'savedData' => $savedData,
             'jsonData' => $jsonData,
             'ageRules' => $ageRules,
@@ -727,28 +656,41 @@ class RegistrationController extends Controller {
         $visibleSwimmers = array_values(array_filter($allSwimmers, fn($s) => in_array($s['id'], $matrixIds)));
         $swimmersToExport = !empty($visibleSwimmers) ? $visibleSwimmers : $allSwimmers;
 
+        $mode = strtolower(trim((string)($_GET['mode'] ?? 'data')));
+        $isTemplateMode = ($mode === 'template');
+        $formA3 = \App\Helpers\SwimEventHelper::buildFormA3Structure($allEvents);
+        $formA3Columns = $formA3['columns'];
+        $safeEventName = preg_replace('/[^A-Za-z0-9_-]/', '_', $event['event_name'] ?? 'Event');
+        $filePrefix = $isTemplateMode ? 'Template_FormA3_' : 'FormA3_';
+
         header('Content-Type: text/csv; charset=utf-8');
-        header('Content-Disposition: attachment; filename=FormA3_' . preg_replace('/[^A-Za-z0-9_-]/', '_', $event['event_name'] ?? 'Event') . '_' . $event_id . '.csv');
+        header('Content-Disposition: attachment; filename=' . $filePrefix . $safeEventName . '_' . $event_id . '.csv');
         $output = fopen('php://output', 'w');
+        fprintf($output, chr(0xEF) . chr(0xBB) . chr(0xBF));
 
-        // Form A3 2-row header
-        fputcsv($output, ['Nama', 'Sekolah', 'Tgl Lahir', 'Pa/Pi', 'Gaya Bebas', '', '', 'Gaya Dada', '', '', 'Gaya Punggung', '', '', 'Gaya Kupu-kupu', '', '']);
-        fputcsv($output, ['', '', '', '', 'Papan', '25M', '50M', 'Papan', '25M', '50M', 'Papan', '25M', '50M', 'Papan', '25M', '50M']);
+        // Form A3 2-row header dinamis sesuai Database Nomor Lomba
+        fputcsv($output, $formA3['header_row_1']);
+        fputcsv($output, $formA3['header_row_2']);
 
-        $formA3Columns = [
-            4  => ['stroke' => 'BEBAS',     'distance' => 25, 'is_kick' => true],
-            5  => ['stroke' => 'BEBAS',     'distance' => 25, 'is_kick' => false],
-            6  => ['stroke' => 'BEBAS',     'distance' => 50, 'is_kick' => false],
-            7  => ['stroke' => 'DADA',      'distance' => 25, 'is_kick' => true],
-            8  => ['stroke' => 'DADA',      'distance' => 25, 'is_kick' => false],
-            9  => ['stroke' => 'DADA',      'distance' => 50, 'is_kick' => false],
-            10 => ['stroke' => 'PUNGGUNG',  'distance' => 25, 'is_kick' => true],
-            11 => ['stroke' => 'PUNGGUNG',  'distance' => 25, 'is_kick' => false],
-            12 => ['stroke' => 'PUNGGUNG',  'distance' => 50, 'is_kick' => false],
-            13 => ['stroke' => 'KUPU-KUPU', 'distance' => 25, 'is_kick' => true],
-            14 => ['stroke' => 'KUPU-KUPU', 'distance' => 25, 'is_kick' => false],
-            15 => ['stroke' => 'KUPU-KUPU', 'distance' => 50, 'is_kick' => false],
-        ];
+        if ($isTemplateMode) {
+            $sampleRow = ['[CONTOH] Budi Santoso (Hapus baris ini)', 'SDN 01 Contoh', '15/05/2015', 'L'];
+            $sampleOffset = 0;
+            foreach ($formA3Columns as $spec) {
+                if ($sampleOffset === 0) {
+                    $sampleRow[] = '00.28.50';
+                } elseif ($sampleOffset === 1) {
+                    $sampleRow[] = '99.99.99';
+                } else {
+                    $sampleRow[] = '';
+                }
+                $sampleOffset++;
+            }
+            fputcsv($output, $sampleRow);
+            fclose($output);
+            exit;
+        }
+
+        $classifiedEvents = $this->classifyEventList($allEvents);
 
         foreach ($swimmersToExport as $sw) {
             $sid = $sw['id'];
@@ -764,43 +706,24 @@ class RegistrationController extends Controller {
 
             foreach ($formA3Columns as $colIdx => $spec) {
                 $cellVal = '';
-                foreach ($allEvents as $ev) {
-                    $rawStroke = strtoupper(trim($ev['stroke'] ?? ''));
-                    $rawName   = strtoupper(trim($ev['event_name'] ?? ''));
-                    $fullText  = $rawStroke . ' ' . $rawName;
-                    $isKick    = (strpos($fullText, 'PAPAN') !== false || strpos($fullText, 'KICK') !== false);
-
-                    if (strpos($fullText, 'DADA') !== false || strpos($fullText, 'BREAST') !== false) {
-                        $sName = 'DADA';
-                    } elseif (strpos($fullText, 'PUNGGUNG') !== false || strpos($fullText, 'BACK') !== false) {
-                        $sName = 'PUNGGUNG';
-                    } elseif (strpos($fullText, 'KUPU') !== false || strpos($fullText, 'FLY') !== false) {
-                        $sName = 'KUPU-KUPU';
-                    } else {
-                        $sName = 'BEBAS';
-                    }
-
-                    $dist = (int)($ev['distance'] ?? 0);
-                    if ($dist <= 0) {
-                        if (preg_match('/(?:^|\D)(25|50|100|200|400|800|1500)\s*M?(?:\D|$)/', $fullText, $dm)) {
-                            $dist = (int)$dm[1];
-                        } else {
-                            $dist = $isKick ? 25 : 50;
-                        }
-                    }
-
-                    if ($sName !== $spec['stroke'] || $dist !== $spec['distance'] || $isKick !== $spec['is_kick']) {
+                foreach ($classifiedEvents as $item) {
+                    $meta = $item['meta'];
+                    if (
+                        $meta['stroke_short'] !== $spec['stroke']
+                        || $meta['distance'] !== $spec['distance']
+                        || $meta['is_kick'] !== $spec['is_kick']
+                    ) {
                         continue;
                     }
 
-                    $evGenRaw = strtoupper($ev['jenis_kelamin'] ?? '');
-                    $evGen = ($evGenRaw === 'P' || $evGenRaw === 'PUTRI') ? 'P' : (($evGenRaw === 'L' || $evGenRaw === 'PUTRA') ? 'L' : 'MIX');
+                    $evGen = $item['gender'];
                     if ($evGen !== 'MIX' && $evGen !== 'MIXED' && $evGen !== $swGen) {
                         continue;
                     }
 
-                    if (isset($savedData[$sid][$ev['id']]) && $savedData[$sid][$ev['id']] !== '') {
-                        $cellVal = $savedData[$sid][$ev['id']];
+                    $evId = $item['event']['id'];
+                    if (isset($savedData[$sid][$evId]) && $savedData[$sid][$evId] !== '') {
+                        $cellVal = $savedData[$sid][$evId];
                         break;
                     }
                 }
@@ -811,6 +734,26 @@ class RegistrationController extends Controller {
         }
         fclose($output);
         exit;
+    }
+
+    /**
+     * Pre-klasifikasikan daftar nomor lomba untuk pencocokan ekspor/impor Form A3.
+     *
+     * @param array $allEvents Baris dari swim_event_numbers
+     * @return array<int, array{event: array, meta: array, gender: string}>
+     */
+    private function classifyEventList(array $allEvents): array {
+        $classified = [];
+        foreach ($allEvents as $ev) {
+            $evGenRaw = strtoupper(trim((string)($ev['jenis_kelamin'] ?? '')));
+            $evGen = ($evGenRaw === 'P' || $evGenRaw === 'PUTRI') ? 'P' : (($evGenRaw === 'L' || $evGenRaw === 'PUTRA') ? 'L' : 'MIX');
+            $classified[] = [
+                'event'  => $ev,
+                'meta'   => \App\Helpers\SwimEventHelper::classifyEventForMatrix($ev),
+                'gender' => $evGen,
+            ];
+        }
+        return $classified;
     }
 
     public function importCsv($event_id = 0) {
@@ -850,7 +793,8 @@ class RegistrationController extends Controller {
         $handle = fopen($file, "r");
         if ($handle !== FALSE) {
             $firstLine = fgets($handle);
-            $delimiter = (strpos($firstLine, ';') !== false) ? ';' : ',';
+            $firstLineClean = preg_replace('/^\xEF\xBB\xBF/', '', (string)$firstLine);
+            $delimiter = (substr_count($firstLineClean, ';') > substr_count($firstLineClean, ',')) ? ';' : ',';
             rewind($handle);
 
             $headers = fgetcsv($handle, 10000, $delimiter);
@@ -858,6 +802,12 @@ class RegistrationController extends Controller {
                 $_SESSION['flash_error'] = "File CSV kosong.";
                 header("Location: " . getenv('APP_URL') . "/swim/user/registration/index/" . $event_id);
                 exit;
+            }
+            if (isset($headers[0])) {
+                $headers[0] = preg_replace('/^\xEF\xBB\xBF/', '', (string)$headers[0]);
+            }
+            if (count($headers) === 1 && strpos((string)$headers[0], ',') !== false && $delimiter === ';') {
+                $headers = str_getcsv($headers[0], ',');
             }
 
             // Check if legacy CSV format with [ID:xxx]
@@ -963,42 +913,40 @@ class RegistrationController extends Controller {
                         }
                     }
                 } else {
-                    // Form A3 Format Parser
+                    // Form A3 Format Parser (dinamis sesuai header / Database Nomor Lomba)
                     $row2 = fgetcsv($handle, 10000, $delimiter);
-                    $subText = strtoupper(implode(' ', (array)$row2));
-                    if (strpos($subText, 'PAPAN') === false && strpos($subText, '25M') === false && strpos($subText, '50M') === false) {
-                        $firstDataRow = $row2;
-                    } else {
-                        $firstDataRow = null;
+                    if (is_array($row2) && count($row2) === 1 && strpos((string)$row2[0], ',') !== false && $delimiter === ';') {
+                        $row2 = str_getcsv($row2[0], ',');
                     }
 
-                    $formA3Columns = [
-                        4  => ['stroke' => 'BEBAS',     'distance' => 25, 'is_kick' => true],
-                        5  => ['stroke' => 'BEBAS',     'distance' => 25, 'is_kick' => false],
-                        6  => ['stroke' => 'BEBAS',     'distance' => 50, 'is_kick' => false],
-                        7  => ['stroke' => 'DADA',      'distance' => 25, 'is_kick' => true],
-                        8  => ['stroke' => 'DADA',      'distance' => 25, 'is_kick' => false],
-                        9  => ['stroke' => 'DADA',      'distance' => 50, 'is_kick' => false],
-                        10 => ['stroke' => 'PUNGGUNG',  'distance' => 25, 'is_kick' => true],
-                        11 => ['stroke' => 'PUNGGUNG',  'distance' => 25, 'is_kick' => false],
-                        12 => ['stroke' => 'PUNGGUNG',  'distance' => 50, 'is_kick' => false],
-                        13 => ['stroke' => 'KUPU-KUPU', 'distance' => 25, 'is_kick' => true],
-                        14 => ['stroke' => 'KUPU-KUPU', 'distance' => 25, 'is_kick' => false],
-                        15 => ['stroke' => 'KUPU-KUPU', 'distance' => 50, 'is_kick' => false],
-                    ];
+                    $parsedHeader = \App\Helpers\SwimEventHelper::parseFormA3Headers($headers, $row2);
+                    $formA3Columns = $parsedHeader['columns'];
+                    $firstDataRow = $parsedHeader['consume_row2_as_header'] ? null : $row2;
+
+                    if (empty($formA3Columns)) {
+                        throw new \Exception("Header kolom gaya/jarak Form A3 tidak dikenali. Silakan unduh ulang template CSV dari tombol Unduh Template.");
+                    }
+
+                    $classifiedEvents = $this->classifyEventList($allEvents);
 
                     $stmtCekSwimmer = $this->db->prepare("SELECT id FROM swim_swimmers WHERE user_id = ? AND UPPER(TRIM(nama_atlet)) = ?");
                     $stmtUpdSwimmer = $this->db->prepare("UPDATE swim_swimmers SET jenis_kelamin=?, tanggal_lahir=?, asal_sekolah=? WHERE id=?");
                     $stmtInsSwimmer = $this->db->prepare("INSERT INTO swim_swimmers (uid, user_id, nama_atlet, jenis_kelamin, tanggal_lahir, club_id, asal_sekolah) VALUES (?, ?, ?, ?, ?, ?, ?)");
 
                     $processRow = function($data) use (
-                        &$updated, &$deleted, &$newSwimmers, $formA3Columns, $allEvents, $ageRules,
+                        &$updated, &$deleted, &$newSwimmers, $formA3Columns, $classifiedEvents, $ageRules,
                         $compYear, $calcType, $compDateObj, $uid, $event_id, $club_id,
                         $stmtCekSwimmer, $stmtUpdSwimmer, $stmtInsSwimmer, $stmtCek, $stmtDel, $stmtUpd, $stmtIns
                     ) {
                         if (count($data) < 4) return;
                         $nama = trim($data[0] ?? '');
-                        if (empty($nama) || strtoupper($nama) === 'NAMA' || strtoupper($nama) === 'NAMA ATLET' || strtoupper($nama) === 'NO') {
+                        if (
+                            empty($nama)
+                            || strtoupper($nama) === 'NAMA'
+                            || strtoupper($nama) === 'NAMA ATLET'
+                            || strtoupper($nama) === 'NO'
+                            || stripos($nama, '[CONTOH]') === 0
+                        ) {
                             return;
                         }
 
@@ -1057,43 +1005,23 @@ class RegistrationController extends Controller {
                             if ($val === '' || $val === '-') continue;
 
                             $targetEvent = null;
-                            foreach ($allEvents as $ev) {
-                                $rawStroke = strtoupper(trim($ev['stroke'] ?? ''));
-                                $rawName   = strtoupper(trim($ev['event_name'] ?? ''));
-                                $fullText  = $rawStroke . ' ' . $rawName;
-                                $isKick    = (strpos($fullText, 'PAPAN') !== false || strpos($fullText, 'KICK') !== false);
-
-                                if (strpos($fullText, 'DADA') !== false || strpos($fullText, 'BREAST') !== false) {
-                                    $sName = 'DADA';
-                                } elseif (strpos($fullText, 'PUNGGUNG') !== false || strpos($fullText, 'BACK') !== false) {
-                                    $sName = 'PUNGGUNG';
-                                } elseif (strpos($fullText, 'KUPU') !== false || strpos($fullText, 'FLY') !== false) {
-                                    $sName = 'KUPU-KUPU';
-                                } else {
-                                    $sName = 'BEBAS';
-                                }
-
-                                $dist = (int)($ev['distance'] ?? 0);
-                                if ($dist <= 0) {
-                                    if (preg_match('/(?:^|\D)(25|50|100|200|400|800|1500)\s*M?(?:\D|$)/', $fullText, $dm)) {
-                                        $dist = (int)$dm[1];
-                                    } else {
-                                        $dist = $isKick ? 25 : 50;
-                                    }
-                                }
-
-                                if ($sName !== $spec['stroke'] || $dist !== $spec['distance'] || $isKick !== $spec['is_kick']) {
+                            foreach ($classifiedEvents as $item) {
+                                $meta = $item['meta'];
+                                if (
+                                    $meta['stroke_short'] !== $spec['stroke']
+                                    || $meta['distance'] !== $spec['distance']
+                                    || $meta['is_kick'] !== $spec['is_kick']
+                                ) {
                                     continue;
                                 }
 
-                                $evGenRaw = strtoupper($ev['jenis_kelamin'] ?? '');
-                                $evGen = ($evGenRaw === 'P' || $evGenRaw === 'PUTRI') ? 'P' : (($evGenRaw === 'L' || $evGenRaw === 'PUTRA') ? 'L' : 'MIX');
+                                $evGen = $item['gender'];
                                 if ($evGen !== 'MIX' && $evGen !== 'MIXED' && $evGen !== $gender) {
                                     continue;
                                 }
 
-                                if ($this->checkSwimmerEligibility($sw, $ev, $ageRules, $compYear, $calcType, $compDateObj)) {
-                                    $targetEvent = $ev;
+                                if ($this->checkSwimmerEligibility($sw, $item['event'], $ageRules, $compYear, $calcType, $compDateObj)) {
+                                    $targetEvent = $item['event'];
                                     break;
                                 }
                             }
@@ -1115,10 +1043,16 @@ class RegistrationController extends Controller {
                             }
 
                             $time = $val;
-                            if ($time !== '' && strtoupper($time) !== 'X' && $time !== '00.00.00' && strtoupper($time) !== 'NT') {
+                            $upperVal = strtoupper($time);
+                            if ($time !== '' && $upperVal !== 'X' && $time !== '00.00.00' && $upperVal !== 'NT' && $upperVal !== 'NO TIME') {
                                 $time = preg_replace('/[^\d\.\:]/', '', $time);
                                 $time = str_replace(':', '.', $time);
-                                if (!preg_match('/^\d{1,2}\.\d{1,2}\.\d{1,2}$/', $time)) {
+                                if (preg_match('/^\d{1,2}\.\d{1,2}$/', $time)) {
+                                    $time = '00.' . $time;
+                                }
+                                if (preg_match('/^(\d{1,2})\.(\d{1,2})\.(\d{1,2})$/', $time, $tm)) {
+                                    $time = sprintf('%02d.%02d.%02d', (int)$tm[1], (int)$tm[2], (int)$tm[3]);
+                                } else {
                                     $time = '99.99.99';
                                 }
                             } else {
@@ -1155,7 +1089,7 @@ class RegistrationController extends Controller {
 
                     while (($data = fgetcsv($handle, 10000, $delimiter)) !== FALSE) {
                         if (count($data) == 1 && strpos($data[0], ',') !== false && $delimiter == ';') {
-                            $data = explode(',', $data[0]);
+                            $data = str_getcsv($data[0], ',');
                         }
                         $processRow($data);
                     }

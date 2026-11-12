@@ -23,8 +23,7 @@
             </div>
             <a href="<?= getenv('APP_URL') ?>/swim/user/checkout/detail/<?= $event['id'] ?>" class="bg-slate-900 text-white px-6 py-3 rounded-xl font-bold text-xs shadow-lg">LIHAT STATUS</a>
         <?php else: ?>
-            <a href="<?= getenv('APP_URL') ?>/swim/user/registration/exportCsv/<?= $event['id'] ?>" class="bg-emerald-600 text-white px-4 py-3 rounded-xl font-bold text-[10px] shadow-lg hover:bg-emerald-700 transition flex items-center gap-2">📥 EXPORT CSV (FORM A3)</a>
-            <button onclick="document.getElementById('modalImportCsv').classList.remove('hidden')" class="bg-amber-500 text-white px-4 py-3 rounded-xl font-bold text-[10px] shadow-lg hover:bg-amber-600 transition flex items-center gap-2">📤 IMPORT CSV (FORM A3)</button>
+            <button onclick="document.getElementById('modalImportCsv').classList.remove('hidden')" class="bg-emerald-600 text-white px-4 py-3 rounded-xl font-bold text-[10px] shadow-lg hover:bg-emerald-700 transition flex items-center gap-2">📥 IMPORT / TEMPLATE CSV (FORM A3)</button>
             <button onclick="document.getElementById('modalAdd').classList.remove('hidden')" class="bg-blue-600 text-white px-4 py-3 rounded-xl font-bold text-[10px] shadow-lg hover:bg-blue-700">+ PILIH ATLET</button>
             <a href="<?= getenv('APP_URL') ?>/swim/user/checkout/detail/<?= $event['id'] ?>" class="bg-slate-900 text-white px-6 py-3 rounded-xl font-bold text-xs shadow-lg">SELESAI / BAYAR</a>
         <?php endif; ?>
@@ -60,7 +59,7 @@
                 <?php foreach ($tableStructure as $strokeName => $distances): ?>
                     <?php foreach ($distances as $distKey => $eventsInDist): ?>
                         <th scope="col" class="sticky-top-2 px-1 py-2 text-center border-l border-slate-200 min-w-[70px] bg-white font-bold text-slate-600">
-                            <?= ($distKey === 0) ? "25M PAPAN KAKI" : htmlspecialchars($distKey) . " M" ?>
+                            <?= ($distKey === 0) ? "25M PAPAN KAKI" : (($distKey === 1) ? "50M PAPAN KAKI" : (($distKey === 2) ? "100M PAPAN KAKI" : htmlspecialchars($distKey) . " M")) ?>
                         </th>
                     <?php endforeach; ?>
                 <?php endforeach; ?>
@@ -178,34 +177,74 @@
 </div>
 
 <div id="modalImportCsv" class="hidden fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col">
-        <div class="bg-amber-500 p-6 text-white flex justify-between items-center">
+    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col">
+        <div class="bg-emerald-600 p-6 text-white flex justify-between items-center shrink-0">
             <div>
                 <h2 class="text-xl font-black italic uppercase tracking-tighter">IMPORT CSV (FORM A3)</h2>
-                <p class="text-[10px] font-bold text-amber-100 uppercase mt-1">Upload File CSV Form A3</p>
+                <p class="text-[10px] font-bold text-emerald-100 uppercase mt-1">Template &amp; Import Otomatis Sesuai Database Nomor Lomba</p>
             </div>
-            <button onclick="document.getElementById('modalImportCsv').classList.add('hidden')" class="text-3xl hover:text-amber-200 transition">&times;</button>
+            <button type="button" onclick="document.getElementById('modalImportCsv').classList.add('hidden')" class="text-3xl hover:text-emerald-200 transition">&times;</button>
         </div>
-        <form method="POST" action="<?= getenv('APP_URL') ?>/swim/user/registration/importCsv/<?= $event['id'] ?>" enctype="multipart/form-data" class="p-6">
-            <div class="mb-4">
-                <label class="block text-slate-700 font-bold mb-2 text-xs uppercase tracking-wide">Pilih File Form A3 (.csv)</label>
-                <input type="file" name="csv_file" accept=".csv" class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" required>
-            </div>
-            <div class="bg-blue-50 p-4 rounded-xl mb-6">
-                <p class="text-xs text-blue-800 font-medium leading-relaxed">
-                    <strong>Format Form A3:</strong><br>
-                    • Kolom: <code>Nama, Sekolah, Tgl Lahir, Pa/Pi, Gaya Bebas (Papan, 25M, 50M), Gaya Dada (Papan, 25M, 50M), Gaya Punggung (Papan, 25M, 50M), Gaya Kupu-kupu (Papan, 25M, 50M)</code><br>
-                    • Format tgl lahir: <code>DD/MM/YYYY</code> atau <code>YYYY-MM-DD</code>.<br>
-                    • Catatan waktu: isi waktu (misal: <code>00.32.10</code>) atau <code>99.99.99</code> / <code>X</code>.<br>
-                    • Atlet baru otomatis didaftarkan dan masuk ke matriks lomba.<br>
-                    • Nomor lomba akan otomatis disesuaikan dengan Kelompok Umur (KU) masing-masing atlet.
+        <div class="p-6 overflow-y-auto space-y-5">
+            <!-- Step 1: Unduh Template / Data Matrix -->
+            <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4">
+                <div class="flex items-center justify-between gap-2 mb-2">
+                    <span class="text-xs font-black uppercase tracking-wide text-slate-800">1. Unduh Template Form A3</span>
+                    <?php if (!empty($formA3IsFallback)): ?>
+                        <span class="text-[10px] font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">Default Form A3</span>
+                    <?php else: ?>
+                        <span class="text-[10px] font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">Sync Database Nomor Lomba</span>
+                    <?php endif; ?>
+                </div>
+                <p class="text-xs text-slate-600 leading-relaxed mb-3">
+                    <?php if (!empty($formA3IsFallback)): ?>
+                        Nomor lomba individu belum diatur pada event ini, sehingga template menggunakan kolom standar Form A3:
+                    <?php else: ?>
+                        Kolom gaya &amp; jarak pada template CSV ini otomatis mengikuti nomor lomba aktif pada event ini:
+                    <?php endif; ?>
                 </p>
+                <?php if (!empty($formA3Summary)): ?>
+                    <div class="flex flex-wrap gap-1.5 mb-4">
+                        <?php foreach ($formA3Summary as $strokeName => $distLabels): ?>
+                            <span class="inline-flex items-center gap-1 bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-[11px] text-slate-700">
+                                <strong class="text-slate-900"><?= htmlspecialchars($strokeName) ?>:</strong>
+                                <span><?= htmlspecialchars(implode(', ', $distLabels)) ?></span>
+                            </span>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <a href="<?= getenv('APP_URL') ?>/swim/user/registration/exportCsv/<?= $event['id'] ?>?mode=template" class="text-center bg-emerald-600 text-white font-bold py-2.5 px-3 rounded-xl shadow hover:bg-emerald-700 transition text-xs flex items-center justify-center gap-1.5">
+                        📥 Unduh Template
+                    </a>
+                    <a href="<?= getenv('APP_URL') ?>/swim/user/registration/exportCsv/<?= $event['id'] ?>?mode=data" class="text-center bg-white text-slate-700 font-bold py-2.5 px-3 rounded-xl border border-slate-300 hover:bg-slate-100 transition text-xs flex items-center justify-center gap-1.5">
+                        📊 Unduh Data Matrix
+                    </a>
+                </div>
             </div>
-            <div class="flex gap-2">
-                <a href="<?= getenv('APP_URL') ?>/swim/user/registration/exportCsv/<?= $event['id'] ?>" class="flex-1 text-center bg-slate-100 text-slate-700 font-bold py-3 rounded-xl border border-slate-300 hover:bg-slate-200 transition text-xs flex items-center justify-center gap-1">📥 Unduh Template</a>
-                <button type="submit" class="flex-1 bg-amber-500 text-white font-black py-3 rounded-xl shadow-lg hover:bg-amber-600 transition uppercase tracking-wide text-xs">Upload & Simpan</button>
-            </div>
-        </form>
+
+            <!-- Step 2: Upload CSV -->
+            <form method="POST" action="<?= getenv('APP_URL') ?>/swim/user/registration/importCsv/<?= $event['id'] ?>" enctype="multipart/form-data" class="space-y-4">
+                <div>
+                    <label class="block text-slate-800 font-black mb-2 text-xs uppercase tracking-wide">2. Pilih &amp; Upload File Form A3 (.csv)</label>
+                    <input type="file" name="csv_file" accept=".csv" class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" required>
+                </div>
+                <div class="bg-blue-50 p-4 rounded-xl">
+                    <p class="text-xs text-blue-800 font-medium leading-relaxed">
+                        <strong>Panduan Pengisian Form A3:</strong><br>
+                        • Kolom identitas: <code>Nama, Sekolah, Tgl Lahir, Pa/Pi</code> diikuti kolom gaya/jarak sesuai template.<br>
+                        • Format tanggal lahir: <code>DD/MM/YYYY</code> atau <code>YYYY-MM-DD</code>.<br>
+                        • Catatan waktu: isi waktu (misal: <code>00.32.10</code>) atau <code>99.99.99</code> / <code>X</code> untuk No Time.<br>
+                        • Baris <code>[CONTOH]</code> pada template boleh dihapus (atau otomatis dilewati saat upload).<br>
+                        • Nomor lomba (KU &amp; Pa/Pi) otomatis dicocokkan dengan Database Nomor Lomba event.
+                    </p>
+                </div>
+                <div class="flex gap-2">
+                    <button type="button" onclick="document.getElementById('modalImportCsv').classList.add('hidden')" class="px-4 py-3 rounded-xl border border-slate-300 text-slate-600 font-bold hover:bg-slate-100 transition text-xs">Batal</button>
+                    <button type="submit" class="flex-1 bg-amber-500 text-white font-black py-3 rounded-xl shadow-lg hover:bg-amber-600 transition uppercase tracking-wide text-xs">📤 Upload &amp; Simpan</button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 

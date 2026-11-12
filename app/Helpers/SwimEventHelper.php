@@ -353,4 +353,282 @@ class SwimEventHelper {
             $pdo->exec("ALTER TABLE swim_event_numbers ADD COLUMN relay_max_total_age INT DEFAULT 0");
         } catch (\Throwable $e) {}
     }
+
+    /**
+     * Deteksi metadata gaya renang dari teks header/nama nomor lomba, atau null jika tidak dikenali.
+     *
+     * @param string $upperText Teks yang sudah di-uppercase
+     * @return array{group: string, short: string, label: string}|null
+     */
+    private static function detectStrokeMeta(string $upperText): ?array {
+        if (strpos($upperText, 'DADA') !== false || strpos($upperText, 'BREAST') !== false) {
+            return ['group' => 'GAYA DADA', 'short' => 'DADA', 'label' => 'Gaya Dada'];
+        }
+        if (strpos($upperText, 'PUNGGUNG') !== false || strpos($upperText, 'BACK') !== false) {
+            return ['group' => 'GAYA PUNGGUNG', 'short' => 'PUNGGUNG', 'label' => 'Gaya Punggung'];
+        }
+        if (strpos($upperText, 'KUPU') !== false || strpos($upperText, 'FLY') !== false) {
+            return ['group' => 'GAYA KUPU-KUPU', 'short' => 'KUPU-KUPU', 'label' => 'Gaya Kupu-kupu'];
+        }
+        if (strpos($upperText, 'GANTI') !== false || strpos($upperText, 'MEDLEY') !== false || preg_match('/\bI\.?M\.?\b/', $upperText)) {
+            return ['group' => 'GAYA GANTI', 'short' => 'GAYA GANTI', 'label' => 'Gaya Ganti'];
+        }
+        if (strpos($upperText, 'BEBAS') !== false || strpos($upperText, 'FREE') !== false) {
+            return ['group' => 'GAYA BEBAS', 'short' => 'BEBAS', 'label' => 'Gaya Bebas'];
+        }
+        return null;
+    }
+
+    /**
+     * Ekstrak klasifikasi gaya, indikator papan kaki (kick), dan jarak dari satu baris nomor lomba.
+     * Dipakai bersama oleh Matrix UI, Export Template Form A3, dan Import CSV Form A3 agar selalu sinkron.
+     *
+     * @param array $ev Baris dari swim_event_numbers
+     * @return array{stroke_group: string, stroke_short: string, stroke_label: string, is_kick: bool, distance: int, jarak_key: int, sub_label: string}
+     */
+    public static function classifyEventForMatrix(array $ev): array {
+        $rawStroke = strtoupper(trim((string)($ev['stroke'] ?? '')));
+        $rawName   = strtoupper(trim((string)($ev['event_name'] ?? '')));
+        $fullText  = trim($rawStroke . ' ' . $rawName);
+        $isKick    = (strpos($fullText, 'PAPAN') !== false || strpos($fullText, 'KICK') !== false);
+
+        $strokeMeta = self::detectStrokeMeta($fullText) ?? [
+            'group' => 'GAYA BEBAS',
+            'short' => 'BEBAS',
+            'label' => 'Gaya Bebas',
+        ];
+
+        $dist = (int)($ev['distance'] ?? 0);
+        if ($dist <= 0) {
+            if (preg_match('/(?<![.\d:\/-])\b(25|50|100|200|400|800|1500)\s*M?\b(?![.\d:\/-])/i', $fullText, $dm)) {
+                $dist = (int)$dm[1];
+            } else {
+                $dist = $isKick ? 25 : 50;
+            }
+        }
+
+        if ($isKick) {
+            // Key integer < 25 agar ksort selalu menempatkan papan kaki di depan jarak reguler
+            $jarakKey = ($dist === 25) ? 0 : (($dist === 50) ? 1 : (($dist === 100) ? 2 : 0));
+            $subLabel = $dist . 'M Papan Kaki';
+        } else {
+            $jarakKey = $dist;
+            $subLabel = $dist . 'M';
+        }
+
+        return [
+            'stroke_group' => $strokeMeta['group'],
+            'stroke_short' => $strokeMeta['short'],
+            'stroke_label' => $strokeMeta['label'],
+            'is_kick'      => $isKick,
+            'distance'     => $dist,
+            'jarak_key'    => $jarakKey,
+            'sub_label'    => $subLabel,
+        ];
+    }
+
+    /**
+     * Susun struktur tabel Matrix & kolom CSV Form A3 dinamis sesuai Database Nomor Lomba event.
+     * Jika event belum memiliki nomor lomba individu, gunakan kolom standar Form A3 sebagai fallback.
+     *
+     * @param array $allEvents Daftar baris swim_event_numbers
+     * @return array{table_structure: array, columns: array, header_row_1: array, header_row_2: array, summary: array, is_fallback: bool}
+     */
+    public static function buildFormA3Structure(array $allEvents): array {
+        $strokeOrder = [
+            'GAYA BEBAS'     => 1,
+            'GAYA DADA'      => 2,
+            'GAYA PUNGGUNG'  => 3,
+            'GAYA KUPU-KUPU' => 4,
+            'GAYA GANTI'     => 5,
+        ];
+
+        $tableStructure = [];
+        $columnMetaByKey = [];
+
+        foreach ($allEvents as $ev) {
+            if (isset($ev['is_relay']) && (int)$ev['is_relay'] === 1) {
+                continue;
+            }
+            $info = self::classifyEventForMatrix($ev);
+            $sg = $info['stroke_group'];
+            $jk = $info['jarak_key'];
+
+            $tableStructure[$sg][$jk][] = $ev;
+            if (!isset($columnMetaByKey[$sg][$jk])) {
+                $columnMetaByKey[$sg][$jk] = $info;
+            }
+        }
+
+        $sortByStrokeOrder = function ($a, $b) use ($strokeOrder) {
+            return ($strokeOrder[$a] ?? 99) <=> ($strokeOrder[$b] ?? 99);
+        };
+
+        uksort($tableStructure, $sortByStrokeOrder);
+        foreach ($tableStructure as $s => $_) {
+            ksort($tableStructure[$s]);
+        }
+
+        uksort($columnMetaByKey, $sortByStrokeOrder);
+        foreach ($columnMetaByKey as $s => $_) {
+            ksort($columnMetaByKey[$s]);
+        }
+
+        $headerRow1 = ['Nama', 'Sekolah', 'Tgl Lahir', 'Pa/Pi'];
+        $headerRow2 = ['', '', '', ''];
+        $columns = [];
+        $summary = [];
+        $isFallback = false;
+
+        if (!empty($columnMetaByKey)) {
+            $colIdx = 4;
+            foreach ($columnMetaByKey as $distances) {
+                $firstInGroup = true;
+                foreach ($distances as $meta) {
+                    $headerRow1[] = $firstInGroup ? $meta['stroke_label'] : '';
+                    $headerRow2[] = $meta['sub_label'];
+                    $columns[$colIdx] = [
+                        'stroke'       => $meta['stroke_short'],
+                        'stroke_group' => $meta['stroke_group'],
+                        'stroke_label' => $meta['stroke_label'],
+                        'distance'     => $meta['distance'],
+                        'is_kick'      => $meta['is_kick'],
+                        'sub_label'    => $meta['sub_label'],
+                    ];
+                    $summary[$meta['stroke_label']][] = $meta['sub_label'];
+                    $firstInGroup = false;
+                    $colIdx++;
+                }
+            }
+        } else {
+            $isFallback = true;
+            $fallbackStrokes = [
+                ['Gaya Bebas',     'BEBAS',     'GAYA BEBAS'],
+                ['Gaya Dada',      'DADA',      'GAYA DADA'],
+                ['Gaya Punggung',  'PUNGGUNG',  'GAYA PUNGGUNG'],
+                ['Gaya Kupu-kupu', 'KUPU-KUPU', 'GAYA KUPU-KUPU'],
+            ];
+            $fallbackVariants = [
+                [25, true,  '25M Papan Kaki'],
+                [25, false, '25M'],
+                [50, false, '50M'],
+            ];
+            $colIdx = 4;
+            foreach ($fallbackStrokes as [$label, $short, $group]) {
+                $first = true;
+                foreach ($fallbackVariants as [$dist, $isKick, $subLabel]) {
+                    $headerRow1[] = $first ? $label : '';
+                    $headerRow2[] = $subLabel;
+                    $columns[$colIdx] = [
+                        'stroke'       => $short,
+                        'stroke_group' => $group,
+                        'stroke_label' => $label,
+                        'distance'     => $dist,
+                        'is_kick'      => $isKick,
+                        'sub_label'    => $subLabel,
+                    ];
+                    $summary[$label][] = $subLabel;
+                    $first = false;
+                    $colIdx++;
+                }
+            }
+        }
+
+        return [
+            'table_structure' => $tableStructure,
+            'columns'         => $columns,
+            'header_row_1'    => $headerRow1,
+            'header_row_2'    => $headerRow2,
+            'summary'         => $summary,
+            'is_fallback'     => $isFallback,
+        ];
+    }
+
+    /**
+     * Parse header 2-baris (atau 1-baris) CSV Form A3 secara dinamis menjadi spesifikasi kolom lomba.
+     * Mendukung template dinamis berdasarkan Database Nomor Lomba maupun template Form A3 lama.
+     *
+     * @param array $row1 Baris header pertama
+     * @param array|false|null $row2 Baris kedua (subheader atau langsung baris data atlet)
+     * @return array{columns: array, consume_row2_as_header: bool}
+     */
+    public static function parseFormA3Headers(array $row1, $row2): array {
+        if (isset($row1[0])) {
+            $row1[0] = preg_replace('/^\xEF\xBB\xBF/', '', (string)$row1[0]);
+        }
+
+        $isSubheader = false;
+        if (is_array($row2) && !empty($row2)) {
+            $c0 = trim((string)($row2[0] ?? ''));
+            $subCells = array_slice($row2, 4);
+            $hasSubKeyword = false;
+            $hasTimeValue = false;
+            foreach ($subCells as $sc) {
+                $scTrim = trim((string)$sc);
+                if ($scTrim === '') continue;
+                if (preg_match('/^\d{1,2}[:.]\d{1,2}[:.]\d{1,2}$/', $scTrim)) {
+                    $hasTimeValue = true;
+                }
+                if (preg_match('/(PAPAN|KICK|^\s*(25|50|100|200|400|800|1500)\s*M?\s*$|\b(25|50|100|200|400|800|1500)\s*M\b)/i', $scTrim)) {
+                    $hasSubKeyword = true;
+                }
+            }
+            if ($hasSubKeyword && !$hasTimeValue && ($c0 === '' || strtoupper($c0) === 'NAMA' || strtoupper($c0) === 'NAMA ATLET')) {
+                $isSubheader = true;
+            }
+        }
+
+        $maxCols = ($isSubheader && is_array($row2)) ? max(count($row1), count($row2)) : count($row1);
+        $activeStrokeShort = null;
+        $columns = [];
+
+        for ($colIdx = 4; $colIdx < $maxCols; $colIdx++) {
+            $h1 = strtoupper(trim((string)($row1[$colIdx] ?? '')));
+            $h2 = ($isSubheader && is_array($row2)) ? strtoupper(trim((string)($row2[$colIdx] ?? ''))) : '';
+
+            if ($h1 !== '') {
+                $m1 = self::detectStrokeMeta($h1);
+                if ($m1 !== null) {
+                    $activeStrokeShort = $m1['short'];
+                }
+            }
+
+            $m2 = ($h2 !== '') ? self::detectStrokeMeta($h2) : null;
+            $strokeShort = ($m2 !== null) ? $m2['short'] : $activeStrokeShort;
+            if ($strokeShort === null) {
+                continue;
+            }
+
+            $colText = trim($h1 . ' ' . $h2);
+            if ($colText === '') {
+                continue;
+            }
+
+            $isKick = (strpos($colText, 'PAPAN') !== false || strpos($colText, 'KICK') !== false);
+            $dist = 0;
+            $distPattern = '/(?<![.\d:\/-])\b(25|50|100|200|400|800|1500)\s*M?\b(?![.\d:\/-])/i';
+            if ($h2 !== '' && preg_match($distPattern, $h2, $dm)) {
+                $dist = (int)$dm[1];
+            } elseif (preg_match($distPattern, $colText, $dm)) {
+                $dist = (int)$dm[1];
+            } elseif ($isKick) {
+                $dist = 25;
+            }
+
+            if ($dist <= 0) {
+                continue;
+            }
+
+            $columns[$colIdx] = [
+                'stroke'   => $strokeShort,
+                'distance' => $dist,
+                'is_kick'  => $isKick,
+            ];
+        }
+
+        return [
+            'columns'                => $columns,
+            'consume_row2_as_header' => $isSubheader,
+        ];
+    }
 }
