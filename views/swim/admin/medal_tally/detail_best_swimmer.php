@@ -104,3 +104,4 @@
         <strong>ℹ️ Mekanisme Tie-Breaker Rekornas:</strong> Rumus yang digunakan adalah <code>(Waktu Rekor Nasional Detik / Waktu Atlet Detik) × 100</code>. Pada kasus perolehan medali yang sama (Draw), atlet dengan <strong>Persentase Tunggal Tertinggi (dari salah satu nomor lombanya)</strong> yang paling mendekati Rekornas otomatis dinyatakan sebagai Perenang Terbaik.
     </div>
 </div>
+
