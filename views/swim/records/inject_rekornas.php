@@ -95,11 +95,6 @@
                                 </td>
                                 <td class="p-3 text-slate-700 uppercase font-bold">
                                     <?= htmlspecialchars($r['holder']) ?>
-                                    <?php if (!empty($r['note'])): ?>
-                                        <span class="ml-1 px-1.5 py-0.5 text-[10px] rounded <?= !empty($r['is_pending']) ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-600' ?>" title="Catatan Wikipedia: h=heat, r=relay lead-off, #=tunggu ratifikasi">
-                                            <?= htmlspecialchars($r['note']) ?>
-                                        </span>
-                                    <?php endif; ?>
                                 </td>
                                 <td class="p-3 text-center font-mono font-black text-emerald-600">
                                     <?= htmlspecialchars($r['time']) ?>
