@@ -67,3 +67,4 @@ assertSameValue([41, 20, 15], array_map(fn($e) => (int)$e['id'], $res5['allEvent
 assertSameValue(41, (int)SwimEventHelper::findAccessibleEvent($pdo, 41, 1, 'superadmin')['id'], 'Superadmin can access event 41');
 
 echo "ALL ADMIN EVENT SCOPING CHECKS PASSED\n";
+
