@@ -45,9 +45,10 @@
     .data-table td { padding: 4px; border-bottom: 1px solid #ccc; vertical-align: middle; }
     
     .col-rank { width: 5%; text-align: center; font-weight: bold; background: #f8f9fa; border-right: 1px solid #eee; }
-    .col-nama { width: 35%; text-align: left; padding-left: 5px; font-weight: bold; line-height: 1.1; text-transform: uppercase; white-space: normal; }
-    .col-tim { width: 30%; text-align: left; padding-left: 5px; white-space: normal; line-height: 1.1; }
-    .col-med { width: 7.5%; text-align: center; font-weight: 900; font-size: 10pt; }
+    .col-nama { width: 29%; text-align: left; padding-left: 5px; font-weight: bold; line-height: 1.1; text-transform: uppercase; white-space: normal; }
+    .col-tim { width: 24%; text-align: left; padding-left: 5px; white-space: normal; line-height: 1.1; }
+    .col-med { width: 7%; text-align: center; font-weight: 900; font-size: 10pt; }
+    .col-skor { width: 14%; text-align: center; font-weight: bold; vertical-align: middle; }
     
     .bg-gold { background-color: #fef3c7 !important; color: #92400e; }
     .bg-silver { background-color: #f3f4f6 !important; color: #374151; }
@@ -206,6 +207,7 @@ $filter_gender = $_GET['gender'] ?? 'all';
                                                     <th class="col-med bg-silver">P</th>
                                                     <th class="col-med bg-bronze">P</th>
                                                     <th class="col-med bg-total">TOT</th>
+                                                    <th class="col-skor">SKOR REKORNAS</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -217,17 +219,38 @@ $filter_gender = $_GET['gender'] ?? 'all';
                                                     $tot_p += $row['silver'];
                                                     $tot_b += $row['bronze'];
                                                     $tot_all += $row['total'];
+                                                    $bestPct = (float)($row['best_pct'] ?? 0);
+                                                    $swimmerId = (int)($row['swimmer_id'] ?? 0);
                                                 ?>
                                                 <tr>
                                                     <td class="col-rank"><?= $rank++ ?></td>
                                                     <td class="col-nama">
                                                         <?= htmlspecialchars($row['entity_name']) ?>
+                                                        <?php if (!empty($row['is_draw'])): ?>
+                                                            <span style="display:inline-block; background:#fef3c7; color:#b45309; border:1px solid #f59e0b; padding:1px 6px; border-radius:4px; font-size:7pt; font-weight:800; margin-left:4px; vertical-align:middle;">DRAW</span>
+                                                        <?php endif; ?>
                                                     </td>
                                                     <td class="col-tim"><?= htmlspecialchars($row['team_name']) ?></td>
                                                     <td class="col-med bg-gold"><?= $row['gold'] ?></td>
                                                     <td class="col-med bg-silver"><?= $row['silver'] ?></td>
                                                     <td class="col-med bg-bronze"><?= $row['bronze'] ?></td>
                                                     <td class="col-med bg-total"><?= $row['total'] ?></td>
+                                                    <td class="col-skor">
+                                                        <?php if ($bestPct > 0): ?>
+                                                            <a href="/swim/admin/medal_tally/detail_best_swimmer?event_id=<?= (int)$eventId ?>&team_source=<?= urlencode($team_source) ?>&swimmers=<?= $swimmerId ?>" style="color:#0369a1; font-weight:800; text-decoration:none;">
+                                                                ⚡ <?= number_format($bestPct, 2) ?>%
+                                                            </a>
+                                                        <?php else: ?>
+                                                            <span style="color:#94a3b8;">-</span>
+                                                        <?php endif; ?>
+                                                        <?php if (!empty($row['is_draw_head']) && !empty($row['draw_swimmer_ids'])): ?>
+                                                            <div class="no-print" style="margin-top:3px;">
+                                                                <a href="/swim/admin/medal_tally/detail_best_swimmer?event_id=<?= (int)$eventId ?>&team_source=<?= urlencode($team_source) ?>&swimmers=<?= urlencode($row['draw_swimmer_ids']) ?>" style="display:inline-block; background:#fffbeb; color:#b45309; border:1px solid #f59e0b; padding:2px 6px; border-radius:4px; font-size:7pt; font-weight:800; text-decoration:none;">
+                                                                    ⚖️ Bandingkan Draw
+                                                                </a>
+                                                            </div>
+                                                        <?php endif; ?>
+                                                    </td>
                                                 </tr>
                                                 <?php endforeach; ?>
                                                 <tr style="background-color: #cbd5e1; border-top: 2px solid #334155;">
@@ -236,6 +259,7 @@ $filter_gender = $_GET['gender'] ?? 'all';
                                                     <td class="col-med bg-silver"><?= $tot_p ?></td>
                                                     <td class="col-med bg-bronze"><?= $tot_b ?></td>
                                                     <td class="col-med bg-total"><?= $tot_all ?></td>
+                                                    <td class="col-skor"></td>
                                                 </tr>
                                             </tbody>
                                         </table>

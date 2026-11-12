@@ -54,9 +54,10 @@
         .data-table td { padding: 4px 4px; border-bottom: 1px solid #ccc; vertical-align: middle; font-weight: bold !important; color: #000; } 
         
         .col-rank { width: 5%; text-align: center; background: #f8f9fa; border-right: 1px solid #eee; font-weight: bold; white-space: nowrap; font-family: 'Arial Narrow', sans-serif;}
-        .col-nama { width: 35%; text-align: left; padding-left: 5px; white-space: normal; line-height: 1.1; font-weight: bold; text-transform: uppercase; }
-        .col-tim { width: 30%; text-align: left; padding-left: 5px; white-space: normal; line-height: 1.1; }
-        .col-med { width: 7.5%; text-align: center; font-weight: 900; font-size: 10pt; }
+        .col-nama { width: 31%; text-align: left; padding-left: 5px; white-space: normal; line-height: 1.1; font-weight: bold; text-transform: uppercase; }
+        .col-tim { width: 26%; text-align: left; padding-left: 5px; white-space: normal; line-height: 1.1; }
+        .col-med { width: 7%; text-align: center; font-weight: 900; font-size: 10pt; }
+        .col-skor { width: 10%; text-align: center; font-weight: bold; font-size: 8.5pt; }
         
         .bg-gold { background-color: #fef3c7 !important; color: #92400e; }
         .bg-silver { background-color: #f3f4f6 !important; color: #374151; }
@@ -150,6 +151,7 @@
                                                         <th class="col-med bg-silver">P</th>
                                                         <th class="col-med bg-bronze">P</th>
                                                         <th class="col-med bg-total">TOT</th>
+                                                        <th class="col-skor">KETAJAMAN</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
@@ -161,17 +163,24 @@
                                                         $tot_p += $row['silver'];
                                                         $tot_b += $row['bronze'];
                                                         $tot_all += $row['total'];
+                                                        $bestPct = (float)($row['best_pct'] ?? 0);
                                                     ?>
                                                     <tr>
                                                         <td class="col-rank"><?= $rank++ ?></td>
                                                         <td class="col-nama">
                                                             <?= htmlspecialchars($row['entity_name']) ?>
+                                                            <?php if (!empty($row['is_draw'])): ?>
+                                                                <span style="font-size:6.5pt; font-weight:800; color:#b45309; background:#fef3c7; border:1px solid #f59e0b; padding:0 4px; border-radius:3px; margin-left:4px;">DRAW</span>
+                                                            <?php endif; ?>
                                                         </td>
                                                         <td class="col-tim"><?= htmlspecialchars($row['team_name']) ?></td>
                                                         <td class="col-med bg-gold"><?= $row['gold'] ?></td>
                                                         <td class="col-med bg-silver"><?= $row['silver'] ?></td>
                                                         <td class="col-med bg-bronze"><?= $row['bronze'] ?></td>
                                                         <td class="col-med bg-total"><?= $row['total'] ?></td>
+                                                        <td class="col-skor" style="text-align:center; font-weight:700;">
+                                                            <?= $bestPct > 0 ? number_format($bestPct, 2) . '%' : '-' ?>
+                                                        </td>
                                                     </tr>
                                                     <?php endforeach; ?>
                                                     <tr style="background-color: #cbd5e1; border-top: 2px solid #334155;">
@@ -180,6 +189,7 @@
                                                         <td class="col-med bg-silver"><?= $tot_p ?></td>
                                                         <td class="col-med bg-bronze"><?= $tot_b ?></td>
                                                         <td class="col-med bg-total"><?= $tot_all ?></td>
+                                                        <td class="col-skor"></td>
                                                     </tr>
                                                 </tbody>
                                             </table>

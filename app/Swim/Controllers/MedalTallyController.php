@@ -62,7 +62,7 @@ class MedalTallyController extends Controller {
         return 'DILUAR KATEGORI (' . $age . ' TH)';
     }
 
-    private function calculateTally($mode = 'team') {
+    private function calculateTally($mode = 'team', bool $ignoreFilters = false) {
         $pdo = Database::getInstance()->getConnection();
         $uid = $_SESSION['swim_user_id'] ?? 0;
         
@@ -91,8 +91,8 @@ class MedalTallyController extends Controller {
         $isSchoolEvent = (strpos($partType, 'school') !== false || strpos($partType, 'sekolah') !== false);
         $defaultTeamSource = $isSchoolEvent ? 'school' : 'club';
         $team_source = $_GET['team_source'] ?? $defaultTeamSource;
-        $filter_gender = $_GET['gender'] ?? 'all';
-        $selected_ku_ids = $_GET['ku'] ?? []; 
+        $filter_gender = $ignoreFilters ? 'all' : ($_GET['gender'] ?? 'all');
+        $selected_ku_ids = $ignoreFilters ? [] : ($_GET['ku'] ?? []); 
 
         $valid_birth_years = [];
         if (!empty($selected_ku_ids)) {
@@ -134,7 +134,7 @@ class MedalTallyController extends Controller {
 
         if ($mode == 'athlete') {
             $sqlRaw = "SELECT 
-                        en.event_number, en.age_group as event_age_group, en.rank_mode,
+                        en.event_number, en.event_name, en.distance, en.stroke, en.age_group as event_age_group, en.rank_mode,
                         s.id as swimmer_id, s.uid, s.nama_atlet, s.jenis_kelamin, s.tanggal_lahir,
                         $teamColumn as team_name,
                         es.time_final, es.is_dq_final, es.rank_final
@@ -208,16 +208,30 @@ class MedalTallyController extends Controller {
                             $key = ($mode == 'team') ? $s['team_name'] : $s['swimmer_id'];
                             if (!isset($rawTally[$key])) {
                                 $rawTally[$key] = [
+                                    'swimmer_id' => ($mode == 'athlete') ? (int)$s['swimmer_id'] : 0,
                                     'entity_name' => ($mode == 'team') ? $s['team_name'] : $s['nama_atlet'],
                                     'uid' => $s['uid'], 'jenis_kelamin' => $s['jenis_kelamin'], 'tanggal_lahir' => $s['tanggal_lahir'],
                                     'team_name' => $s['team_name'],
-                                    'gold' => 0, 'silver' => 0, 'bronze' => 0, 'total' => 0
+                                    'gold' => 0, 'silver' => 0, 'bronze' => 0, 'total' => 0,
+                                    'medal_races' => []
                                 ];
                             }
                             if ($real_rank == 1) $rawTally[$key]['gold']++;
                             if ($real_rank == 2) $rawTally[$key]['silver']++;
                             if ($real_rank == 3) $rawTally[$key]['bronze']++;
                             $rawTally[$key]['total']++;
+                            if ($mode == 'athlete') {
+                                $rawTally[$key]['medal_races'][] = [
+                                    'event_number'  => $s['event_number'] ?? '',
+                                    'event_name'    => $s['event_name'] ?? '',
+                                    'distance'      => (int)($s['distance'] ?? 0),
+                                    'stroke'        => $s['stroke'] ?? '',
+                                    'jenis_kelamin' => $s['jenis_kelamin'] ?? '',
+                                    'age_group'     => $s['event_age_group'] ?? '',
+                                    'time_final'    => $s['time_final'] ?? '',
+                                    'rank_final'    => $real_rank,
+                                ];
+                            }
                         }
                         $prev_time = $s['ms_sort'];
                         $rank++;
@@ -225,6 +239,8 @@ class MedalTallyController extends Controller {
                 }
             }
         }
+
+        $rekornasIndex = ($mode === 'athlete') ? \App\Helpers\SwimEventHelper::loadRekornasIndex($pdo) : [];
 
         $tallyData = [];
         foreach($rawTally as $t) {
@@ -234,13 +250,29 @@ class MedalTallyController extends Controller {
                     continue; 
                 }
             }
+            if ($mode === 'athlete') {
+                $sharpness = \App\Helpers\SwimEventHelper::evaluateSwimmerSharpness($t['medal_races'], $rekornasIndex);
+                $t['best_pct'] = $sharpness['best_pct'];
+                $t['sharpness_races'] = $sharpness['races'];
+            } else {
+                $t['best_pct'] = 0.0;
+                $t['sharpness_races'] = [];
+            }
+            unset($t['medal_races']);
             $tallyData[] = $t;
         }
 
-        usort($tallyData, function($a, $b) {
+        usort($tallyData, function($a, $b) use ($mode) {
             if ($a['gold'] != $b['gold']) return $b['gold'] - $a['gold'];
             if ($a['silver'] != $b['silver']) return $b['silver'] - $a['silver'];
             if ($a['bronze'] != $b['bronze']) return $b['bronze'] - $a['bronze'];
+            if ($mode === 'athlete') {
+                $pctA = (float)($a['best_pct'] ?? 0);
+                $pctB = (float)($b['best_pct'] ?? 0);
+                if (abs($pctA - $pctB) > 0.0001) {
+                    return ($pctB <=> $pctA);
+                }
+            }
             // 3. Aturan Klasemen Olimpiade (Urut Abjad Jika Semua Sama)
             return strcmp($a['entity_name'], $b['entity_name']);
         });
@@ -273,6 +305,29 @@ class MedalTallyController extends Controller {
                 $orderedGrouped[$kName] = $val;
             }
             $groupedAthleteData = $orderedGrouped;
+
+            // Tandai atlet yang medali nya identik (DRAW) di dalam masing-masing tabel KU + Gender
+            foreach ($groupedAthleteData as $kName => &$gendersMap) {
+                foreach ($gendersMap as $gKey => &$rowsList) {
+                    $byMedal = [];
+                    foreach ($rowsList as $idx => $r) {
+                        $mKey = (int)$r['gold'] . '-' . (int)$r['silver'] . '-' . (int)$r['bronze'];
+                        $byMedal[$mKey][] = $idx;
+                    }
+                    foreach ($byMedal as $idxList) {
+                        $isDraw = count($idxList) > 1;
+                        $drawIds = implode(',', array_map(fn($i) => (int)$rowsList[$i]['swimmer_id'], $idxList));
+                        foreach ($idxList as $pos => $i) {
+                            $rowsList[$i]['is_draw'] = $isDraw;
+                            $rowsList[$i]['draw_count'] = count($idxList);
+                            $rowsList[$i]['draw_swimmer_ids'] = $drawIds;
+                            $rowsList[$i]['is_draw_head'] = ($isDraw && $pos === 0);
+                        }
+                    }
+                }
+                unset($rowsList);
+            }
+            unset($gendersMap);
         }
 
         return [
@@ -309,5 +364,55 @@ class MedalTallyController extends Controller {
         } else {
             $this->view('swim/admin/medal_tally/best_swimmer', $data);
         }
+    }
+
+    public function detail_best_swimmer() {
+        $this->checkAccess();
+        $rawSwimmers = isset($_GET['swimmers']) ? explode(',', (string)$_GET['swimmers']) : [];
+        $swimmerIds = array_values(array_unique(array_filter(array_map('intval', $rawSwimmers), fn($v) => $v > 0)));
+        if (empty($swimmerIds)) {
+            die("Tidak ada atlet yang dipilih untuk perbandingan.");
+        }
+
+        $data = $this->calculateTally('athlete', true);
+        $bySwimmerId = [];
+        foreach ($data['tallyData'] as $row) {
+            $sid = (int)($row['swimmer_id'] ?? 0);
+            if ($sid > 0) {
+                $bySwimmerId[$sid] = $row;
+            }
+        }
+
+        $comparisonData = [];
+        foreach ($swimmerIds as $sid) {
+            if (!isset($bySwimmerId[$sid])) {
+                continue;
+            }
+            $row = $bySwimmerId[$sid];
+            $comparisonData[] = [
+                'swimmer_id'    => $sid,
+                'nama_atlet'    => $row['entity_name'],
+                'jenis_kelamin' => $row['jenis_kelamin'],
+                'team_name'     => $row['team_name'],
+                'gold'          => (int)$row['gold'],
+                'silver'        => (int)$row['silver'],
+                'bronze'        => (int)$row['bronze'],
+                'total'         => (int)$row['total'],
+                'best_pct'      => (float)($row['best_pct'] ?? 0),
+                'races'         => $row['sharpness_races'] ?? [],
+            ];
+        }
+
+        usort($comparisonData, function($a, $b) {
+            return ($b['best_pct'] <=> $a['best_pct'])
+                ?: strcmp($a['nama_atlet'], $b['nama_atlet']);
+        });
+
+        $this->view('swim/admin/medal_tally/detail_best_swimmer', [
+            'eventId'        => $data['eventId'],
+            'eventName'      => $data['raceInfo']['event_name'] ?? 'Kejuaraan Renang',
+            'team_source'    => $data['team_source'],
+            'comparisonData' => $comparisonData,
+        ]);
     }
 }

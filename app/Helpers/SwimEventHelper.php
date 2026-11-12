@@ -723,4 +723,166 @@ class SwimEventHelper {
             'eventId'     => $targetEventId,
         ];
     }
+
+    /**
+     * Konversi string waktu renang ('01:02.15', '00.32.10', '23.84') menjadi detik float.
+     * Mengembalikan 0.0 untuk NT / DQ / 99.99.99 / kosong.
+     */
+    public static function parseSwimTimeToSeconds(string $timeStr): float {
+        $clean = strtoupper(trim($timeStr));
+        if (
+            $clean === ''
+            || $clean === '-'
+            || $clean === 'NT'
+            || $clean === 'DQ'
+            || $clean === '99.99.99'
+            || $clean === '99:99.99'
+        ) {
+            return 0.0;
+        }
+
+        $clean = str_replace(',', '.', $clean);
+        if (strpos($clean, ':') !== false) {
+            $colonParts = explode(':', $clean);
+            if (count($colonParts) === 2) {
+                return ((int)$colonParts[0] * 60) + (float)$colonParts[1];
+            }
+            if (count($colonParts) === 3) {
+                return ((int)$colonParts[0] * 60) + (int)$colonParts[1] + ((float)$colonParts[2] / 100);
+            }
+        }
+
+        $dotParts = explode('.', $clean);
+        if (count($dotParts) >= 3) {
+            return ((int)$dotParts[0] * 60) + (int)$dotParts[1] + ((float)substr(str_pad($dotParts[2], 2, '0'), 0, 2) / 100);
+        }
+
+        return (float)$clean;
+    }
+
+    /**
+     * Normalisasi nama gaya lomba untuk pencocokan Rekor Nasional (mengabaikan kata GAYA/spasi/strip).
+     * Nomor Papan Kaki mengembalikan null agar tidak dicocokkan ke Rekornas renang penuh.
+     */
+    public static function normalizeRecordStrokeKey(string $stroke, string $eventName = ''): ?string {
+        $fullText = strtoupper(trim($stroke . ' ' . $eventName));
+        if ($fullText === '' || strpos($fullText, 'PAPAN') !== false || strpos($fullText, 'KICK') !== false) {
+            return null;
+        }
+        $meta = self::detectStrokeMeta($fullText);
+        return $meta['short'] ?? null;
+    }
+
+    /**
+     * Muat seluruh data Rekor Nasional dari swim_master_records sekali saja per request.
+     *
+     * @return array<string, array<int, array>> Diindeks berdasarkan "distance|stroke_short|jenis_kelamin"
+     */
+    public static function loadRekornasIndex(PDO $pdo): array {
+        $index = [];
+        try {
+            $stmt = $pdo->query("
+                SELECT distance, stroke, jenis_kelamin, age_group, holder_name, record_time, record_time_ms
+                FROM swim_master_records
+                WHERE record_type = 'rekornas'
+                ORDER BY record_time_ms ASC
+            ");
+            if (!$stmt) {
+                return [];
+            }
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                $strokeKey = self::normalizeRecordStrokeKey((string)($row['stroke'] ?? ''));
+                if ($strokeKey === null) {
+                    continue;
+                }
+                $dist = (int)($row['distance'] ?? 0);
+                $gen  = strtoupper(trim((string)($row['jenis_kelamin'] ?? '')));
+                $key  = $dist . '|' . $strokeKey . '|' . $gen;
+                $index[$key][] = $row;
+            }
+        } catch (\Throwable $e) {
+            return [];
+        }
+        return $index;
+    }
+
+    /**
+     * Hitung rincian ketajaman atlet terhadap Rekor Nasional pada nomor-nomor bermedali.
+     * Rumus: (Waktu Rekornas Detik / Waktu Atlet Detik) * 100; penentu adalah persentase tunggal tertinggi.
+     *
+     * @param array $medalRaces Daftar nomor bermedali milik satu atlet
+     * @param array $rekornasIndex Hasil dari loadRekornasIndex()
+     * @return array{best_pct: float, races: array<int, array>}
+     */
+    public static function evaluateSwimmerSharpness(array $medalRaces, array $rekornasIndex): array {
+        $bestPct = 0.0;
+        $detailData = [];
+
+        foreach ($medalRaces as $race) {
+            $dist      = (int)($race['distance'] ?? 0);
+            $strokeRaw = (string)($race['stroke'] ?? '');
+            $eventName = (string)($race['event_name'] ?? '');
+            $gender    = strtoupper(trim((string)($race['jenis_kelamin'] ?? '')));
+            $ageGroup  = strtolower(str_replace(' ', '', trim((string)($race['age_group'] ?? ''))));
+
+            $strokeKey = self::normalizeRecordStrokeKey($strokeRaw, $eventName);
+            $rec = null;
+
+            if ($strokeKey !== null && $dist > 0) {
+                $lookupKey = $dist . '|' . $strokeKey . '|' . $gender;
+                $candidates = $rekornasIndex[$lookupKey] ?? [];
+                if (!empty($candidates)) {
+                    if ($ageGroup !== '') {
+                        foreach ($candidates as $cand) {
+                            $candAge = strtolower(str_replace(' ', '', trim((string)($cand['age_group'] ?? ''))));
+                            if ($candAge === $ageGroup) {
+                                $rec = $cand;
+                                break;
+                            }
+                        }
+                    }
+                    if ($rec === null) {
+                        $rec = $candidates[0];
+                    }
+                }
+            }
+
+            $recTime = $rec ? (string)$rec['record_time'] : '-';
+            $recHolder = $rec ? (string)($rec['holder_name'] ?? 'REKORNAS') : 'TIDAK TERSEDIA';
+            $recKU = ($rec && !empty($rec['age_group'])) ? ' (' . $rec['age_group'] . ')' : '';
+
+            $recMs = $rec ? (int)($rec['record_time_ms'] ?? 0) : 0;
+            $recSec = ($recMs > 0) ? ($recMs / 1000.0) : ($rec ? self::parseSwimTimeToSeconds($recTime) : 0.0);
+
+            $athTime = (string)($race['time_final'] ?? '');
+            $athSec = self::parseSwimTimeToSeconds($athTime);
+
+            $pct = 0.0;
+            if ($recSec > 0 && $athSec > 0) {
+                $pct = ($recSec / $athSec) * 100.0;
+                if ($pct > $bestPct) {
+                    $bestPct = $pct;
+                }
+            }
+
+            $strokeLabel = trim($strokeRaw) !== '' ? strtoupper(trim($strokeRaw)) : strtoupper(trim($eventName));
+            $detailData[] = [
+                'event_number' => $race['event_number'] ?? '',
+                'acara'        => $dist . 'M ' . $strokeLabel,
+                'rank_final'   => (int)($race['rank_final'] ?? 0),
+                'holder'       => $recHolder . $recKU,
+                'rec_time'     => $recTime,
+                'rec_sec'      => $recSec > 0 ? number_format($recSec, 2) : '-',
+                'ath_time'     => $athTime,
+                'ath_sec'      => $athSec > 0 ? number_format($athSec, 2) : '-',
+                'pct_raw'      => $pct,
+                'pct'          => ($recSec > 0 && $athSec > 0) ? number_format($pct, 2) . '%' : '0%',
+            ];
+        }
+
+        return [
+            'best_pct' => round($bestPct, 2),
+            'races'    => $detailData,
+        ];
+    }
 }
