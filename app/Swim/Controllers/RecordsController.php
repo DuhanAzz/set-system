@@ -141,46 +141,140 @@ class RecordsController extends Controller {
             ['distance' => 200, 'stroke' => 'Gaya Dada', 'jk' => 'P', 'holder' => 'ADELLIA', 'time' => '02:32.09', 'ms' => 152090, 'loc' => 'SINGAPORE', 'year' => 2025]
         ];
 
-        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'inject_now') {
-            try {
-                $pdo->beginTransaction();
+        $activeSource = 'default';
+        $fetchedAt = null;
+        $includePending = true;
+        $sourceUrl = 'https://en.wikipedia.org/wiki/List_of_Indonesian_records_in_swimming';
+        $activeData = $rekornas_data;
 
-                $pdo->exec("DELETE FROM swim_master_records WHERE record_type = 'rekornas'");
+        if (!empty($_SESSION['rekornas_wikipedia_preview']['records']) && is_array($_SESSION['rekornas_wikipedia_preview']['records'])) {
+            $activeSource = 'wikipedia';
+            $fetchedAt = $_SESSION['rekornas_wikipedia_preview']['fetched_at'] ?? null;
+            $includePending = (bool)($_SESSION['rekornas_wikipedia_preview']['include_pending'] ?? true);
+            $activeData = $_SESSION['rekornas_wikipedia_preview']['records'];
+        }
 
-                $sql = "INSERT INTO swim_master_records (record_type, record_name, distance, stroke, jenis_kelamin, age_group, holder_name, location, record_year, record_time, record_time_ms) 
-                        VALUES ('rekornas', 'REKOR NASIONAL', ?, ?, ?, 'SENIOR', ?, ?, ?, ?, ?)";
-                $stmt = $pdo->prepare($sql);
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+            $postAction = $_POST['action'];
 
-                $count = 0;
-                foreach ($rekornas_data as $r) {
-                    $stmt->execute([
-                        $r['distance'], 
-                        $r['stroke'], 
-                        $r['jk'], 
-                        $r['holder'], 
-                        $r['loc'], 
-                        $r['year'], 
-                        $r['time'], 
-                        $r['ms']
-                    ]);
-                    $count++;
+            if ($postAction === 'fetch_wikipedia') {
+                $includePending = isset($_POST['include_pending']) && $_POST['include_pending'] === '1';
+                $res = \App\Helpers\SwimEventHelper::fetchWikipediaIndonesianRecords($includePending);
+                if ($res['ok']) {
+                    $fetchedAt = date('d M Y H:i:s');
+                    $_SESSION['rekornas_wikipedia_preview'] = [
+                        'records'         => $res['records'],
+                        'fetched_at'      => $fetchedAt,
+                        'include_pending' => $includePending,
+                    ];
+                    $activeSource = 'wikipedia';
+                    $activeData = $res['records'];
+                    $cnt = count($activeData);
+                    $msg = "<div class='p-4 mb-6 text-sm text-sky-800 bg-sky-50 rounded-xl border border-sky-200'>
+                                <strong>🌐 Data Wikipedia Berhasil Dimuat!</strong> Ditemukan <strong>{$cnt}</strong> nomor Rekornas Long Course (50 m). Periksa tabel pratinjau di bawah sebelum menekan tombol <em>Eksekusi Injeksi Sekarang</em>.
+                            </div>";
+                } else {
+                    $errText = htmlspecialchars($res['error'] ?: 'Gagal terhubung ke Wikipedia.');
+                    $msg = "<div class='p-4 mb-6 text-sm text-red-700 bg-red-100 rounded-xl border border-red-200'>
+                                <strong>❌ Gagal menarik data dari Wikipedia:</strong> {$errText}
+                            </div>";
                 }
+            } elseif ($postAction === 'reset_default') {
+                unset($_SESSION['rekornas_wikipedia_preview']);
+                $activeSource = 'default';
+                $fetchedAt = null;
+                $activeData = $rekornas_data;
+                $msg = "<div class='p-4 mb-6 text-sm text-slate-700 bg-slate-100 rounded-xl border border-slate-200'>
+                            Pratinjau dikembalikan ke <strong>Data Bawaan Sistem</strong> (" . count($rekornas_data) . " data).
+                        </div>";
+            } elseif ($postAction === 'inject_now') {
+                $requestedSource = $_POST['source_mode'] ?? $activeSource;
+                $dataToInject = ($requestedSource === 'wikipedia' && !empty($_SESSION['rekornas_wikipedia_preview']['records']))
+                    ? $_SESSION['rekornas_wikipedia_preview']['records']
+                    : $rekornas_data;
+                $sourceLabel = ($requestedSource === 'wikipedia') ? 'Wikipedia (Indonesian Swimming Records)' : 'Bawaan Sistem';
 
-                $pdo->commit();
-                $msg = "<div class='p-4 mb-6 text-sm text-green-700 bg-green-100 rounded-xl border border-green-200'>
-                            <strong>✅ Berhasil!</strong> Injeksi <strong>$count</strong> data Rekor Nasional dari Spectra telah berhasil dimasukkan ke dalam database.
-                        </div>";
-            } catch (\Exception $e) {
-                $pdo->rollBack();
-                $msg = "<div class='p-4 mb-6 text-sm text-red-700 bg-red-100 rounded-xl border border-red-200'>
-                            <strong>❌ Gagal:</strong> " . $e->getMessage() . "
-                        </div>";
+                try {
+                    $pdo->beginTransaction();
+
+                    $pdo->exec("DELETE FROM swim_master_records WHERE record_type = 'rekornas'");
+
+                    $sql = "INSERT INTO swim_master_records (record_type, record_name, distance, stroke, jenis_kelamin, age_group, holder_name, location, record_year, record_time, record_time_ms) 
+                            VALUES ('rekornas', 'REKOR NASIONAL', ?, ?, ?, 'SENIOR', ?, ?, ?, ?, ?)";
+                    $stmt = $pdo->prepare($sql);
+
+                    $count = 0;
+                    foreach ($dataToInject as $r) {
+                        $stmt->execute([
+                            $r['distance'],
+                            $r['stroke'],
+                            $r['jk'],
+                            $r['holder'],
+                            $r['loc'],
+                            $r['year'],
+                            $r['time'],
+                            $r['ms']
+                        ]);
+                        $count++;
+                    }
+
+                    $pdo->commit();
+                    $msg = "<div class='p-4 mb-6 text-sm text-green-700 bg-green-100 rounded-xl border border-green-200'>
+                                <strong>✅ Berhasil!</strong> Injeksi <strong>{$count}</strong> data Rekor Nasional dari sumber <strong>{$sourceLabel}</strong> telah berhasil dimasukkan ke dalam database.
+                            </div>";
+                } catch (\Exception $e) {
+                    $pdo->rollBack();
+                    $msg = "<div class='p-4 mb-6 text-sm text-red-700 bg-red-100 rounded-xl border border-red-200'>
+                                <strong>❌ Gagal:</strong> " . htmlspecialchars($e->getMessage()) . "
+                            </div>";
+                }
             }
         }
 
+        // Bandingkan pratinjau dengan data Rekornas saat ini di database
+        $existingMap = [];
+        try {
+            $exStmt = $pdo->query("SELECT distance, stroke, jenis_kelamin, holder_name, record_time, record_time_ms FROM swim_master_records WHERE record_type = 'rekornas'");
+            if ($exStmt) {
+                while ($er = $exStmt->fetch(\PDO::FETCH_ASSOC)) {
+                    $sKey = \App\Helpers\SwimEventHelper::normalizeRecordStrokeKey((string)$er['stroke']) ?? strtoupper(trim((string)$er['stroke']));
+                    $mapKey = strtoupper(trim((string)$er['jenis_kelamin'])) . '|' . (int)$er['distance'] . '|' . $sKey;
+                    if (!isset($existingMap[$mapKey]) || (int)$er['record_time_ms'] < (int)$existingMap[$mapKey]['record_time_ms']) {
+                        $existingMap[$mapKey] = $er;
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            $existingMap = [];
+        }
+
+        foreach ($activeData as &$row) {
+            $sKey = \App\Helpers\SwimEventHelper::normalizeRecordStrokeKey((string)$row['stroke']) ?? strtoupper(trim((string)$row['stroke']));
+            $mapKey = strtoupper(trim((string)$row['jk'])) . '|' . (int)$row['distance'] . '|' . $sKey;
+            $cur = $existingMap[$mapKey] ?? null;
+            if (!$cur) {
+                $row['diff_status'] = 'new';
+                $row['db_time'] = null;
+            } elseif ((int)$row['ms'] < (int)$cur['record_time_ms']) {
+                $row['diff_status'] = 'faster';
+                $row['db_time'] = $cur['record_time'];
+            } elseif ((int)$row['ms'] !== (int)$cur['record_time_ms'] || strtoupper(trim((string)$row['holder'])) !== strtoupper(trim((string)$cur['holder_name']))) {
+                $row['diff_status'] = 'changed';
+                $row['db_time'] = $cur['record_time'];
+            } else {
+                $row['diff_status'] = 'same';
+                $row['db_time'] = $cur['record_time'];
+            }
+        }
+        unset($row);
+
         return $this->view('swim/records/inject_rekornas', [
-            'msg' => $msg,
-            'rekornas_data' => $rekornas_data
+            'msg'             => $msg,
+            'rekornas_data'   => $activeData,
+            'source_mode'     => $activeSource,
+            'fetched_at'      => $fetchedAt,
+            'include_pending' => $includePending,
+            'source_url'      => $sourceUrl,
         ]);
     }
 

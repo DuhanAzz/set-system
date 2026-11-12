@@ -885,4 +885,227 @@ class SwimEventHelper {
             'races'    => $detailData,
         ];
     }
+
+    /**
+     * Bersihkan markup wikitext sederhana (<ref>, {{template}}, [[link]]) menjadi teks polos.
+     */
+    private static function cleanWikipediaValue(string $val): string {
+        $val = preg_replace('/<ref\b[^>]*>.*?<\/ref>/is', '', $val);
+        $val = preg_replace('/<ref\b[^>]*\/\s*>/i', '', $val);
+        while (preg_match('/\{\{[^{}]*\}\}/', $val)) {
+            $val = preg_replace('/\{\{[^{}]*\}\}/', '', $val);
+        }
+        $val = preg_replace('/\[\[(?:[^|\]]*\|)?([^\]]+)\]\]/', '$1', $val);
+        $val = preg_replace('/\s+/', ' ', trim($val));
+        return $val;
+    }
+
+    /**
+     * Format total milidetik menjadi string "MM:SS.cc" standar tabel swim_master_records.
+     */
+    public static function formatMsToMMSScc(int $ms): string {
+        if ($ms <= 0) {
+            return '00:00.00';
+        }
+        $totalCentis = (int)round($ms / 10);
+        $centis = $totalCentis % 100;
+        $totalSecs = intdiv($totalCentis, 100);
+        $secs = $totalSecs % 60;
+        $mins = intdiv($totalSecs, 60);
+        return sprintf('%02d:%02d.%02d', $mins, $secs, $centis);
+    }
+
+    /**
+     * Parse wikitext Section Long Course (50 m) dari halaman Wikipedia
+     * "List_of_Indonesian_records_in_swimming" menjadi array standar Rekornas.
+     *
+     * @param string $wikitext Konten wikitext section Long Course (50 m)
+     * @param bool   $includePending True untuk menyertakan rekor bertanda '#' (awaiting ratification) jika lebih cepat
+     * @return array<int, array>
+     */
+    public static function parseWikipediaRecordsWikitext(string $wikitext, bool $includePending = true): array {
+        $strokeMap = [
+            'freestyle'         => 'Gaya Bebas',
+            'backstroke'        => 'Gaya Punggung',
+            'breaststroke'      => 'Gaya Dada',
+            'butterfly'         => 'Gaya Kupu-kupu',
+            'individual medley' => 'Gaya Ganti Perorangan',
+        ];
+
+        $byKey = [];
+        $currentJk = null;
+        $inTemplate = false;
+        $fields = [];
+
+        foreach (preg_split("/\r\n|\n|\r/", $wikitext) as $line) {
+            $trimmed = trim($line);
+
+            if (preg_match('/^===\s*([^=]+?)\s*===$/', $trimmed, $hm)) {
+                $heading = strtolower($hm[1]);
+                if ($heading === 'men') {
+                    $currentJk = 'L';
+                } elseif ($heading === 'women') {
+                    $currentJk = 'P';
+                } else {
+                    $currentJk = null;
+                }
+                continue;
+            }
+
+            if ($currentJk === null) {
+                continue;
+            }
+
+            if (preg_match('/^\{\{Swimmingrecord(?:\s|$)/i', $trimmed)) {
+                $inTemplate = true;
+                $fields = [];
+                continue;
+            }
+
+            if (!$inTemplate) {
+                continue;
+            }
+
+            if (preg_match('/^\|\s*([a-zA-Z0-9_]+)\s*=\s*(.*)$/', $trimmed, $fm)) {
+                $fields[strtolower($fm[1])] = $fm[2];
+                continue;
+            }
+
+            if (strpos($trimmed, '}}') === 0) {
+                $inTemplate = false;
+
+                $eventClean = strtolower(self::cleanWikipediaValue((string)($fields['event'] ?? '')));
+                if ($eventClean === '' || strpos($eventClean, 'relay') !== false) {
+                    continue;
+                }
+                if (!preg_match('/^(\d+)\s*m\s+(freestyle|backstroke|breaststroke|butterfly|individual medley)$/i', $eventClean, $em)) {
+                    continue;
+                }
+
+                $distance = (int)$em[1];
+                $stroke = $strokeMap[strtolower($em[2])] ?? null;
+                if ($stroke === null || $distance <= 0) {
+                    continue;
+                }
+
+                $recordInfo = self::cleanWikipediaValue((string)($fields['recordinfo'] ?? ''));
+                $isPending = (strpos($recordInfo, '#') !== false);
+                if (!$includePending && $isPending) {
+                    continue;
+                }
+
+                $timeRaw = self::cleanWikipediaValue((string)($fields['time'] ?? ''));
+                $sec = self::parseSwimTimeToSeconds($timeRaw);
+                if ($sec <= 0) {
+                    continue;
+                }
+                $ms = (int)round($sec * 1000);
+                $timeFormatted = self::formatMsToMMSScc($ms);
+
+                $firstName = self::cleanWikipediaValue((string)($fields['firstname'] ?? ''));
+                $lastName = self::cleanWikipediaValue((string)($fields['lastname'] ?? ''));
+                $fullName = trim($firstName . ' ' . $lastName);
+                if ($fullName === '') {
+                    $fullName = self::cleanWikipediaValue((string)($fields['name'] ?? ''));
+                }
+                $holder = strtoupper(preg_replace('/\s+/', ' ', $fullName));
+                if ($holder === '') {
+                    continue;
+                }
+
+                $city = strtoupper(self::cleanWikipediaValue((string)($fields['city'] ?? '')));
+                $dateClean = self::cleanWikipediaValue((string)($fields['date'] ?? ''));
+                $year = preg_match('/\b(19\d{2}|20\d{2})\b/', $dateClean, $ym) ? (int)$ym[1] : (int)date('Y');
+
+                $dedupKey = $currentJk . '|' . $distance . '|' . $stroke;
+                if (isset($byKey[$dedupKey]) && $byKey[$dedupKey]['ms'] <= $ms) {
+                    continue;
+                }
+
+                $byKey[$dedupKey] = [
+                    'distance'   => $distance,
+                    'stroke'     => $stroke,
+                    'jk'         => $currentJk,
+                    'holder'     => $holder,
+                    'time'       => $timeFormatted,
+                    'ms'         => $ms,
+                    'loc'        => $city !== '' ? $city : '-',
+                    'year'       => $year,
+                    'note'       => $recordInfo,
+                    'is_pending' => $isPending,
+                ];
+            }
+        }
+
+        return array_values($byKey);
+    }
+
+    /**
+     * Ambil data Rekor Nasional Indonesia (Long Course 50 m) live dari MediaWiki API Wikipedia.
+     *
+     * @return array{ok: bool, records: array<int, array>, error: string, source_url: string}
+     */
+    public static function fetchWikipediaIndonesianRecords(bool $includePending = true, int $timeoutSec = 12): array {
+        $apiUrl = 'https://en.wikipedia.org/w/api.php?action=parse&page=List_of_Indonesian_records_in_swimming&prop=wikitext&section=1&format=json';
+        $pageUrl = 'https://en.wikipedia.org/wiki/List_of_Indonesian_records_in_swimming';
+        $userAgent = 'SetSystemSwimBot/1.0 (https://setsystem.id)';
+
+        $body = false;
+        $err = '';
+
+        if (function_exists('curl_init')) {
+            $ch = curl_init($apiUrl);
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_TIMEOUT        => $timeoutSec,
+                CURLOPT_CONNECTTIMEOUT => min(5, $timeoutSec),
+                CURLOPT_USERAGENT      => $userAgent,
+                CURLOPT_HTTPHEADER     => ['Accept: application/json'],
+            ]);
+            $body = curl_exec($ch);
+            $httpCode = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            if ($body === false) {
+                $err = curl_error($ch) ?: 'Gagal menghubungi API Wikipedia via cURL.';
+            } elseif ($httpCode >= 400) {
+                $err = "Wikipedia API mengembalikan HTTP {$httpCode}.";
+                $body = false;
+            }
+            curl_close($ch);
+        } else {
+            $ctx = stream_context_create([
+                'http' => [
+                    'method'  => 'GET',
+                    'timeout' => $timeoutSec,
+                    'header'  => "User-Agent: {$userAgent}\r\nAccept: application/json\r\n",
+                ],
+            ]);
+            $body = @file_get_contents($apiUrl, false, $ctx);
+            if ($body === false) {
+                $err = 'Gagal mengunduh data dari API Wikipedia.';
+            }
+        }
+
+        if ($body === false) {
+            return ['ok' => false, 'records' => [], 'error' => $err, 'source_url' => $pageUrl];
+        }
+
+        $json = json_decode((string)$body, true);
+        $wikitext = $json['parse']['wikitext']['*'] ?? '';
+        if (!is_string($wikitext) || trim($wikitext) === '') {
+            return ['ok' => false, 'records' => [], 'error' => 'Format respons Wikipedia tidak valid / wikitext kosong.', 'source_url' => $pageUrl];
+        }
+
+        $records = self::parseWikipediaRecordsWikitext($wikitext, $includePending);
+        if (empty($records)) {
+            return ['ok' => false, 'records' => [], 'error' => 'Tidak ada baris Rekornas valid yang berhasil diparse dari Wikipedia.', 'source_url' => $pageUrl];
+        }
+
+        return [
+            'ok'         => true,
+            'records'    => $records,
+            'error'      => '',
+            'source_url' => $pageUrl,
+        ];
+    }
 }
