@@ -176,18 +176,16 @@
         </div>
 
         <div id="tpl-footer">
+            <?php if(!empty($sponsors)): ?>
             <div class="sheet-footer">
-                <?php if(!empty($sponsors)): ?>
-                    <?php 
-                    $appUrl = defined('BASE_URL') ? BASE_URL : (getenv('APP_URL') ?: ''); 
-                    foreach($sponsors as $img): 
-                    ?>
-                        <img src="<?= $appUrl . '/public/' . ltrim($img, '/') ?>" alt="Sponsor">
-                    <?php endforeach; ?>
-                <?php else: ?>
-                    <small style="color:#ccc; font-weight:bold;">TIRTA AMANDA SWIMMING CLUB</small>
-                <?php endif; ?>
+                <?php 
+                $appUrl = defined('BASE_URL') ? BASE_URL : (getenv('APP_URL') ?: ''); 
+                foreach($sponsors as $img): 
+                ?>
+                    <img src="<?= $appUrl . '/public/' . ltrim($img, '/') ?>" alt="Sponsor">
+                <?php endforeach; ?>
             </div>
+            <?php endif; ?>
         </div>
 
         <div id="tpl-cards">
