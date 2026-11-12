@@ -30,47 +30,32 @@ class EntriesController extends Controller {
             $pdo->query("ALTER TABLE swim_relay_entries ADD COLUMN is_sparing TINYINT(1) NOT NULL DEFAULT 0 AFTER status");
         } catch (\Exception $e) {}
 
-        $isMaster = (($_SESSION['swim_role'] ?? '') === 'master' || ($_SESSION['swim_role'] ?? '') === 'superadmin');
+        $res = \App\Helpers\SwimEventHelper::resolveAdminActiveEvent(
+            $pdo,
+            (int)$uid,
+            (string)($_SESSION['swim_role'] ?? '')
+        );
 
-        try {
-            if ($isMaster) {
-                $stmtAll = $pdo->query("SELECT id, event_name, event_date_start, pool_type FROM swim_events ORDER BY id DESC");
-                $allEvents = $stmtAll->fetchAll(PDO::FETCH_ASSOC);
-            } else {
-                $stmtAll = $pdo->prepare("SELECT id, event_name, event_date_start, pool_type FROM swim_events WHERE user_id = ? ORDER BY id DESC");
-                $stmtAll->execute([$uid]);
-                $allEvents = $stmtAll->fetchAll(PDO::FETCH_ASSOC);
-                if (empty($allEvents)) {
-                    $stmtAll = $pdo->query("SELECT id, event_name, event_date_start, pool_type FROM swim_events ORDER BY id DESC");
-                    $allEvents = $stmtAll->fetchAll(PDO::FETCH_ASSOC);
-                }
+        return [$res['activeEvent'], $res['allEvents'], $res['eventId']];
+    }
+
+    private function resolveSingleEventForDetail($pdo, $uid) {
+        $explicitEventId = (int)($_GET['event_id'] ?? 0);
+        if ($explicitEventId > 0) {
+            $eventData = \App\Helpers\SwimEventHelper::findAccessibleEvent(
+                $pdo,
+                $explicitEventId,
+                (int)$uid,
+                (string)($_SESSION['swim_role'] ?? '')
+            );
+            if ($eventData) {
+                $_SESSION['active_event_id'] = (int)$eventData['id'];
             }
-        } catch (\Exception $e) {
-            $allEvents = [];
+            return $eventData;
         }
 
-        $requestedEventId = (int)($_GET['event_id'] ?? ($_SESSION['active_event_id'] ?? 0));
-        $activeEvent = null;
-
-        if ($requestedEventId > 0) {
-            $stmt = $pdo->prepare("SELECT * FROM swim_events WHERE id = ?");
-            $stmt->execute([$requestedEventId]);
-            $activeEvent = $stmt->fetch(PDO::FETCH_ASSOC);
-        }
-
-        if (!$activeEvent && !empty($allEvents)) {
-            $firstId = (int)$allEvents[0]['id'];
-            $stmt = $pdo->prepare("SELECT * FROM swim_events WHERE id = ?");
-            $stmt->execute([$firstId]);
-            $activeEvent = $stmt->fetch(PDO::FETCH_ASSOC);
-        }
-
-        $targetEventId = (int)($activeEvent['id'] ?? 0);
-        if ($targetEventId > 0) {
-            $_SESSION['active_event_id'] = $targetEventId;
-        }
-
-        return [$activeEvent, $allEvents, $targetEventId];
+        list($activeEvt) = $this->resolveEvent($pdo, $uid);
+        return $activeEvt;
     }
 
     private function calculateBill($pdo, $eventData, $targetUserId) {
@@ -216,7 +201,13 @@ class EntriesController extends Controller {
         list($activeEvent, $allEvents, $targetEventId) = $this->resolveEvent($pdo, $uid);
         
         if ($targetEventId == 0 || !$activeEvent) {
-            die("Anda belum memiliki event aktif. Silakan buat di dashboard.");
+            return $this->view('swim/admin/entries/index', [
+                'listData' => [],
+                'targetEventId' => 0,
+                'eventName' => 'Belum Ada Event Aktif',
+                'activeEvent' => null,
+                'allEvents' => []
+            ]);
         }
         
         // Handle Action Approve/Reject Pembayaran dari view index
@@ -371,23 +362,16 @@ class EntriesController extends Controller {
         $pdo = Database::getInstance()->getConnection();
         $uid = $_SESSION['swim_user_id'];
         
-        $eventId = (int)($_GET['event_id'] ?? ($_SESSION['active_event_id'] ?? 0));
         $targetUserId = (int)($_GET['id'] ?? 0);
         
         if ($targetUserId == 0) {
             die("Parameter ID Klub/User tidak valid.");
         }
         
-        if ($eventId == 0) {
-            list($activeEvt) = $this->resolveEvent($pdo, $uid);
-            $eventId = (int)($activeEvt['id'] ?? 0);
-        }
-
-        // AMBIL DATA EVENT
-        $stmtEvt = $pdo->prepare("SELECT * FROM swim_events WHERE id = ? LIMIT 1");
-        $stmtEvt->execute([$eventId]);
-        $eventData = $stmtEvt->fetch(PDO::FETCH_ASSOC);
-        if (!$eventData) die("Event tidak ditemukan");
+        // AMBIL DATA EVENT (tervalidasi sesuai kepemilikan akun login)
+        $eventData = $this->resolveSingleEventForDetail($pdo, $uid);
+        if (!$eventData) die("Event tidak ditemukan atau Anda tidak memiliki akses ke event ini.");
+        $eventId = (int)$eventData['id'];
 
         // AMBIL DATA USER & KLUB
         $stmtUser = $pdo->prepare("SELECT * FROM swim_users WHERE id = ?");
@@ -492,17 +476,15 @@ class EntriesController extends Controller {
         $pdo = Database::getInstance()->getConnection();
         $uid = $_SESSION['swim_user_id'];
         
-        $eventId = (int)($_GET['event_id'] ?? ($_SESSION['active_event_id'] ?? 0));
         $targetUserId = (int)($_GET['id'] ?? 0);
         
-        if ($eventId == 0 || $targetUserId == 0) {
+        if ($targetUserId == 0) {
             die("Parameter URL tidak lengkap.");
         }
         
-        $stmtEvt = $pdo->prepare("SELECT * FROM swim_events WHERE id = ? LIMIT 1");
-        $stmtEvt->execute([$eventId]);
-        $eventData = $stmtEvt->fetch(PDO::FETCH_ASSOC);
-        if (!$eventData) die("Event tidak ditemukan");
+        $eventData = $this->resolveSingleEventForDetail($pdo, $uid);
+        if (!$eventData) die("Event tidak ditemukan atau Anda tidak memiliki akses ke event ini.");
+        $eventId = (int)$eventData['id'];
         
         $namaEvent = $eventData['event_name'] ?? 'SWIMMING COMPETITION';
         

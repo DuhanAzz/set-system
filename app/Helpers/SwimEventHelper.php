@@ -631,4 +631,96 @@ class SwimEventHelper {
             'consume_row2_as_header' => $isSubheader,
         ];
     }
+
+    /**
+     * Cek apakah role berhak melihat event lintas penyelenggara (master / superadmin).
+     */
+    public static function isPrivilegedEventRole(string $role): bool {
+        return in_array(strtolower(trim($role)), ['master', 'superadmin'], true);
+    }
+
+    /**
+     * Ambil satu event berdasarkan ID hanya jika dimiliki user (atau role master/superadmin).
+     */
+    public static function findAccessibleEvent(PDO $pdo, int $eventId, int $uid, string $role = ''): ?array {
+        if ($eventId <= 0) {
+            return null;
+        }
+        if (self::isPrivilegedEventRole($role)) {
+            $stmt = $pdo->prepare("SELECT * FROM swim_events WHERE id = ? LIMIT 1");
+            $stmt->execute([$eventId]);
+        } else {
+            if ($uid <= 0) {
+                return null;
+            }
+            $stmt = $pdo->prepare("SELECT * FROM swim_events WHERE id = ? AND user_id = ? LIMIT 1");
+            $stmt->execute([$eventId, $uid]);
+        }
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ?: null;
+    }
+
+    /**
+     * Selesaikan daftar event dan event aktif admin/EO sesuai akun login.
+     * Menolak ?event_id maupun $_SESSION['active_event_id'] milik akun lain, dan tidak
+     * melakukan fallback global ke seluruh tabel swim_events untuk role admin biasa.
+     *
+     * @param PDO $pdo
+     * @param int $uid
+     * @param string $role
+     * @param int|null $explicitEventId Null = baca GET -> POST -> SESSION secara otomatis
+     * @param bool $updateSession
+     * @return array{activeEvent: ?array, allEvents: array, eventId: int}
+     */
+    public static function resolveAdminActiveEvent(
+        PDO $pdo,
+        int $uid,
+        string $role = '',
+        ?int $explicitEventId = null,
+        bool $updateSession = true
+    ): array {
+        if (self::isPrivilegedEventRole($role)) {
+            $stmtAll = $pdo->query("SELECT * FROM swim_events ORDER BY id DESC");
+            $allEvents = $stmtAll ? $stmtAll->fetchAll(PDO::FETCH_ASSOC) : [];
+        } elseif ($uid > 0) {
+            $stmtAll = $pdo->prepare("SELECT * FROM swim_events WHERE user_id = ? ORDER BY id DESC");
+            $stmtAll->execute([$uid]);
+            $allEvents = $stmtAll->fetchAll(PDO::FETCH_ASSOC);
+        } else {
+            $allEvents = [];
+        }
+
+        $requestedId = ($explicitEventId === null)
+            ? (int)($_GET['event_id'] ?? ($_POST['event_id'] ?? ($_SESSION['active_event_id'] ?? 0)))
+            : (int)$explicitEventId;
+
+        $activeEvent = null;
+        if ($requestedId > 0) {
+            foreach ($allEvents as $ev) {
+                if ((int)$ev['id'] === $requestedId) {
+                    $activeEvent = $ev;
+                    break;
+                }
+            }
+        }
+
+        if (!$activeEvent && !empty($allEvents)) {
+            $activeEvent = $allEvents[0];
+        }
+
+        $targetEventId = (int)($activeEvent['id'] ?? 0);
+        if ($updateSession && session_status() === PHP_SESSION_ACTIVE) {
+            if ($targetEventId > 0) {
+                $_SESSION['active_event_id'] = $targetEventId;
+            } else {
+                unset($_SESSION['active_event_id']);
+            }
+        }
+
+        return [
+            'activeEvent' => $activeEvent,
+            'allEvents'   => $allEvents,
+            'eventId'     => $targetEventId,
+        ];
+    }
 }

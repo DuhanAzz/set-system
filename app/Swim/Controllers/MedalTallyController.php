@@ -25,22 +25,12 @@ class MedalTallyController extends Controller {
             $pdo->query("ALTER TABLE swim_relay_entries ADD COLUMN is_sparing TINYINT(1) NOT NULL DEFAULT 0 AFTER status");
         } catch (\Exception $e) {}
 
-        $eventId = (int)($_GET['event_id'] ?? ($_SESSION['active_event_id'] ?? 0));
-        if ($eventId > 0) {
-            $_SESSION['active_event_id'] = $eventId;
-            return $eventId;
-        }
-
-        $stmt = $pdo->prepare("SELECT id FROM swim_events WHERE user_id = ? ORDER BY id DESC LIMIT 1");
-        $stmt->execute([$uid]);
-        $eventId = (int)($stmt->fetchColumn() ?: 0);
-        if ($eventId == 0) {
-            $eventId = (int)($pdo->query("SELECT id FROM swim_events ORDER BY id DESC LIMIT 1")->fetchColumn() ?: 0);
-        }
-        if ($eventId > 0) {
-            $_SESSION['active_event_id'] = $eventId;
-        }
-        return $eventId;
+        $res = \App\Helpers\SwimEventHelper::resolveAdminActiveEvent(
+            $pdo,
+            (int)$uid,
+            (string)($_SESSION['swim_role'] ?? ($_SESSION['role'] ?? ''))
+        );
+        return $res['eventId'];
     }
 
     private function timeToMs($time) {
@@ -76,44 +66,13 @@ class MedalTallyController extends Controller {
         $pdo = Database::getInstance()->getConnection();
         $uid = $_SESSION['swim_user_id'] ?? 0;
         
-        $role = $_SESSION['role'] ?? ($_SESSION['swim_role'] ?? 'user');
-        if ($role === 'superadmin' || $role === 'admin') {
-            $stmtEvents = $pdo->query("SELECT id, event_name, event_date_start, participation_type FROM swim_events ORDER BY id DESC");
-        } else {
-            $stmtEvents = $pdo->prepare("SELECT id, event_name, event_date_start, participation_type FROM swim_events WHERE user_id = ? ORDER BY id DESC");
-            $stmtEvents->execute([$uid]);
-        }
-        $myEvents = $stmtEvents ? $stmtEvents->fetchAll(PDO::FETCH_ASSOC) : [];
-        if (empty($myEvents)) {
-            $myEvents = $pdo->query("SELECT id, event_name, event_date_start, participation_type FROM swim_events ORDER BY id DESC")->fetchAll(PDO::FETCH_ASSOC);
-        }
-
-        $eventId = (int)($_GET['event_id'] ?? ($_SESSION['active_event_id'] ?? 0));
-        if ($eventId == 0 && count($myEvents) > 0) {
-            $eventId = (int)$myEvents[0]['id'];
-        }
-        if ($eventId == 0) {
-            $eventId = $this->getActiveEventId($pdo, $uid);
-        }
-
-        $raceInfo = null;
-        if ($eventId > 0) {
-            $_SESSION['active_event_id'] = $eventId;
-            $stmtProfile = $pdo->prepare("SELECT * FROM swim_events WHERE id = ?");
-            $stmtProfile->execute([$eventId]);
-            $raceInfo = $stmtProfile->fetch(PDO::FETCH_ASSOC);
-        }
+        $role = $_SESSION['swim_role'] ?? ($_SESSION['role'] ?? 'user');
+        $resolved = \App\Helpers\SwimEventHelper::resolveAdminActiveEvent($pdo, (int)$uid, (string)$role);
+        $myEvents = $resolved['allEvents'];
+        $eventId = $resolved['eventId'];
+        $raceInfo = $resolved['activeEvent'];
 
         if (!$raceInfo) die("Data Event tidak ditemukan.");
-
-        // Pastikan jika eventId tidak ada di myEvents, tetap muncul di dropdown
-        $existsInList = false;
-        foreach ($myEvents as $ev) {
-            if ($ev['id'] == $eventId) { $existsInList = true; break; }
-        }
-        if (!$existsInList && $raceInfo) {
-            array_unshift($myEvents, ['id' => $raceInfo['id'], 'event_name' => $raceInfo['event_name']]);
-        }
         $eventYear = date('Y', strtotime($raceInfo['event_date_start'])); 
         $eventLoc = strtoupper($raceInfo['event_location'] ?? 'LOKASI');
         

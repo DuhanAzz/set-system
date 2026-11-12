@@ -28,39 +28,15 @@ class EventsController extends Controller {
             $pdo->query("ALTER TABLE swim_events ADD COLUMN price_relay DECIMAL(15,2) DEFAULT 0.00 AFTER price_per_item");
         } catch (\Exception $e) {}
 
-        $isMaster = ($_SESSION['swim_role'] ?? '') === 'master';
+        $res = \App\Helpers\SwimEventHelper::resolveAdminActiveEvent(
+            $pdo,
+            (int)$adminId,
+            (string)($_SESSION['swim_role'] ?? ''),
+            (int)$requestedEventId,
+            true
+        );
 
-        // Ambil semua event yang dapat diakses pengguna
-        if ($isMaster) {
-            $stmtAll = $pdo->query("SELECT id, event_name, event_date_start, pool_type, pricing_mode, package_price, package_limit, extra_price FROM swim_events ORDER BY id DESC");
-            $allEvents = $stmtAll->fetchAll(PDO::FETCH_ASSOC);
-        } else {
-            $stmtAll = $pdo->prepare("SELECT id, event_name, event_date_start, pool_type, pricing_mode, package_price, package_limit, extra_price FROM swim_events WHERE user_id = ? ORDER BY id DESC");
-            $stmtAll->execute([$adminId]);
-            $allEvents = $stmtAll->fetchAll(PDO::FETCH_ASSOC);
-        }
-
-        $activeEvent = null;
-        $targetId = (int)$requestedEventId;
-
-        if ($targetId > 0) {
-            $stmt = $pdo->prepare("SELECT * FROM swim_events WHERE id = ?");
-            $stmt->execute([$targetId]);
-            $foundEvent = $stmt->fetch(PDO::FETCH_ASSOC);
-            if ($foundEvent) {
-                $activeEvent = $foundEvent;
-            }
-        }
-
-        // Fallback ke event pertama jika tidak ditentukan
-        if (!$activeEvent && !empty($allEvents)) {
-            $firstId = $allEvents[0]['id'];
-            $stmt = $pdo->prepare("SELECT * FROM swim_events WHERE id = ?");
-            $stmt->execute([$firstId]);
-            $activeEvent = $stmt->fetch(PDO::FETCH_ASSOC);
-        }
-
-        return [$activeEvent, $allEvents];
+        return [$res['activeEvent'], $res['allEvents']];
     }
 
     public function index() {

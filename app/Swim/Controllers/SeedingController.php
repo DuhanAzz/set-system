@@ -15,16 +15,13 @@ class SeedingController extends Controller {
         $pdo = Database::getInstance()->getConnection();
         $admin_id = $_SESSION['swim_user_id'];
         
-        // 2. AMBIL ID EVENT TERAKHIR
-        $targetEventId = (int)($_GET['event_id'] ?? ($_SESSION['active_event_id'] ?? 0));
-        if ($targetEventId == 0) {
-            $stmtLastEvt = $pdo->prepare("SELECT id FROM swim_events WHERE user_id = ? ORDER BY id DESC LIMIT 1");
-            $stmtLastEvt->execute([$admin_id]);
-            $targetEventId = (int)($stmtLastEvt->fetchColumn() ?: 0);
-            if ($targetEventId == 0) {
-                $targetEventId = (int)($pdo->query("SELECT id FROM swim_events ORDER BY id DESC LIMIT 1")->fetchColumn() ?: 0);
-            }
-        }
+        // 2. AMBIL ID EVENT TERAKHIR SESUAI AKUN LOGIN
+        $resolved = \App\Helpers\SwimEventHelper::resolveAdminActiveEvent(
+            $pdo,
+            (int)$admin_id,
+            (string)($_SESSION['swim_role'] ?? '')
+        );
+        $targetEventId = $resolved['eventId'];
         
         // 3. Ambil Data Nomor Lomba & Profil Event
         $events = [];

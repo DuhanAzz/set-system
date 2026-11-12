@@ -41,7 +41,8 @@ class LoginController extends Controller {
                         exit;
                     }
 
-                    // Set session sesuai instruksi
+                    // Set session sesuai instruksi & bersihkan event aktif sesi sebelumnya
+                    unset($_SESSION['active_event_id']);
                     $_SESSION['swim_user_id'] = $user['id'];
                     $_SESSION['swim_role'] = $user['role']; 
                     $_SESSION['nama_lengkap'] = $user['nama_lengkap'] ?? $user['username'];
@@ -86,7 +87,9 @@ class LoginController extends Controller {
 
         unset($_SESSION['swim_user_id']);
         unset($_SESSION['swim_role']);
-        unset($_SESSION['swim_username']); 
+        unset($_SESSION['swim_username']);
+        unset($_SESSION['nama_lengkap']);
+        unset($_SESSION['active_event_id']);
         
         header("Location: " . getenv('APP_URL') . "/swim/login");
         exit;

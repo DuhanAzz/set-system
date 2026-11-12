@@ -24,47 +24,13 @@ class RelayController extends Controller {
             $pdo->query("ALTER TABLE swim_events ADD COLUMN price_relay DECIMAL(15,2) DEFAULT 0.00 AFTER price_per_item");
         } catch (\Exception $e) {}
 
-        $isMaster = (($_SESSION['swim_role'] ?? '') === 'master' || ($_SESSION['swim_role'] ?? '') === 'superadmin');
+        $res = \App\Helpers\SwimEventHelper::resolveAdminActiveEvent(
+            $pdo,
+            (int)$uid,
+            (string)($_SESSION['swim_role'] ?? '')
+        );
 
-        try {
-            if ($isMaster) {
-                $stmtAll = $pdo->query("SELECT id, event_name, event_date_start, pool_type FROM swim_events ORDER BY id DESC");
-                $allEvents = $stmtAll->fetchAll(PDO::FETCH_ASSOC);
-            } else {
-                $stmtAll = $pdo->prepare("SELECT id, event_name, event_date_start, pool_type FROM swim_events WHERE user_id = ? ORDER BY id DESC");
-                $stmtAll->execute([$uid]);
-                $allEvents = $stmtAll->fetchAll(PDO::FETCH_ASSOC);
-                if (empty($allEvents)) {
-                    $stmtAll = $pdo->query("SELECT id, event_name, event_date_start, pool_type FROM swim_events ORDER BY id DESC");
-                    $allEvents = $stmtAll->fetchAll(PDO::FETCH_ASSOC);
-                }
-            }
-        } catch (\Exception $e) {
-            $allEvents = [];
-        }
-
-        $requestedEventId = (int)($_GET['event_id'] ?? ($_SESSION['active_event_id'] ?? 0));
-        $activeEvent = null;
-
-        if ($requestedEventId > 0) {
-            $stmt = $pdo->prepare("SELECT * FROM swim_events WHERE id = ?");
-            $stmt->execute([$requestedEventId]);
-            $activeEvent = $stmt->fetch(PDO::FETCH_ASSOC);
-        }
-
-        if (!$activeEvent && !empty($allEvents)) {
-            $firstId = (int)$allEvents[0]['id'];
-            $stmt = $pdo->prepare("SELECT * FROM swim_events WHERE id = ?");
-            $stmt->execute([$firstId]);
-            $activeEvent = $stmt->fetch(PDO::FETCH_ASSOC);
-        }
-
-        $eventId = (int)($activeEvent['id'] ?? 0);
-        if ($eventId > 0) {
-            $_SESSION['active_event_id'] = $eventId;
-        }
-
-        return [$activeEvent, $allEvents, $eventId];
+        return [$res['activeEvent'], $res['allEvents'], $res['eventId']];
     }
     
     public function index() {

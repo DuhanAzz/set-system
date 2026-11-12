@@ -37,45 +37,12 @@ class ExportController extends Controller {
     public function index() {
         $this->checkAccess();
         $pdo = $this->db;
-        $role = $_SESSION['role'] ?? ($_SESSION['swim_role'] ?? '');
-        
-        if ($role === 'master' || $role === 'superadmin' || $role === 'admin') {
-            $stmtEvents = $pdo->query("SELECT id, event_name, event_date_start, participation_type FROM swim_events ORDER BY id DESC");
-            $events = $stmtEvents ? $stmtEvents->fetchAll(PDO::FETCH_ASSOC) : [];
-        } else {
-            $uid = $_SESSION['swim_user_id'] ?? 0;
-            $stmtEvents = $pdo->prepare("SELECT id, event_name, event_date_start, participation_type FROM swim_events WHERE user_id = ? ORDER BY id DESC");
-            $stmtEvents->execute([$uid]);
-            $events = $stmtEvents->fetchAll(PDO::FETCH_ASSOC);
-        }
-        if (empty($events)) {
-            $events = $pdo->query("SELECT id, event_name, event_date_start, participation_type FROM swim_events ORDER BY id DESC")->fetchAll(PDO::FETCH_ASSOC);
-        }
-
-        $selectedEventId = isset($_GET['event_id']) ? (int)$_GET['event_id'] : (int)($_SESSION['active_event_id'] ?? (isset($events[0]) ? $events[0]['id'] : 0));
-        if ($selectedEventId > 0) {
-            $_SESSION['active_event_id'] = $selectedEventId;
-        }
-
-        $selectedEvent = null;
-        if ($selectedEventId > 0) {
-            $stmtEvDetail = $pdo->prepare("SELECT * FROM swim_events WHERE id = ?");
-            $stmtEvDetail->execute([$selectedEventId]);
-            $selectedEvent = $stmtEvDetail->fetch(PDO::FETCH_ASSOC);
-        }
-
-        $existsInList = false;
-        foreach ($events as $ev) {
-            if ($ev['id'] == $selectedEventId) { $existsInList = true; break; }
-        }
-        if (!$existsInList && $selectedEvent) {
-            array_unshift($events, [
-                'id' => $selectedEvent['id'],
-                'event_name' => $selectedEvent['event_name'],
-                'event_date_start' => $selectedEvent['event_date_start'],
-                'participation_type' => $selectedEvent['participation_type']
-            ]);
-        }
+        $uid = (int)($_SESSION['swim_user_id'] ?? 0);
+        $role = (string)($_SESSION['swim_role'] ?? ($_SESSION['role'] ?? ''));
+        $resolved = \App\Helpers\SwimEventHelper::resolveAdminActiveEvent($pdo, $uid, $role);
+        $events = $resolved['allEvents'];
+        $selectedEventId = $resolved['eventId'];
+        $selectedEvent = $resolved['activeEvent'];
 
         $partType = 'club';
         foreach($events as $ev) {
@@ -497,19 +464,34 @@ class ExportController extends Controller {
         exit;
     }
 
+    private function resolveAccessibleExportEvent(string $role): array {
+        $uid = (int)($_SESSION['swim_user_id'] ?? 0);
+        $explicitEventId = (int)($_REQUEST['event_id'] ?? 0);
+        if ($explicitEventId > 0) {
+            $event = \App\Helpers\SwimEventHelper::findAccessibleEvent($this->db, $explicitEventId, $uid, $role);
+            if (!$event) die("Event tidak ditemukan.");
+            $_SESSION['active_event_id'] = (int)$event['id'];
+            return [$event, (int)$event['id']];
+        }
+
+        $resolved = \App\Helpers\SwimEventHelper::resolveAdminActiveEvent($this->db, $uid, $role);
+        if ($resolved['eventId'] === 0 || !$resolved['activeEvent']) {
+            die("Event tidak ditemukan.");
+        }
+        return [$resolved['activeEvent'], $resolved['eventId']];
+    }
+
     public function download_canva() {
         $this->checkAccess();
         if (ob_get_level() > 0) ob_clean();
         
         // Proteksi Akses
-        $role = $_SESSION['role'] ?? ($_SESSION['swim_role'] ?? '');
+        $role = $_SESSION['swim_role'] ?? ($_SESSION['role'] ?? '');
         if ($role !== 'admin' && $role !== 'master' && $role !== 'superadmin') {
             die("Akses Ditolak.");
         }
 
-        $event_id = isset($_GET['event_id']) ? (int)$_GET['event_id'] : (int)($_SESSION['active_event_id'] ?? 0);
-        if ($event_id === 0) die("Event ID invalid.");
-        $_SESSION['active_event_id'] = $event_id;
+        list($event, $event_id) = $this->resolveAccessibleExportEvent((string)$role);
 $filter_team = isset($_GET['team']) ? $_GET['team'] : 'ALL';
 $filter_limit = isset($_GET['limit']) ? $_GET['limit'] : 'ALL'; // ALL, TOP3, DQ
 $rank_mode = isset($_GET['rank_mode']) ? $_GET['rank_mode'] : 'OVERALL'; // SPLIT, OVERALL
@@ -517,13 +499,7 @@ $cert_type = isset($_GET['cert_type']) ? strtolower(trim($_GET['cert_type'])) : 
 $scope = isset($_GET['scope']) ? strtolower(trim($_GET['scope'])) : 'event'; // event, swimmer
 $template_format = isset($_GET['template_format']) ? strtolower(trim($_GET['template_format'])) : 'template'; // template (Nama;Juara;Nomor lomba), full
 
-if ($event_id === 0) die("Event ID invalid.");
-
-// 1. Dapatkan detail event
-$stmtEvent = $this->db->prepare("SELECT * FROM swim_events WHERE id = ?");
-$stmtEvent->execute([$event_id]);
-$event = $stmtEvent->fetch(PDO::FETCH_ASSOC);
-if (!$event) die("Event tidak ditemukan.");
+// Detail event tervalidasi di resolveAccessibleExportEvent
 
 $partType = strtolower($event['participation_type'] ?? 'club');
 $isSchool = (strpos($partType, 'school') !== false || strpos($partType, 'sekolah') !== false);
@@ -957,14 +933,12 @@ exit;
         if (ob_get_level() > 0) ob_clean();
 
         // Proteksi Akses
-        $role = $_SESSION['role'] ?? ($_SESSION['swim_role'] ?? '');
+        $role = $_SESSION['swim_role'] ?? ($_SESSION['role'] ?? '');
         if ($role !== 'admin' && $role !== 'master' && $role !== 'superadmin') {
             die("Akses Ditolak.");
         }
 
-        $event_id = isset($_REQUEST['event_id']) ? (int)$_REQUEST['event_id'] : (int)($_SESSION['active_event_id'] ?? 0);
-        if ($event_id === 0) die("Event ID invalid.");
-        $_SESSION['active_event_id'] = $event_id;
+        list($event, $event_id) = $this->resolveAccessibleExportEvent((string)$role);
         $filter_ku = isset($_REQUEST['ku']) ? $_REQUEST['ku'] : 'ALL';
         $filter_team = isset($_REQUEST['team']) ? $_REQUEST['team'] : 'ALL';
         $filter_limit = isset($_REQUEST['limit']) ? $_REQUEST['limit'] : 'ALL'; 
@@ -989,14 +963,6 @@ exit;
         $col_waktu = isset($_REQUEST['col_waktu']) && $_REQUEST['col_waktu'] == 1;
         $col_hasil = isset($_REQUEST['col_hasil']) && $_REQUEST['col_hasil'] == 1;
         $col_ket = isset($_REQUEST['col_ket']) && $_REQUEST['col_ket'] == 1;
-
-        if ($event_id === 0) die("Event ID invalid.");
-
-        // 1. Dapatkan detail event
-        $stmtEvent = $this->db->prepare("SELECT * FROM swim_events WHERE id = ?");
-        $stmtEvent->execute([$event_id]);
-        $event = $stmtEvent->fetch(PDO::FETCH_ASSOC);
-        if (!$event) die("Event tidak ditemukan.");
 
         $partType = strtolower($event['participation_type'] ?? 'club');
         $isSchool = (strpos($partType, 'school') !== false || strpos($partType, 'sekolah') !== false);
