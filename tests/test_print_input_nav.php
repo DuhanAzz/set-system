@@ -98,3 +98,4 @@ assertTrue(strpos($nextPrintUrl, 'print=1') !== false, 'Next URL preserves print
 assertTrue(strpos($nextPrintUrl, 'col_uid=1') !== false, 'Next URL preserves col_uid=1');
 
 echo "PASS: test_print_input_nav\n";
+
