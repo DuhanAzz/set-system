@@ -378,17 +378,21 @@ class ResultsController extends Controller {
 
         $currentEventId = (int)$raceInfo['event_id'];
         $currentEvNo = (int)($raceInfo['event_number'] ?? 0);
-        $stmtPrev = $pdo->prepare("SELECT id FROM swim_event_numbers WHERE event_id = ? AND (CAST(event_number AS UNSIGNED) < ? OR (CAST(event_number AS UNSIGNED) = ? AND id < ?)) ORDER BY CAST(event_number AS UNSIGNED) DESC, id DESC LIMIT 1");
+        $stmtPrev = $pdo->prepare("SELECT id, event_number, distance, stroke, jenis_kelamin, age_group FROM swim_event_numbers WHERE event_id = ? AND (CAST(event_number AS UNSIGNED) < ? OR (CAST(event_number AS UNSIGNED) = ? AND id < ?)) ORDER BY CAST(event_number AS UNSIGNED) DESC, id DESC LIMIT 1");
         $stmtPrev->execute([$currentEventId, $currentEvNo, $currentEvNo, $cat_id]);
         $rowPrev = $stmtPrev->fetch(PDO::FETCH_ASSOC);
         $prevUrl = $rowPrev ? getenv('APP_URL') . "/swim/admin/results/input?category_id=" . $rowPrev['id'] : "#";
         $prevClass = $rowPrev ? "bg-slate-700 hover:bg-slate-800 text-white" : "bg-slate-200 text-slate-400 cursor-not-allowed pointer-events-none";
 
-        $stmtNext = $pdo->prepare("SELECT id FROM swim_event_numbers WHERE event_id = ? AND (CAST(event_number AS UNSIGNED) > ? OR (CAST(event_number AS UNSIGNED) = ? AND id > ?)) ORDER BY CAST(event_number AS UNSIGNED) ASC, id ASC LIMIT 1");
+        $stmtNext = $pdo->prepare("SELECT id, event_number, distance, stroke, jenis_kelamin, age_group FROM swim_event_numbers WHERE event_id = ? AND (CAST(event_number AS UNSIGNED) > ? OR (CAST(event_number AS UNSIGNED) = ? AND id > ?)) ORDER BY CAST(event_number AS UNSIGNED) ASC, id ASC LIMIT 1");
         $stmtNext->execute([$currentEventId, $currentEvNo, $currentEvNo, $cat_id]);
         $rowNext = $stmtNext->fetch(PDO::FETCH_ASSOC);
         $nextUrl = $rowNext ? getenv('APP_URL') . "/swim/admin/results/input?category_id=" . $rowNext['id'] : "#";
         $nextClass = $rowNext ? "bg-slate-700 hover:bg-slate-800 text-white" : "bg-slate-200 text-slate-400 cursor-not-allowed pointer-events-none";    
+
+        $stmtAllRaces = $pdo->prepare("SELECT id, event_number, distance, stroke, jenis_kelamin, age_group FROM swim_event_numbers WHERE event_id = ? ORDER BY CAST(event_number AS UNSIGNED) ASC, id ASC");
+        $stmtAllRaces->execute([$currentEventId]);
+        $allRaces = $stmtAllRaces->fetchAll(PDO::FETCH_ASSOC);
 
         $stmtAge = $pdo->prepare("SELECT group_name, min_age, max_age FROM swim_event_age_groups WHERE event_id = ?");
         $stmtAge->execute([$currentEventId]);
@@ -405,6 +409,9 @@ class ResultsController extends Controller {
             'prevClass' => $prevClass,
             'nextUrl' => $nextUrl,
             'nextClass' => $nextClass,
+            'rowPrev' => $rowPrev,
+            'rowNext' => $rowNext,
+            'allRaces' => $allRaces,
             'eventProfile' => $eventProfile,
             'ageGroups' => $ageGroups,
             'pdo' => $pdo

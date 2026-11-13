@@ -42,6 +42,43 @@
         .btn-print:hover { background: #1d4ed8; transform: translateY(-1px); }
         .btn-close:hover { background: #334155; transform: translateY(-1px); }
 
+        /* --- TOMBOL NAVIGASI NOMOR LOMBA (SEBELUM / SETELAH) DI KIRI ATAS --- */
+        .nav-race-bar {
+            position: fixed; top: 20px; left: 20px; z-index: 9999;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .btn-nav-race {
+            background: #1e293b; color: #f8fafc; border: 1px solid #475569;
+            padding: 10px 16px; border-radius: 8px; font-weight: 800; cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3); text-transform: uppercase;
+            font-size: 11px; letter-spacing: 0.04em; text-decoration: none;
+            display: inline-flex; align-items: center; gap: 7px;
+            transition: all 0.15s ease; white-space: nowrap;
+        }
+        .btn-nav-race:hover:not(.disabled) {
+            background: #334155; border-color: #64748b; color: #ffffff;
+            transform: translateY(-1px);
+        }
+        .btn-nav-race.disabled {
+            background: #0f172a; color: #64748b; border-color: #334155;
+            cursor: not-allowed; pointer-events: none; opacity: 0.5; box-shadow: none;
+        }
+        .select-nav-race {
+            background: #1e293b; color: #f8fafc; border: 1px solid #475569;
+            padding: 9px 12px; border-radius: 8px; font-weight: 800; font-size: 11px;
+            cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.3); outline: none;
+            max-width: 220px; transition: border-color 0.15s ease;
+        }
+        .select-nav-race:hover, .select-nav-race:focus {
+            border-color: #60a5fa;
+        }
+        @media screen and (max-width: 1400px) {
+            .select-nav-race { max-width: 150px; }
+        }
+        @media screen and (max-width: 1200px) {
+            .select-nav-race { display: none; }
+        }
+
         /* --- PANEL PENGATURAN CETAK (DI LUAR KERTAS) --- */
         .config-panel {
             width: 210mm;
@@ -281,7 +318,7 @@
                 display: block;
                 height: 60px;
             }
-            .btn-print, .btn-close, .no-print { display: none !important; }
+            .btn-print, .btn-close, .nav-race-bar, .no-print { display: none !important; }
             @page { margin: 0; size: A4; }
             * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
         }
@@ -510,7 +547,64 @@ foreach ($groupedResults as $key => &$rows) {
     });
 }
 unset($rows);
+
+// Persiapan navigasi nomor lomba sebelumnya & setelahnya (Print Mode)
+$currentQueryParams = $_GET;
+$currentQueryParams['print'] = '1';
+
+if (!isset($allRaces) && isset($pdo) && !empty($raceInfo['event_id'])) {
+    $stmtAllR = $pdo->prepare("SELECT id, event_number, distance, stroke, jenis_kelamin, age_group FROM swim_event_numbers WHERE event_id = ? ORDER BY CAST(event_number AS UNSIGNED) ASC, id ASC");
+    $stmtAllR->execute([(int)$raceInfo['event_id']]);
+    $allRaces = $stmtAllR->fetchAll(PDO::FETCH_ASSOC);
+}
+
+$prevPrintUrl = null;
+if (!empty($rowPrev['id'])) {
+    $pParams = $currentQueryParams;
+    $pParams['category_id'] = $rowPrev['id'];
+    $prevPrintUrl = getenv('APP_URL') . '/swim/admin/results/input?' . http_build_query($pParams);
+}
+
+$nextPrintUrl = null;
+if (!empty($rowNext['id'])) {
+    $nParams = $currentQueryParams;
+    $nParams['category_id'] = $rowNext['id'];
+    $nextPrintUrl = getenv('APP_URL') . '/swim/admin/results/input?' . http_build_query($nParams);
+}
 ?>
+
+    <!-- TOMBOL NAVIGASI NOMOR LOMBA DI KIRI ATAS (SEBELUM / SETELAH) -->
+    <div class="no-print nav-race-bar">
+        <a href="<?= htmlspecialchars($prevPrintUrl ?? '#') ?>" 
+           onclick="if(<?= !empty($rowPrev['id']) ? 'true' : 'false' ?>){ navigateToRace(<?= (int)($rowPrev['id'] ?? 0) ?>); return false; }"
+           class="btn-nav-race <?= empty($rowPrev) ? 'disabled' : '' ?>" 
+           title="<?= !empty($rowPrev) ? 'Pindah ke Acara #' . htmlspecialchars($rowPrev['event_number']) : 'Tidak ada acara sebelumnya' ?>">
+            <i class="fas fa-chevron-left"></i> 
+            <span><?= !empty($rowPrev['event_number']) ? 'Acara #' . htmlspecialchars($rowPrev['event_number']) : 'Sebelumnya' ?></span>
+        </a>
+
+        <?php if (!empty($allRaces) && count($allRaces) > 1): ?>
+            <select class="select-nav-race" onchange="if(this.value){ navigateToRace(this.value); }">
+                <?php foreach ($allRaces as $rItem): 
+                    $optGender = (in_array($rItem['jenis_kelamin'] ?? '', ['L', 'Male', 'Man'])) ? 'PA' : ((in_array($rItem['jenis_kelamin'] ?? '', ['P', 'Female', 'Woman'])) ? 'PI' : 'MIX');
+                    $optStroke = \App\Helpers\SwimEventHelper::formatStrokeName($rItem['stroke'] ?? '');
+                    $isSelected = ((int)$rItem['id'] === (int)$cat_id);
+                ?>
+                    <option value="<?= (int)$rItem['id'] ?>" <?= $isSelected ? 'selected' : '' ?>>
+                        #<?= htmlspecialchars($rItem['event_number']) ?> - <?= (int)$rItem['distance'] ?>M <?= htmlspecialchars($optStroke) ?> (<?= htmlspecialchars($rItem['age_group'] ?? 'OPEN') ?> <?= $optGender ?>)
+                    </option>
+                <?php endforeach; ?>
+            </select>
+        <?php endif; ?>
+
+        <a href="<?= htmlspecialchars($nextPrintUrl ?? '#') ?>" 
+           onclick="if(<?= !empty($rowNext['id']) ? 'true' : 'false' ?>){ navigateToRace(<?= (int)($rowNext['id'] ?? 0) ?>); return false; }"
+           class="btn-nav-race <?= empty($rowNext) ? 'disabled' : '' ?>" 
+           title="<?= !empty($rowNext) ? 'Pindah ke Acara #' . htmlspecialchars($rowNext['event_number']) : 'Tidak ada acara setelahnya' ?>">
+            <span><?= !empty($rowNext['event_number']) ? 'Acara #' . htmlspecialchars($rowNext['event_number']) : 'Setelahnya' ?></span>
+            <i class="fas fa-chevron-right"></i>
+        </a>
+    </div>
 
     <!-- TOMBOL CEPAT DI KANAN ATAS (NAVIGASI STICKY) -->
     <button onclick="window.print()" class="btn-print"><i class="fas fa-print"></i> Cetak Dokumen</button>
@@ -914,6 +1008,29 @@ unset($rows);
                 document.querySelectorAll('.group-row td').forEach(td => td.colSpan = activeCols);
             }
         }
+    }
+
+    function navigateToRace(targetCategoryId) {
+        if (!targetCategoryId) return;
+        const url = new URL(window.location.href);
+        url.searchParams.set('category_id', targetCategoryId);
+        url.searchParams.set('print', '1');
+        url.searchParams.set('cfg_submitted', '1');
+
+        const configKeys = [
+            'cfg_event_no', 'cfg_date', 'cfg_event_name', 'cfg_group', 'cfg_gender', 'cfg_pool', 'cfg_round',
+            'cfg_show_records', 'cfg_show_event_records',
+            'col_uid', 'col_nama', 'col_ku', 'col_tim', 'col_klub', 'col_waktu', 'col_hasil'
+        ];
+
+        configKeys.forEach(k => {
+            const el = document.getElementById(k);
+            if (el) {
+                url.searchParams.set(k, el.checked ? '1' : '0');
+            }
+        });
+
+        window.location.href = url.toString();
     }
 
     function saveConfiguration() {
