@@ -14,6 +14,20 @@ class RollExploreController extends Controller {
             header("Location: " . getenv('APP_URL') . "/roll/login");
             exit;
         }
+
+        // Auto-refresh tipe organisasi kontingen/klub langsung dari database
+        if (!empty($_SESSION['roll_club_id'])) {
+            try {
+                $db = Database::getInstance()->getConnection();
+                $stmtClub = $db->prepare("SELECT club_type, province, city_province FROM roll_clubs WHERE id = ?");
+                $stmtClub->execute([$_SESSION['roll_club_id']]);
+                $cRow = $stmtClub->fetch(PDO::FETCH_ASSOC);
+                if ($cRow) {
+                    $_SESSION['roll_club_type'] = $cRow['club_type'] ?? 'club';
+                    $_SESSION['roll_province'] = $cRow['province'] ?? $cRow['city_province'] ?? '';
+                }
+            } catch (\Exception $e) {}
+        }
     }
 
     public function index() {

@@ -28,9 +28,18 @@
         <div class="flex gap-3">
             <?php if ($isLocked): 
                 $paymentStatus = $existingEntries[0]['payment_status'] ?? 'Unpaid';
-                if ($event['status'] !== 'Open Registration') {
-                    $lockMsg = '🔒 PENDAFTARAN DITUTUP';
-                    $lockClass = 'bg-slate-100 border border-slate-300 text-slate-700';
+                $isContingent = (($_SESSION['roll_club_type'] ?? '') === 'contingent');
+                $eventStatus = $event['status'] ?? '';
+                $isRegActive = ($eventStatus === 'Open Registration') || ($eventStatus === 'Official Registration' && $isContingent);
+
+                if (!$isRegActive) {
+                    if ($eventStatus === 'Official Registration' && !$isContingent) {
+                        $lockMsg = '🔒 KHUSUS KONTINGEN RESMI';
+                        $lockClass = 'bg-purple-100 border border-purple-300 text-purple-800';
+                    } else {
+                        $lockMsg = '🔒 PENDAFTARAN DITUTUP';
+                        $lockClass = 'bg-slate-100 border border-slate-300 text-slate-700';
+                    }
                 } elseif ($paymentStatus === 'Paid') {
                     $lockMsg = '✅ LUNAS / TERVERIFIKASI';
                     $lockClass = 'bg-emerald-100 border border-emerald-300 text-emerald-700';

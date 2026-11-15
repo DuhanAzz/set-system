@@ -17,6 +17,20 @@ class RollRegistrationController extends Controller {
         if (!isset($_SESSION['roll_cart'])) {
             $_SESSION['roll_cart'] = [];
         }
+
+        // Auto-refresh tipe organisasi kontingen/klub langsung dari database
+        if (!empty($_SESSION['roll_club_id'])) {
+            try {
+                $db = Database::getInstance()->getConnection();
+                $stmtClub = $db->prepare("SELECT club_type, province, city_province FROM roll_clubs WHERE id = ?");
+                $stmtClub->execute([$_SESSION['roll_club_id']]);
+                $cRow = $stmtClub->fetch(PDO::FETCH_ASSOC);
+                if ($cRow) {
+                    $_SESSION['roll_club_type'] = $cRow['club_type'] ?? 'club';
+                    $_SESSION['roll_province'] = $cRow['province'] ?? $cRow['city_province'] ?? '';
+                }
+            } catch (\Exception $e) {}
+        }
     }
 
     public function index($event_id = null) {
@@ -97,17 +111,23 @@ class RollRegistrationController extends Controller {
         $isEditable = !empty(array_filter($existingEntries, fn($e) => in_array($e['payment_status'], ['Unpaid', 'Rejected'])));
         $isLocked  = !empty($existingEntries) && !$isEditable; // Terkunci jika semua Pending/Paid
         
-        // Kunci form jika status bukan Open Registration
-        if ($event && $event['status'] !== 'Open Registration') {
+        $isContingent = (($_SESSION['roll_club_type'] ?? '') === 'contingent');
+        $eventStatus = $event['status'] ?? '';
+        $isRegistrationActive = ($eventStatus === 'Open Registration') || ($eventStatus === 'Official Registration' && $isContingent);
+
+        // Kunci form jika status bukan pendaftaran aktif
+        if (!$isRegistrationActive) {
             $isLocked = true;
         }
 
         return $this->view('roll/user/entries/index', [
-            'athletes'        => $athletes,
-            'event'           => $event,
-            'classes'         => $classes,
-            'existingEntries' => $existingEntries,
-            'isLocked'        => $isLocked,
+            'athletes'             => $athletes,
+            'event'                => $event,
+            'classes'              => $classes,
+            'existingEntries'      => $existingEntries,
+            'isLocked'             => $isLocked,
+            'isRegistrationActive' => $isRegistrationActive,
+            'isContingent'         => $isContingent,
         ]);
     }
 
@@ -577,7 +597,10 @@ class RollRegistrationController extends Controller {
             $stmtEventStat->execute([$entry['event_id']]);
             $eventStatus = $stmtEventStat->fetchColumn();
             
-            if ($eventStatus !== 'Open Registration') {
+            $isContingent = (($_SESSION['roll_club_type'] ?? '') === 'contingent');
+            $isRegistrationActive = ($eventStatus === 'Open Registration') || ($eventStatus === 'Official Registration' && $isContingent);
+
+            if (!$isRegistrationActive) {
                 $_SESSION['flash_message'] = "Tidak bisa membatalkan entri saat pendaftaran ditutup.";
                 $_SESSION['flash_type'] = "error";
                 header("Location: " . getenv('APP_URL') . "/roll/user/registration/index/" . $entry['event_id']);

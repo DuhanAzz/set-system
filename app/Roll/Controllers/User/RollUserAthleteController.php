@@ -30,6 +30,19 @@ class RollUserAthleteController extends Controller {
                     ADD COLUMN status_bpjs ENUM('sudah', 'belum') DEFAULT 'belum' AFTER kota_kabupaten");
             } catch (\Exception $ex) {}
         }
+
+        // Auto-refresh tipe organisasi kontingen/klub langsung dari database
+        if (!empty($_SESSION['roll_club_id'])) {
+            try {
+                $stmtClub = $db->prepare("SELECT club_type, province, city_province FROM roll_clubs WHERE id = ?");
+                $stmtClub->execute([$_SESSION['roll_club_id']]);
+                $cRow = $stmtClub->fetch(PDO::FETCH_ASSOC);
+                if ($cRow) {
+                    $_SESSION['roll_club_type'] = $cRow['club_type'] ?? 'club';
+                    $_SESSION['roll_province'] = $cRow['province'] ?? $cRow['city_province'] ?? '';
+                }
+            } catch (\Exception $e) {}
+        }
     }
 
     private function generateSkaterUID($db, $nama_atlet, $tanggal_lahir, $jenis_kelamin) {
