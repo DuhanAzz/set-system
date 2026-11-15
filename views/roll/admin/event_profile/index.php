@@ -106,71 +106,198 @@
                         </div>
                     </div>
 
-                    <!-- Kategori Biaya Lomba (Paket Basic & Nomor Tambahan) -->
+                    <!-- SENTRALISASI PENGATURAN KATEGORI, TARIF & LIMIT LOMBA -->
                     <div class="mb-6 pt-4 border-t border-slate-200">
-                        <div class="flex items-center justify-between mb-3">
-                            <h4 class="text-xs font-black text-slate-800 uppercase tracking-widest flex items-center gap-1.5">
-                                <span>💰 Biaya Pendaftaran per Atlet</span>
-                                <span class="bg-blue-100 text-blue-700 text-[10px] px-2 py-0.5 rounded-full font-bold">Paket Dasar (2 Nomor) + Nomor Tambahan</span>
-                            </h4>
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+                            <div>
+                                <h4 class="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
+                                    <span>💰 Sentralisasi Pengaturan Kategori, Tarif & Batas Lomba</span>
+                                </h4>
+                                <p class="text-[11px] text-slate-500 font-medium mt-0.5">Kelola status pendaftaran, tarif paket dasar, kuota dasar, batas nomor (limit), dan biaya nomor tambahan secara terpusat.</p>
+                            </div>
+                            <span class="bg-blue-50 text-blue-700 border border-blue-200 text-[10px] px-3 py-1 rounded-full font-bold self-start sm:self-auto flex items-center gap-1.5">
+                                <span>🔄 Terhubung Otomatis dgn Matriks Kelas</span>
+                            </span>
                         </div>
 
-                        <!-- Baris 1: Paket Basic (Mencakup Kuota Dasar 2 Nomor Individu + 1 Beregu) -->
-                        <div class="p-4 bg-slate-50 border border-slate-200 rounded-xl mb-4">
-                            <p class="text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-3">1. Biaya Paket Basic (Mencakup Kuota 2 Nomor Individu & 1 Nomor Beregu)</p>
-                            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-5">
+                            <!-- KARTU SPEED -->
+                            <div class="bg-fuchsia-50/60 border border-fuchsia-200 rounded-2xl p-4 flex flex-col justify-between shadow-sm">
                                 <div>
-                                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Basic Speed (Rp)</label>
-                                    <input type="number" name="fee_speed" value="<?= htmlspecialchars($row['fee_speed'] ?? '400000') ?>" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-fuchsia-500 font-bold text-fuchsia-700" required>
+                                    <div class="flex items-center justify-between pb-3 border-b border-fuchsia-200/80 mb-3">
+                                        <div class="flex items-center gap-2">
+                                            <span class="w-2.5 h-2.5 rounded-full bg-fuchsia-600"></span>
+                                            <span class="text-xs font-black text-fuchsia-900 uppercase tracking-wider">Kategori SPEED</span>
+                                        </div>
+                                        <label class="inline-flex items-center cursor-pointer" title="Buka/Tutup Pendaftaran Speed">
+                                            <input type="hidden" name="is_speed_open" value="0">
+                                            <input type="checkbox" name="is_speed_open" value="1" <?= (!isset($row['is_speed_open']) || $row['is_speed_open']) ? 'checked' : '' ?> class="sr-only peer">
+                                            <div class="relative w-8 h-4 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-fuchsia-600"></div>
+                                            <span class="text-[9px] font-bold text-fuchsia-800 ml-1.5 uppercase"><?= (!isset($row['is_speed_open']) || $row['is_speed_open']) ? 'Buka' : 'Tutup' ?></span>
+                                        </label>
+                                    </div>
+
+                                    <div class="space-y-3">
+                                        <div class="grid grid-cols-2 gap-2">
+                                            <div>
+                                                <label class="block text-[9px] font-bold text-fuchsia-900 uppercase tracking-wider mb-1">Paket Basic (Rp)</label>
+                                                <input type="number" name="fee_speed" value="<?= htmlspecialchars($row['fee_speed'] ?? '400000') ?>" class="w-full bg-white border border-fuchsia-200 rounded-lg px-2.5 py-1.5 text-xs font-black text-fuchsia-700 focus:ring-1 focus:ring-fuchsia-500 outline-none" required>
+                                            </div>
+                                            <div>
+                                                <label class="block text-[9px] font-bold text-fuchsia-900 uppercase tracking-wider mb-1">Kuota Dasar (Ind)</label>
+                                                <input type="number" name="quota_speed_basic" value="<?= htmlspecialchars($row['quota_speed_basic'] ?? 2) ?>" min="1" class="w-full bg-white border border-fuchsia-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-700 text-center focus:ring-1 focus:ring-fuchsia-500 outline-none" required>
+                                            </div>
+                                        </div>
+
+                                        <div class="grid grid-cols-2 gap-2">
+                                            <div>
+                                                <label class="block text-[9px] font-bold text-fuchsia-900 uppercase tracking-wider mb-1">Max Individu</label>
+                                                <input type="number" name="limit_speed_ind" value="<?= htmlspecialchars($row['limit_speed_ind'] ?? 3) ?>" min="1" class="w-full bg-white border border-fuchsia-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-700 text-center focus:ring-1 focus:ring-fuchsia-500 outline-none" required>
+                                            </div>
+                                            <div>
+                                                <label class="block text-[9px] font-bold text-fuchsia-900 uppercase tracking-wider mb-1">Max Beregu</label>
+                                                <input type="number" name="limit_speed_team" value="<?= htmlspecialchars($row['limit_speed_team'] ?? 1) ?>" min="0" class="w-full bg-white border border-fuchsia-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-700 text-center focus:ring-1 focus:ring-fuchsia-500 outline-none" required>
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label class="block text-[9px] font-bold text-fuchsia-900 uppercase tracking-wider mb-1">Biaya Nomor Tambahan (+Rp / nomor)</label>
+                                            <input type="number" name="fee_speed_extra" value="<?= htmlspecialchars($row['fee_speed_extra'] ?? '200000') ?>" placeholder="Contoh: 200000" class="w-full bg-white border border-fuchsia-200 rounded-lg px-2.5 py-1.5 text-xs font-black text-fuchsia-700 focus:ring-1 focus:ring-fuchsia-500 outline-none">
+                                        </div>
+                                    </div>
                                 </div>
-                                <div>
-                                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Basic Standart (Rp)</label>
-                                    <input type="number" name="fee_standart" value="<?= htmlspecialchars($row['fee_standart'] ?? '350000') ?>" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-amber-500 font-bold text-amber-600" required>
+
+                                <div class="mt-3 pt-2.5 border-t border-fuchsia-200/60 text-[9.5px] text-fuchsia-800 leading-tight">
+                                    Paket Basic mencakup <span class="font-black"><?= $row['quota_speed_basic'] ?? 2 ?></span> nomor individu & <span class="font-black"><?= $row['limit_speed_team'] ?? 1 ?></span> beregu. Jika atlet ambil hingga <span class="font-black"><?= $row['limit_speed_ind'] ?? 3 ?></span> nomor individu, nomor ke-3 otomatis ditagih biaya tambahan.
                                 </div>
+                            </div>
+
+                            <!-- KARTU STANDAR -->
+                            <div class="bg-amber-50/60 border border-amber-200 rounded-2xl p-4 flex flex-col justify-between shadow-sm">
                                 <div>
-                                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Basic Pemula (Rp)</label>
-                                    <input type="number" name="fee_pemula" value="<?= htmlspecialchars($row['fee_pemula'] ?? '250000') ?>" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-emerald-500 font-bold text-emerald-600" required>
+                                    <div class="flex items-center justify-between pb-3 border-b border-amber-200/80 mb-3">
+                                        <div class="flex items-center gap-2">
+                                            <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                                            <span class="text-xs font-black text-amber-900 uppercase tracking-wider">Kategori STANDAR</span>
+                                        </div>
+                                        <label class="inline-flex items-center cursor-pointer" title="Buka/Tutup Pendaftaran Standar">
+                                            <input type="hidden" name="is_std_open" value="0">
+                                            <input type="checkbox" name="is_std_open" value="1" <?= (!isset($row['is_std_open']) || $row['is_std_open']) ? 'checked' : '' ?> class="sr-only peer">
+                                            <div class="relative w-8 h-4 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-amber-500"></div>
+                                            <span class="text-[9px] font-bold text-amber-800 ml-1.5 uppercase"><?= (!isset($row['is_std_open']) || $row['is_std_open']) ? 'Buka' : 'Tutup' ?></span>
+                                        </label>
+                                    </div>
+
+                                    <div class="space-y-3">
+                                        <div class="grid grid-cols-2 gap-2">
+                                            <div>
+                                                <label class="block text-[9px] font-bold text-amber-900 uppercase tracking-wider mb-1">Paket Basic (Rp)</label>
+                                                <input type="number" name="fee_standart" value="<?= htmlspecialchars($row['fee_standart'] ?? '350000') ?>" class="w-full bg-white border border-amber-200 rounded-lg px-2.5 py-1.5 text-xs font-black text-amber-600 focus:ring-1 focus:ring-amber-500 outline-none" required>
+                                            </div>
+                                            <div>
+                                                <label class="block text-[9px] font-bold text-amber-900 uppercase tracking-wider mb-1">Kuota Dasar (Ind)</label>
+                                                <input type="number" name="quota_std_basic" value="<?= htmlspecialchars($row['quota_std_basic'] ?? 2) ?>" min="1" class="w-full bg-white border border-amber-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-700 text-center focus:ring-1 focus:ring-amber-500 outline-none" required>
+                                            </div>
+                                        </div>
+
+                                        <div class="grid grid-cols-2 gap-2">
+                                            <div>
+                                                <label class="block text-[9px] font-bold text-amber-900 uppercase tracking-wider mb-1">Max Individu</label>
+                                                <input type="number" name="limit_std_ind" value="<?= htmlspecialchars($row['limit_std_ind'] ?? 2) ?>" min="1" class="w-full bg-white border border-amber-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-700 text-center focus:ring-1 focus:ring-amber-500 outline-none" required>
+                                            </div>
+                                            <div>
+                                                <label class="block text-[9px] font-bold text-amber-900 uppercase tracking-wider mb-1">Max Beregu</label>
+                                                <input type="number" name="limit_std_team" value="<?= htmlspecialchars($row['limit_std_team'] ?? 1) ?>" min="0" class="w-full bg-white border border-amber-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-700 text-center focus:ring-1 focus:ring-amber-500 outline-none" required>
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label class="block text-[9px] font-bold text-amber-900 uppercase tracking-wider mb-1">Biaya Nomor Tambahan (+Rp / nomor)</label>
+                                            <input type="number" name="fee_standart_extra" value="<?= htmlspecialchars($row['fee_standart_extra'] ?? '0') ?>" placeholder="0 jika tidak ada tambahan" class="w-full bg-white border border-amber-200 rounded-lg px-2.5 py-1.5 text-xs font-black text-amber-600 focus:ring-1 focus:ring-amber-500 outline-none">
+                                        </div>
+                                    </div>
                                 </div>
+
+                                <div class="mt-3 pt-2.5 border-t border-amber-200/60 text-[9.5px] text-amber-800 leading-tight">
+                                    Paket Basic mencakup <span class="font-black"><?= $row['quota_std_basic'] ?? 2 ?></span> nomor individu & <span class="font-black"><?= $row['limit_std_team'] ?? 1 ?></span> beregu. Jika Max Individu sama dengan Kuota Dasar, atlet dibatasi maksimal 2 nomor tanpa tambahan.
+                                </div>
+                            </div>
+
+                            <!-- KARTU PEMULA -->
+                            <div class="bg-emerald-50/60 border border-emerald-200 rounded-2xl p-4 flex flex-col justify-between shadow-sm">
                                 <div>
-                                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Biaya Eksebisi (Rp)</label>
-                                    <input type="number" name="fee_eksebisi" value="<?= htmlspecialchars($row['fee_eksebisi'] ?? '150000') ?>" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-red-500 font-bold text-red-600" required>
+                                    <div class="flex items-center justify-between pb-3 border-b border-emerald-200/80 mb-3">
+                                        <div class="flex items-center gap-2">
+                                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                                            <span class="text-xs font-black text-emerald-900 uppercase tracking-wider">Kategori PEMULA</span>
+                                        </div>
+                                        <label class="inline-flex items-center cursor-pointer" title="Buka/Tutup Pendaftaran Pemula">
+                                            <input type="hidden" name="is_pemula_open" value="0">
+                                            <input type="checkbox" name="is_pemula_open" value="1" <?= (!isset($row['is_pemula_open']) || $row['is_pemula_open']) ? 'checked' : '' ?> class="sr-only peer">
+                                            <div class="relative w-8 h-4 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-emerald-500"></div>
+                                            <span class="text-[9px] font-bold text-emerald-800 ml-1.5 uppercase"><?= (!isset($row['is_pemula_open']) || $row['is_pemula_open']) ? 'Buka' : 'Tutup' ?></span>
+                                        </label>
+                                    </div>
+
+                                    <div class="space-y-3">
+                                        <div class="grid grid-cols-2 gap-2">
+                                            <div>
+                                                <label class="block text-[9px] font-bold text-emerald-900 uppercase tracking-wider mb-1">Paket Basic (Rp)</label>
+                                                <input type="number" name="fee_pemula" value="<?= htmlspecialchars($row['fee_pemula'] ?? '250000') ?>" class="w-full bg-white border border-emerald-200 rounded-lg px-2.5 py-1.5 text-xs font-black text-emerald-600 focus:ring-1 focus:ring-emerald-500 outline-none" required>
+                                            </div>
+                                            <div>
+                                                <label class="block text-[9px] font-bold text-emerald-900 uppercase tracking-wider mb-1">Kuota Dasar (Ind)</label>
+                                                <input type="number" name="quota_pemula_basic" value="<?= htmlspecialchars($row['quota_pemula_basic'] ?? 2) ?>" min="1" class="w-full bg-white border border-emerald-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-700 text-center focus:ring-1 focus:ring-emerald-500 outline-none" required>
+                                            </div>
+                                        </div>
+
+                                        <div class="grid grid-cols-2 gap-2">
+                                            <div>
+                                                <label class="block text-[9px] font-bold text-emerald-900 uppercase tracking-wider mb-1">Max Individu</label>
+                                                <input type="number" name="limit_pemula_ind" value="<?= htmlspecialchars($row['limit_pemula_ind'] ?? 3) ?>" min="1" class="w-full bg-white border border-emerald-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-700 text-center focus:ring-1 focus:ring-emerald-500 outline-none" required>
+                                            </div>
+                                            <div>
+                                                <label class="block text-[9px] font-bold text-emerald-900 uppercase tracking-wider mb-1">Max Beregu</label>
+                                                <input type="number" name="limit_pemula_team" value="<?= htmlspecialchars($row['limit_pemula_team'] ?? 0) ?>" min="0" class="w-full bg-white border border-emerald-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-700 text-center focus:ring-1 focus:ring-emerald-500 outline-none" required>
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label class="block text-[9px] font-bold text-emerald-900 uppercase tracking-wider mb-1">Biaya Nomor Tambahan (+Rp / nomor)</label>
+                                            <input type="number" name="fee_pemula_extra" value="<?= htmlspecialchars($row['fee_pemula_extra'] ?? '100000') ?>" placeholder="Contoh: 100000" class="w-full bg-white border border-emerald-200 rounded-lg px-2.5 py-1.5 text-xs font-black text-emerald-600 focus:ring-1 focus:ring-emerald-500 outline-none">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mt-3 pt-2.5 border-t border-emerald-200/60 text-[9.5px] text-emerald-800 leading-tight">
+                                    Paket Basic mencakup <span class="font-black"><?= $row['quota_pemula_basic'] ?? 2 ?></span> nomor individu (misal 100m & 200m). Nomor ke-3 (300m) otomatis dihitung sebagai nomor tambahan dengan biaya ekstra.
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Baris 2: Biaya Nomor Tambahan (Extra Race Fee) -->
-                        <div class="p-4 bg-amber-50/60 border border-amber-200 rounded-xl">
-                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-3">
-                                <p class="text-[11px] font-bold text-amber-900 uppercase tracking-wider">2. Biaya Nomor Tambahan (Tambahan per 1 Nomor Individu Ekstra)</p>
-                                <span class="text-[10px] text-amber-700 italic font-medium">*Dikenakan otomatis jika atlet memilih nomor ke-3 individual</span>
-                            </div>
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <!-- EKSEBISI & ATURAN MIX -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="p-4 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
                                 <div>
-                                    <label class="block text-[10px] font-bold text-amber-800 uppercase tracking-widest mb-1">Tambahan Speed (+Rp / nomor)</label>
-                                    <input type="number" name="fee_speed_extra" value="<?= htmlspecialchars($row['fee_speed_extra'] ?? '200000') ?>" placeholder="Contoh: 200000" class="w-full bg-white border border-amber-300 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-amber-500 font-bold text-fuchsia-700">
+                                    <h5 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Biaya Lomba Eksebisi</h5>
+                                    <p class="text-[10px] text-slate-500 mt-0.5">Tarif pendaftaran flat untuk kategori khusus / eksebisi.</p>
                                 </div>
-                                <div>
-                                    <label class="block text-[10px] font-bold text-amber-800 uppercase tracking-widest mb-1">Tambahan Standart (+Rp / nomor)</label>
-                                    <input type="number" name="fee_standart_extra" value="<?= htmlspecialchars($row['fee_standart_extra'] ?? '0') ?>" placeholder="Kosongkan / 0 jika tidak ada" class="w-full bg-white border border-amber-300 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-amber-500 font-bold text-amber-600">
-                                </div>
-                                <div>
-                                    <label class="block text-[10px] font-bold text-amber-800 uppercase tracking-widest mb-1">Tambahan Pemula (+Rp / nomor)</label>
-                                    <input type="number" name="fee_pemula_extra" value="<?= htmlspecialchars($row['fee_pemula_extra'] ?? '100000') ?>" placeholder="Contoh: 100000" class="w-full bg-white border border-amber-300 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-amber-500 font-bold text-emerald-600">
+                                <div class="w-40">
+                                    <input type="number" name="fee_eksebisi" value="<?= htmlspecialchars($row['fee_eksebisi'] ?? '150000') ?>" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-black text-red-600 focus:ring-1 focus:ring-red-500 outline-none text-right" required>
                                 </div>
                             </div>
-                        </div>
-                    </div>
 
-                    <!-- Kategori Campuran -->
-                    <div class="flex flex-col md:flex-row items-start md:items-center justify-between p-4 bg-indigo-50 border border-indigo-100 rounded-xl mb-6">
-                        <div>
-                            <h4 class="text-sm font-bold text-indigo-900">Izinkan Atlet Pemula Ikut Kelas Standar</h4>
-                            <p class="text-[10px] font-bold text-indigo-700/80 uppercase tracking-wider mt-1">Jika aktif, atlet pemula dapat mendaftar di kelas standar sekaligus (akan dikenakan biaya 2x). Atlet Speed tetap tidak bisa turun kelas.</p>
+                            <div class="p-4 bg-indigo-50/70 border border-indigo-100 rounded-xl flex items-center justify-between">
+                                <div class="pr-3">
+                                    <h5 class="text-xs font-bold text-indigo-900 uppercase tracking-wider">Izinkan Pemula Ikut Kelas Standar</h5>
+                                    <p class="text-[10px] text-indigo-700/80 mt-0.5">Atlet pemula dapat mendaftar standar sekaligus (dikenakan biaya 2x).</p>
+                                </div>
+                                <label class="relative inline-flex items-center cursor-pointer flex-shrink-0">
+                                    <input type="checkbox" name="allow_pemula_standart_mix" value="1" class="sr-only peer" <?= !empty($row['allow_pemula_standart_mix']) ? 'checked' : '' ?>>
+                                    <div class="w-12 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[3px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600 shadow-inner"></div>
+                                </label>
+                            </div>
                         </div>
-                        <label class="relative inline-flex items-center cursor-pointer mt-4 md:mt-0">
-                            <input type="checkbox" name="allow_pemula_standart_mix" value="1" class="sr-only peer" <?= !empty($row['allow_pemula_standart_mix']) ? 'checked' : '' ?>>
-                            <div class="w-14 h-7 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[4px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-indigo-600 shadow-inner"></div>
-                        </label>
                     </div>
 
                     <!-- Rekening Pembayaran -->

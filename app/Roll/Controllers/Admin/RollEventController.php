@@ -60,8 +60,11 @@ class RollEventController extends Controller {
         try {
             $db->exec("ALTER TABLE roll_events 
                 ADD COLUMN fee_speed_extra DECIMAL(10,2) DEFAULT 0.00 AFTER fee_speed,
+                ADD COLUMN quota_speed_basic INT DEFAULT 2 AFTER fee_speed_extra,
                 ADD COLUMN fee_standart_extra DECIMAL(10,2) DEFAULT 0.00 AFTER fee_standart,
-                ADD COLUMN fee_pemula_extra DECIMAL(10,2) DEFAULT 0.00 AFTER fee_pemula");
+                ADD COLUMN quota_std_basic INT DEFAULT 2 AFTER fee_standart_extra,
+                ADD COLUMN fee_pemula_extra DECIMAL(10,2) DEFAULT 0.00 AFTER fee_pemula,
+                ADD COLUMN quota_pemula_basic INT DEFAULT 2 AFTER fee_pemula_extra");
         } catch (\Exception $e) {}
         try {
             $distances = $db->query("SELECT * FROM roll_ref_distances ORDER BY id ASC")->fetchAll(PDO::FETCH_ASSOC);
@@ -425,10 +428,25 @@ class RollEventController extends Controller {
             }
             $feeSpeed = $_POST['fee_speed'] ?? 400000;
             $feeSpeedExtra = $_POST['fee_speed_extra'] ?? 0;
+            $quotaSpeedBasic = (int)($_POST['quota_speed_basic'] ?? 2);
+            $limitSpeedInd = (int)($_POST['limit_speed_ind'] ?? 3);
+            $limitSpeedTeam = (int)($_POST['limit_speed_team'] ?? 1);
+            $isSpeedOpen = isset($_POST['is_speed_open']) ? (int)$_POST['is_speed_open'] : 1;
+
             $feeStandart = $_POST['fee_standart'] ?? 350000;
             $feeStandartExtra = $_POST['fee_standart_extra'] ?? 0;
+            $quotaStdBasic = (int)($_POST['quota_std_basic'] ?? 2);
+            $limitStdInd = (int)($_POST['limit_std_ind'] ?? 2);
+            $limitStdTeam = (int)($_POST['limit_std_team'] ?? 1);
+            $isStdOpen = isset($_POST['is_std_open']) ? (int)$_POST['is_std_open'] : 1;
+
             $feePemula = $_POST['fee_pemula'] ?? 250000;
             $feePemulaExtra = $_POST['fee_pemula_extra'] ?? 0;
+            $quotaPemulaBasic = (int)($_POST['quota_pemula_basic'] ?? 2);
+            $limitPemulaInd = (int)($_POST['limit_pemula_ind'] ?? 3);
+            $limitPemulaTeam = (int)($_POST['limit_pemula_team'] ?? 0);
+            $isPemulaOpen = isset($_POST['is_pemula_open']) ? (int)$_POST['is_pemula_open'] : 1;
+
             $feeEksebisi = $_POST['fee_eksebisi'] ?? 150000;
             $allowPemulaStandartMix = isset($_POST['allow_pemula_standart_mix']) ? 1 : 0;
             $bankName = $_POST['bank_name'] ?? null;
@@ -438,8 +456,8 @@ class RollEventController extends Controller {
             $headerLogosJson = json_encode($headerLogosArray);
 
             try {
-                $stmt = $db->prepare("UPDATE roll_events SET event_name=?, event_date_start=?, event_date_end=?, event_location=?, event_city=?, race_format=?, status=?, participation_type=?, fee_speed=?, fee_speed_extra=?, fee_standart=?, fee_standart_extra=?, fee_pemula=?, fee_pemula_extra=?, fee_eksebisi=?, allow_pemula_standart_mix=?, bank_name=?, bank_account=?, bank_account_name=?, contact_phone=?, poster_image=?, sponsor_logos=?, header_logos=? WHERE id=?");
-                $stmt->execute([$eventName, $eventDateStart, $eventDateEnd, $eventLoc, $eventCity, $raceFormat, $status, $participationType, $feeSpeed, $feeSpeedExtra, $feeStandart, $feeStandartExtra, $feePemula, $feePemulaExtra, $feeEksebisi, $allowPemulaStandartMix, $bankName, $bankAccount, $bankAccountName, $contactPhone, $posterImage, $sponsorLogosJson, $headerLogosJson, $eventId]);
+                $stmt = $db->prepare("UPDATE roll_events SET event_name=?, event_date_start=?, event_date_end=?, event_location=?, event_city=?, race_format=?, status=?, participation_type=?, fee_speed=?, fee_speed_extra=?, quota_speed_basic=?, limit_speed_ind=?, limit_speed_team=?, is_speed_open=?, fee_standart=?, fee_standart_extra=?, quota_std_basic=?, limit_std_ind=?, limit_std_team=?, is_std_open=?, fee_pemula=?, fee_pemula_extra=?, quota_pemula_basic=?, limit_pemula_ind=?, limit_pemula_team=?, is_pemula_open=?, fee_eksebisi=?, allow_pemula_standart_mix=?, bank_name=?, bank_account=?, bank_account_name=?, contact_phone=?, poster_image=?, sponsor_logos=?, header_logos=? WHERE id=?");
+                $stmt->execute([$eventName, $eventDateStart, $eventDateEnd, $eventLoc, $eventCity, $raceFormat, $status, $participationType, $feeSpeed, $feeSpeedExtra, $quotaSpeedBasic, $limitSpeedInd, $limitSpeedTeam, $isSpeedOpen, $feeStandart, $feeStandartExtra, $quotaStdBasic, $limitStdInd, $limitStdTeam, $isStdOpen, $feePemula, $feePemulaExtra, $quotaPemulaBasic, $limitPemulaInd, $limitPemulaTeam, $isPemulaOpen, $feeEksebisi, $allowPemulaStandartMix, $bankName, $bankAccount, $bankAccountName, $contactPhone, $posterImage, $sponsorLogosJson, $headerLogosJson, $eventId]);
             } catch (\Exception $e) {
                 try { $db->exec("ALTER TABLE roll_events ADD COLUMN status ENUM('Draft','Published','Open Registration','Official Registration','Close Registration','Running','Finished') DEFAULT 'Draft'"); } catch (\Exception $ex) {}
                 try { $db->exec("ALTER TABLE roll_events MODIFY COLUMN status ENUM('Draft','Published','Open Registration','Official Registration','Close Registration','Running','Finished') DEFAULT 'Draft'"); } catch (\Exception $ex) {}
@@ -448,10 +466,22 @@ class RollEventController extends Controller {
                 try { $db->exec("ALTER TABLE roll_events ADD COLUMN race_format VARCHAR(50) DEFAULT 'SPRINT'"); } catch (\Exception $ex) {}
                 try { $db->exec("ALTER TABLE roll_events ADD COLUMN fee_speed DECIMAL(10,2) DEFAULT 400000"); } catch (\Exception $ex) {}
                 try { $db->exec("ALTER TABLE roll_events ADD COLUMN fee_speed_extra DECIMAL(10,2) DEFAULT 0.00 AFTER fee_speed"); } catch (\Exception $ex) {}
+                try { $db->exec("ALTER TABLE roll_events ADD COLUMN quota_speed_basic INT DEFAULT 2 AFTER fee_speed_extra"); } catch (\Exception $ex) {}
+                try { $db->exec("ALTER TABLE roll_events ADD COLUMN limit_speed_ind INT DEFAULT 3"); } catch (\Exception $ex) {}
+                try { $db->exec("ALTER TABLE roll_events ADD COLUMN limit_speed_team INT DEFAULT 1"); } catch (\Exception $ex) {}
+                try { $db->exec("ALTER TABLE roll_events ADD COLUMN is_speed_open TINYINT(1) DEFAULT 1"); } catch (\Exception $ex) {}
                 try { $db->exec("ALTER TABLE roll_events ADD COLUMN fee_standart DECIMAL(10,2) DEFAULT 350000"); } catch (\Exception $ex) {}
                 try { $db->exec("ALTER TABLE roll_events ADD COLUMN fee_standart_extra DECIMAL(10,2) DEFAULT 0.00 AFTER fee_standart"); } catch (\Exception $ex) {}
+                try { $db->exec("ALTER TABLE roll_events ADD COLUMN quota_std_basic INT DEFAULT 2 AFTER fee_standart_extra"); } catch (\Exception $ex) {}
+                try { $db->exec("ALTER TABLE roll_events ADD COLUMN limit_std_ind INT DEFAULT 2"); } catch (\Exception $ex) {}
+                try { $db->exec("ALTER TABLE roll_events ADD COLUMN limit_std_team INT DEFAULT 1"); } catch (\Exception $ex) {}
+                try { $db->exec("ALTER TABLE roll_events ADD COLUMN is_std_open TINYINT(1) DEFAULT 1"); } catch (\Exception $ex) {}
                 try { $db->exec("ALTER TABLE roll_events ADD COLUMN fee_pemula DECIMAL(10,2) DEFAULT 250000"); } catch (\Exception $ex) {}
                 try { $db->exec("ALTER TABLE roll_events ADD COLUMN fee_pemula_extra DECIMAL(10,2) DEFAULT 0.00 AFTER fee_pemula"); } catch (\Exception $ex) {}
+                try { $db->exec("ALTER TABLE roll_events ADD COLUMN quota_pemula_basic INT DEFAULT 2 AFTER fee_pemula_extra"); } catch (\Exception $ex) {}
+                try { $db->exec("ALTER TABLE roll_events ADD COLUMN limit_pemula_ind INT DEFAULT 3"); } catch (\Exception $ex) {}
+                try { $db->exec("ALTER TABLE roll_events ADD COLUMN limit_pemula_team INT DEFAULT 0"); } catch (\Exception $ex) {}
+                try { $db->exec("ALTER TABLE roll_events ADD COLUMN is_pemula_open TINYINT(1) DEFAULT 1"); } catch (\Exception $ex) {}
                 try { $db->exec("ALTER TABLE roll_events ADD COLUMN fee_eksebisi DECIMAL(10,2) DEFAULT 150000"); } catch (\Exception $ex) {}
                 try { $db->exec("ALTER TABLE roll_events ADD COLUMN allow_pemula_standart_mix TINYINT(1) DEFAULT 0"); } catch (\Exception $ex) {}
                 try { $db->exec("ALTER TABLE roll_events ADD COLUMN poster_image VARCHAR(255) NULL"); } catch (\Exception $ex) {}
@@ -459,8 +489,8 @@ class RollEventController extends Controller {
                 try { $db->exec("ALTER TABLE roll_events ADD COLUMN header_logos TEXT NULL"); } catch (\Exception $ex) {}
                 
                 // Retry after migration
-                $stmt = $db->prepare("UPDATE roll_events SET event_name=?, event_date_start=?, event_date_end=?, event_location=?, event_city=?, race_format=?, status=?, participation_type=?, fee_speed=?, fee_speed_extra=?, fee_standart=?, fee_standart_extra=?, fee_pemula=?, fee_pemula_extra=?, fee_eksebisi=?, allow_pemula_standart_mix=?, bank_name=?, bank_account=?, bank_account_name=?, contact_phone=?, poster_image=?, sponsor_logos=?, header_logos=? WHERE id=?");
-                $stmt->execute([$eventName, $eventDateStart, $eventDateEnd, $eventLoc, $eventCity, $raceFormat, $status, $participationType, $feeSpeed, $feeSpeedExtra, $feeStandart, $feeStandartExtra, $feePemula, $feePemulaExtra, $feeEksebisi, $allowPemulaStandartMix, $bankName, $bankAccount, $bankAccountName, $contactPhone, $posterImage, $sponsorLogosJson, $headerLogosJson, $eventId]);
+                $stmt = $db->prepare("UPDATE roll_events SET event_name=?, event_date_start=?, event_date_end=?, event_location=?, event_city=?, race_format=?, status=?, participation_type=?, fee_speed=?, fee_speed_extra=?, quota_speed_basic=?, limit_speed_ind=?, limit_speed_team=?, is_speed_open=?, fee_standart=?, fee_standart_extra=?, quota_std_basic=?, limit_std_ind=?, limit_std_team=?, is_std_open=?, fee_pemula=?, fee_pemula_extra=?, quota_pemula_basic=?, limit_pemula_ind=?, limit_pemula_team=?, is_pemula_open=?, fee_eksebisi=?, allow_pemula_standart_mix=?, bank_name=?, bank_account=?, bank_account_name=?, contact_phone=?, poster_image=?, sponsor_logos=?, header_logos=? WHERE id=?");
+                $stmt->execute([$eventName, $eventDateStart, $eventDateEnd, $eventLoc, $eventCity, $raceFormat, $status, $participationType, $feeSpeed, $feeSpeedExtra, $quotaSpeedBasic, $limitSpeedInd, $limitSpeedTeam, $isSpeedOpen, $feeStandart, $feeStandartExtra, $quotaStdBasic, $limitStdInd, $limitStdTeam, $isStdOpen, $feePemula, $feePemulaExtra, $quotaPemulaBasic, $limitPemulaInd, $limitPemulaTeam, $isPemulaOpen, $feeEksebisi, $allowPemulaStandartMix, $bankName, $bankAccount, $bankAccountName, $contactPhone, $posterImage, $sponsorLogosJson, $headerLogosJson, $eventId]);
             }
 
             $_SESSION['flash_message'] = "Profil Event berhasil diperbarui!";

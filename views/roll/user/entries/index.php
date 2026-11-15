@@ -594,7 +594,13 @@ const limits = {
     standar: <?= (int)($event['limit_std_ind'] ?? 2) ?>,
     pemula: <?= (int)($event['limit_pemula_ind'] ?? 3) ?>
 };
+const basicQuotas = {
+    speed: <?= (int)($event['quota_speed_basic'] ?? 2) ?>,
+    standar: <?= (int)($event['quota_std_basic'] ?? 2) ?>,
+    pemula: <?= (int)($event['quota_pemula_basic'] ?? 2) ?>
+};
 let maxIndv = 99;
+let currentCategoryGroup = 'speed';
 let currentAthleteExistingIndvCount = 0;
 
 function filterClasses() {
@@ -661,7 +667,8 @@ function filterClasses() {
         if (catNameText.includes('speed')) { targetGroupForLimit = 'speed'; maxIndv = typeof limits !== 'undefined' ? limits.speed : 2; }
         else if (catNameText.includes('standar')) { targetGroupForLimit = 'standar'; maxIndv = typeof limits !== 'undefined' ? limits.standar : 2; }
         else if (catNameText.includes('pemula')) { targetGroupForLimit = 'pemula'; maxIndv = typeof limits !== 'undefined' ? limits.pemula : 2; }
-        else { maxIndv = 99; }
+        else { targetGroupForLimit = 'speed'; maxIndv = 99; }
+        currentCategoryGroup = targetGroupForLimit;
         
         let existingIndvCountForCategory = 0;
         if (typeof existingEntriesData !== 'undefined') {
@@ -775,9 +782,10 @@ function checkIndividualLimits(checkbox) {
         btn.className = 'w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-black text-xs shadow-lg shadow-blue-200 transition-all uppercase tracking-widest cursor-pointer';
         
         let totalIndvNow = (currentAthleteExistingIndvCount || 0) + checked.length;
+        let curBasicQuota = (typeof basicQuotas !== 'undefined' && basicQuotas[currentCategoryGroup]) ? basicQuotas[currentCategoryGroup] : 2;
         let extraNoticeHtml = '';
-        if (totalIndvNow > 2) {
-            let extraCount = totalIndvNow - 2;
+        if (totalIndvNow > curBasicQuota) {
+            let extraCount = totalIndvNow - curBasicQuota;
             extraNoticeHtml = `<div class="mt-2 text-[10px] font-bold text-amber-800 bg-amber-100/70 p-2 rounded-lg border border-amber-300">ℹ️ Termasuk ${extraCount} Nomor Tambahan (dikenakan biaya nomor tambahan saat checkout).</div>`;
         }
         

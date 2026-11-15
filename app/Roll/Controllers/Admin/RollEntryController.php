@@ -86,9 +86,9 @@ class RollEntryController extends Controller {
         }
 
         // Fetch entry fees for dynamic calculation
-        $stmtFee = $db->prepare("SELECT fee_speed, fee_speed_extra, fee_standart, fee_standart_extra, fee_pemula, fee_pemula_extra, allow_pemula_standart_mix FROM roll_events WHERE id = ?");
+        $stmtFee = $db->prepare("SELECT fee_speed, fee_speed_extra, quota_speed_basic, fee_standart, fee_standart_extra, quota_std_basic, fee_pemula, fee_pemula_extra, quota_pemula_basic, allow_pemula_standart_mix FROM roll_events WHERE id = ?");
         $stmtFee->execute([$targetEventId]);
-        $eventFees = $stmtFee->fetch(PDO::FETCH_ASSOC) ?: ['fee_speed'=>400000, 'fee_speed_extra'=>0, 'fee_standart'=>350000, 'fee_standart_extra'=>0, 'fee_pemula'=>250000, 'fee_pemula_extra'=>0, 'allow_pemula_standart_mix'=>0];
+        $eventFees = $stmtFee->fetch(PDO::FETCH_ASSOC) ?: ['fee_speed'=>400000, 'fee_speed_extra'=>0, 'quota_speed_basic'=>2, 'fee_standart'=>350000, 'fee_standart_extra'=>0, 'quota_std_basic'=>2, 'fee_pemula'=>250000, 'fee_pemula_extra'=>0, 'quota_pemula_basic'=>2, 'allow_pemula_standart_mix'=>0];
 
         // Query List Klub & Payments
         try {
@@ -573,7 +573,7 @@ class RollEntryController extends Controller {
                 $stmtM->execute($manualEntriesInserted);
                 $mRows = $stmtM->fetchAll(PDO::FETCH_ASSOC);
 
-                $stmtFee = $db->prepare("SELECT fee_speed, fee_speed_extra, fee_standart, fee_standart_extra, fee_pemula, fee_pemula_extra, allow_pemula_standart_mix FROM roll_events WHERE id = ?");
+                $stmtFee = $db->prepare("SELECT fee_speed, fee_speed_extra, quota_speed_basic, fee_standart, fee_standart_extra, quota_std_basic, fee_pemula, fee_pemula_extra, quota_pemula_basic, allow_pemula_standart_mix FROM roll_events WHERE id = ?");
                 $stmtFee->execute([$targetEventId]);
                 $eventFees = $stmtFee->fetch(PDO::FETCH_ASSOC);
                 

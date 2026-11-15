@@ -81,8 +81,15 @@ class RollFinanceHelper {
             ]
         ];
 
-        // Kuota Dasar Individu (Standard cabor sepatu roda = 2 nomor individu)
-        $basicQuota = 2;
+        // Kuota Dasar Individu per Kategori (Dapat disesuaikan di Profil Event, default = 2)
+        $speedBasicQuota = (int)($eventFees['quota_speed_basic'] ?? 2);
+        if ($speedBasicQuota < 1) $speedBasicQuota = 2;
+
+        $stdBasicQuota = (int)($eventFees['quota_std_basic'] ?? 2);
+        if ($stdBasicQuota < 1) $stdBasicQuota = 2;
+
+        $pemulaBasicQuota = (int)($eventFees['quota_pemula_basic'] ?? 2);
+        if ($pemulaBasicQuota < 1) $pemulaBasicQuota = 2;
 
         foreach ($skaterEntries as $sId => $cats) {
             $amount = 0;
@@ -101,7 +108,7 @@ class RollFinanceHelper {
                 $breakdown['category'] = 'Speed';
                 $baseFee = (float)($eventFees['fee_speed'] ?? 400000);
                 $indvCount = count($cats['speed']);
-                $extraCount = max(0, $indvCount - $basicQuota);
+                $extraCount = max(0, $indvCount - $speedBasicQuota);
                 $extraFee = (float)($eventFees['fee_speed_extra'] ?? 0);
                 $extraAmount = $extraCount * $extraFee;
                 $amount = $baseFee + $extraAmount;
@@ -126,7 +133,7 @@ class RollFinanceHelper {
                     $breakdown['category'] = 'Standart';
                     $baseFee = (float)($eventFees['fee_standart'] ?? 350000);
                     $indvCount = count($cats['standar']);
-                    $extraCount = max(0, $indvCount - $basicQuota);
+                    $extraCount = max(0, $indvCount - $stdBasicQuota);
                     $extraFee = (float)($eventFees['fee_standart_extra'] ?? 0);
                     $extraAmount = $extraCount * $extraFee;
                     $amount = $baseFee + $extraAmount;
@@ -147,7 +154,7 @@ class RollFinanceHelper {
                     $breakdown['category'] = 'Pemula';
                     $baseFee = (float)($eventFees['fee_pemula'] ?? 250000);
                     $indvCount = count($cats['pemula']);
-                    $extraCount = max(0, $indvCount - $basicQuota);
+                    $extraCount = max(0, $indvCount - $pemulaBasicQuota);
                     $extraFee = (float)($eventFees['fee_pemula_extra'] ?? 0);
                     $extraAmount = $extraCount * $extraFee;
                     $amount = $baseFee + $extraAmount;
@@ -166,12 +173,12 @@ class RollFinanceHelper {
                 } elseif ($hasStandar && $hasPemula) {
                     // Mix Pemula + Standar
                     $stdBase = (float)($eventFees['fee_standart'] ?? 350000);
-                    $stdExtraCount = max(0, count($cats['standar']) - $basicQuota);
+                    $stdExtraCount = max(0, count($cats['standar']) - $stdBasicQuota);
                     $stdExtraFee = (float)($eventFees['fee_standart_extra'] ?? 0);
                     $stdAmount = $stdBase + ($stdExtraCount * $stdExtraFee);
 
                     $pemBase = (float)($eventFees['fee_pemula'] ?? 250000);
-                    $pemExtraCount = max(0, count($cats['pemula']) - $basicQuota);
+                    $pemExtraCount = max(0, count($cats['pemula']) - $pemulaBasicQuota);
                     $pemExtraFee = (float)($eventFees['fee_pemula_extra'] ?? 0);
                     $pemAmount = $pemBase + ($pemExtraCount * $pemExtraFee);
 
