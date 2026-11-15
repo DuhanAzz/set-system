@@ -32,3 +32,4 @@ assert($feesFail['quota_pemula_basic'] === 2);
 echo "✓ Test 2: getEventFees with failing DB returns complete fallback without throwing 500 [OK]\n";
 
 echo "--- ALL GET EVENT FEES TESTS PASSED! ---\n";
+
