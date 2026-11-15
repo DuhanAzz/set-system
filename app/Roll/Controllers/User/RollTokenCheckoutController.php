@@ -57,9 +57,7 @@ class RollTokenCheckoutController extends Controller {
             $status = $paymentStatus ?: 'Unpaid';
 
             // Ambil biaya per kategori
-            $stmtFee = $db->prepare("SELECT fee_speed, fee_speed_extra, quota_speed_basic, fee_standart, fee_standart_extra, quota_std_basic, fee_pemula, fee_pemula_extra, quota_pemula_basic, allow_pemula_standart_mix FROM roll_events WHERE id = ?");
-            $stmtFee->execute([$eid]);
-            $eventFees = $stmtFee->fetch(PDO::FETCH_ASSOC) ?: ['fee_speed'=>400000, 'fee_speed_extra'=>0, 'quota_speed_basic'=>2, 'fee_standart'=>350000, 'fee_standart_extra'=>0, 'quota_std_basic'=>2, 'fee_pemula'=>250000, 'fee_pemula_extra'=>0, 'quota_pemula_basic'=>2, 'allow_pemula_standart_mix'=>0];
+            $eventFees = \App\Helpers\RollFinanceHelper::getEventFees($db, $eid);
             
             // Override dengan harga khusus token jika ada
             try {
@@ -135,9 +133,7 @@ class RollTokenCheckoutController extends Controller {
         $status = $paymentStatus ?: 'Unpaid';
 
         // Entry Fee per kategori
-        $stmtFee = $db->prepare("SELECT fee_speed, fee_speed_extra, quota_speed_basic, fee_standart, fee_standart_extra, quota_std_basic, fee_pemula, fee_pemula_extra, quota_pemula_basic, allow_pemula_standart_mix FROM roll_events WHERE id = ?");
-        $stmtFee->execute([$event_id]);
-        $eventFees = $stmtFee->fetch(PDO::FETCH_ASSOC) ?: ['fee_speed'=>400000, 'fee_speed_extra'=>0, 'quota_speed_basic'=>2, 'fee_standart'=>350000, 'fee_standart_extra'=>0, 'quota_std_basic'=>2, 'fee_pemula'=>250000, 'fee_pemula_extra'=>0, 'quota_pemula_basic'=>2, 'allow_pemula_standart_mix'=>0];
+        $eventFees = \App\Helpers\RollFinanceHelper::getEventFees($db, $event_id);
         
         // Override dengan harga khusus token jika ada
         try {
@@ -415,9 +411,7 @@ class RollTokenCheckoutController extends Controller {
                 $db->beginTransaction();
                 
                 // Hitung total tagihan
-                $stmtFee = $db->prepare("SELECT fee_speed, fee_speed_extra, quota_speed_basic, fee_standart, fee_standart_extra, quota_std_basic, fee_pemula, fee_pemula_extra, quota_pemula_basic, allow_pemula_standart_mix FROM roll_events WHERE id = ?");
-                $stmtFee->execute([$event_id]);
-                $eventFees = $stmtFee->fetch(PDO::FETCH_ASSOC) ?: ['fee_speed'=>400000, 'fee_speed_extra'=>0, 'quota_speed_basic'=>2, 'fee_standart'=>350000, 'fee_standart_extra'=>0, 'quota_std_basic'=>2, 'fee_pemula'=>250000, 'fee_pemula_extra'=>0, 'quota_pemula_basic'=>2, 'allow_pemula_standart_mix'=>0];
+                $eventFees = \App\Helpers\RollFinanceHelper::getEventFees($db, $event_id);
                 
                 // Override dengan harga khusus token jika ada
                 try {

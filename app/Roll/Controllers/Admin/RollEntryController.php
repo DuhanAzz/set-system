@@ -85,10 +85,8 @@ class RollEntryController extends Controller {
             }
         }
 
-        // Fetch entry fees for dynamic calculation
-        $stmtFee = $db->prepare("SELECT fee_speed, fee_speed_extra, quota_speed_basic, fee_standart, fee_standart_extra, quota_std_basic, fee_pemula, fee_pemula_extra, quota_pemula_basic, allow_pemula_standart_mix FROM roll_events WHERE id = ?");
-        $stmtFee->execute([$targetEventId]);
-        $eventFees = $stmtFee->fetch(PDO::FETCH_ASSOC) ?: ['fee_speed'=>400000, 'fee_speed_extra'=>0, 'quota_speed_basic'=>2, 'fee_standart'=>350000, 'fee_standart_extra'=>0, 'quota_std_basic'=>2, 'fee_pemula'=>250000, 'fee_pemula_extra'=>0, 'quota_pemula_basic'=>2, 'allow_pemula_standart_mix'=>0];
+        // Fetch entry fees for dynamic calculation with safe helper
+        $eventFees = \App\Helpers\RollFinanceHelper::getEventFees($db, $targetEventId);
 
         // Query List Klub & Payments
         try {
@@ -120,7 +118,7 @@ class RollEntryController extends Controller {
                     SELECT s.id as skater_id, sc.class_name, d.distance_name, e.team_name, e.race_class_id
                     FROM roll_entries e
                     JOIN roll_skaters s ON e.skater_id = s.id
-                    JOIN roll_event_details ed ON e.race_class_id = ed.id
+                    LEFT JOIN roll_event_details ed ON e.race_class_id = ed.id
                     LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
                     LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
                     WHERE s.club_id = ? AND e.event_id = ? AND (e.manual_invoice_code IS NULL OR e.manual_invoice_code NOT LIKE 'MAN-TOK-%')
@@ -131,7 +129,7 @@ class RollEntryController extends Controller {
                 $financeCalc = \App\Helpers\RollFinanceHelper::calculateTotalTagihan($entriesData, $eventFees);
                 $row['amount'] = $financeCalc['total_amount'];
             }
-        } catch (\PDOException $e) {
+        } catch (\Throwable $e) {
             $listData = [];
         }
 
@@ -573,9 +571,7 @@ class RollEntryController extends Controller {
                 $stmtM->execute($manualEntriesInserted);
                 $mRows = $stmtM->fetchAll(PDO::FETCH_ASSOC);
 
-                $stmtFee = $db->prepare("SELECT fee_speed, fee_speed_extra, quota_speed_basic, fee_standart, fee_standart_extra, quota_std_basic, fee_pemula, fee_pemula_extra, quota_pemula_basic, allow_pemula_standart_mix FROM roll_events WHERE id = ?");
-                $stmtFee->execute([$targetEventId]);
-                $eventFees = $stmtFee->fetch(PDO::FETCH_ASSOC);
+                $eventFees = \App\Helpers\RollFinanceHelper::getEventFees($db, $targetEventId);
                 
                 $financeCalc = \App\Helpers\RollFinanceHelper::calculateTotalTagihan($mRows, $eventFees);
                 $totalAmount = $financeCalc['total_amount'];

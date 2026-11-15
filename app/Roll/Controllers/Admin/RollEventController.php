@@ -57,15 +57,12 @@ class RollEventController extends Controller {
         try {
             $db->exec("ALTER TABLE roll_ref_distances ADD COLUMN skate_class_id INT NULL DEFAULT NULL AFTER distance_name");
         } catch (\Exception $e) {}
-        try {
-            $db->exec("ALTER TABLE roll_events 
-                ADD COLUMN fee_speed_extra DECIMAL(10,2) DEFAULT 0.00 AFTER fee_speed,
-                ADD COLUMN quota_speed_basic INT DEFAULT 2 AFTER fee_speed_extra,
-                ADD COLUMN fee_standart_extra DECIMAL(10,2) DEFAULT 0.00 AFTER fee_standart,
-                ADD COLUMN quota_std_basic INT DEFAULT 2 AFTER fee_standart_extra,
-                ADD COLUMN fee_pemula_extra DECIMAL(10,2) DEFAULT 0.00 AFTER fee_pemula,
-                ADD COLUMN quota_pemula_basic INT DEFAULT 2 AFTER fee_pemula_extra");
-        } catch (\Exception $e) {}
+        try { $db->exec("ALTER TABLE roll_events ADD COLUMN fee_speed_extra DECIMAL(10,2) DEFAULT 0.00 AFTER fee_speed"); } catch (\Throwable $ex) {}
+        try { $db->exec("ALTER TABLE roll_events ADD COLUMN quota_speed_basic INT DEFAULT 2 AFTER fee_speed_extra"); } catch (\Throwable $ex) {}
+        try { $db->exec("ALTER TABLE roll_events ADD COLUMN fee_standart_extra DECIMAL(10,2) DEFAULT 0.00 AFTER fee_standart"); } catch (\Throwable $ex) {}
+        try { $db->exec("ALTER TABLE roll_events ADD COLUMN quota_std_basic INT DEFAULT 2 AFTER fee_standart_extra"); } catch (\Throwable $ex) {}
+        try { $db->exec("ALTER TABLE roll_events ADD COLUMN fee_pemula_extra DECIMAL(10,2) DEFAULT 0.00 AFTER fee_pemula"); } catch (\Throwable $ex) {}
+        try { $db->exec("ALTER TABLE roll_events ADD COLUMN quota_pemula_basic INT DEFAULT 2 AFTER fee_pemula_extra"); } catch (\Throwable $ex) {}
         try {
             $distances = $db->query("SELECT * FROM roll_ref_distances ORDER BY id ASC")->fetchAll(PDO::FETCH_ASSOC);
             $ageGroups = $db->query("SELECT * FROM roll_ref_age_groups ORDER BY min_year ASC")->fetchAll(PDO::FETCH_ASSOC);
