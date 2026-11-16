@@ -106,3 +106,4 @@ if (empty($swimmerIds) && !empty($allDrawGroups)) {
 assert($swimmerIds === [1783, 1786], "Fallback swimmerIds must be [1783, 1786]");
 
 echo "All tests passed successfully!\n";
+
