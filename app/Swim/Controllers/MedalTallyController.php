@@ -368,13 +368,39 @@ class MedalTallyController extends Controller {
 
     public function detail_best_swimmer() {
         $this->checkAccess();
+        $data = $this->calculateTally('athlete', true);
+
         $rawSwimmers = isset($_GET['swimmers']) ? explode(',', (string)$_GET['swimmers']) : [];
         $swimmerIds = array_values(array_unique(array_filter(array_map('intval', $rawSwimmers), fn($v) => $v > 0)));
-        if (empty($swimmerIds)) {
-            die("Tidak ada atlet yang dipilih untuk perbandingan.");
+
+        $allDrawGroups = [];
+        if (!empty($data['groupedAthleteData'])) {
+            foreach ($data['groupedAthleteData'] as $kuKey => $gendersMap) {
+                foreach ($gendersMap as $gKey => $rowsList) {
+                    foreach ($rowsList as $r) {
+                        if (!empty($r['is_draw_head']) && !empty($r['draw_swimmer_ids'])) {
+                            $allDrawGroups[] = [
+                                'ku'          => $kuKey,
+                                'gender'      => ($gKey === 'L' ? 'Putra' : ($gKey === 'P' ? 'Putri' : $gKey)),
+                                'medals'      => $r['gold'] . 'E ' . $r['silver'] . 'P ' . $r['bronze'] . 'P',
+                                'gold'        => (int)$r['gold'],
+                                'silver'      => (int)$r['silver'],
+                                'bronze'      => (int)$r['bronze'],
+                                'total'       => (int)$r['total'],
+                                'count'       => (int)($r['draw_count'] ?? 2),
+                                'swimmer_ids' => $r['draw_swimmer_ids'],
+                            ];
+                        }
+                    }
+                }
+            }
         }
 
-        $data = $this->calculateTally('athlete', true);
+        if (empty($swimmerIds) && !empty($allDrawGroups)) {
+            $rawSwimmers = explode(',', $allDrawGroups[0]['swimmer_ids']);
+            $swimmerIds = array_values(array_unique(array_filter(array_map('intval', $rawSwimmers), fn($v) => $v > 0)));
+        }
+
         $bySwimmerId = [];
         foreach ($data['tallyData'] as $row) {
             $sid = (int)($row['swimmer_id'] ?? 0);
@@ -409,10 +435,12 @@ class MedalTallyController extends Controller {
         });
 
         $this->view('swim/admin/medal_tally/detail_best_swimmer', [
-            'eventId'        => $data['eventId'],
-            'eventName'      => $data['raceInfo']['event_name'] ?? 'Kejuaraan Renang',
-            'team_source'    => $data['team_source'],
-            'comparisonData' => $comparisonData,
+            'eventId'         => $data['eventId'],
+            'eventName'       => $data['raceInfo']['event_name'] ?? 'Kejuaraan Renang',
+            'team_source'     => $data['team_source'],
+            'comparisonData'  => $comparisonData,
+            'allDrawGroups'   => $allDrawGroups,
+            'currentSwimmers' => implode(',', $swimmerIds),
         ]);
     }
 }

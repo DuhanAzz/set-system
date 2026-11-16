@@ -169,9 +169,6 @@
                                                         <td class="col-rank"><?= $rank++ ?></td>
                                                         <td class="col-nama">
                                                             <?= htmlspecialchars($row['entity_name']) ?>
-                                                            <?php if (!empty($row['is_draw'])): ?>
-                                                                <span style="font-size:6.5pt; font-weight:800; color:#b45309; background:#fef3c7; border:1px solid #f59e0b; padding:0 4px; border-radius:3px; margin-left:4px;">DRAW</span>
-                                                            <?php endif; ?>
                                                         </td>
                                                         <td class="col-tim"><?= htmlspecialchars($row['team_name']) ?></td>
                                                         <td class="col-med bg-gold"><?= $row['gold'] ?></td>

@@ -9,6 +9,19 @@
         </div>
     </div>
 
+    <?php if (!empty($allDrawGroups) && count($allDrawGroups) > 1): ?>
+        <div class="mb-6 p-3 bg-white rounded-xl border border-slate-200 flex flex-wrap items-center gap-2 shadow-sm">
+            <span class="text-xs font-bold text-slate-500 uppercase tracking-wider mr-1">Pilih Grup Draw:</span>
+            <?php foreach ($allDrawGroups as $idx => $dg): ?>
+                <?php $isCurrent = (!empty($currentSwimmers) && $dg['swimmer_ids'] === $currentSwimmers); ?>
+                <a href="<?= getenv('APP_URL') ?>/swim/admin/medal_tally/detail_best_swimmer?event_id=<?= (int)$eventId ?>&team_source=<?= htmlspecialchars($team_source) ?>&swimmers=<?= urlencode($dg['swimmer_ids']) ?>"
+                   class="px-3 py-1.5 rounded-lg text-xs font-bold transition <?= $isCurrent ? 'bg-amber-500 text-white shadow' : 'bg-slate-100 hover:bg-slate-200 text-slate-700' ?>">
+                    #<?= $idx + 1 ?> <?= htmlspecialchars($dg['ku']) ?> <?= htmlspecialchars($dg['gender']) ?> (<?= htmlspecialchars($dg['medals']) ?>)
+                </a>
+            <?php endforeach; ?>
+        </div>
+    <?php endif; ?>
+
     <?php if (empty($comparisonData)): ?>
         <div class="bg-white rounded-2xl border border-slate-200 p-8 text-center text-slate-500 font-semibold">
             Data perenang untuk perbandingan tidak ditemukan pada event ini.

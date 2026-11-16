@@ -145,7 +145,49 @@ $filter_gender = $_GET['gender'] ?? 'all';
         </form>
     </div>
 
-    <div class="flex justify-end">
+    <?php
+    $allDrawGroups = [];
+    if (!empty($groupedAthleteData)) {
+        foreach ($groupedAthleteData as $kuKey => $gendersMap) {
+            foreach ($gendersMap as $gKey => $rowsList) {
+                foreach ($rowsList as $r) {
+                    if (!empty($r['is_draw_head']) && !empty($r['draw_swimmer_ids'])) {
+                        $allDrawGroups[] = [
+                            'ku'          => $kuKey,
+                            'gender'      => ($gKey === 'L' ? 'Putra' : ($gKey === 'P' ? 'Putri' : $gKey)),
+                            'medals'      => $r['gold'] . 'E ' . $r['silver'] . 'P ' . $r['bronze'] . 'P',
+                            'gold'        => (int)$r['gold'],
+                            'silver'      => (int)$r['silver'],
+                            'bronze'      => (int)$r['bronze'],
+                            'total'       => (int)$r['total'],
+                            'count'       => (int)($r['draw_count'] ?? 2),
+                            'swimmer_ids' => $r['draw_swimmer_ids'],
+                        ];
+                    }
+                }
+            }
+        }
+    }
+    ?>
+
+    <div class="flex flex-wrap justify-end items-center gap-3">
+        <?php if (!empty($allDrawGroups)): ?>
+            <div class="flex items-center">
+                <a href="<?= getenv('APP_URL') ?>/swim/admin/medal_tally/detail_best_swimmer?event_id=<?= $eventId ?>&team_source=<?= htmlspecialchars($team_source) ?>&swimmers=<?= urlencode($allDrawGroups[0]['swimmer_ids']) ?>" class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 <?= count($allDrawGroups) > 1 ? 'rounded-l' : 'rounded' ?> text-xs font-bold uppercase shadow flex items-center gap-1.5 transition" title="Bandingkan perenang yang seri (draw) perolehan medalinya">
+                    ⚖️ Bandingkan Draw <?= count($allDrawGroups) > 1 ? '(Grup #1)' : '' ?>
+                </a>
+                <?php if (count($allDrawGroups) > 1): ?>
+                    <select onchange="if(this.value) window.location.href=this.value;" class="bg-amber-600 hover:bg-amber-700 text-white border-l border-amber-400 px-2 py-2 rounded-r text-xs font-bold outline-none cursor-pointer h-[32px] transition" title="Pilih grup perenang lain yang seri (draw)">
+                        <?php foreach ($allDrawGroups as $idx => $dg): ?>
+                            <option value="<?= getenv('APP_URL') ?>/swim/admin/medal_tally/detail_best_swimmer?event_id=<?= $eventId ?>&team_source=<?= htmlspecialchars($team_source) ?>&swimmers=<?= urlencode($dg['swimmer_ids']) ?>">
+                                <?= htmlspecialchars(($idx + 1) . '. ' . $dg['ku'] . ' ' . $dg['gender'] . ' (' . $dg['medals'] . ') - ' . $dg['count'] . ' Atlet') ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                <?php endif; ?>
+            </div>
+        <?php endif; ?>
+
         <a href="<?= getenv('APP_URL') ?>/swim/admin/medal_tally/best_swimmer?event_id=<?= $eventId ?>&team_source=<?= htmlspecialchars($team_source) ?>&gender=<?= htmlspecialchars($filter_gender) ?>&<?= http_build_query(['ku' => $selected_ku_ids]) ?>&print=1" target="_blank" class="bg-slate-900 hover:bg-slate-800 text-white px-6 py-2 rounded text-xs font-bold uppercase shadow flex items-center gap-2">
             🖨️ Cetak Laporan
         </a>
@@ -226,9 +268,6 @@ $filter_gender = $_GET['gender'] ?? 'all';
                                                     <td class="col-rank"><?= $rank++ ?></td>
                                                     <td class="col-nama">
                                                         <?= htmlspecialchars($row['entity_name']) ?>
-                                                        <?php if (!empty($row['is_draw'])): ?>
-                                                            <span style="display:inline-block; background:#fef3c7; color:#b45309; border:1px solid #f59e0b; padding:1px 6px; border-radius:4px; font-size:7pt; font-weight:800; margin-left:4px; vertical-align:middle;">DRAW</span>
-                                                        <?php endif; ?>
                                                     </td>
                                                     <td class="col-tim"><?= htmlspecialchars($row['team_name']) ?></td>
                                                     <td class="col-med bg-gold"><?= $row['gold'] ?></td>
@@ -237,18 +276,11 @@ $filter_gender = $_GET['gender'] ?? 'all';
                                                     <td class="col-med bg-total"><?= $row['total'] ?></td>
                                                     <td class="col-skor">
                                                         <?php if ($bestPct > 0): ?>
-                                                            <a href="/swim/admin/medal_tally/detail_best_swimmer?event_id=<?= (int)$eventId ?>&team_source=<?= urlencode($team_source) ?>&swimmers=<?= $swimmerId ?>" style="color:#0369a1; font-weight:800; text-decoration:none;">
+                                                            <a href="<?= getenv('APP_URL') ?>/swim/admin/medal_tally/detail_best_swimmer?event_id=<?= (int)$eventId ?>&team_source=<?= urlencode($team_source) ?>&swimmers=<?= $swimmerId ?>" style="color:#0369a1; font-weight:800; text-decoration:none;">
                                                                 ⚡ <?= number_format($bestPct, 2) ?>%
                                                             </a>
                                                         <?php else: ?>
                                                             <span style="color:#94a3b8;">-</span>
-                                                        <?php endif; ?>
-                                                        <?php if (!empty($row['is_draw_head']) && !empty($row['draw_swimmer_ids'])): ?>
-                                                            <div class="no-print" style="margin-top:3px;">
-                                                                <a href="/swim/admin/medal_tally/detail_best_swimmer?event_id=<?= (int)$eventId ?>&team_source=<?= urlencode($team_source) ?>&swimmers=<?= urlencode($row['draw_swimmer_ids']) ?>" style="display:inline-block; background:#fffbeb; color:#b45309; border:1px solid #f59e0b; padding:2px 6px; border-radius:4px; font-size:7pt; font-weight:800; text-decoration:none;">
-                                                                    ⚖️ Bandingkan Draw
-                                                                </a>
-                                                            </div>
                                                         <?php endif; ?>
                                                     </td>
                                                 </tr>
