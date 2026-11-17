@@ -118,6 +118,26 @@
                                             </span>
                                         <?php endif; ?>
                                     </div>
+                                    <?php if(($u['club_type'] ?? '') == 'contingent'): 
+                                        $provinsiNama = !empty($u['province']) ? $u['province'] : (!empty($u['kota']) ? $u['kota'] : ($u['club_name'] ?? 'Daerah'));
+                                        $passWord = !empty($u['temp_password']) ? $u['temp_password'] : 'sepaturoda123';
+                                        $loginUrl = getenv('APP_URL') ? rtrim(getenv('APP_URL'), '/') . '/roll/login' : 'https://setsystem.id/roll/login';
+                                        
+                                        $officialWaText = "Hallo Official {$provinsiNama}, ini akun khusus yang di berikan untuk kontingen {$provinsiNama}. Berikut Email dan Password nya:\n"
+                                            . "Email : " . ($u['email'] ?? '') . "\n"
+                                            . "Pass : " . $passWord . "\n"
+                                            . "Silakan Login akun anda pada halaman sistem " . $loginUrl;
+                                            
+                                        $waNumOfficial = preg_replace('/[^0-9]/', '', $u['phone'] ?? '');
+                                        if(substr($waNumOfficial, 0, 1) == '0') $waNumOfficial = '62' . substr($waNumOfficial, 1);
+                                        $waLinkOfficial = !empty($waNumOfficial) ? "https://wa.me/{$waNumOfficial}?text=" . urlencode($officialWaText) : "https://wa.me/?text=" . urlencode($officialWaText);
+                                    ?>
+                                        <div class="pt-1.5">
+                                            <a href="<?= $waLinkOfficial ?>" target="_blank" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[9px] font-black uppercase tracking-wider transition shadow-sm hover:scale-[1.02]">
+                                                <span>📲</span> Kirim Akun Official (WA)
+                                            </a>
+                                        </div>
+                                    <?php endif; ?>
                                 </div>
                             <?php endif; ?>
                         </td>

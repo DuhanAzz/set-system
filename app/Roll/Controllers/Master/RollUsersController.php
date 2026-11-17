@@ -21,6 +21,7 @@ class RollUsersController extends Controller {
         
         try { $db->exec("ALTER TABLE roll_clubs ADD COLUMN club_type ENUM('club','contingent','school') DEFAULT 'club'"); } catch (\Exception $ex) {}
         try { $db->exec("ALTER TABLE roll_clubs ADD COLUMN province VARCHAR(100) DEFAULT NULL"); } catch (\Exception $ex) {}
+        try { $db->exec("ALTER TABLE roll_users ADD COLUMN temp_password VARCHAR(100) DEFAULT 'sepaturoda123'"); } catch (\Exception $ex) {}
         
         $roleFilter = $_GET['role'] ?? 'admin';
         $search = $_GET['q'] ?? '';
@@ -86,8 +87,13 @@ class RollUsersController extends Controller {
                     // --- UPDATE EXISTING USER ---
                     if (!empty($password)) {
                         $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
-                        $stmt = $db->prepare("UPDATE roll_users SET username=?, password=?, role=?, nama_lengkap=?, email=?, phone=? WHERE id=?");
-                        $stmt->execute([$username, $hashedPassword, $role, $nama_lengkap, $email, $phone, $user_id]);
+                        try {
+                            $stmt = $db->prepare("UPDATE roll_users SET username=?, password=?, temp_password=?, role=?, nama_lengkap=?, email=?, phone=? WHERE id=?");
+                            $stmt->execute([$username, $hashedPassword, $password, $role, $nama_lengkap, $email, $phone, $user_id]);
+                        } catch (\Exception $exP) {
+                            $stmt = $db->prepare("UPDATE roll_users SET username=?, password=?, role=?, nama_lengkap=?, email=?, phone=? WHERE id=?");
+                            $stmt->execute([$username, $hashedPassword, $role, $nama_lengkap, $email, $phone, $user_id]);
+                        }
                     } else {
                         // Keep old password
                         $stmt = $db->prepare("UPDATE roll_users SET username=?, role=?, nama_lengkap=?, email=?, phone=? WHERE id=?");
@@ -109,11 +115,16 @@ class RollUsersController extends Controller {
                     $_SESSION['flash_message'] = "Pengguna berhasil diperbarui.";
                 } else {
                     // --- CREATE NEW USER ---
-                    if (empty($password)) $password = 'sepaturoda123';
-                    $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+                    $plainPass = !empty($password) ? $password : 'sepaturoda123';
+                    $hashedPassword = password_hash($plainPass, PASSWORD_DEFAULT);
                     
-                    $stmt = $db->prepare("INSERT INTO roll_users (username, password, role, nama_lengkap, email, phone, account_status) VALUES (?, ?, ?, ?, ?, ?, ?)");
-                    $stmt->execute([$username, $hashedPassword, $role, $nama_lengkap, $email, $phone, $account_status]);
+                    try {
+                        $stmt = $db->prepare("INSERT INTO roll_users (username, password, temp_password, role, nama_lengkap, email, phone, account_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                        $stmt->execute([$username, $hashedPassword, $plainPass, $role, $nama_lengkap, $email, $phone, $account_status]);
+                    } catch (\Exception $exP) {
+                        $stmt = $db->prepare("INSERT INTO roll_users (username, password, role, nama_lengkap, email, phone, account_status) VALUES (?, ?, ?, ?, ?, ?, ?)");
+                        $stmt->execute([$username, $hashedPassword, $role, $nama_lengkap, $email, $phone, $account_status]);
+                    }
                     $newUserId = $db->lastInsertId();
                     
                     if ($role === 'admin') {
@@ -192,8 +203,13 @@ class RollUsersController extends Controller {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $db = Database::getInstance()->getConnection();
             $newPassword = password_hash('sepaturoda123', PASSWORD_DEFAULT);
-            $stmt = $db->prepare("UPDATE roll_users SET password = ? WHERE id = ?");
-            $stmt->execute([$newPassword, $id]);
+            try {
+                $stmt = $db->prepare("UPDATE roll_users SET password = ?, temp_password = 'sepaturoda123' WHERE id = ?");
+                $stmt->execute([$newPassword, $id]);
+            } catch (\Exception $exP) {
+                $stmt = $db->prepare("UPDATE roll_users SET password = ? WHERE id = ?");
+                $stmt->execute([$newPassword, $id]);
+            }
             
             $_SESSION['flash_message'] = "Password berhasil direset menjadi: sepaturoda123";
             $_SESSION['flash_type'] = "success";
