@@ -116,14 +116,45 @@ class UploadService {
             throw new \Exception("Gagal mengunggah bukti bayar. Error code: " . $file['error']);
         }
         
-        $finfo = finfo_open(FILEINFO_MIME_TYPE);
-        $mime = finfo_file($finfo, $file['tmp_name']);
-        finfo_close($finfo);
+        $mime = '';
+        if (function_exists('finfo_open')) {
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            if ($finfo) {
+                $mime = finfo_file($finfo, $file['tmp_name']);
+                finfo_close($finfo);
+            }
+        }
+        if (empty($mime) && isset($file['type'])) {
+            $mime = $file['type'];
+        }
         
         if ($mime === 'application/pdf') {
             return self::uploadDocument($file, 'payments');
-        } else {
+        }
+        
+        try {
             return self::uploadImage($file, 'payments');
+        } catch (\Throwable $e) {
+            // Fallback jika proses kompresi GD gagal (misal resolusi kamera terlalu besar melebihi memory_limit PHP)
+            $origName = $file['name'] ?? '';
+            $ext = strtolower(pathinfo($origName, PATHINFO_EXTENSION));
+            if (!in_array($ext, ['jpg', 'jpeg', 'png', 'webp', 'pdf'])) {
+                $ext = 'jpg';
+            }
+            $newName = uniqid('pay_') . '_' . time() . '.' . $ext;
+            $uploadDir = __DIR__ . '/../../public/uploads/payments/';
+            if (!is_dir($uploadDir)) {
+                mkdir($uploadDir, 0777, true);
+            }
+            $targetFile = $uploadDir . $newName;
+            if (is_uploaded_file($file['tmp_name'])) {
+                if (move_uploaded_file($file['tmp_name'], $targetFile)) {
+                    return $newName;
+                }
+            } elseif (copy($file['tmp_name'], $targetFile)) {
+                return $newName;
+            }
+            throw new \Exception("Gagal memproses file bukti bayar: " . $e->getMessage());
         }
     }
     

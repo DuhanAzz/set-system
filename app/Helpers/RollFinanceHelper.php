@@ -26,12 +26,16 @@ class RollFinanceHelper {
         if (!$eventId) return $defaultFees;
 
         // Self-healing migration terpisah per kolom (atomik) agar aman jika salah satu kolom sudah ada
-        try { $db->exec("ALTER TABLE roll_events ADD COLUMN fee_speed_extra DECIMAL(10,2) DEFAULT 0.00 AFTER fee_speed"); } catch (\Throwable $ex) {}
-        try { $db->exec("ALTER TABLE roll_events ADD COLUMN quota_speed_basic INT DEFAULT 2 AFTER fee_speed_extra"); } catch (\Throwable $ex) {}
-        try { $db->exec("ALTER TABLE roll_events ADD COLUMN fee_standart_extra DECIMAL(10,2) DEFAULT 0.00 AFTER fee_standart"); } catch (\Throwable $ex) {}
-        try { $db->exec("ALTER TABLE roll_events ADD COLUMN quota_std_basic INT DEFAULT 2 AFTER fee_standart_extra"); } catch (\Throwable $ex) {}
-        try { $db->exec("ALTER TABLE roll_events ADD COLUMN fee_pemula_extra DECIMAL(10,2) DEFAULT 0.00 AFTER fee_pemula"); } catch (\Throwable $ex) {}
-        try { $db->exec("ALTER TABLE roll_events ADD COLUMN quota_pemula_basic INT DEFAULT 2 AFTER fee_pemula_extra"); } catch (\Throwable $ex) {}
+        // Hanya dijalankan jika tidak sedang berada dalam transaksi aktif (mencegah MySQL implicit commit)
+        $inTx = method_exists($db, 'inTransaction') ? $db->inTransaction() : false;
+        if (!$inTx) {
+            try { $db->exec("ALTER TABLE roll_events ADD COLUMN fee_speed_extra DECIMAL(10,2) DEFAULT 0.00 AFTER fee_speed"); } catch (\Throwable $ex) {}
+            try { $db->exec("ALTER TABLE roll_events ADD COLUMN quota_speed_basic INT DEFAULT 2 AFTER fee_speed_extra"); } catch (\Throwable $ex) {}
+            try { $db->exec("ALTER TABLE roll_events ADD COLUMN fee_standart_extra DECIMAL(10,2) DEFAULT 0.00 AFTER fee_standart"); } catch (\Throwable $ex) {}
+            try { $db->exec("ALTER TABLE roll_events ADD COLUMN quota_std_basic INT DEFAULT 2 AFTER fee_standart_extra"); } catch (\Throwable $ex) {}
+            try { $db->exec("ALTER TABLE roll_events ADD COLUMN fee_pemula_extra DECIMAL(10,2) DEFAULT 0.00 AFTER fee_pemula"); } catch (\Throwable $ex) {}
+            try { $db->exec("ALTER TABLE roll_events ADD COLUMN quota_pemula_basic INT DEFAULT 2 AFTER fee_pemula_extra"); } catch (\Throwable $ex) {}
+        }
 
         try {
             $stmt = $db->prepare("SELECT fee_speed, fee_speed_extra, quota_speed_basic, fee_standart, fee_standart_extra, quota_std_basic, fee_pemula, fee_pemula_extra, quota_pemula_basic, fee_eksebisi, allow_pemula_standart_mix FROM roll_events WHERE id = ?");

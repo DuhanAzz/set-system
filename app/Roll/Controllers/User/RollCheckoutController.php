@@ -20,6 +20,15 @@ class RollCheckoutController extends Controller {
     public function index() {
         $db = Database::getInstance()->getConnection();
         $club_id = $_SESSION['roll_club_id'] ?? 0;
+        if (empty($club_id) && !empty($_SESSION['roll_user_id'])) {
+            $stmtUser = $db->prepare("SELECT club_id FROM roll_users WHERE id = ?");
+            $stmtUser->execute([$_SESSION['roll_user_id']]);
+            $foundClubId = (int)$stmtUser->fetchColumn();
+            if ($foundClubId > 0) {
+                $club_id = $foundClubId;
+                $_SESSION['roll_club_id'] = $club_id;
+            }
+        }
 
         // Ambil semua event yang pernah diikuti klub ini
         $stmt = $db->prepare("
@@ -95,6 +104,15 @@ class RollCheckoutController extends Controller {
 
         $db = Database::getInstance()->getConnection();
         $club_id = $_SESSION['roll_club_id'] ?? 0;
+        if (empty($club_id) && !empty($_SESSION['roll_user_id'])) {
+            $stmtUser = $db->prepare("SELECT club_id FROM roll_users WHERE id = ?");
+            $stmtUser->execute([$_SESSION['roll_user_id']]);
+            $foundClubId = (int)$stmtUser->fetchColumn();
+            if ($foundClubId > 0) {
+                $club_id = $foundClubId;
+                $_SESSION['roll_club_id'] = $club_id;
+            }
+        }
 
         $stmtClub = $db->prepare("SELECT club_name FROM roll_clubs WHERE id = ?");
         $stmtClub->execute([$club_id]);
@@ -260,40 +278,62 @@ class RollCheckoutController extends Controller {
             header("Location: " . getenv('APP_URL') . "/roll/user/explore");
             exit;
         }
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $db = Database::getInstance()->getConnection();
-            $club_id = $_SESSION['roll_club_id'] ?? 0;
-            
-            $entry_ids = $_POST['entry_ids'] ?? []; // Array of entry IDs being paid
-            $proof_file = '';
 
-            if (empty($entry_ids)) {
-                $_SESSION['flash_message'] = "Tidak ada tagihan yang dipilih untuk dibayar.";
+        // Jika bukan POST request, arahkan langsung ke halaman detail pembayaran
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header("Location: " . getenv('APP_URL') . "/roll/user/checkout/detail/" . $event_id);
+            exit;
+        }
+
+        $db = Database::getInstance()->getConnection();
+        $club_id = $_SESSION['roll_club_id'] ?? 0;
+        if (empty($club_id) && !empty($_SESSION['roll_user_id'])) {
+            $stmtUser = $db->prepare("SELECT club_id FROM roll_users WHERE id = ?");
+            $stmtUser->execute([$_SESSION['roll_user_id']]);
+            $foundClubId = (int)$stmtUser->fetchColumn();
+            if ($foundClubId > 0) {
+                $club_id = $foundClubId;
+                $_SESSION['roll_club_id'] = $club_id;
+            }
+        }
+
+        if (empty($club_id)) {
+            $_SESSION['flash_message'] = "Sesi akun klub tidak ditemukan. Silakan login kembali.";
+            $_SESSION['flash_type'] = "error";
+            header("Location: " . getenv('APP_URL') . "/roll/login");
+            exit;
+        }
+        
+        $entry_ids = $_POST['entry_ids'] ?? []; // Array of entry IDs being paid
+        $clean_entry_ids = array_values(array_filter(array_map('intval', (array)$entry_ids), fn($v) => $v > 0));
+
+        if (empty($clean_entry_ids)) {
+            $_SESSION['flash_message'] = "Tidak ada tagihan yang dipilih untuk dibayar.";
+            $_SESSION['flash_type'] = "error";
+            header("Location: " . getenv('APP_URL') . "/roll/user/checkout/detail/" . $event_id);
+            exit;
+        }
+
+        // Handle Upload Payment Proof (Document/Image) via UploadService
+        $proof_file = '';
+        if (isset($_FILES['payment_proof']) && $_FILES['payment_proof']['error'] !== UPLOAD_ERR_NO_FILE) {
+            try {
+                $proof_file = UploadService::uploadPaymentProof($_FILES['payment_proof']);
+            } catch (\Throwable $e) {
+                $_SESSION['flash_message'] = "Upload Bukti Bayar Gagal: " . $e->getMessage();
                 $_SESSION['flash_type'] = "error";
                 header("Location: " . getenv('APP_URL') . "/roll/user/checkout/detail/" . $event_id);
                 exit;
             }
+        } else {
+            $_SESSION['flash_message'] = "Bukti bayar wajib diunggah.";
+            $_SESSION['flash_type'] = "error";
+            header("Location: " . getenv('APP_URL') . "/roll/user/checkout/detail/" . $event_id);
+            exit;
+        }
 
-            // Handle Upload Payment Proof (Document/Image)
-            if (isset($_FILES['payment_proof']) && $_FILES['payment_proof']['error'] !== UPLOAD_ERR_NO_FILE) {
-                try {
-                    // Coba upload sebagai image, jika gagal karena PDF, bisa pakai method lain. 
-                    // UploadService::uploadImage sudah diinstruksikan.
-                    $proof_file = UploadService::uploadImage($_FILES['payment_proof'], 'payments');
-                } catch (\Exception $e) {
-                    $_SESSION['flash_message'] = "Upload Bukti Bayar Gagal: " . $e->getMessage();
-                    $_SESSION['flash_type'] = "error";
-                    header("Location: " . getenv('APP_URL') . "/roll/user/checkout/detail/" . $event_id);
-                    exit;
-                }
-            } else {
-                $_SESSION['flash_message'] = "Bukti bayar wajib diunggah.";
-                $_SESSION['flash_type'] = "error";
-                header("Location: " . getenv('APP_URL') . "/roll/user/checkout/detail/" . $event_id);
-                exit;
-            }
-
-            // VALIDASI RELAY PORSEROSI V3.0
+        // VALIDASI RELAY PORSEROSI V3.0 (Defensive & Safe)
+        try {
             $stmtRelayCheck = $db->prepare("
                 SELECT c.id as class_id, c.category_name, a.group_name as class_ag, d.distance_name,
                        s.birth_date, s.skater_name, e.team_name
@@ -310,7 +350,7 @@ class RollCheckoutController extends Controller {
             
             $relayGroups = [];
             foreach ($relayEntries as $re) {
-                $key = $re['class_id'] . '_' . md5($re['team_name']);
+                $key = $re['class_id'] . '_' . md5((string)($re['team_name'] ?? ''));
                 $relayGroups[$key][] = $re;
             }
 
@@ -320,18 +360,20 @@ class RollCheckoutController extends Controller {
             $evDate = $stmtEv->fetchColumn();
 
             foreach ($relayGroups as $cid => $team) {
-                $isPair = stripos($team[0]['distance_name'], 'Pair') !== false;
+                $distName = (string)($team[0]['distance_name'] ?? '');
+                $catName = (string)($team[0]['category_name'] ?? '');
+                $isPair = stripos($distName, 'Pair') !== false;
                 $tCount = count($team);
                 if ($isPair) {
                     if ($tCount !== 2) {
-                        $_SESSION['flash_message'] = "Validasi Gagal: Kelas {$team[0]['distance_name']} {$team[0]['category_name']} harus terdiri dari tepat 2 atlet. Anda mendaftar $tCount atlet.";
+                        $_SESSION['flash_message'] = "Validasi Gagal: Kelas {$distName} {$catName} harus terdiri dari tepat 2 atlet. Anda mendaftar $tCount atlet.";
                         $_SESSION['flash_type'] = "error";
                         header("Location: " . getenv('APP_URL') . "/roll/user/checkout/detail/" . $event_id);
                         exit;
                     }
                 } else {
                     if ($tCount < 3 || $tCount > 4) {
-                        $_SESSION['flash_message'] = "Validasi Gagal: Kelas {$team[0]['distance_name']} {$team[0]['category_name']} harus terdiri dari 3 atau 4 atlet (3 Inti + 1 Cadangan). Anda mendaftar $tCount atlet.";
+                        $_SESSION['flash_message'] = "Validasi Gagal: Kelas {$distName} {$catName} harus terdiri dari 3 atau 4 atlet (3 Inti + 1 Cadangan). Anda mendaftar $tCount atlet.";
                         $_SESSION['flash_type'] = "error";
                         header("Location: " . getenv('APP_URL') . "/roll/user/checkout/detail/" . $event_id);
                         exit;
@@ -339,80 +381,86 @@ class RollCheckoutController extends Controller {
                 }
                 
                 // Cek komposisi umur
-                $ag = $team[0]['class_ag'];
+                $ag = (string)($team[0]['class_ag'] ?? '');
                 $hasKuA = false;
                 $hasKuC = false;
                 
                 foreach ($team as $member) {
-                    $age = \App\Helpers\DateHelper::calculateAge($member['birth_date'], $evDate);
+                    $age = \App\Helpers\DateHelper::calculateAge($member['birth_date'] ?? null, $evDate);
                     if ($age <= 7) $hasKuA = true;
                     if ($age >= 10 && $age <= 11) $hasKuC = true;
                 }
                 
                 if (strpos($ag, 'A-B') !== false && !$hasKuA) {
-                    $_SESSION['flash_message'] = "Validasi Gagal: Tim {$team[0]['category_name']} WAJIB memiliki minimal 1 atlet KU A (<= 7 Tahun).";
+                    $_SESSION['flash_message'] = "Validasi Gagal: Tim {$catName} WAJIB memiliki minimal 1 atlet KU A (<= 7 Tahun).";
                     $_SESSION['flash_type'] = "error";
                     header("Location: " . getenv('APP_URL') . "/roll/user/checkout/detail/" . $event_id);
                     exit;
                 }
                 if (strpos($ag, 'C-D') !== false && !$hasKuC) {
-                    $_SESSION['flash_message'] = "Validasi Gagal: Tim {$team[0]['category_name']} WAJIB memiliki minimal 1 atlet KU C (10-11 Tahun).";
+                    $_SESSION['flash_message'] = "Validasi Gagal: Tim {$catName} WAJIB memiliki minimal 1 atlet KU C (10-11 Tahun).";
                     $_SESSION['flash_type'] = "error";
                     header("Location: " . getenv('APP_URL') . "/roll/user/checkout/detail/" . $event_id);
                     exit;
                 }
             }
-
-            try {
-                $db->beginTransaction();
-                
-                // Hitung total tagihan
-                $eventFees = \App\Helpers\RollFinanceHelper::getEventFees($db, $event_id);
-                
-                $total_amount = 0;
-                if (!empty($entry_ids)) {
-                    $placeholders = str_repeat('?,', count($entry_ids) - 1) . '?';
-                    $stmtCls = $db->prepare("
-                        SELECT e.skater_id, sc.class_name, d.distance_name, e.team_name, e.race_class_id
-                        FROM roll_entries e
-                        LEFT JOIN roll_event_details ed ON e.race_class_id = ed.id
-                        LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
-                        LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
-                        WHERE e.id IN ($placeholders)
-                    ");
-                    $stmtCls->execute($entry_ids);
-                    $classesData = $stmtCls->fetchAll(PDO::FETCH_ASSOC);
-                    
-                    $financeCalc = \App\Helpers\RollFinanceHelper::calculateTotalTagihan($classesData, $eventFees);
-                    $total_amount = $financeCalc['total_amount'];
-                }
-                
-                // Update atau Insert ke roll_payments
-                $stmtCheck = $db->prepare("SELECT id, status FROM roll_payments WHERE club_id = ? AND event_id = ?");
-                $stmtCheck->execute([$club_id, $event_id]);
-                $payRow = $stmtCheck->fetch(PDO::FETCH_ASSOC);
-                
-                if ($payRow) {
-                    if ($payRow['status'] === 'Paid') {
-                        throw new \Exception("Pembayaran Anda sudah Lunas (Paid) dan diverifikasi. Tidak bisa mengunggah ulang.");
-                    }
-                    $stmtUpdate = $db->prepare("UPDATE roll_payments SET status = 'Pending', payment_proof = ?, total_amount = ? WHERE id = ?");
-                    $stmtUpdate->execute([$proof_file, $total_amount, $payRow['id']]);
-                } else {
-                    $stmtInsert = $db->prepare("INSERT INTO roll_payments (club_id, event_id, total_amount, payment_proof, status) VALUES (?, ?, ?, ?, 'Pending')");
-                    $stmtInsert->execute([$club_id, $event_id, $total_amount, $proof_file]);
-                }
-
-                $db->commit();
-                $_SESSION['flash_message'] = "Pembayaran berhasil disubmit. Menunggu verifikasi admin.";
-                $_SESSION['flash_type'] = "success";
-            } catch (\Exception $e) {
-                $db->rollBack();
-                $_SESSION['flash_message'] = "Terjadi Kesalahan: " . $e->getMessage();
-                $_SESSION['flash_type'] = "error";
-            }
-            header("Location: " . getenv('APP_URL') . "/roll/user/checkout/detail/" . $event_id);
-            exit;
+        } catch (\Throwable $eRelay) {
+            error_log("Relay validation warning: " . $eRelay->getMessage());
         }
+
+        // Hitung total tagihan DILUAR transaksi (mencegah implicit commit dari migration/ALTER TABLE)
+        $eventFees = \App\Helpers\RollFinanceHelper::getEventFees($db, $event_id);
+        
+        $total_amount = 0;
+        if (!empty($clean_entry_ids)) {
+            $placeholders = str_repeat('?,', count($clean_entry_ids) - 1) . '?';
+            $stmtCls = $db->prepare("
+                SELECT e.skater_id, sc.class_name, d.distance_name, e.team_name, e.race_class_id
+                FROM roll_entries e
+                LEFT JOIN roll_event_details ed ON e.race_class_id = ed.id
+                LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
+                LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
+                WHERE e.id IN ($placeholders)
+            ");
+            $stmtCls->execute($clean_entry_ids);
+            $classesData = $stmtCls->fetchAll(PDO::FETCH_ASSOC);
+            
+            $financeCalc = \App\Helpers\RollFinanceHelper::calculateTotalTagihan($classesData, $eventFees);
+            $total_amount = $financeCalc['total_amount'];
+        }
+        
+        try {
+            $db->beginTransaction();
+
+            // Update atau Insert ke roll_payments
+            $stmtCheck = $db->prepare("SELECT id, status FROM roll_payments WHERE club_id = ? AND event_id = ?");
+            $stmtCheck->execute([$club_id, $event_id]);
+            $payRow = $stmtCheck->fetch(PDO::FETCH_ASSOC);
+            
+            if ($payRow) {
+                if ($payRow['status'] === 'Paid') {
+                    throw new \Exception("Pembayaran Anda sudah Lunas (Paid) dan diverifikasi. Tidak bisa mengunggah ulang.");
+                }
+                $stmtUpdate = $db->prepare("UPDATE roll_payments SET status = 'Pending', payment_proof = ?, total_amount = ? WHERE id = ?");
+                $stmtUpdate->execute([$proof_file, $total_amount, $payRow['id']]);
+            } else {
+                $stmtInsert = $db->prepare("INSERT INTO roll_payments (club_id, event_id, total_amount, payment_proof, status) VALUES (?, ?, ?, ?, 'Pending')");
+                $stmtInsert->execute([$club_id, $event_id, $total_amount, $proof_file]);
+            }
+
+            if ($db->inTransaction()) {
+                $db->commit();
+            }
+            $_SESSION['flash_message'] = "Pembayaran berhasil disubmit. Menunggu verifikasi admin.";
+            $_SESSION['flash_type'] = "success";
+        } catch (\Throwable $e) {
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
+            $_SESSION['flash_message'] = "Terjadi Kesalahan: " . $e->getMessage();
+            $_SESSION['flash_type'] = "error";
+        }
+        header("Location: " . getenv('APP_URL') . "/roll/user/checkout/detail/" . $event_id);
+        exit;
     }
 }
