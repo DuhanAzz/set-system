@@ -29,37 +29,63 @@
 
             <!-- Medal Tally -->
             <div>
-                <h3 class="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">🏅 Klasemen Medali (Medal Tally)</h3>
-                <?php if(empty($medalTally)): ?>
+                <h3 class="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">🏅 Klasemen Juara Umum Klub (Speed &amp; Standard)</h3>
+                <?php
+                $liveStandings = $standings ?? ['Speed' => $medalTally ?? [], 'Standart' => []];
+                $hasAnyLiveMedal = !empty($liveStandings['Speed']) || !empty($liveStandings['Standart']);
+                ?>
+                <?php if(!$hasAnyLiveMedal): ?>
                     <div class="bg-white rounded-xl border border-slate-200 p-8 text-center text-slate-500 text-sm italic">
                         Klasemen medali belum tersedia. Menunggu hasil final lomba dipublikasikan.
                     </div>
                 <?php else: ?>
-                    <div class="overflow-x-auto shadow-sm border border-slate-200 rounded-xl bg-white">
-                        <table class="w-full text-left border-collapse">
-                            <thead>
-                                <tr class="bg-slate-100 text-slate-600 text-[10px] uppercase tracking-widest border-b border-slate-200">
-                                    <th class="p-4 font-bold text-center w-16">Pos</th>
-                                    <th class="p-4 font-bold">Kontingen / Klub</th>
-                                    <th class="p-4 font-bold text-center w-24">🥇 Emas</th>
-                                    <th class="p-4 font-bold text-center w-24">🥈 Perak</th>
-                                    <th class="p-4 font-bold text-center w-24">🥉 Perunggu</th>
-                                    <th class="p-4 font-bold text-center w-24">Total</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-slate-100 text-sm">
-                                <?php $pos = 1; foreach($medalTally as $t): $total = $t['gold'] + $t['silver'] + $t['bronze']; ?>
-                                <tr class="hover:bg-slate-50 transition-colors">
-                                    <td class="p-4 text-center font-bold text-slate-800"><?= $pos++ ?></td>
-                                    <td class="p-4 font-bold text-blue-800"><?= htmlspecialchars($t['club_name']) ?></td>
-                                    <td class="p-4 text-center font-black text-amber-500"><?= $t['gold'] ?></td>
-                                    <td class="p-4 text-center font-black text-slate-400"><?= $t['silver'] ?></td>
-                                    <td class="p-4 text-center font-black text-orange-600"><?= $t['bronze'] ?></td>
-                                    <td class="p-4 text-center font-black text-slate-800"><?= $total ?></td>
-                                </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <?php foreach (['Speed' => 'Kategori SPEED', 'Standart' => 'Kategori STANDARD'] as $catKey => $catLabel):
+                            $catRows = $liveStandings[$catKey] ?? [];
+                        ?>
+                        <div class="overflow-x-auto shadow-sm border border-slate-200 rounded-xl bg-white">
+                            <div class="bg-slate-900 text-white px-4 py-3 text-xs font-black uppercase tracking-widest flex items-center justify-between">
+                                <span>🏆 <?= $catLabel ?></span>
+                                <span class="text-[10px] text-slate-300"><?= count($catRows) ?> Klub</span>
+                            </div>
+                            <?php if (empty($catRows)): ?>
+                                <div class="p-6 text-center text-slate-400 text-xs italic">Belum ada medali pada kategori ini.</div>
+                            <?php else: ?>
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="bg-slate-100 text-slate-600 text-[10px] uppercase tracking-widest border-b border-slate-200">
+                                        <th class="p-3 font-bold text-center w-14">Pos</th>
+                                        <th class="p-3 font-bold">Klub</th>
+                                        <th class="p-3 font-bold text-center w-16">🥇</th>
+                                        <th class="p-3 font-bold text-center w-16">🥈</th>
+                                        <th class="p-3 font-bold text-center w-16">🥉</th>
+                                        <th class="p-3 font-bold text-center w-16">Tot</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100 text-sm">
+                                    <?php foreach($catRows as $t):
+                                        $total = (int)$t['gold'] + (int)$t['silver'] + (int)$t['bronze'];
+                                        $isChamp = ((int)($t['rank'] ?? 0) === 1 && $total > 0);
+                                    ?>
+                                    <tr class="hover:bg-slate-50 transition-colors <?= $isChamp ? 'bg-amber-50/60' : '' ?>">
+                                        <td class="p-3 text-center font-bold text-slate-800"><?= (int)($t['rank'] ?? 0) ?></td>
+                                        <td class="p-3 font-bold text-blue-800">
+                                            <?= htmlspecialchars($t['club_name']) ?>
+                                            <?php if ($isChamp): ?>
+                                                <span class="ml-1.5 inline-block text-[9px] font-black uppercase bg-amber-400 text-slate-900 px-1.5 py-0.5 rounded">Juara Umum</span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td class="p-3 text-center font-black text-amber-500"><?= (int)$t['gold'] ?></td>
+                                        <td class="p-3 text-center font-black text-slate-400"><?= (int)$t['silver'] ?></td>
+                                        <td class="p-3 text-center font-black text-orange-600"><?= (int)$t['bronze'] ?></td>
+                                        <td class="p-3 text-center font-black text-slate-800"><?= $total ?></td>
+                                    </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                            <?php endif; ?>
+                        </div>
+                        <?php endforeach; ?>
                     </div>
                 <?php endif; ?>
             </div>

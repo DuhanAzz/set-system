@@ -141,7 +141,7 @@ $sponsors = !empty($event['sponsor_logos']) ? json_decode($event['sponsor_logos'
                     <?php else: ?>
                         <?php
                             $partType = $event['participation_type'] ?? 'club';
-                            $labelMedalHeader = match($partType) {
+                            $labelMedalBase = match($partType) {
                                 'school' => 'REKAPITULASI JUARA UMUM (SEKOLAH)',
                                 'contingent_province' => 'KLASEMEN MEDALI KONTINGEN PROVINSI',
                                 'contingent_city' => 'KLASEMEN MEDALI KONTINGEN KOTA/KAB',
@@ -153,16 +153,24 @@ $sponsors = !empty($event['sponsor_logos']) ? json_decode($event['sponsor_logos'
                                 'contingent_city' => 'KONTINGEN KOTA / KAB',
                                 default => 'NAMA KLUB / TIM'
                             };
+                            $bookStandings = $standings ?? ['Speed' => $medalTally ?? [], 'Standart' => []];
+                            $bookCategories = [
+                                ['key' => 'Speed',    'label' => $labelMedalBase . ' — SPEED'],
+                                ['key' => 'Standart', 'label' => $labelMedalBase . ' — STANDARD'],
+                            ];
+                        ?>
+                        <?php foreach ($bookCategories as $bc):
+                            $catRows = $bookStandings[$bc['key']] ?? [];
                         ?>
                         <div class="event-header">
                             <div class="eh-left-group">
                                 <div class="eh-number" style="font-size: 11pt;"><?= htmlspecialchars($colEntityHeader) ?></div>
                                 <div class="eh-date">KLASEMEN AKHIR</div>
                             </div>
-                            <div class="eh-center"><div class="eh-title"><?= htmlspecialchars($labelMedalHeader) ?></div></div>
+                            <div class="eh-center"><div class="eh-title"><?= htmlspecialchars($bc['label']) ?></div></div>
                             <div class="eh-right"></div>
                         </div>
-                        <table class="data-table" style="margin-bottom: 30px;">
+                        <table class="data-table" style="margin-bottom: 24px;">
                             <thead>
                                 <tr>
                                     <th class="col-rank">RANK</th>
@@ -174,25 +182,30 @@ $sponsors = !empty($event['sponsor_logos']) ? json_decode($event['sponsor_logos'
                                 </tr>
                             </thead>
                             <tbody>
-                                <?php if(empty($medalTally)): ?>
-                                    <tr><td colspan="6" class="text-center">Belum ada medali tercatat.</td></tr>
+                                <?php if(empty($catRows)): ?>
+                                    <tr><td colspan="6" class="text-center">Belum ada medali tercatat untuk kategori ini.</td></tr>
                                 <?php else: ?>
                                     <?php 
-                                    $pos = 1; 
                                     $tot_e = 0; $tot_p = 0; $tot_b = 0; $tot_all = 0;
-                                    foreach($medalTally as $mt): 
-                                        $total = $mt['gold'] + $mt['silver'] + $mt['bronze'];
-                                        $tot_e += $mt['gold'];
-                                        $tot_p += $mt['silver'];
-                                        $tot_b += $mt['bronze'];
+                                    foreach($catRows as $mt): 
+                                        $total = (int)$mt['gold'] + (int)$mt['silver'] + (int)$mt['bronze'];
+                                        $tot_e += (int)$mt['gold'];
+                                        $tot_p += (int)$mt['silver'];
+                                        $tot_b += (int)$mt['bronze'];
                                         $tot_all += $total;
+                                        $isChamp = ((int)($mt['rank'] ?? 0) === 1 && $total > 0);
                                     ?>
-                                    <tr>
-                                        <td class="col-rank font-bold" style="font-size: 11pt;"><?= $pos++ ?></td>
-                                        <td class="col-nama font-bold" style="font-size: 10pt;"><?= htmlspecialchars($mt['club_name']) ?></td>
-                                        <td class="col-med bg-gold"><?= $mt['gold'] ?></td>
-                                        <td class="col-med bg-silver"><?= $mt['silver'] ?></td>
-                                        <td class="col-med bg-bronze"><?= $mt['bronze'] ?></td>
+                                    <tr style="<?= $isChamp ? 'background-color: #fef9c3;' : '' ?>">
+                                        <td class="col-rank font-bold" style="font-size: 11pt;"><?= (int)($mt['rank'] ?? 0) ?></td>
+                                        <td class="col-nama font-bold" style="font-size: 10pt;">
+                                            <?= htmlspecialchars($mt['club_name']) ?>
+                                            <?php if ($isChamp): ?>
+                                                <span style="font-size: 7pt; background: #1e293b; color: #fff; padding: 1px 4px; border-radius: 3px; margin-left: 4px;">JUARA UMUM</span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td class="col-med bg-gold"><?= (int)$mt['gold'] ?></td>
+                                        <td class="col-med bg-silver"><?= (int)$mt['silver'] ?></td>
+                                        <td class="col-med bg-bronze"><?= (int)$mt['bronze'] ?></td>
                                         <td class="col-med bg-total"><?= $total ?></td>
                                     </tr>
                                     <?php endforeach; ?>
@@ -206,6 +219,7 @@ $sponsors = !empty($event['sponsor_logos']) ? json_decode($event['sponsor_logos'
                                 <?php endif; ?>
                             </tbody>
                         </table>
+                        <?php endforeach; ?>
                     <?php endif; ?>
 
                     <div style="page-break-before: always;"></div>

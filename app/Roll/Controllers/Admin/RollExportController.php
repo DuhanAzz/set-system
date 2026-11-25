@@ -325,40 +325,19 @@ class RollExportController extends Controller {
         $event = $stmtEvt->fetch(PDO::FETCH_ASSOC);
 
         $partType = $event['participation_type'] ?? 'club';
-        if ($partType === 'school') {
-            $selectEntity = "COALESCE(NULLIF(s.asal_sekolah, ''), 'Tanpa Sekolah') as club_name";
-            $groupByClause = "club_name";
-        } elseif ($partType === 'contingent_province') {
-            $selectEntity = "COALESCE(NULLIF(s.provinsi, ''), NULLIF(c.city_province, ''), 'Tanpa Provinsi') as club_name";
-            $groupByClause = "club_name";
-        } elseif ($partType === 'contingent_city') {
-            $selectEntity = "COALESCE(NULLIF(s.kota_kabupaten, ''), NULLIF(c.city_province, ''), 'Tanpa Kota/Kab') as club_name";
-            $groupByClause = "club_name";
-        } else {
-            $selectEntity = "c.club_name";
-            $groupByClause = "c.id, c.club_name";
-        }
+        $defaultGroup = match($partType) {
+            'school' => 'school',
+            'contingent_province' => 'province',
+            'contingent_city' => 'city',
+            default => 'club'
+        };
 
-        // Tally
-        $stmtTally = $db->prepare("
-            SELECT $selectEntity,
-                SUM(CASE WHEN r.rank = 1 THEN 1 ELSE 0 END) as gold,
-                SUM(CASE WHEN r.rank = 2 THEN 1 ELSE 0 END) as silver,
-                SUM(CASE WHEN r.rank = 3 THEN 1 ELSE 0 END) as bronze
-            FROM roll_event_results r
-            JOIN roll_skaters s ON r.skater_id = s.id
-            LEFT JOIN roll_clubs c ON s.club_id = c.id
-            JOIN roll_event_details ed ON r.race_class_id = ed.id
-            JOIN roll_entries e ON r.skater_id = e.skater_id AND r.race_class_id = e.race_class_id
-            WHERE r.event_id = ? 
-              AND (ed.category_name != 'EKSEBISI' OR ed.category_name IS NULL)
-              AND r.rank IN (1, 2, 3) 
-              AND r.status = 'OK'
-            GROUP BY $groupByClause
-            ORDER BY gold DESC, silver DESC, bronze DESC, club_name ASC
-        ");
-        $stmtTally->execute([$eventId]);
-        $medalTally = $stmtTally->fetchAll(PDO::FETCH_ASSOC);
+        $medalCalc = \App\Helpers\RollMedalHelper::calculateStandings($db, (int)$eventId, [
+            'groupBy' => $defaultGroup,
+        ]);
+        $standings = $medalCalc['standings'];
+        $champions = $medalCalc['champions'];
+        $medalTally = $standings['Speed'] ?? [];
 
         // MVP Tally
         $stmtMVP = $db->prepare("
