@@ -19,7 +19,16 @@ class RollEventController extends Controller {
 
     public function index() {
         $db = Database::getInstance()->getConnection();
+        \App\Helpers\RollTeamHelper::ensureColumns($db);
         $uid = $_SESSION['roll_user_id'];
+        $requestedEventId = (int)($_GET['id'] ?? 0);
+        if ($requestedEventId > 0) {
+            $stmtCheck = $db->prepare("SELECT id FROM roll_events WHERE id = ? AND user_id = ?");
+            $stmtCheck->execute([$requestedEventId, $uid]);
+            if ($stmtCheck->fetch()) {
+                $_SESSION['roll_admin_active_event_id'] = $requestedEventId;
+            }
+        }
         $eventId = $_SESSION['roll_admin_active_event_id'] ?? 0;
 
         if ($eventId == 0) {
@@ -446,15 +455,23 @@ class RollEventController extends Controller {
 
             $feeEksebisi = $_POST['fee_eksebisi'] ?? 150000;
             $allowPemulaStandartMix = isset($_POST['allow_pemula_standart_mix']) ? 1 : 0;
+            $teamPairInti = max(1, (int)($_POST['team_pair_inti'] ?? 2));
+            $teamPairCadangan = max(0, (int)($_POST['team_pair_cadangan'] ?? 0));
+            $teamTttInti = max(1, (int)($_POST['team_ttt_inti'] ?? 3));
+            $teamTttCadangan = max(0, (int)($_POST['team_ttt_cadangan'] ?? 1));
+            $teamRelayInti = max(1, (int)($_POST['team_relay_inti'] ?? 3));
+            $teamRelayCadangan = max(0, (int)($_POST['team_relay_cadangan'] ?? 1));
             $bankName = $_POST['bank_name'] ?? null;
             $bankAccount = $_POST['bank_account'] ?? null;
             $bankAccountName = $_POST['bank_account_name'] ?? null;
             $contactPhone = $_POST['contact_phone'] ?? null;
             $headerLogosJson = json_encode($headerLogosArray);
 
+            \App\Helpers\RollTeamHelper::ensureColumns($db);
+
             try {
-                $stmt = $db->prepare("UPDATE roll_events SET event_name=?, event_date_start=?, event_date_end=?, event_location=?, event_city=?, race_format=?, status=?, participation_type=?, fee_speed=?, fee_speed_extra=?, quota_speed_basic=?, limit_speed_ind=?, limit_speed_team=?, is_speed_open=?, fee_standart=?, fee_standart_extra=?, quota_std_basic=?, limit_std_ind=?, limit_std_team=?, is_std_open=?, fee_pemula=?, fee_pemula_extra=?, quota_pemula_basic=?, limit_pemula_ind=?, limit_pemula_team=?, is_pemula_open=?, fee_eksebisi=?, allow_pemula_standart_mix=?, bank_name=?, bank_account=?, bank_account_name=?, contact_phone=?, poster_image=?, sponsor_logos=?, header_logos=? WHERE id=?");
-                $stmt->execute([$eventName, $eventDateStart, $eventDateEnd, $eventLoc, $eventCity, $raceFormat, $status, $participationType, $feeSpeed, $feeSpeedExtra, $quotaSpeedBasic, $limitSpeedInd, $limitSpeedTeam, $isSpeedOpen, $feeStandart, $feeStandartExtra, $quotaStdBasic, $limitStdInd, $limitStdTeam, $isStdOpen, $feePemula, $feePemulaExtra, $quotaPemulaBasic, $limitPemulaInd, $limitPemulaTeam, $isPemulaOpen, $feeEksebisi, $allowPemulaStandartMix, $bankName, $bankAccount, $bankAccountName, $contactPhone, $posterImage, $sponsorLogosJson, $headerLogosJson, $eventId]);
+                $stmt = $db->prepare("UPDATE roll_events SET event_name=?, event_date_start=?, event_date_end=?, event_location=?, event_city=?, race_format=?, status=?, participation_type=?, fee_speed=?, fee_speed_extra=?, quota_speed_basic=?, limit_speed_ind=?, limit_speed_team=?, is_speed_open=?, fee_standart=?, fee_standart_extra=?, quota_std_basic=?, limit_std_ind=?, limit_std_team=?, is_std_open=?, fee_pemula=?, fee_pemula_extra=?, quota_pemula_basic=?, limit_pemula_ind=?, limit_pemula_team=?, is_pemula_open=?, fee_eksebisi=?, allow_pemula_standart_mix=?, team_pair_inti=?, team_pair_cadangan=?, team_ttt_inti=?, team_ttt_cadangan=?, team_relay_inti=?, team_relay_cadangan=?, bank_name=?, bank_account=?, bank_account_name=?, contact_phone=?, poster_image=?, sponsor_logos=?, header_logos=? WHERE id=?");
+                $stmt->execute([$eventName, $eventDateStart, $eventDateEnd, $eventLoc, $eventCity, $raceFormat, $status, $participationType, $feeSpeed, $feeSpeedExtra, $quotaSpeedBasic, $limitSpeedInd, $limitSpeedTeam, $isSpeedOpen, $feeStandart, $feeStandartExtra, $quotaStdBasic, $limitStdInd, $limitStdTeam, $isStdOpen, $feePemula, $feePemulaExtra, $quotaPemulaBasic, $limitPemulaInd, $limitPemulaTeam, $isPemulaOpen, $feeEksebisi, $allowPemulaStandartMix, $teamPairInti, $teamPairCadangan, $teamTttInti, $teamTttCadangan, $teamRelayInti, $teamRelayCadangan, $bankName, $bankAccount, $bankAccountName, $contactPhone, $posterImage, $sponsorLogosJson, $headerLogosJson, $eventId]);
             } catch (\Exception $e) {
                 try { $db->exec("ALTER TABLE roll_events ADD COLUMN status ENUM('Draft','Published','Open Registration','Official Registration','Close Registration','Running','Finished') DEFAULT 'Draft'"); } catch (\Exception $ex) {}
                 try { $db->exec("ALTER TABLE roll_events MODIFY COLUMN status ENUM('Draft','Published','Open Registration','Official Registration','Close Registration','Running','Finished') DEFAULT 'Draft'"); } catch (\Exception $ex) {}
@@ -481,13 +498,14 @@ class RollEventController extends Controller {
                 try { $db->exec("ALTER TABLE roll_events ADD COLUMN is_pemula_open TINYINT(1) DEFAULT 1"); } catch (\Exception $ex) {}
                 try { $db->exec("ALTER TABLE roll_events ADD COLUMN fee_eksebisi DECIMAL(10,2) DEFAULT 150000"); } catch (\Exception $ex) {}
                 try { $db->exec("ALTER TABLE roll_events ADD COLUMN allow_pemula_standart_mix TINYINT(1) DEFAULT 0"); } catch (\Exception $ex) {}
+                \App\Helpers\RollTeamHelper::ensureColumns($db);
                 try { $db->exec("ALTER TABLE roll_events ADD COLUMN poster_image VARCHAR(255) NULL"); } catch (\Exception $ex) {}
                 try { $db->exec("ALTER TABLE roll_events ADD COLUMN sponsor_logos TEXT NULL"); } catch (\Exception $ex) {}
                 try { $db->exec("ALTER TABLE roll_events ADD COLUMN header_logos TEXT NULL"); } catch (\Exception $ex) {}
                 
                 // Retry after migration
-                $stmt = $db->prepare("UPDATE roll_events SET event_name=?, event_date_start=?, event_date_end=?, event_location=?, event_city=?, race_format=?, status=?, participation_type=?, fee_speed=?, fee_speed_extra=?, quota_speed_basic=?, limit_speed_ind=?, limit_speed_team=?, is_speed_open=?, fee_standart=?, fee_standart_extra=?, quota_std_basic=?, limit_std_ind=?, limit_std_team=?, is_std_open=?, fee_pemula=?, fee_pemula_extra=?, quota_pemula_basic=?, limit_pemula_ind=?, limit_pemula_team=?, is_pemula_open=?, fee_eksebisi=?, allow_pemula_standart_mix=?, bank_name=?, bank_account=?, bank_account_name=?, contact_phone=?, poster_image=?, sponsor_logos=?, header_logos=? WHERE id=?");
-                $stmt->execute([$eventName, $eventDateStart, $eventDateEnd, $eventLoc, $eventCity, $raceFormat, $status, $participationType, $feeSpeed, $feeSpeedExtra, $quotaSpeedBasic, $limitSpeedInd, $limitSpeedTeam, $isSpeedOpen, $feeStandart, $feeStandartExtra, $quotaStdBasic, $limitStdInd, $limitStdTeam, $isStdOpen, $feePemula, $feePemulaExtra, $quotaPemulaBasic, $limitPemulaInd, $limitPemulaTeam, $isPemulaOpen, $feeEksebisi, $allowPemulaStandartMix, $bankName, $bankAccount, $bankAccountName, $contactPhone, $posterImage, $sponsorLogosJson, $headerLogosJson, $eventId]);
+                $stmt = $db->prepare("UPDATE roll_events SET event_name=?, event_date_start=?, event_date_end=?, event_location=?, event_city=?, race_format=?, status=?, participation_type=?, fee_speed=?, fee_speed_extra=?, quota_speed_basic=?, limit_speed_ind=?, limit_speed_team=?, is_speed_open=?, fee_standart=?, fee_standart_extra=?, quota_std_basic=?, limit_std_ind=?, limit_std_team=?, is_std_open=?, fee_pemula=?, fee_pemula_extra=?, quota_pemula_basic=?, limit_pemula_ind=?, limit_pemula_team=?, is_pemula_open=?, fee_eksebisi=?, allow_pemula_standart_mix=?, team_pair_inti=?, team_pair_cadangan=?, team_ttt_inti=?, team_ttt_cadangan=?, team_relay_inti=?, team_relay_cadangan=?, bank_name=?, bank_account=?, bank_account_name=?, contact_phone=?, poster_image=?, sponsor_logos=?, header_logos=? WHERE id=?");
+                $stmt->execute([$eventName, $eventDateStart, $eventDateEnd, $eventLoc, $eventCity, $raceFormat, $status, $participationType, $feeSpeed, $feeSpeedExtra, $quotaSpeedBasic, $limitSpeedInd, $limitSpeedTeam, $isSpeedOpen, $feeStandart, $feeStandartExtra, $quotaStdBasic, $limitStdInd, $limitStdTeam, $isStdOpen, $feePemula, $feePemulaExtra, $quotaPemulaBasic, $limitPemulaInd, $limitPemulaTeam, $isPemulaOpen, $feeEksebisi, $allowPemulaStandartMix, $teamPairInti, $teamPairCadangan, $teamTttInti, $teamTttCadangan, $teamRelayInti, $teamRelayCadangan, $bankName, $bankAccount, $bankAccountName, $contactPhone, $posterImage, $sponsorLogosJson, $headerLogosJson, $eventId]);
             }
 
             $_SESSION['flash_message'] = "Profil Event berhasil diperbarui!";

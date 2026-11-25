@@ -298,6 +298,49 @@
                                 </label>
                             </div>
                         </div>
+
+                        <!-- KUOTA PEMAIN TIM (INTI & CADANGAN) -->
+                        <div class="mt-5 pt-4 border-t border-slate-200/80">
+                            <div class="mb-3">
+                                <h5 class="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                                    <span>👥 Kuota Pemain Tim (Inti & Cadangan)</span>
+                                </h5>
+                                <p class="text-[10px] text-slate-500 mt-0.5">Atur jumlah pemain wajib (Inti) dan pemain cadangan (opsional) untuk masing-masing nomor lomba beregu.</p>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <?php
+                                $teamCards = [
+                                    ['key' => 'pair', 'title' => 'Pair', 'defInti' => 2, 'defCad' => 0, 'hint' => 'Nomor berpasangan (mis. Pair 500m)'],
+                                    ['key' => 'ttt',  'title' => 'TTT',  'defInti' => 3, 'defCad' => 1, 'hint' => 'Team Time Trial / Team Sprint'],
+                                    ['key' => 'relay','title' => 'Relay','defInti' => 3, 'defCad' => 1, 'hint' => 'Semua nomor estafet (Relay 1000m/1800m/3000m)'],
+                                ];
+                                foreach ($teamCards as $tc):
+                                    $k = $tc['key'];
+                                    $vInti = (int)($row["team_{$k}_inti"] ?? $tc['defInti']);
+                                    $vCad  = (int)($row["team_{$k}_cadangan"] ?? $tc['defCad']);
+                                ?>
+                                <div class="bg-indigo-50/50 border border-indigo-200 rounded-xl p-3.5">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <span class="text-xs font-black text-indigo-900 uppercase tracking-wider"><?= $tc['title'] ?></span>
+                                        <span class="text-[9px] font-bold text-indigo-700 bg-white border border-indigo-200 px-2 py-0.5 rounded-full">
+                                            Total: <?= $vInti ?>–<?= $vInti + $vCad ?> Atlet
+                                        </span>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-2">
+                                        <div>
+                                            <label class="block text-[9px] font-bold text-indigo-900 uppercase tracking-wider mb-1">Pemain Inti</label>
+                                            <input type="number" name="team_<?= $k ?>_inti" value="<?= $vInti ?>" min="1" class="w-full bg-white border border-indigo-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-700 text-center focus:ring-1 focus:ring-indigo-500 outline-none" required>
+                                        </div>
+                                        <div>
+                                            <label class="block text-[9px] font-bold text-indigo-900 uppercase tracking-wider mb-1">Cadangan</label>
+                                            <input type="number" name="team_<?= $k ?>_cadangan" value="<?= $vCad ?>" min="0" class="w-full bg-white border border-indigo-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-700 text-center focus:ring-1 focus:ring-indigo-500 outline-none" required>
+                                        </div>
+                                    </div>
+                                    <p class="text-[9px] text-indigo-800/70 mt-2 leading-tight"><?= $tc['hint'] ?></p>
+                                </div>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Rekening Pembayaran -->

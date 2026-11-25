@@ -26,6 +26,7 @@ class RollTokenRegistrationController extends Controller {
         }
 
         $db = Database::getInstance()->getConnection();
+        \App\Helpers\RollTeamHelper::ensureColumns($db);
 
         $active_token = $_SESSION['active_token_' . $event_id] ?? null;
         $active_invoice = $_SESSION['active_manual_invoice_' . $event_id] ?? null;
@@ -74,7 +75,7 @@ class RollTokenRegistrationController extends Controller {
 
         // Fetch registered entries for THIS event and club
         $stmtEntries = $db->prepare("
-            SELECT e.id as entry_id, e.race_class_id, e.team_name, e.skater_id, skc.id as class_cat_id, c.age_group_id,
+            SELECT e.id as entry_id, e.race_class_id, e.team_name, e.team_role, e.skater_id, skc.id as class_cat_id, c.age_group_id,
                    s.skater_name, s.gender, s.club_id as athlete_club_id,
                    a.group_name, c.category_name, skc.class_name as skate_class,
                    d.distance_name, c.race_number, c.gender as class_gender,
@@ -87,7 +88,7 @@ class RollTokenRegistrationController extends Controller {
             LEFT JOIN roll_ref_skate_classes skc ON c.skate_class_id = skc.id
             LEFT JOIN roll_payments p ON p.club_id = e.club_id AND p.event_id = e.event_id
             WHERE e.event_id = ? AND e.manual_invoice_code = ?
-            ORDER BY s.skater_name ASC
+            ORDER BY CASE WHEN e.team_role = 'cadangan' THEN 1 ELSE 0 END ASC, e.id ASC, s.skater_name ASC
         ");
         $stmtEntries->execute([$event_id, $active_invoice]);
         $existingEntries = $stmtEntries->fetchAll(PDO::FETCH_ASSOC);
@@ -113,6 +114,7 @@ class RollTokenRegistrationController extends Controller {
             'all_clubs'       => $all_clubs,
             'allow_individu'  => $allow_individu,
             'allow_team'      => $allow_team,
+            'teamQuotas'      => \App\Helpers\RollTeamHelper::extractQuotas($event ?: []),
         ]);
     }
 
@@ -134,6 +136,7 @@ class RollTokenRegistrationController extends Controller {
         }
 
         $db = Database::getInstance()->getConnection();
+        \App\Helpers\RollTeamHelper::ensureColumns($db);
 
         // Ambil Data Atlet
         $stmtA = $db->prepare("SELECT gender, birth_date FROM roll_skaters WHERE id = ?");
@@ -314,14 +317,34 @@ class RollTokenRegistrationController extends Controller {
         $stmtLimit = $db->prepare("SELECT limit_speed_ind, limit_speed_team, limit_std_ind, limit_std_team, limit_pemula_ind, limit_pemula_team, allow_pemula_standart_mix FROM roll_events WHERE id = ?");
         $stmtLimit->execute([$event_id]);
         $eventLimits = $stmtLimit->fetch(PDO::FETCH_ASSOC);
-        
+
+        \App\Helpers\RollTeamHelper::ensureColumns($db);
+        $teamQuota = null;
+        if ($is_team_reg) {
+            $skater_ids = array_values(array_unique(array_filter(array_map('intval', $skater_ids))));
+            $teamRaceClassId = (int)($race_class_ids[0] ?? 0);
+            $stmtTeamDist = $db->prepare("SELECT d.distance_name FROM roll_event_details c LEFT JOIN roll_ref_distances d ON c.distance_id = d.id WHERE c.id = ? AND c.event_id = ?");
+            $stmtTeamDist->execute([$teamRaceClassId, $event_id]);
+            $teamDistName = (string)($stmtTeamDist->fetchColumn() ?: '');
+            $teamQuotas = \App\Helpers\RollTeamHelper::getEventQuotas($db, $event_id);
+            $teamQuota = \App\Helpers\RollTeamHelper::getQuotaForDistance($teamDistName, $teamQuotas);
+
+            $countErr = \App\Helpers\RollTeamHelper::validateTeamCount($teamDistName, count($skater_ids), $teamQuotas);
+            if ($countErr !== null) {
+                $_SESSION['flash_message'] = $countErr;
+                $_SESSION['flash_type'] = "error";
+                header("Location: " . getenv('APP_URL') . "/roll/user/token_registration/index/" . $event_id . "?form=" . $entry_type);
+                exit;
+            }
+        }
+
         $successCount = 0;
         $failMessages = [];
 
         $teamFail = false;
         if ($is_team_reg) { $db->beginTransaction(); }
 
-        foreach ($skater_ids as $skater_id) {
+        foreach ($skater_ids as $skaterIdx => $skater_id) {
             $skater_id = (int)$skater_id;
             
             // Dapatkan info atlet (hilangkan constraint club_id untuk mendukung Mix-Club)
@@ -509,8 +532,9 @@ class RollTokenRegistrationController extends Controller {
                 $distance_id = $stmtDist->fetchColumn() ?: null;
 
                 // Save
-                $stmtInsert = $db->prepare("INSERT INTO roll_entries (club_id, event_id, skater_id, race_class_id, distance_id, team_name, is_manual, manual_invoice_code, created_at) VALUES (?, ?, ?, ?, ?, ?, 1, ?, NOW())");
-                if ($stmtInsert->execute([$club_id, $event_id, $skater_id, $race_class_id, $distance_id, $team_name, $active_invoice])) {
+                $teamRole = ($is_team_reg && $teamQuota) ? ($skaterIdx < $teamQuota['inti'] ? 'inti' : 'cadangan') : null;
+                $stmtInsert = $db->prepare("INSERT INTO roll_entries (club_id, event_id, skater_id, race_class_id, distance_id, team_name, team_role, is_manual, manual_invoice_code, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, NOW())");
+                if ($stmtInsert->execute([$club_id, $event_id, $skater_id, $race_class_id, $distance_id, $team_name, $teamRole, $active_invoice])) {
                     $successCount++;
                     if ($targetGroup) {
                         if ($is_team_reg) { $currTeamCounts[$targetGroup]++; } else { $currIndvCounts[$targetGroup]++; }
@@ -637,6 +661,7 @@ class RollTokenRegistrationController extends Controller {
         }
 
         $db = Database::getInstance()->getConnection();
+        \App\Helpers\RollTeamHelper::ensureColumns($db);
         $skater_id = (int)($_GET['skater_id'] ?? 0);
         $event_id = (int)($_GET['event_id'] ?? 0);
         $club_id = (int)($_SESSION['roll_club_id'] ?? 0);
