@@ -77,6 +77,32 @@ class RollMasterSkaterController extends Controller {
         return $base_uid . $digit_akhir;
     }
 
+    private function buildSkaterWhereClause(string $search, string $bpjsFilter, string $completenessFilter): array {
+        $whereClause = "WHERE 1=1";
+        $params = [];
+
+        if (!empty($search)) {
+            $whereClause .= " AND (s.skater_name LIKE ? OR s.nik LIKE ? OR s.uid LIKE ? OR c.club_name LIKE ? OR s.asal_sekolah LIKE ? OR s.kota_kabupaten LIKE ? OR s.provinsi LIKE ?)";
+            for ($i = 0; $i < 7; $i++) {
+                $params[] = "%$search%";
+            }
+        }
+
+        if ($bpjsFilter === 'sudah') {
+            $whereClause .= " AND s.status_bpjs = 'sudah'";
+        } elseif ($bpjsFilter === 'belum') {
+            $whereClause .= " AND (s.status_bpjs IS NULL OR s.status_bpjs != 'sudah')";
+        }
+
+        if ($completenessFilter === 'incomplete') {
+            $whereClause .= " AND (s.nik IS NULL OR TRIM(s.nik) = '' OR LENGTH(TRIM(s.nik)) < 16 OR s.asal_sekolah IS NULL OR TRIM(s.asal_sekolah) = '' OR s.kota_kabupaten IS NULL OR TRIM(s.kota_kabupaten) = '' OR s.provinsi IS NULL OR TRIM(s.provinsi) = '')";
+        } elseif ($completenessFilter === 'complete') {
+            $whereClause .= " AND (s.nik IS NOT NULL AND TRIM(s.nik) != '' AND LENGTH(TRIM(s.nik)) >= 16 AND s.asal_sekolah IS NOT NULL AND TRIM(s.asal_sekolah) != '' AND s.kota_kabupaten IS NOT NULL AND TRIM(s.kota_kabupaten) != '' AND s.provinsi IS NOT NULL AND TRIM(s.provinsi) != '')";
+        }
+
+        return [$whereClause, $params];
+    }
+
     public function index() {
         $db = Database::getInstance()->getConnection();
         
@@ -101,55 +127,23 @@ class RollMasterSkaterController extends Controller {
         $bpjsFilter = $_GET['bpjs'] ?? 'all';
         $completenessFilter = $_GET['completeness'] ?? 'all';
 
-        $whereClause = "WHERE 1=1";
-        $params = [];
-        
-        if (!empty($search)) {
-            $whereClause .= " AND (s.skater_name LIKE ? OR s.nik LIKE ? OR s.uid LIKE ? OR c.club_name LIKE ? OR s.asal_sekolah LIKE ? OR s.kota_kabupaten LIKE ? OR s.provinsi LIKE ?)";
-            $params[] = "%$search%";
-            $params[] = "%$search%";
-            $params[] = "%$search%";
-            $params[] = "%$search%";
-            $params[] = "%$search%";
-            $params[] = "%$search%";
-            $params[] = "%$search%";
-        }
-
-        $havingClauses = [];
-        if ($bpjsFilter === 'sudah') {
-            $havingClauses[] = "bpjs_status = 'sudah'";
-        } elseif ($bpjsFilter === 'belum') {
-            $havingClauses[] = "bpjs_status = 'belum'";
-        }
-
-        if ($completenessFilter === 'incomplete') {
-            $havingClauses[] = "(s.nik IS NULL OR TRIM(s.nik) = '' OR LENGTH(TRIM(s.nik)) < 16 OR s.asal_sekolah IS NULL OR TRIM(s.asal_sekolah) = '' OR s.kota_kabupaten IS NULL OR TRIM(s.kota_kabupaten) = '' OR s.provinsi IS NULL OR TRIM(s.provinsi) = '')";
-        } elseif ($completenessFilter === 'complete') {
-            $havingClauses[] = "(s.nik IS NOT NULL AND TRIM(s.nik) != '' AND LENGTH(TRIM(s.nik)) >= 16 AND s.asal_sekolah IS NOT NULL AND TRIM(s.asal_sekolah) != '' AND s.kota_kabupaten IS NOT NULL AND TRIM(s.kota_kabupaten) != '' AND s.provinsi IS NOT NULL AND TRIM(s.provinsi) != '')";
-        }
-
-        $havingSql = !empty($havingClauses) ? "HAVING " . implode(" AND ", $havingClauses) : "";
+        [$whereClause, $params] = $this->buildSkaterWhereClause($search, $bpjsFilter, $completenessFilter);
 
         $sql = "
             SELECT 
                 s.*, 
                 c.club_name,
-                COUNT(e.id) as total_events,
                 CASE 
-                    WHEN COUNT(e.id) > 0 THEN 'sudah_event'
-                    WHEN s.status_bpjs = 'sudah' THEN 'sudah_mandiri'
+                    WHEN s.status_bpjs = 'sudah' THEN 'sudah'
                     ELSE 'belum'
                 END as bpjs_badge,
                 CASE 
-                    WHEN COUNT(e.id) > 0 OR s.status_bpjs = 'sudah' THEN 'sudah'
+                    WHEN s.status_bpjs = 'sudah' THEN 'sudah'
                     ELSE 'belum'
                 END as bpjs_status
             FROM roll_skaters s 
             LEFT JOIN roll_clubs c ON s.club_id = c.id 
-            LEFT JOIN roll_entries e ON s.id = e.skater_id
             $whereClause
-            GROUP BY s.id
-            $havingSql
             ORDER BY s.skater_name ASC
         ";
 
@@ -163,19 +157,14 @@ class RollMasterSkaterController extends Controller {
         }
         unset($s);
 
-        // Hitung statistik ringkas untuk Master Overview
+        // Hitung statistik ringkas untuk Master Overview (BPJS murni dari data status_bpjs)
         $summarySql = "
             SELECT 
                 COUNT(*) as total_skaters,
-                SUM(CASE WHEN (total_entries > 0 OR status_bpjs = 'sudah') THEN 1 ELSE 0 END) as total_bpjs_sudah,
-                SUM(CASE WHEN (total_entries = 0 AND (status_bpjs IS NULL OR status_bpjs = 'belum')) THEN 1 ELSE 0 END) as total_bpjs_belum,
-                SUM(CASE WHEN (asal_sekolah IS NULL OR TRIM(asal_sekolah) = '' OR kota_kabupaten IS NULL OR TRIM(kota_kabupaten) = '' OR provinsi IS NULL OR TRIM(provinsi) = '') THEN 1 ELSE 0 END) as total_incomplete
-            FROM (
-                SELECT s.id, s.status_bpjs, s.asal_sekolah, s.kota_kabupaten, s.provinsi, COUNT(e.id) as total_entries
-                FROM roll_skaters s
-                LEFT JOIN roll_entries e ON s.id = e.skater_id
-                GROUP BY s.id
-            ) as sub
+                SUM(CASE WHEN status_bpjs = 'sudah' THEN 1 ELSE 0 END) as total_bpjs_sudah,
+                SUM(CASE WHEN (status_bpjs IS NULL OR status_bpjs != 'sudah') THEN 1 ELSE 0 END) as total_bpjs_belum,
+                SUM(CASE WHEN (nik IS NULL OR TRIM(nik) = '' OR LENGTH(TRIM(nik)) < 16 OR asal_sekolah IS NULL OR TRIM(asal_sekolah) = '' OR kota_kabupaten IS NULL OR TRIM(kota_kabupaten) = '' OR provinsi IS NULL OR TRIM(provinsi) = '') THEN 1 ELSE 0 END) as total_incomplete
+            FROM roll_skaters
         ";
         $summary = $db->query($summarySql)->fetch(PDO::FETCH_ASSOC);
 
@@ -260,34 +249,7 @@ class RollMasterSkaterController extends Controller {
         $bpjsFilter = $_GET['bpjs'] ?? 'all';
         $completenessFilter = $_GET['completeness'] ?? 'all';
 
-        $whereClause = "WHERE 1=1";
-        $params = [];
-        
-        if (!empty($search)) {
-            $whereClause .= " AND (s.skater_name LIKE ? OR s.nik LIKE ? OR s.uid LIKE ? OR c.club_name LIKE ? OR s.asal_sekolah LIKE ? OR s.kota_kabupaten LIKE ? OR s.provinsi LIKE ?)";
-            $params[] = "%$search%";
-            $params[] = "%$search%";
-            $params[] = "%$search%";
-            $params[] = "%$search%";
-            $params[] = "%$search%";
-            $params[] = "%$search%";
-            $params[] = "%$search%";
-        }
-
-        $havingClauses = [];
-        if ($bpjsFilter === 'sudah') {
-            $havingClauses[] = "bpjs_status = 'sudah'";
-        } elseif ($bpjsFilter === 'belum') {
-            $havingClauses[] = "bpjs_status = 'belum'";
-        }
-
-        if ($completenessFilter === 'incomplete') {
-            $havingClauses[] = "(s.nik IS NULL OR TRIM(s.nik) = '' OR LENGTH(TRIM(s.nik)) < 16 OR s.asal_sekolah IS NULL OR TRIM(s.asal_sekolah) = '' OR s.kota_kabupaten IS NULL OR TRIM(s.kota_kabupaten) = '' OR s.provinsi IS NULL OR TRIM(s.provinsi) = '')";
-        } elseif ($completenessFilter === 'complete') {
-            $havingClauses[] = "(s.nik IS NOT NULL AND TRIM(s.nik) != '' AND LENGTH(TRIM(s.nik)) >= 16 AND s.asal_sekolah IS NOT NULL AND TRIM(s.asal_sekolah) != '' AND s.kota_kabupaten IS NOT NULL AND TRIM(s.kota_kabupaten) != '' AND s.provinsi IS NOT NULL AND TRIM(s.provinsi) != '')";
-        }
-
-        $havingSql = !empty($havingClauses) ? "HAVING " . implode(" AND ", $havingClauses) : "";
+        [$whereClause, $params] = $this->buildSkaterWhereClause($search, $bpjsFilter, $completenessFilter);
 
         $sql = "
             SELECT 
@@ -295,12 +257,11 @@ class RollMasterSkaterController extends Controller {
                 c.club_name,
                 COUNT(e.id) as total_events,
                 CASE 
-                    WHEN COUNT(e.id) > 0 THEN 'Otomatis (Riwayat Event)'
-                    WHEN s.status_bpjs = 'sudah' THEN 'Mandiri (Klub/Pribadi)'
+                    WHEN s.status_bpjs = 'sudah' THEN 'Sudah Terdaftar'
                     ELSE 'Belum Terdaftar'
                 END as keterangan_bpjs,
                 CASE 
-                    WHEN COUNT(e.id) > 0 OR s.status_bpjs = 'sudah' THEN 'Sudah Terdaftar'
+                    WHEN s.status_bpjs = 'sudah' THEN 'Sudah Terdaftar'
                     ELSE 'Belum Terdaftar'
                 END as bpjs_status,
                 CASE 
@@ -314,7 +275,6 @@ class RollMasterSkaterController extends Controller {
             LEFT JOIN roll_entries e ON s.id = e.skater_id
             $whereClause
             GROUP BY s.id
-            $havingSql
             ORDER BY s.skater_name ASC
         ";
 

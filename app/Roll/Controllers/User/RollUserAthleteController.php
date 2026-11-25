@@ -98,16 +98,12 @@ class RollUserAthleteController extends Controller {
         $sql = "
             SELECT 
                 s.*,
-                COUNT(e.id) as total_events,
                 CASE 
-                    WHEN COUNT(e.id) > 0 THEN 'sudah_event'
-                    WHEN s.status_bpjs = 'sudah' THEN 'sudah_mandiri'
+                    WHEN s.status_bpjs = 'sudah' THEN 'sudah'
                     ELSE 'belum'
                 END as bpjs_badge
             FROM roll_skaters s
-            LEFT JOIN roll_entries e ON s.id = e.skater_id
             WHERE s.club_id = ? $searchSql
-            GROUP BY s.id
             ORDER BY s.id DESC
         ";
 

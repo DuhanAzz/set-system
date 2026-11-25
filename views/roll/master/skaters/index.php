@@ -48,7 +48,7 @@
         <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm border-b-4 border-emerald-500">
             <span class="text-[10px] font-black uppercase tracking-wider text-emerald-600">BPJS: Terdaftar</span>
             <div class="text-2xl font-black text-emerald-700 mt-1"><?= number_format($summary['total_bpjs_sudah'] ?? 0) ?></div>
-            <div class="text-[10px] text-emerald-600/70 mt-0.5">Dari event & mandiri</div>
+            <div class="text-[10px] text-emerald-600/70 mt-0.5">Sesuai data centang atlet</div>
         </div>
         <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm border-b-4 border-amber-500">
             <span class="text-[10px] font-black uppercase tracking-wider text-amber-600">BPJS: Belum Terdaftar</span>
@@ -208,16 +208,12 @@
 
                             <!-- Status BPJS -->
                             <td class="p-5 text-center align-middle">
-                                <?php if ($s['bpjs_badge'] === 'sudah_event'): ?>
-                                    <span class="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded-full text-[10px] font-black uppercase" title="Otomatis terdaftar: pernah ikut <?= $s['total_events'] ?> event lomba">
-                                        <span>✓</span> Terdaftar (Event)
-                                    </span>
-                                <?php elseif ($s['bpjs_badge'] === 'sudah_mandiri'): ?>
-                                    <span class="inline-flex items-center gap-1 bg-blue-50 text-blue-700 border border-blue-200 px-2.5 py-1 rounded-full text-[10px] font-black uppercase" title="Terdaftar mandiri">
-                                        <span>✓</span> Terdaftar (Mandiri)
+                                <?php if (($s['status_bpjs'] ?? 'belum') === 'sudah'): ?>
+                                    <span class="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded-full text-[10px] font-black uppercase">
+                                        <span>✓</span> Sudah Terdaftar
                                     </span>
                                 <?php else: ?>
-                                    <span class="inline-flex items-center gap-1 bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-1 rounded-full text-[10px] font-black uppercase" title="Belum pernah ikut event & belum terdaftar">
+                                    <span class="inline-flex items-center gap-1 bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-1 rounded-full text-[10px] font-black uppercase">
                                         Belum Terdaftar
                                     </span>
                                 <?php endif; ?>
@@ -307,7 +303,7 @@
                 <label for="edit_status_bpjs" class="text-xs font-bold text-emerald-900 cursor-pointer">
                     🛡️ Status BPJS: Sudah Terdaftar
                     <p class="text-[10px] text-emerald-700 font-medium mt-0.5 leading-relaxed" id="edit_bpjs_note">
-                        Centang jika atlet sudah memiliki BPJS aktif. (Atlet yang pernah ikut event otomatis terhitung sudah terdaftar).
+                        Centang jika atlet sudah memiliki BPJS aktif. Kosongkan jika belum terdaftar.
                     </p>
                 </label>
             </div>
@@ -341,15 +337,11 @@ function openEditModal(data) {
     document.getElementById('edit_provinsi').value = data.provinsi || '';
     document.getElementById('edit_is_pon_veteran').checked = (data.is_pon_veteran == 1);
 
-    const isBpjsRegistered = (data.status_bpjs === 'sudah' || (parseInt(data.total_events) || 0) > 0);
+    const isBpjsRegistered = (data.status_bpjs === 'sudah');
     document.getElementById('edit_status_bpjs').checked = isBpjsRegistered;
 
     const note = document.getElementById('edit_bpjs_note');
-    if ((parseInt(data.total_events) || 0) > 0) {
-        note.innerHTML = '<span class="text-emerald-800 font-bold">✓ Atlet ini sudah otomatis terdaftar BPJS karena memiliki riwayat ' + data.total_events + ' event lomba.</span>';
-    } else {
-        note.innerHTML = 'Centang jika atlet sudah memiliki BPJS aktif. (Atlet yang pernah ikut event otomatis terhitung sudah terdaftar).';
-    }
+    note.innerHTML = 'Centang jika atlet sudah memiliki BPJS aktif. Kosongkan jika belum terdaftar.';
 
     // Smart Transition Alert Box
     const transAlert = document.getElementById('master_transition_alert');
