@@ -9,29 +9,31 @@
         </p>
     </div>
     
-    <div class="flex flex-wrap gap-3 items-center print:hidden">
-        <div class="bg-white p-1 rounded-xl shadow-sm border border-slate-200 flex">
-            <a href="<?= getenv('APP_URL') ?>/roll/admin/skaters?tab=starting_list"
-               class="px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition <?= $activeTab === 'starting_list' ? 'bg-slate-900 text-white shadow' : 'text-slate-500 hover:bg-slate-50' ?>">
-                Starting List
-            </a>
-            <a href="<?= getenv('APP_URL') ?>/roll/admin/skaters?tab=bpjs"
-               class="px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition <?= $activeTab === 'bpjs' ? 'bg-slate-900 text-white shadow' : 'text-slate-500 hover:bg-slate-50' ?>">
-                🛡️ Cek NIK & BPJS
-            </a>
-        </div>
-
+    <div class="flex flex-wrap gap-2.5 items-center print:hidden">
         <?php if ($activeTab === 'bpjs'): ?>
+            <a href="<?= getenv('APP_URL') ?>/roll/admin/skaters?tab=starting_list"
+               class="px-5 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl shadow-sm border border-slate-900 text-[11px] font-black uppercase tracking-widest transition flex items-center gap-2">
+                <span>📋</span> Starting List
+            </a>
             <a href="<?= getenv('APP_URL') ?>/roll/admin/skaters/export_bpjs_csv?search=<?= urlencode($search ?? '') ?>&bpjs=<?= urlencode($bpjsFilter ?? 'all') ?>&nik=<?= urlencode($nikFilter ?? 'all') ?>"
                class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-sm border border-emerald-700 text-[11px] font-black uppercase tracking-widest transition flex items-center gap-2">
                 <span>📊</span> Export CSV BPJS
             </a>
         <?php else: ?>
+            <a href="<?= getenv('APP_URL') ?>/roll/admin/skaters?tab=bpjs"
+               class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-sm border border-indigo-700 text-[11px] font-black uppercase tracking-widest transition flex items-center gap-2">
+                <span>🛡️</span> Data BPJS
+            </a>
             <a href="<?= getenv('APP_URL') ?>/roll/admin/skaters/export_csv"
                class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-sm border border-emerald-700 text-[11px] font-black uppercase tracking-widest transition flex items-center gap-2">
                 <span>📊</span> Export CSV
             </a>
         <?php endif; ?>
+
+        <button type="button" onclick="window.print()"
+                class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-sm border border-blue-700 text-[11px] font-black uppercase tracking-widest transition flex items-center gap-2 cursor-pointer">
+            <span>🖨️</span> Print
+        </button>
     </div>
 </div>
 
@@ -97,7 +99,7 @@
     </div>
 
     <!-- Tabel Keseluruhan Peserta & BPJS (Read-only) -->
-    <div class="bg-white rounded-[1.5rem] shadow-sm border border-slate-200 overflow-hidden">
+    <div class="bpjs-table-card bg-white rounded-[1.5rem] shadow-sm border border-slate-200 overflow-hidden">
         <div class="overflow-x-auto">
             <table class="w-full text-left text-sm">
                 <thead class="bg-slate-50 border-b border-slate-200 text-[10px] font-black uppercase tracking-widest text-slate-400">
@@ -277,5 +279,8 @@
     
     /* Page break rules */
     .border-slate-200 { break-inside: avoid; }
+    .bpjs-table-card { break-inside: auto !important; overflow: visible !important; border: 1px solid #cbd5e1 !important; border-radius: 0 !important; }
+    .bpjs-table-card thead { display: table-header-group; }
+    .bpjs-table-card tr { break-inside: avoid; page-break-inside: avoid; }
 }
 </style>

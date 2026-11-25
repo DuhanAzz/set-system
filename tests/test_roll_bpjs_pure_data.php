@@ -26,8 +26,9 @@ assert(strpos($adminCtrl, 'export_bpjs_csv') !== false, 'Admin BPJS CSV export m
 echo "✓ Admin RollSkaterController filters Paid participants & exposes export_bpjs_csv [OK]\n";
 
 $adminView = file_get_contents(__DIR__ . '/../views/roll/admin/skaters/index.php');
-assert(strpos($adminView, 'Cek NIK & BPJS') !== false, 'Admin view must have Cek NIK & BPJS tab');
+assert(strpos($adminView, 'Data BPJS') !== false, 'Admin view must have Data BPJS button');
+assert(strpos($adminView, 'window.print()') !== false, 'Admin view must have Print button');
 assert(strpos($adminView, 'Sudah Terdaftar') !== false && strpos($adminView, 'Belum Terdaftar') !== false, 'Admin view must show BPJS status badges');
-echo "✓ Admin skaters view displays NIK and pure BPJS status (read-only) [OK]\n";
+echo "✓ Admin skaters view displays Data BPJS button, Print button, NIK, and pure BPJS status (read-only) [OK]\n";
 
 echo "--- ALL BPJS PURE DATA & ADMIN CHECK TESTS PASSED! ---\n";
