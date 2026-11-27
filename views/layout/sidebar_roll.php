@@ -184,7 +184,7 @@ if (!function_exists('isGroupActive')) {
          </div>
 
          <!-- GROUP 2: Pendaftaran dan BIB -->
-         <?php $bibActive = isGroupActive($req, ['admin/entries', 'admin/bibs']); ?>
+         <?php $bibActive = isGroupActive($req, ['admin/entries', 'admin/bibs', 'admin/reports']); ?>
          <button onclick="toggleSidebarDropdown('dd-bib')" class="<?= $bibActive ? $dropdownBtnActive : $dropdownBtnBase ?>">
             <div class="flex items-center">
                <span class="w-6 text-xl mr-3 text-center opacity-80">🧾</span>
@@ -194,6 +194,7 @@ if (!function_exists('isGroupActive')) {
          </button>
          <div id="dd-bib" class="bg-[#0b1120] py-2 <?= $bibActive ? '' : 'hidden' ?>">
              <a href="<?= getenv('APP_URL') ?>/roll/admin/entries" class="<?= (strpos($req,"admin/entries")!==false) ? $childActiveLink : $childBaseLink ?>">Verifikasi Pendaftaran</a>
+             <a href="<?= getenv('APP_URL') ?>/roll/admin/reports" class="<?= (strpos($req,"admin/reports")!==false) ? $childActiveLink : $childBaseLink ?>">Laporan Keuangan</a>
              <a href="<?= getenv('APP_URL') ?>/roll/admin/bibs" class="<?= (strpos($req,"admin/bibs")!==false) ? $childActiveLink : $childBaseLink ?>">Manage BIB</a>
          </div>
 

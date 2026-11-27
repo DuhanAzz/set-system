@@ -3,95 +3,126 @@ namespace App\Roll\Controllers\Admin;
 
 use App\Core\Controller;
 use App\Core\Database;
+use App\Helpers\RollFinanceHelper;
 use PDO;
 
 class RollAdminReportController extends Controller {
     public function __construct() {
         if (session_status() === PHP_SESSION_NONE) session_start();
-        // Pastikan hanya role admin yang bisa akses
         if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
             header("Location: " . getenv('APP_URL') . "/roll/login");
             exit;
         }
     }
 
-    public function index() {
+    private function requireActiveEvent(): array {
         $db = Database::getInstance()->getConnection();
-        $eventId = $_SESSION['roll_admin_active_event_id'] ?? 0;
-
-        if ($eventId == 0) {
+        $eventId = (int)($_SESSION['roll_admin_active_event_id'] ?? 0);
+        if ($eventId <= 0) {
             $_SESSION['flash_message'] = "Pilih Event terlebih dahulu!";
             $_SESSION['flash_type'] = "warning";
             header("Location: " . getenv('APP_URL') . "/roll/admin/dashboard");
             exit;
         }
 
-        // Ambil Data Transaksi Klub (Normal)
-        $stmtClub = $db->prepare("
-            SELECT 
-                p.id, p.status, p.total_amount as payment_amount, p.created_at,
-                c.club_name,
-                'Klub' as type
-            FROM roll_payments p
-            JOIN roll_clubs c ON p.club_id = c.id
-            WHERE p.event_id = ?
-            ORDER BY p.created_at DESC
-        ");
-        $stmtClub->execute([$eventId]);
-        $clubTransactions = $stmtClub->fetchAll(PDO::FETCH_ASSOC);
+        $stmtEvt = $db->prepare("SELECT id, event_name, event_date_start, event_location FROM roll_events WHERE id = ?");
+        $stmtEvt->execute([$eventId]);
+        $event = $stmtEvt->fetch(PDO::FETCH_ASSOC) ?: ['id' => $eventId, 'event_name' => 'Event #' . $eventId];
 
-        // Ambil Data Transaksi Token (Manual)
-        $stmtManual = $db->prepare("
-            SELECT 
-                m.id, m.status, m.total_amount as payment_amount, m.created_at,
-                m.invoice_code as identifier,
-                c.club_name as user_name,
-                'Token' as type
-            FROM roll_manual_payments m
-            LEFT JOIN roll_clubs c ON m.club_id = c.id
-            WHERE m.event_id = ?
-            ORDER BY m.created_at DESC
-        ");
-        $stmtManual->execute([$eventId]);
-        $manualTransactions = $stmtManual->fetchAll(PDO::FETCH_ASSOC);
+        return [$db, $eventId, $event];
+    }
 
-        // Gabungkan semua transaksi
-        $transactions = array_merge($clubTransactions, $manualTransactions);
+    public function index() {
+        [$db, $eventId, $event] = $this->requireActiveEvent();
 
-        // Sort berdasarkan created_at descending
-        usort($transactions, function($a, $b) {
-            return strtotime($b['created_at']) - strtotime($a['created_at']);
-        });
+        $statusFilter = $_GET['status'] ?? 'all';
+        $typeFilter   = $_GET['type'] ?? 'all';
+        $search       = $_GET['search'] ?? '';
 
-        // Hitung Total Pendapatan
-        $totalPendapatan = 0;
-        $totalKlub = 0;
-        $totalToken = 0;
-        
-        $countPaid = 0;
-        $countPending = 0;
+        $report = RollFinanceHelper::buildEventFinanceReport($db, $eventId);
+        $filteredTransactions = RollFinanceHelper::filterFinanceTransactions(
+            $report['transactions'],
+            $statusFilter,
+            $typeFilter,
+            $search
+        );
 
-        foreach ($transactions as $t) {
-            if ($t['status'] === 'Paid') {
-                $totalPendapatan += $t['payment_amount'];
-                if ($t['type'] === 'Klub') {
-                    $totalKlub += $t['payment_amount'];
-                } else {
-                    $totalToken += $t['payment_amount'];
-                }
-                $countPaid++;
-            } elseif ($t['status'] === 'Pending') {
-                $countPending++;
-            }
+        $totals = $report['totals'];
+
+        return $this->view('roll/admin/reports/index', [
+            'event'           => $event,
+            'transactions'    => $filteredTransactions,
+            'allCount'        => count($report['transactions']),
+            'totals'          => $totals,
+            'categories'      => $report['categories'],
+            'statusFilter'    => $statusFilter,
+            'typeFilter'      => $typeFilter,
+            'search'          => $search,
+            'totalPendapatan' => $totals['paid'],
+            'totalKlub'       => $totals['paid_klub'],
+            'totalToken'      => $totals['paid_token'],
+            'countPaid'       => $totals['count_paid'],
+            'countPending'    => $totals['count_pending'],
+        ]);
+    }
+
+    public function export_excel() {
+        [$db, $eventId, $event] = $this->requireActiveEvent();
+
+        $statusFilter = $_GET['status'] ?? 'all';
+        $typeFilter   = $_GET['type'] ?? 'all';
+        $search       = $_GET['search'] ?? '';
+
+        $report = RollFinanceHelper::buildEventFinanceReport($db, $eventId);
+        $rows = RollFinanceHelper::filterFinanceTransactions(
+            $report['transactions'],
+            $statusFilter,
+            $typeFilter,
+            $search
+        );
+
+        $safeName = preg_replace('/[^A-Za-z0-9_-]+/', '_', (string)($event['event_name'] ?? 'Event'));
+        $filename = "Laporan_Keuangan_{$safeName}_" . date('Ymd_His') . ".csv";
+
+        header('Content-Type: text/csv; charset=UTF-8');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        echo "\xEF\xBB\xBF";
+
+        $out = fopen('php://output', 'w');
+        fputcsv($out, [
+            'No',
+            'Tanggal',
+            'Jalur Pendaftaran',
+            'Klub / Kontingen',
+            'Kode / Invoice',
+            'Jumlah Atlet',
+            'Jumlah Entri Lomba',
+            'Nominal Tagihan (Rp)',
+            'Status Pembayaran',
+            'Bukti Bayar'
+        ]);
+
+        $no = 1;
+        $sumNominal = 0;
+        foreach ($rows as $r) {
+            $amt = (float)($r['payment_amount'] ?? 0);
+            $sumNominal += $amt;
+            fputcsv($out, [
+                $no++,
+                !empty($r['created_at']) ? date('d/m/Y H:i', strtotime($r['created_at'])) : '-',
+                ($r['type'] ?? 'Klub') === 'Klub' ? 'Klub Reguler' : 'Token / Manual',
+                $r['club_name'] ?? '-',
+                $r['identifier'] ?? '-',
+                (int)($r['skater_count'] ?? 0),
+                (int)($r['entry_count'] ?? 0),
+                $amt,
+                $r['status'] ?? 'Unpaid',
+                !empty($r['payment_proof']) ? 'Ada' : 'Belum Upload'
+            ]);
         }
 
-        $this->view('roll/admin/reports/index', [
-            'transactions' => $transactions,
-            'totalPendapatan' => $totalPendapatan,
-            'totalKlub' => $totalKlub,
-            'totalToken' => $totalToken,
-            'countPaid' => $countPaid,
-            'countPending' => $countPending
-        ]);
+        fputcsv($out, ['', '', '', '', '', '', 'TOTAL (Filtered)', $sumNominal, '', '']);
+        fclose($out);
+        exit;
     }
 }

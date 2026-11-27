@@ -102,20 +102,11 @@ class RollAdminDashboardController extends Controller {
             $stmtClub->execute([$eventId]);
             $stats['clubs'] = $stmtClub->fetchColumn();
 
-            // Pending Payments
-            $stmtPending = $db->prepare("SELECT COUNT(*) FROM roll_payments WHERE event_id = ? AND status = 'Pending'");
-            $stmtPending->execute([$eventId]);
-            $stats['pending'] = $stmtPending->fetchColumn() ?: 0;
-
-            // Paid
-            $stmtPaid = $db->prepare("SELECT COUNT(*) FROM roll_payments WHERE event_id = ? AND status = 'Paid'");
-            $stmtPaid->execute([$eventId]);
-            $stats['paid'] = $stmtPaid->fetchColumn() ?: 0;
-
-            // Revenue
-            $stmtRevenue = $db->prepare("SELECT SUM(total_amount) FROM roll_payments WHERE event_id = ? AND status = 'Paid'");
-            $stmtRevenue->execute([$eventId]);
-            $stats['revenue'] = $stmtRevenue->fetchColumn() ?: 0;
+            // Sinkronisasi angka pembayaran & pemasukan dengan Laporan Keuangan (Klub + Token, dinamis)
+            $financeReport = \App\Helpers\RollFinanceHelper::buildEventFinanceReport($db, $eventId);
+            $stats['pending'] = $financeReport['totals']['count_pending'];
+            $stats['paid']    = $financeReport['totals']['count_paid'];
+            $stats['revenue'] = $financeReport['totals']['paid'];
 
             // Top 5 Clubs for Chart
             $stmtChart = $db->prepare("
