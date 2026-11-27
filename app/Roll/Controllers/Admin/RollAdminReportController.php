@@ -39,13 +39,14 @@ class RollAdminReportController extends Controller {
         $isConfigured = isset($query['cfg']) && (string)$query['cfg'] === '1';
 
         return [
-            'show_summary'    => $isConfigured ? !empty($query['show_summary']) : true,
-            'show_categories' => $isConfigured ? !empty($query['show_categories']) : true,
-            'show_date'       => $isConfigured ? !empty($query['show_date']) : true,
-            'show_type'       => $isConfigured ? !empty($query['show_type']) : true,
-            'show_counts'     => $isConfigured ? !empty($query['show_counts']) : true,
-            'show_status'     => $isConfigured ? !empty($query['show_status']) : true,
-            'show_proof'      => $isConfigured ? !empty($query['show_proof']) : false,
+            'show_summary'      => $isConfigured ? !empty($query['show_summary']) : true,
+            'show_categories'   => $isConfigured ? !empty($query['show_categories']) : true,
+            'show_transactions' => $isConfigured ? !empty($query['show_transactions']) : true,
+            'show_date'         => $isConfigured ? !empty($query['show_date']) : true,
+            'show_type'         => $isConfigured ? !empty($query['show_type']) : true,
+            'show_counts'       => $isConfigured ? !empty($query['show_counts']) : true,
+            'show_status'       => $isConfigured ? !empty($query['show_status']) : true,
+            'show_proof'        => $isConfigured ? !empty($query['show_proof']) : false,
         ];
     }
 
@@ -66,15 +67,16 @@ class RollAdminReportController extends Controller {
         );
 
         return $this->view('roll/admin/reports/print_report', [
-            'event'        => $event,
-            'transactions' => $filteredTransactions,
-            'allCount'     => count($report['transactions']),
-            'totals'       => $report['totals'],
-            'categories'   => $report['categories'],
-            'statusFilter' => $statusFilter,
-            'typeFilter'   => $typeFilter,
-            'search'       => $search,
-            'printConfig'  => $printConfig,
+            'event'            => $event,
+            'transactions'     => $filteredTransactions,
+            'allCount'         => count($report['transactions']),
+            'totals'           => $report['totals'],
+            'categories'       => $report['categories'],
+            'packageBreakdown' => $report['package_breakdown'] ?? [],
+            'statusFilter'     => $statusFilter,
+            'typeFilter'       => $typeFilter,
+            'search'           => $search,
+            'printConfig'      => $printConfig,
         ]);
     }
 
@@ -96,30 +98,67 @@ class RollAdminReportController extends Controller {
         $totals = $report['totals'];
 
         return $this->view('roll/admin/reports/index', [
-            'event'           => $event,
-            'transactions'    => $filteredTransactions,
-            'allCount'        => count($report['transactions']),
-            'totals'          => $totals,
-            'categories'      => $report['categories'],
-            'statusFilter'    => $statusFilter,
-            'typeFilter'      => $typeFilter,
-            'search'          => $search,
-            'totalPendapatan' => $totals['paid'],
-            'totalKlub'       => $totals['paid_klub'],
-            'totalToken'      => $totals['paid_token'],
-            'countPaid'       => $totals['count_paid'],
-            'countPending'    => $totals['count_pending'],
+            'event'            => $event,
+            'transactions'     => $filteredTransactions,
+            'allCount'         => count($report['transactions']),
+            'totals'           => $totals,
+            'categories'       => $report['categories'],
+            'packageBreakdown' => $report['package_breakdown'] ?? [],
+            'statusFilter'     => $statusFilter,
+            'typeFilter'       => $typeFilter,
+            'search'           => $search,
+            'totalPendapatan'  => $totals['paid'],
+            'totalKlub'        => $totals['paid_klub'],
+            'totalToken'       => $totals['paid_token'],
+            'countPaid'        => $totals['count_paid'],
+            'countPending'     => $totals['count_pending'],
         ]);
     }
 
     public function export_excel() {
         [$db, $eventId, $event] = $this->requireActiveEvent();
 
+        $mode         = $_GET['mode'] ?? 'transactions';
         $statusFilter = $_GET['status'] ?? 'all';
         $typeFilter   = $_GET['type'] ?? 'all';
         $search       = $_GET['search'] ?? '';
 
-        $report = RollFinanceHelper::buildEventFinanceReport($db, $eventId);
+        $report   = RollFinanceHelper::buildEventFinanceReport($db, $eventId);
+        $safeName = preg_replace('/[^A-Za-z0-9_-]+/', '_', (string)($event['event_name'] ?? 'Event'));
+
+        if ($mode === 'category') {
+            $pkgRows  = $report['package_breakdown'] ?? [];
+            $filename = "Laporan_Kategori_Paket_{$safeName}_" . date('Ymd_His') . ".csv";
+
+            header('Content-Type: text/csv; charset=UTF-8');
+            header('Content-Disposition: attachment; filename="' . $filename . '"');
+            echo "\xEF\xBB\xBF";
+
+            $out = fopen('php://output', 'w');
+            fputcsv($out, ['No', 'Kategori', 'Paket / Skema Pendaftaran', 'Jml Atlet (Lunas)', 'Pending / Unpaid', 'Tarif Satuan (Rp)', 'Total Pemasukan Lunas (Rp)']);
+            $no = 1;
+            $totSkaters = 0;
+            $totPending = 0;
+            $totAmount  = 0.0;
+            foreach ($pkgRows as $p) {
+                $totSkaters += (int)$p['paid_skaters'];
+                $totPending += (int)$p['pending_unpaid_skaters'];
+                $totAmount  += (float)$p['paid_amount'];
+                fputcsv($out, [
+                    $no++,
+                    $p['cat_group'],
+                    $p['label'],
+                    (int)$p['paid_skaters'],
+                    (int)$p['pending_unpaid_skaters'],
+                    (float)$p['unit_price'],
+                    (float)$p['paid_amount'],
+                ]);
+            }
+            fputcsv($out, ['', '', 'TOTAL PEMASUKAN LUNAS', $totSkaters, $totPending, '', $totAmount]);
+            fclose($out);
+            exit;
+        }
+
         $rows = RollFinanceHelper::filterFinanceTransactions(
             $report['transactions'],
             $statusFilter,
@@ -127,7 +166,6 @@ class RollAdminReportController extends Controller {
             $search
         );
 
-        $safeName = preg_replace('/[^A-Za-z0-9_-]+/', '_', (string)($event['event_name'] ?? 'Event'));
         $filename = "Laporan_Keuangan_{$safeName}_" . date('Ymd_His') . ".csv";
 
         header('Content-Type: text/csv; charset=UTF-8');

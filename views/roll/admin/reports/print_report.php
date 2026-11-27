@@ -2,10 +2,11 @@
 $statusFilter = $statusFilter ?? 'all';
 $typeFilter   = $typeFilter ?? 'all';
 $search       = $search ?? '';
-$totals       = $totals ?? ['paid' => 0, 'paid_klub' => 0, 'paid_token' => 0, 'pending' => 0, 'unpaid' => 0, 'rejected' => 0, 'potensi' => 0, 'count_paid' => 0, 'count_pending' => 0, 'count_unpaid' => 0, 'count_rejected' => 0];
-$categories   = $categories ?? [];
-$transactions = $transactions ?? [];
-$printConfig  = $printConfig ?? [];
+$totals           = $totals ?? ['paid' => 0, 'paid_klub' => 0, 'paid_token' => 0, 'pending' => 0, 'unpaid' => 0, 'rejected' => 0, 'potensi' => 0, 'count_paid' => 0, 'count_pending' => 0, 'count_unpaid' => 0, 'count_rejected' => 0];
+$categories       = $categories ?? [];
+$packageBreakdown = $packageBreakdown ?? [];
+$transactions     = $transactions ?? [];
+$printConfig      = $printConfig ?? [];
 
 $rawHeader    = !empty($event['header_logos']) ? json_decode($event['header_logos'], true) : [];
 $headerLogos  = ['left' => [], 'center' => [], 'right' => []];
@@ -17,13 +18,14 @@ if (isset($rawHeader[0]) && !is_array($rawHeader[0])) {
 $sponsors = !empty($event['sponsor_logos']) ? json_decode($event['sponsor_logos'], true) : [];
 
 $bodyClasses = [];
-if (empty($printConfig['show_summary']))    $bodyClasses[] = 'hide-sec-summary';
-if (empty($printConfig['show_categories'])) $bodyClasses[] = 'hide-sec-categories';
-if (empty($printConfig['show_date']))       $bodyClasses[] = 'hide-col-date';
-if (empty($printConfig['show_type']))       $bodyClasses[] = 'hide-col-type';
-if (empty($printConfig['show_counts']))     $bodyClasses[] = 'hide-col-counts';
-if (empty($printConfig['show_status']))     $bodyClasses[] = 'hide-col-status';
-if (empty($printConfig['show_proof']))      $bodyClasses[] = 'hide-col-proof';
+if (empty($printConfig['show_summary']))      $bodyClasses[] = 'hide-sec-summary';
+if (empty($printConfig['show_categories']))   $bodyClasses[] = 'hide-sec-categories';
+if (isset($printConfig['show_transactions']) && empty($printConfig['show_transactions'])) $bodyClasses[] = 'hide-sec-transactions';
+if (empty($printConfig['show_date']))         $bodyClasses[] = 'hide-col-date';
+if (empty($printConfig['show_type']))         $bodyClasses[] = 'hide-col-type';
+if (empty($printConfig['show_counts']))       $bodyClasses[] = 'hide-col-counts';
+if (empty($printConfig['show_status']))       $bodyClasses[] = 'hide-col-status';
+if (empty($printConfig['show_proof']))        $bodyClasses[] = 'hide-col-proof';
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -211,13 +213,14 @@ if (empty($printConfig['show_proof']))      $bodyClasses[] = 'hide-col-proof';
         .status-unpaid { background: #f1f5f9; color: #475569; border-color: #94a3b8; }
 
         /* Dynamic Visibility Classes */
-        body.hide-sec-summary    .sec-summary,
-        body.hide-sec-categories .sec-categories,
-        body.hide-col-date       .col-date,
-        body.hide-col-type       .col-type,
-        body.hide-col-counts     .col-counts,
-        body.hide-col-status     .col-status,
-        body.hide-col-proof      .col-proof {
+        body.hide-sec-summary      .sec-summary,
+        body.hide-sec-categories   .sec-categories,
+        body.hide-sec-transactions .sec-transactions,
+        body.hide-col-date         .col-date,
+        body.hide-col-type         .col-type,
+        body.hide-col-counts       .col-counts,
+        body.hide-col-status       .col-status,
+        body.hide-col-proof        .col-proof {
             display: none !important;
         }
 
@@ -281,6 +284,10 @@ if (empty($printConfig['show_proof']))      $bodyClasses[] = 'hide-col-proof';
             <label class="opt-chip" style="border-color: #3b82f6;">
                 <input type="checkbox" data-col-toggle="show_categories" data-body-class="hide-sec-categories" <?= !empty($printConfig['show_categories']) ? 'checked' : '' ?>>
                 <span>Rekap Kategori</span>
+            </label>
+            <label class="opt-chip" style="border-color: #3b82f6;">
+                <input type="checkbox" data-col-toggle="show_transactions" data-body-class="hide-sec-transactions" <?= (!isset($printConfig['show_transactions']) || !empty($printConfig['show_transactions'])) ? 'checked' : '' ?>>
+                <span>Rincian Transaksi</span>
             </label>
             <label class="opt-chip">
                 <input type="checkbox" data-col-toggle="show_date" data-body-class="hide-col-date" <?= !empty($printConfig['show_date']) ? 'checked' : '' ?>>
@@ -409,50 +416,99 @@ if (empty($printConfig['show_proof']))      $bodyClasses[] = 'hide-col-proof';
                             </table>
                         </div>
 
-                        <!-- REKAP PEMASUKAN PER KATEGORI (PAID) -->
+                        <!-- REKAP PEMASUKAN PER KATEGORI & PAKET PENDAFTARAN (PAID) -->
                         <div class="sec-categories" style="margin-bottom: 14px;">
-                            <div class="section-heading">Rekap Pemasukan Lunas (Paid) per Kategori</div>
-                            <table class="schedule-table">
-                                <thead>
-                                    <tr>
-                                        <th>Kategori</th>
-                                        <th class="text-center" style="width: 90px;">Jml Atlet</th>
-                                        <th class="text-center" style="width: 110px;">Nomor Tambahan</th>
-                                        <th class="text-right" style="width: 150px;">Subtotal Pemasukan</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php
-                                    $catLabels = [
-                                        'Speed'    => 'Speed',
-                                        'Standart' => 'Standar',
-                                        'Pemula'   => 'Pemula',
-                                        'Lainnya'  => 'Eksebisi / Lainnya',
-                                    ];
-                                    $catTotalSum = 0;
-                                    foreach ($catLabels as $key => $label):
-                                        $cData = $categories[$key] ?? ['skaters' => 0, 'extra_count' => 0, 'total' => 0];
-                                        $cTotal = (float)($cData['total'] ?? 0);
-                                        $catTotalSum += $cTotal;
-                                    ?>
+                            <div class="section-heading">Rekap Pemasukan Lunas (Paid) per Kategori &amp; Paket</div>
+                            <?php if (!empty($packageBreakdown)): ?>
+                                <table class="schedule-table">
+                                    <thead>
                                         <tr>
-                                            <td class="font-bold"><?= htmlspecialchars($label) ?></td>
-                                            <td class="text-center"><?= number_format((int)($cData['skaters'] ?? 0)) ?></td>
-                                            <td class="text-center"><?= number_format((int)($cData['extra_count'] ?? 0)) ?></td>
-                                            <td class="text-right font-bold">Rp <?= number_format($cTotal, 0, ',', '.') ?></td>
+                                            <th class="text-center" style="width: 34px;">No</th>
+                                            <th>Uraian Kategori / Paket Pendaftaran</th>
+                                            <th class="text-center" style="width: 90px;">Jml Atlet</th>
+                                            <th class="text-right" style="width: 115px;">Tarif Satuan</th>
+                                            <th class="text-right" style="width: 135px;">Total Pemasukan</th>
                                         </tr>
-                                    <?php endforeach; ?>
-                                </tbody>
-                                <tfoot>
-                                    <tr style="background: #f8fafc;">
-                                        <td colspan="3" class="text-right font-bold" style="text-transform: uppercase;">Total Rekap Kategori (Paid)</td>
-                                        <td class="text-right font-bold">Rp <?= number_format($catTotalSum, 0, ',', '.') ?></td>
-                                    </tr>
-                                </tfoot>
-                            </table>
+                                    </thead>
+                                    <tbody>
+                                        <?php
+                                        $pkgSumSkaters = 0;
+                                        $pkgSumAmount  = 0.0;
+                                        foreach ($packageBreakdown as $pIdx => $pkg):
+                                            $pkgSumSkaters += (int)($pkg['paid_skaters'] ?? 0);
+                                            $pkgSumAmount  += (float)($pkg['paid_amount'] ?? 0);
+                                        ?>
+                                            <tr>
+                                                <td class="text-center font-bold"><?= $pIdx + 1 ?></td>
+                                                <td class="font-bold">
+                                                    <span style="display: inline-block; padding: 1px 4px; background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 3px; font-size: 7pt; margin-right: 4px; text-transform: uppercase;">
+                                                        <?= htmlspecialchars($pkg['cat_group'] ?? 'Lainnya') ?>
+                                                    </span>
+                                                    <?= htmlspecialchars($pkg['label'] ?? '-') ?>
+                                                </td>
+                                                <td class="text-center font-bold"><?= number_format((int)($pkg['paid_skaters'] ?? 0)) ?></td>
+                                                <td class="text-right" style="white-space: nowrap;">
+                                                    <?= !empty($pkg['is_adjustment']) ? '-' : ('Rp ' . number_format((float)($pkg['unit_price'] ?? 0), 0, ',', '.')) ?>
+                                                </td>
+                                                <td class="text-right font-bold" style="white-space: nowrap;">
+                                                    Rp <?= number_format((float)($pkg['paid_amount'] ?? 0), 0, ',', '.') ?>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                    <tfoot>
+                                        <tr style="background: #f0f0f0;">
+                                            <td colspan="2" class="text-right font-bold" style="text-transform: uppercase;">Total Pemasukan Lunas (Paid)</td>
+                                            <td class="text-center font-bold"><?= number_format($pkgSumSkaters) ?></td>
+                                            <td></td>
+                                            <td class="text-right font-bold" style="font-size: 10pt; white-space: nowrap;">Rp <?= number_format($pkgSumAmount, 0, ',', '.') ?></td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            <?php else: ?>
+                                <table class="schedule-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Kategori</th>
+                                            <th class="text-center" style="width: 90px;">Jml Atlet</th>
+                                            <th class="text-center" style="width: 110px;">Nomor Tambahan</th>
+                                            <th class="text-right" style="width: 150px;">Subtotal Pemasukan</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php
+                                        $catLabels = [
+                                            'Speed'    => 'Speed',
+                                            'Standart' => 'Standar',
+                                            'Pemula'   => 'Pemula',
+                                            'Lainnya'  => 'Eksebisi / Lainnya',
+                                        ];
+                                        $catTotalSum = 0;
+                                        foreach ($catLabels as $key => $label):
+                                            $cData = $categories[$key] ?? ['skaters' => 0, 'extra_count' => 0, 'total' => 0];
+                                            $cTotal = (float)($cData['total'] ?? 0);
+                                            $catTotalSum += $cTotal;
+                                        ?>
+                                            <tr>
+                                                <td class="font-bold"><?= htmlspecialchars($label) ?></td>
+                                                <td class="text-center"><?= number_format((int)($cData['skaters'] ?? 0)) ?></td>
+                                                <td class="text-center"><?= number_format((int)($cData['extra_count'] ?? 0)) ?></td>
+                                                <td class="text-right font-bold">Rp <?= number_format($cTotal, 0, ',', '.') ?></td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                    <tfoot>
+                                        <tr style="background: #f8fafc;">
+                                            <td colspan="3" class="text-right font-bold" style="text-transform: uppercase;">Total Rekap Kategori (Paid)</td>
+                                            <td class="text-right font-bold">Rp <?= number_format($catTotalSum, 0, ',', '.') ?></td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            <?php endif; ?>
                         </div>
 
                         <!-- TABEL RINCIAN TRANSAKSI -->
+                        <div class="sec-transactions">
                         <div class="section-heading">Rincian Tagihan &amp; Pembayaran (<?= count($transactions) ?> Data)</div>
                         <table class="schedule-table" id="transactionsPrintTable">
                             <thead>
@@ -539,6 +595,7 @@ if (empty($printConfig['show_proof']))      $bodyClasses[] = 'hide-col-proof';
                             </tfoot>
                             <?php endif; ?>
                         </table>
+                        </div>
 
                         <p style="font-size: 8pt; margin-top: 12px; color: #555;">
                             <em>* Laporan keuangan resmi dicetak dari sistem administrasi SET SYSTEM pada <?= date('d M Y H:i') ?> WIB.</em>

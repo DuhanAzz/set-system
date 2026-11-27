@@ -81,7 +81,7 @@ class RollFinanceHelper {
 
             if ($isRelay) {
                 $skaterEntries[$sId]['relay'][] = $r;
-                $tKey = ($r['team_name'] ?: 'Tanpa Tim') . '-' . ($r['race_class_id'] ?? 0);
+                $tKey = (!empty($r['team_name']) ? $r['team_name'] : 'Tanpa Tim') . '-' . ($r['race_class_id'] ?? 0);
                 $teamSet[$tKey] = true;
             } elseif (strpos($cName, 'speed') !== false) {
                 $skaterEntries[$sId]['speed'][] = $r;
@@ -147,8 +147,25 @@ class RollFinanceHelper {
 
         foreach ($skaterEntries as $sId => $cats) {
             $amount = 0;
+            $hasRelay = isset($cats['relay']);
+            $hasRelayMix = false;
+            if ($hasRelay) {
+                foreach ($cats['relay'] as $re) {
+                    $rMeta = strtolower(($re['category_name'] ?? '') . ' ' . ($re['distance_name'] ?? '') . ' ' . ($re['class_name'] ?? ''));
+                    if (strpos($rMeta, 'mix') !== false) {
+                        $hasRelayMix = true;
+                        break;
+                    }
+                }
+            }
+
             $breakdown = [
                 'category' => '',
+                'cat_group' => 'Lainnya',
+                'package_label' => '',
+                'indv_count' => 0,
+                'has_relay' => $hasRelay,
+                'has_relay_mix' => $hasRelayMix,
                 'base_fee' => 0,
                 'extra_count' => 0,
                 'extra_fee' => 0,
@@ -160,6 +177,7 @@ class RollFinanceHelper {
             if (isset($cats['speed'])) {
                 // Prioritas Speed: Paket Speed sudah mencakup seluruh kelas
                 $breakdown['category'] = 'Speed';
+                $breakdown['cat_group'] = 'Speed';
                 $baseFee = (float)($eventFees['fee_speed'] ?? 400000);
                 $indvCount = count($cats['speed']);
                 $extraCount = max(0, $indvCount - $speedBasicQuota);
@@ -167,12 +185,23 @@ class RollFinanceHelper {
                 $extraAmount = $extraCount * $extraFee;
                 $amount = $baseFee + $extraAmount;
 
+                $breakdown['indv_count'] = $indvCount;
                 $breakdown['base_fee'] = $baseFee;
                 $breakdown['extra_count'] = $extraCount;
                 $breakdown['extra_fee'] = $extraFee;
                 $breakdown['extra_amount'] = $extraAmount;
                 $breakdown['total'] = $amount;
-                if (isset($cats['relay'])) $breakdown['relay_included'] = true;
+                if ($hasRelay) $breakdown['relay_included'] = true;
+
+                if ($extraCount === 0) {
+                    $breakdown['package_label'] = ($speedBasicQuota === 2)
+                        ? 'Speed 2+1 (Paket Dasar)'
+                        : "Speed (Paket Dasar Maks {$speedBasicQuota} Nomor)";
+                } else {
+                    $breakdown['package_label'] = ($speedBasicQuota === 2)
+                        ? "Speed {$indvCount}+1 (+{$extraCount} Tambahan)"
+                        : "Speed {$indvCount} Nomor (+{$extraCount} Tambahan)";
+                }
 
                 $summary['Speed']['skaters']++;
                 $summary['Speed']['base_amount'] += $baseFee;
@@ -185,6 +214,7 @@ class RollFinanceHelper {
 
                 if ($hasStandar && !$hasPemula) {
                     $breakdown['category'] = 'Standart';
+                    $breakdown['cat_group'] = 'Standart';
                     $baseFee = (float)($eventFees['fee_standart'] ?? 350000);
                     $indvCount = count($cats['standar']);
                     $extraCount = max(0, $indvCount - $stdBasicQuota);
@@ -192,12 +222,19 @@ class RollFinanceHelper {
                     $extraAmount = $extraCount * $extraFee;
                     $amount = $baseFee + $extraAmount;
 
+                    $breakdown['indv_count'] = $indvCount;
                     $breakdown['base_fee'] = $baseFee;
                     $breakdown['extra_count'] = $extraCount;
                     $breakdown['extra_fee'] = $extraFee;
                     $breakdown['extra_amount'] = $extraAmount;
                     $breakdown['total'] = $amount;
-                    if (isset($cats['relay'])) $breakdown['relay_included'] = true;
+                    if ($hasRelay) $breakdown['relay_included'] = true;
+
+                    if ($extraCount === 0) {
+                        $breakdown['package_label'] = "Standart Reguler (Maks {$stdBasicQuota} Nomor)";
+                    } else {
+                        $breakdown['package_label'] = "Standart {$indvCount} Nomor (+{$extraCount} Tambahan)";
+                    }
 
                     $summary['Standart']['skaters']++;
                     $summary['Standart']['base_amount'] += $baseFee;
@@ -206,6 +243,7 @@ class RollFinanceHelper {
                     $summary['Standart']['total'] += $amount;
                 } elseif (!$hasStandar && $hasPemula) {
                     $breakdown['category'] = 'Pemula';
+                    $breakdown['cat_group'] = 'Pemula';
                     $baseFee = (float)($eventFees['fee_pemula'] ?? 250000);
                     $indvCount = count($cats['pemula']);
                     $extraCount = max(0, $indvCount - $pemulaBasicQuota);
@@ -213,11 +251,18 @@ class RollFinanceHelper {
                     $extraAmount = $extraCount * $extraFee;
                     $amount = $baseFee + $extraAmount;
 
+                    $breakdown['indv_count'] = $indvCount;
                     $breakdown['base_fee'] = $baseFee;
                     $breakdown['extra_count'] = $extraCount;
                     $breakdown['extra_fee'] = $extraFee;
                     $breakdown['extra_amount'] = $extraAmount;
                     $breakdown['total'] = $amount;
+
+                    if ($extraCount === 0) {
+                        $breakdown['package_label'] = "Pemula {$pemulaBasicQuota} Nomor (Paket Dasar)";
+                    } else {
+                        $breakdown['package_label'] = "Pemula {$indvCount} Nomor (+{$extraCount} Tambahan)";
+                    }
 
                     $summary['Pemula']['skaters']++;
                     $summary['Pemula']['base_amount'] += $baseFee;
@@ -226,23 +271,28 @@ class RollFinanceHelper {
                     $summary['Pemula']['total'] += $amount;
                 } elseif ($hasStandar && $hasPemula) {
                     // Mix Pemula + Standar
+                    $stdCount = count($cats['standar']);
                     $stdBase = (float)($eventFees['fee_standart'] ?? 350000);
-                    $stdExtraCount = max(0, count($cats['standar']) - $stdBasicQuota);
+                    $stdExtraCount = max(0, $stdCount - $stdBasicQuota);
                     $stdExtraFee = (float)($eventFees['fee_standart_extra'] ?? 0);
                     $stdAmount = $stdBase + ($stdExtraCount * $stdExtraFee);
 
+                    $pemCount = count($cats['pemula']);
                     $pemBase = (float)($eventFees['fee_pemula'] ?? 250000);
-                    $pemExtraCount = max(0, count($cats['pemula']) - $pemulaBasicQuota);
+                    $pemExtraCount = max(0, $pemCount - $pemulaBasicQuota);
                     $pemExtraFee = (float)($eventFees['fee_pemula_extra'] ?? 0);
                     $pemAmount = $pemBase + ($pemExtraCount * $pemExtraFee);
 
                     if (!empty($eventFees['allow_pemula_standart_mix'])) {
                         $amount = $stdAmount + $pemAmount;
                         $breakdown['category'] = 'Standart + Pemula';
+                        $breakdown['cat_group'] = 'Standart';
+                        $breakdown['indv_count'] = $stdCount + $pemCount;
                         $breakdown['base_fee'] = $stdBase + $pemBase;
                         $breakdown['extra_count'] = $stdExtraCount + $pemExtraCount;
                         $breakdown['extra_amount'] = ($stdExtraCount * $stdExtraFee) + ($pemExtraCount * $pemExtraFee);
                         $breakdown['total'] = $amount;
+                        $breakdown['package_label'] = 'Standart + Pemula (Mix)' . ($breakdown['extra_count'] > 0 ? " (+{$breakdown['extra_count']} Tambahan)" : '');
 
                         $summary['Standart']['skaters']++;
                         $summary['Standart']['base_amount'] += $stdBase;
@@ -260,11 +310,16 @@ class RollFinanceHelper {
                         if ($pemAmount > $stdAmount) {
                             $amount = $pemAmount;
                             $breakdown['category'] = 'Pemula';
+                            $breakdown['cat_group'] = 'Pemula';
+                            $breakdown['indv_count'] = $pemCount;
                             $breakdown['base_fee'] = $pemBase;
                             $breakdown['extra_count'] = $pemExtraCount;
                             $breakdown['extra_fee'] = $pemExtraFee;
                             $breakdown['extra_amount'] = ($pemExtraCount * $pemExtraFee);
                             $breakdown['total'] = $amount;
+                            $breakdown['package_label'] = ($pemExtraCount === 0)
+                                ? "Pemula {$pemulaBasicQuota} Nomor (Paket Dasar)"
+                                : "Pemula {$pemCount} Nomor (+{$pemExtraCount} Tambahan)";
 
                             $summary['Pemula']['skaters']++;
                             $summary['Pemula']['base_amount'] += $pemBase;
@@ -274,11 +329,16 @@ class RollFinanceHelper {
                         } else {
                             $amount = $stdAmount;
                             $breakdown['category'] = 'Standart';
+                            $breakdown['cat_group'] = 'Standart';
+                            $breakdown['indv_count'] = $stdCount;
                             $breakdown['base_fee'] = $stdBase;
                             $breakdown['extra_count'] = $stdExtraCount;
                             $breakdown['extra_fee'] = $stdExtraFee;
                             $breakdown['extra_amount'] = ($stdExtraCount * $stdExtraFee);
                             $breakdown['total'] = $amount;
+                            $breakdown['package_label'] = ($stdExtraCount === 0)
+                                ? "Standart Reguler (Maks {$stdBasicQuota} Nomor)"
+                                : "Standart {$stdCount} Nomor (+{$stdExtraCount} Tambahan)";
 
                             $summary['Standart']['skaters']++;
                             $summary['Standart']['base_amount'] += $stdBase;
@@ -292,15 +352,18 @@ class RollFinanceHelper {
 
             // Minimal pembayaran (Fallback jika format penamaan kelas diluar ekspektasi atau hanya relay)
             if (!isset($cats['speed']) && !isset($cats['standar']) && !isset($cats['pemula'])) {
+                $breakdown['cat_group'] = 'Lainnya';
                 if (isset($cats['relay'])) {
                     // Jika hanya ikut relay tanpa kelas individu
                     $amount = isset($eventFees['fee_relay']) ? (float)$eventFees['fee_relay'] : 150000;
                     $breakdown['category'] = 'Relay Saja';
+                    $breakdown['package_label'] = $hasRelayMix ? 'Relay Mix Saja' : 'Relay Saja';
                     $breakdown['base_fee'] = $amount;
                     $breakdown['total'] = $amount;
                 } else {
                     $amount = (float)($eventFees['fee_eksebisi'] ?? 150000);
                     $breakdown['category'] = 'Eksebisi / Lainnya';
+                    $breakdown['package_label'] = 'Eksebisi / Lainnya';
                     $breakdown['base_fee'] = $amount;
                     $breakdown['total'] = $amount;
                 }
@@ -313,6 +376,7 @@ class RollFinanceHelper {
                     $amount += $relayExtra;
                     $breakdown['total'] += $relayExtra;
                     $breakdown['extra_relay_fee'] = $relayExtra;
+                    $breakdown['package_label'] .= $hasRelayMix ? ' + Relay Mix' : ' + Relay';
                 }
             }
 
@@ -357,7 +421,7 @@ class RollFinanceHelper {
 
         // 1. Ambil seluruh entri reguler event dalam 1 query agar tidak N+1 (hanya entri tanpa manual_invoice_code agar tidak ganda dengan invoice manual/token)
         $stmtRegEnt = $db->prepare("
-            SELECT s.club_id, s.id as skater_id, sc.class_name, d.distance_name, e.team_name, e.race_class_id, e.created_at
+            SELECT s.club_id, s.id as skater_id, sc.class_name, d.distance_name, ed.category_name, e.team_name, e.race_class_id, e.created_at
             FROM roll_entries e
             JOIN roll_skaters s ON e.skater_id = s.id
             LEFT JOIN roll_event_details ed ON e.race_class_id = ed.id
@@ -422,7 +486,7 @@ class RollFinanceHelper {
         // 3. Ambil entri jalur token / manual dalam 1 query dan custom fee token bila ada
         $stmtManEnt = $db->prepare("
             SELECT e.manual_invoice_code, e.club_id as entry_club_id, ec.club_name as entry_club_name,
-                   s.id as skater_id, sc.class_name, d.distance_name, e.team_name, e.race_class_id, e.created_at
+                   s.id as skater_id, sc.class_name, d.distance_name, ed.category_name, e.team_name, e.race_class_id, e.created_at
             FROM roll_entries e
             JOIN roll_skaters s ON e.skater_id = s.id
             LEFT JOIN roll_clubs ec ON e.club_id = ec.id
@@ -555,6 +619,7 @@ class RollFinanceHelper {
             'transactions' => $transactions,
             'totals' => $summaryStats['totals'],
             'categories' => $summaryStats['categories'],
+            'package_breakdown' => $summaryStats['package_breakdown'],
         ];
     }
 
@@ -605,9 +670,29 @@ class RollFinanceHelper {
             'Lainnya' => ['skaters' => 0, 'total' => 0.0],
         ];
 
+        $pkgMap = [];
+        $registerPkg = static function (string $catGroup, string $label, float $unitPrice, int $paidSkaters, float $paidAmt, int $unpaidSkaters, bool $isAdjustment = false) use (&$pkgMap): void {
+            $key = $catGroup . '|' . $label . '|' . number_format($unitPrice, 2, '.', '');
+            if (!isset($pkgMap[$key])) {
+                $pkgMap[$key] = [
+                    'cat_group' => $catGroup,
+                    'label' => $label,
+                    'unit_price' => $unitPrice,
+                    'paid_skaters' => 0,
+                    'paid_amount' => 0.0,
+                    'pending_unpaid_skaters' => 0,
+                    'is_adjustment' => $isAdjustment,
+                ];
+            }
+            $pkgMap[$key]['paid_skaters'] += $paidSkaters;
+            $pkgMap[$key]['paid_amount'] += $paidAmt;
+            $pkgMap[$key]['pending_unpaid_skaters'] += $unpaidSkaters;
+        };
+
         foreach ($transactions as $t) {
             $amt = (float)($t['payment_amount'] ?? 0);
             $st = (string)($t['status'] ?? 'Unpaid');
+            $breakdowns = $t['skater_breakdowns'] ?? [];
 
             if ($st === 'Paid') {
                 $totals['paid'] += $amt;
@@ -640,23 +725,71 @@ class RollFinanceHelper {
                 if (abs($diff) > 0.01) {
                     $categories['Lainnya']['total'] += $diff;
                 }
+
+                // Rincian Paket / Skema Pembayaran (Paid)
+                $pkgTxSum = 0.0;
+                foreach ($breakdowns as $b) {
+                    $unitPrice = (float)($b['total'] ?? 0);
+                    $catGroup  = (string)($b['cat_group'] ?? ($b['category'] ?? 'Lainnya'));
+                    $pkgLabel  = (string)($b['package_label'] ?? '');
+                    if ($pkgLabel === '') {
+                        $pkgLabel = (string)($b['category'] ?? 'Lainnya');
+                        if (!empty($b['extra_count'])) {
+                            $pkgLabel .= ' (+' . (int)$b['extra_count'] . ' Tambahan)';
+                        }
+                    }
+                    $registerPkg($catGroup, $pkgLabel, $unitPrice, 1, $unitPrice, 0, false);
+                    $pkgTxSum += $unitPrice;
+                }
+                $pkgDiff = $amt - $pkgTxSum;
+                if (abs($pkgDiff) > 0.01) {
+                    $registerPkg('Lainnya', 'Penyesuaian / Tagihan Manual', 0.0, 0, $pkgDiff, 0, true);
+                }
             } elseif ($st === 'Pending') {
                 $totals['pending'] += $amt;
                 $totals['count_pending']++;
+                foreach ($breakdowns as $b) {
+                    $unitPrice = (float)($b['total'] ?? 0);
+                    $catGroup  = (string)($b['cat_group'] ?? ($b['category'] ?? 'Lainnya'));
+                    $pkgLabel  = (string)($b['package_label'] ?? ($b['category'] ?? 'Lainnya'));
+                    $registerPkg($catGroup, $pkgLabel, $unitPrice, 0, 0.0, 1, false);
+                }
             } elseif ($st === 'Rejected') {
                 $totals['rejected'] += $amt;
                 $totals['count_rejected']++;
             } else {
                 $totals['unpaid'] += $amt;
                 $totals['count_unpaid']++;
+                foreach ($breakdowns as $b) {
+                    $unitPrice = (float)($b['total'] ?? 0);
+                    $catGroup  = (string)($b['cat_group'] ?? ($b['category'] ?? 'Lainnya'));
+                    $pkgLabel  = (string)($b['package_label'] ?? ($b['category'] ?? 'Lainnya'));
+                    $registerPkg($catGroup, $pkgLabel, $unitPrice, 0, 0.0, 1, false);
+                }
             }
         }
 
         $totals['potensi'] = $totals['paid'] + $totals['pending'] + $totals['unpaid'];
 
+        $catOrder = ['Pemula' => 1, 'Standart' => 2, 'Speed' => 3, 'Lainnya' => 4];
+        $packageBreakdown = array_values($pkgMap);
+        usort($packageBreakdown, static function ($a, $b) use ($catOrder) {
+            if (!empty($a['is_adjustment']) !== !empty($b['is_adjustment'])) {
+                return !empty($a['is_adjustment']) ? 1 : -1;
+            }
+            $oA = $catOrder[$a['cat_group']] ?? 99;
+            $oB = $catOrder[$b['cat_group']] ?? 99;
+            if ($oA !== $oB) return $oA <=> $oB;
+            if (abs($a['unit_price'] - $b['unit_price']) > 0.01) {
+                return $a['unit_price'] <=> $b['unit_price'];
+            }
+            return strcmp($a['label'], $b['label']);
+        });
+
         return [
             'totals' => $totals,
             'categories' => $categories,
+            'package_breakdown' => $packageBreakdown,
         ];
     }
 }

@@ -1,10 +1,11 @@
 <?php
-$statusFilter = $statusFilter ?? 'all';
-$typeFilter   = $typeFilter ?? 'all';
-$search       = $search ?? '';
-$totals       = $totals ?? ['paid' => 0, 'paid_klub' => 0, 'paid_token' => 0, 'pending' => 0, 'unpaid' => 0, 'rejected' => 0, 'potensi' => 0, 'count_paid' => 0, 'count_pending' => 0, 'count_unpaid' => 0, 'count_rejected' => 0];
-$categories   = $categories ?? [];
-$exportQuery  = http_build_query(['status' => $statusFilter, 'type' => $typeFilter, 'search' => $search]);
+$statusFilter     = $statusFilter ?? 'all';
+$typeFilter       = $typeFilter ?? 'all';
+$search           = $search ?? '';
+$totals           = $totals ?? ['paid' => 0, 'paid_klub' => 0, 'paid_token' => 0, 'pending' => 0, 'unpaid' => 0, 'rejected' => 0, 'potensi' => 0, 'count_paid' => 0, 'count_pending' => 0, 'count_unpaid' => 0, 'count_rejected' => 0];
+$categories       = $categories ?? [];
+$packageBreakdown = $packageBreakdown ?? [];
+$exportQuery      = http_build_query(['status' => $statusFilter, 'type' => $typeFilter, 'search' => $search]);
 ?>
 
 <div class="max-w-[95%] mx-auto space-y-6 pb-12">
@@ -24,16 +25,16 @@ $exportQuery  = http_build_query(['status' => $statusFilter, 'type' => $typeFilt
             <a href="<?= getenv('APP_URL') ?>/roll/admin/entries" class="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wide transition shadow-sm">
                 Verifikasi Pendaftaran
             </a>
+            <button type="button" id="btnToggleCategoryReport"
+                    class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wide transition shadow-sm flex items-center gap-1.5 cursor-pointer">
+                <span>📊</span> Cek Laporan per Kategori
+            </button>
             <a href="<?= getenv('APP_URL') ?>/roll/admin/reports/export_excel?<?= $exportQuery ?>" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wide transition shadow-sm flex items-center gap-2">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                 Export Excel / CSV
             </a>
-            <button type="button" onclick="document.getElementById('printReportCfgPanel').classList.toggle('hidden')"
-                    class="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wide transition shadow-sm flex items-center gap-1.5 cursor-pointer">
-                <span>⚙️</span> Atur Print
-            </button>
             <a id="btnPrintReport"
-               href="<?= getenv('APP_URL') ?>/roll/admin/reports/print_data?<?= $exportQuery ?>&cfg=1&show_summary=1&show_categories=1&show_date=1&show_type=1&show_counts=1&show_status=1"
+               href="<?= getenv('APP_URL') ?>/roll/admin/reports/print_data?<?= $exportQuery ?>"
                target="_blank"
                class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wide transition shadow-sm flex items-center gap-2">
                 <span>🖨️</span> Cetak Dokumen A4
@@ -41,43 +42,108 @@ $exportQuery  = http_build_query(['status' => $statusFilter, 'type' => $typeFilt
         </div>
     </div>
 
-    <!-- Panel Pengaturan Kolom & Bagian Cetak (Checkbox) -->
-    <div id="printReportCfgPanel" class="hidden bg-white rounded-2xl border border-slate-200 shadow-sm p-4 print:hidden">
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+    <!-- Panel Rincian Laporan Per Kategori & Paket Pembayaran (Dinamis Sesuai Tarif Event) -->
+    <div id="categoryPackageReportPanel" class="hidden bg-white rounded-2xl border-2 border-amber-300 shadow-md overflow-hidden">
+        <div class="px-6 py-4 bg-gradient-to-r from-amber-50 to-orange-50 border-b border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-                <p class="text-[10px] font-black uppercase tracking-widest text-indigo-600">⚙️ Pengaturan Tampilan Cetak A4</p>
-                <p class="text-[11px] text-slate-500 font-medium">Pilih bagian & kolom yang ingin ditampilkan saat mencetak Laporan Keuangan (bisa juga diubah langsung di preview cetak).</p>
+                <h2 class="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                    <span>📊</span> Rincian Pemasukan per Kategori &amp; Paket Pendaftaran
+                </h2>
+                <p class="text-[11px] text-slate-600 font-medium mt-0.5">
+                    Dihitung otomatis sesuai tarif event aktif (Pemula Dasar / Tambahan, Standart Reguler / Tambahan / Mix, Speed Dasar / Tambahan, &amp; Token/Manual).
+                </p>
             </div>
-            <div class="flex flex-wrap items-center gap-2.5 text-xs font-bold text-slate-700">
-                <label class="inline-flex items-center gap-1.5 bg-indigo-50 border border-indigo-200 text-indigo-700 px-3 py-1.5 rounded-xl cursor-pointer hover:bg-indigo-100">
-                    <input type="checkbox" class="print-report-cb rounded text-indigo-600" name="show_summary" checked>
-                    <span>Ringkasan Keuangan</span>
-                </label>
-                <label class="inline-flex items-center gap-1.5 bg-indigo-50 border border-indigo-200 text-indigo-700 px-3 py-1.5 rounded-xl cursor-pointer hover:bg-indigo-100">
-                    <input type="checkbox" class="print-report-cb rounded text-indigo-600" name="show_categories" checked>
-                    <span>Rekap Kategori</span>
-                </label>
-                <label class="inline-flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl cursor-pointer hover:bg-slate-100">
-                    <input type="checkbox" class="print-report-cb rounded text-indigo-600" name="show_date" checked>
-                    <span>Tanggal</span>
-                </label>
-                <label class="inline-flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl cursor-pointer hover:bg-slate-100">
-                    <input type="checkbox" class="print-report-cb rounded text-indigo-600" name="show_type" checked>
-                    <span>Jalur & Invoice</span>
-                </label>
-                <label class="inline-flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl cursor-pointer hover:bg-slate-100">
-                    <input type="checkbox" class="print-report-cb rounded text-indigo-600" name="show_counts" checked>
-                    <span>Atlet / Entri</span>
-                </label>
-                <label class="inline-flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl cursor-pointer hover:bg-slate-100">
-                    <input type="checkbox" class="print-report-cb rounded text-indigo-600" name="show_status" checked>
-                    <span>Status</span>
-                </label>
-                <label class="inline-flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl cursor-pointer hover:bg-slate-100">
-                    <input type="checkbox" class="print-report-cb rounded text-indigo-600" name="show_proof">
-                    <span>Bukti Bayar</span>
-                </label>
+            <div class="flex flex-wrap items-center gap-2">
+                <a href="<?= getenv('APP_URL') ?>/roll/admin/reports/export_excel?mode=category"
+                   class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-black uppercase tracking-wider transition shadow-sm">
+                    📥 Export CSV Kategori
+                </a>
+                <a href="<?= getenv('APP_URL') ?>/roll/admin/reports/print_data?cfg=1&show_summary=1&show_categories=1"
+                   target="_blank"
+                   class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-black uppercase tracking-wider transition shadow-sm">
+                    🖨️ Print Laporan Kategori
+                </a>
+                <button type="button" onclick="document.getElementById('categoryPackageReportPanel').classList.add('hidden')"
+                        class="px-3 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-100 text-slate-600 text-[11px] font-bold uppercase cursor-pointer">
+                    Tutup
+                </button>
             </div>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-slate-700">
+                <thead class="bg-slate-50 border-b border-slate-200 text-[10px] font-black uppercase tracking-wider text-slate-500">
+                    <tr>
+                        <th class="px-5 py-3.5 text-center w-12">No</th>
+                        <th class="px-5 py-3.5">Uraian Kategori / Paket Pendaftaran</th>
+                        <th class="px-5 py-3.5 text-center w-36">Jml Atlet (Lunas)</th>
+                        <th class="px-5 py-3.5 text-center w-36">Pending / Unpaid</th>
+                        <th class="px-5 py-3.5 text-right w-40">Tarif Satuan</th>
+                        <th class="px-5 py-3.5 text-right w-48">Total Pemasukan (Paid)</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    <?php if (empty($packageBreakdown)): ?>
+                        <tr>
+                            <td colspan="6" class="px-6 py-8 text-center text-slate-400 font-bold italic">
+                                Belum ada transaksi pendaftaran pada event ini.
+                            </td>
+                        </tr>
+                    <?php else: ?>
+                        <?php
+                        $sumPkgPaidSkaters   = 0;
+                        $sumPkgUnpaidSkaters = 0;
+                        $sumPkgPaidAmount    = 0.0;
+                        foreach ($packageBreakdown as $idx => $pkg):
+                            $sumPkgPaidSkaters   += (int)($pkg['paid_skaters'] ?? 0);
+                            $sumPkgUnpaidSkaters += (int)($pkg['pending_unpaid_skaters'] ?? 0);
+                            $sumPkgPaidAmount    += (float)($pkg['paid_amount'] ?? 0);
+
+                            $badgeClass = match ($pkg['cat_group'] ?? 'Lainnya') {
+                                'Pemula'   => 'bg-emerald-100 text-emerald-800 border-emerald-200',
+                                'Standart' => 'bg-amber-100 text-amber-800 border-amber-200',
+                                'Speed'    => 'bg-fuchsia-100 text-fuchsia-800 border-fuchsia-200',
+                                default    => 'bg-slate-100 text-slate-700 border-slate-200',
+                            };
+                        ?>
+                        <tr class="hover:bg-slate-50 transition">
+                            <td class="px-5 py-3 text-center font-bold text-slate-400 text-xs"><?= $idx + 1 ?></td>
+                            <td class="px-5 py-3">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <span class="px-2 py-0.5 rounded border text-[9px] font-black uppercase <?= $badgeClass ?>">
+                                        <?= htmlspecialchars($pkg['cat_group'] ?? 'Lainnya') ?>
+                                    </span>
+                                    <span class="font-bold text-slate-800 text-xs"><?= htmlspecialchars($pkg['label'] ?? '-') ?></span>
+                                </div>
+                            </td>
+                            <td class="px-5 py-3 text-center font-black text-emerald-700">
+                                <?= number_format((int)($pkg['paid_skaters'] ?? 0)) ?> <span class="text-[10px] font-semibold text-slate-400">atlet</span>
+                            </td>
+                            <td class="px-5 py-3 text-center text-xs font-bold text-amber-600">
+                                <?= (int)($pkg['pending_unpaid_skaters'] ?? 0) > 0 ? number_format((int)$pkg['pending_unpaid_skaters']) . ' atlet' : '-' ?>
+                            </td>
+                            <td class="px-5 py-3 text-right font-mono text-xs font-bold text-slate-600 whitespace-nowrap">
+                                <?= !empty($pkg['is_adjustment']) ? '-' : ('Rp ' . number_format((float)($pkg['unit_price'] ?? 0), 0, ',', '.')) ?>
+                            </td>
+                            <td class="px-5 py-3 text-right font-black text-slate-900 whitespace-nowrap">
+                                Rp <?= number_format((float)($pkg['paid_amount'] ?? 0), 0, ',', '.') ?>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </tbody>
+                <?php if (!empty($packageBreakdown)): ?>
+                <tfoot>
+                    <tr class="bg-slate-900 text-white font-black">
+                        <td colspan="2" class="px-5 py-3.5 text-xs uppercase tracking-wider text-right">Total Pemasukan Lunas (Paid)</td>
+                        <td class="px-5 py-3.5 text-center text-xs"><?= number_format($sumPkgPaidSkaters) ?> atlet</td>
+                        <td class="px-5 py-3.5 text-center text-xs text-amber-300"><?= $sumPkgUnpaidSkaters > 0 ? number_format($sumPkgUnpaidSkaters) . ' atlet' : '-' ?></td>
+                        <td class="px-5 py-3.5"></td>
+                        <td class="px-5 py-3.5 text-right text-sm text-emerald-400 whitespace-nowrap">Rp <?= number_format($sumPkgPaidAmount, 0, ',', '.') ?></td>
+                    </tr>
+                </tfoot>
+                <?php endif; ?>
+            </table>
         </div>
     </div>
 
@@ -273,26 +339,15 @@ $exportQuery  = http_build_query(['status' => $statusFilter, 'type' => $typeFilt
 
 <script>
 (function () {
-    const printBtn = document.getElementById('btnPrintReport');
-    const cbs = document.querySelectorAll('.print-report-cb');
-    if (!printBtn || !cbs.length) return;
-
-    function updateReportPrintHref() {
-        const url = new URL(printBtn.getAttribute('href'), window.location.origin);
-        url.searchParams.set('cfg', '1');
-        cbs.forEach(function (cb) {
-            if (cb.checked) {
-                url.searchParams.set(cb.name, '1');
-            } else {
-                url.searchParams.delete(cb.name);
-            }
-        });
-        printBtn.setAttribute('href', url.toString());
-    }
-
-    cbs.forEach(function (cb) {
-        cb.addEventListener('change', updateReportPrintHref);
+    const btnToggle = document.getElementById('btnToggleCategoryReport');
+    const panel = document.getElementById('categoryPackageReportPanel');
+    if (!btnToggle || !panel) return;
+    btnToggle.addEventListener('click', function () {
+        const willOpen = panel.classList.contains('hidden');
+        panel.classList.toggle('hidden');
+        if (willOpen) {
+            panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
     });
-    updateReportPrintHref();
 })();
 </script>
