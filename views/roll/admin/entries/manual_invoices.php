@@ -1,7 +1,7 @@
 <div class="max-w-[95%] mx-auto mb-8 flex flex-col md:flex-row justify-between items-end gap-4">
     <div>
-        <h1 class="text-3xl font-black uppercase italic text-slate-900 leading-none">Manual Invoices</h1>
-        <p class="text-xs text-slate-500 font-bold uppercase tracking-widest mt-2">Daftar tagihan dari pendaftaran manual atau penggunaan token.</p>
+        <h1 class="text-3xl font-black uppercase italic text-slate-900 leading-none">Tagihan Token</h1>
+        <p class="text-xs text-slate-500 font-bold uppercase tracking-widest mt-2">Daftar tagihan pendaftaran jalur token (MAN-TOK).</p>
     </div>
     
     <div class="flex gap-3 items-center">
@@ -22,71 +22,11 @@
     <?php unset($_SESSION['flash_message'], $_SESSION['flash_type']); ?>
 <?php endif; ?>
 
-<?php if(isset($orphanedEntries) && !empty($orphanedEntries)): ?>
-<div class="max-w-[95%] mx-auto mb-10">
-    <details class="group bg-white rounded-2xl shadow-sm border border-red-200 overflow-hidden">
-        <summary class="bg-red-50 p-4 cursor-pointer list-none flex items-center justify-between hover:bg-red-100 transition">
-            <div>
-                <h3 class="text-sm font-black text-red-700 uppercase flex items-center gap-2">
-                    <span class="text-lg">⚠️</span> Terdapat <?= count($orphanedEntries) ?> Entri Menggantung (Orphaned)
-                </h3>
-                <p class="text-[10px] text-red-600 font-bold mt-1">Klik untuk melihat dan menghapus entri tim yang menyangkut (tidak ada tagihan).</p>
-            </div>
-            <div class="text-red-500 group-open:rotate-180 transition-transform duration-300">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-            </div>
-        </summary>
-        
-        <div class="border-t border-red-100 overflow-x-auto">
-            <table class="w-full text-left border-collapse">
-                <thead>
-                    <tr class="bg-slate-50 border-b border-slate-200 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                        <th class="py-3 px-4">Nama Tim</th>
-                        <th class="py-3 px-4">Nama Atlet</th>
-                        <th class="py-3 px-4">Kategori</th>
-                        <th class="py-3 px-4">Nomor Lomba</th>
-                        <th class="py-3 px-4 text-right">Aksi</th>
-                    </tr>
-                </thead>
-            <tbody class="divide-y divide-slate-100">
-                <?php foreach($orphanedEntries as $res): ?>
-                <tr class="hover:bg-slate-50 transition">
-                    <td class="py-3 px-4">
-                        <?php if(!empty($res['team_name'])): ?>
-                            <div class="font-black text-indigo-700 text-xs uppercase bg-indigo-50 px-2 py-1 rounded-md inline-block"><?= htmlspecialchars($res['team_name']) ?></div>
-                        <?php else: ?>
-                            <div class="font-bold text-slate-400 text-[10px] italic">Individu</div>
-                        <?php endif; ?>
-                    </td>
-                    <td class="py-3 px-4">
-                        <div class="font-black text-slate-800 text-xs uppercase"><?= htmlspecialchars($res['skater_name']) ?></div>
-                    </td>
-                    <td class="py-3 px-4">
-                        <div class="font-bold text-slate-600 text-[10px] uppercase"><?= htmlspecialchars($res['class_name'] ?? '-') ?></div>
-                    </td>
-                    <td class="py-3 px-4">
-                        <div class="font-bold text-blue-600 text-[11px] uppercase"><?= htmlspecialchars($res['distance_name'] ?? '-') ?></div>
-                        <div class="font-bold text-slate-400 text-[10px] uppercase">(<?= htmlspecialchars($res['group_name'] ?? '-') ?>)</div>
-                    </td>
-                    <td class="py-3 px-4 text-right">
-                        <form method="POST" action="<?= getenv('APP_URL') ?>/roll/admin/entries/delete_entry/<?= $res['entry_id'] ?>" onsubmit="return confirm('Anda yakin ingin MENGHAPUS PAKSA entri ini?');">
-                            <button type="submit" class="px-3 py-1 bg-red-50 text-red-600 hover:bg-red-500 hover:text-white rounded-lg text-[10px] font-black uppercase transition border border-red-200">Hapus</button>
-                        </form>
-                    </td>
-                </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
-        </div>
-    </details>
-</div>
-<?php endif; ?>
-
 <div class="max-w-[95%] mx-auto">
     <?php if(empty($invoices)): ?>
         <div class="flex flex-col items-center justify-center py-32 text-center opacity-50 bg-white rounded-3xl border border-slate-200 shadow-sm">
             <div class="text-5xl mb-4 grayscale">📭</div>
-            <h3 class="font-black text-slate-400 uppercase tracking-widest text-lg">Belum Ada Tagihan Manual</h3>
+            <h3 class="font-black text-slate-400 uppercase tracking-widest text-lg">Belum Ada Tagihan Token</h3>
         </div>
     <?php else: ?>
 

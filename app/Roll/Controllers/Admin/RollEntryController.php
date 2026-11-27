@@ -972,7 +972,7 @@ class RollEntryController extends Controller {
             $targetEventId = $_SESSION['roll_admin_active_event_id'] ?? 0;
         try { $db->exec("ALTER TABLE roll_events ADD COLUMN is_token_open TINYINT(1) DEFAULT 0"); } catch (\Exception $e) {}
 
-            // Ambil daftar invoice manual
+            // Ambil daftar invoice pendaftaran via token saja (MAN-TOK-%)
             $stmt = $db->prepare("
                 SELECT p.*, 
                        c.club_name,
@@ -980,14 +980,14 @@ class RollEntryController extends Controller {
                 FROM roll_manual_payments p
                 LEFT JOIN roll_clubs c ON p.club_id = c.id
                 LEFT JOIN roll_entries e ON p.invoice_code COLLATE utf8mb4_unicode_ci = e.manual_invoice_code COLLATE utf8mb4_unicode_ci
-                WHERE p.event_id = ?
+                WHERE p.event_id = ? AND p.invoice_code LIKE 'MAN-TOK-%'
                 GROUP BY p.id
                 ORDER BY p.created_at DESC
             ");
             $stmt->execute([$targetEventId]);
             $invoices = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-            // Ambil detail entri untuk setiap invoice
+            // Ambil detail entri untuk setiap invoice token
             $invoiceDetails = [];
             foreach ($invoices as $inv) {
                 $code = $inv['invoice_code'];
@@ -1005,29 +1005,10 @@ class RollEntryController extends Controller {
                 $invoiceDetails[$code] = $stmtEnt->fetchAll(PDO::FETCH_ASSOC);
             }
 
-            // Cari Entri Tim Orphaned (Nyangkut / Tanpa Invoice)
-            $stmtOrphaned = $db->prepare("
-                SELECT e.id as entry_id, e.team_name, e.manual_invoice_code, 
-                       s.skater_name, c.club_name, d.distance_name, sc.class_name, a.group_name
-                FROM roll_entries e
-                JOIN roll_skaters s ON e.skater_id = s.id
-                LEFT JOIN roll_clubs c ON e.club_id = c.id
-                LEFT JOIN roll_event_details ed ON e.race_class_id = ed.id
-                LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
-                LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
-                LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id
-                WHERE e.event_id = ? AND (e.manual_invoice_code IS NULL OR e.manual_invoice_code = '') 
-                  AND e.team_name IS NOT NULL AND e.team_name != ''
-                ORDER BY e.team_name ASC, s.skater_name ASC
-            ");
-            $stmtOrphaned->execute([$targetEventId]);
-            $orphanedEntries = $stmtOrphaned->fetchAll(\PDO::FETCH_ASSOC);
-
             return $this->view('roll/admin/entries/manual_invoices', [
                 'invoices' => $invoices,
                 'invoiceDetails' => $invoiceDetails,
                 'targetEventId' => $targetEventId,
-                'orphanedEntries' => $orphanedEntries
             ]);
         } catch (\Throwable $e) {
             die("FATAL ERROR IN MANUAL INVOICES: " . $e->getMessage() . " | LINE: " . $e->getLine());
