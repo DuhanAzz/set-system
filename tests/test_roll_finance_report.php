@@ -44,10 +44,11 @@ $mockDb = new class {
                         ['club_id' => 20, 'club_name' => 'UNPAID CLUB', 'email' => 'unpaid@test.id', 'payment_id' => null, 'status' => 'Unpaid', 'stored_amount' => null, 'payment_proof' => null, 'payment_created_at' => null],
                     ];
                 }
-                // 3. Manual/Token entries (MAN-TOK-1 has 1 Standar skater)
+                // 3. Manual/Token entries (MAN-TOK-001 Paid + MAN-TOK-DRAFT Unpaid without roll_manual_payments row)
                 if (strpos($this->sql, 'manual_invoice_code IS NOT NULL') !== false && strpos($this->sql, 'FROM roll_entries e') !== false) {
                     return [
                         ['manual_invoice_code' => 'MAN-TOK-001', 'entry_club_id' => 30, 'entry_club_name' => 'TOKEN CLUB', 'skater_id' => 3, 'class_name' => 'Standart', 'distance_name' => '500m', 'team_name' => null, 'race_class_id' => 5, 'created_at' => '2026-11-26 13:00:00'],
+                        ['manual_invoice_code' => 'MAN-TOK-DRAFT', 'entry_club_id' => 40, 'entry_club_name' => 'DRAFT TOKEN CLUB', 'skater_id' => 4, 'class_name' => 'Pemula', 'distance_name' => '100m', 'team_name' => null, 'race_class_id' => 4, 'created_at' => '2026-11-26 15:00:00'],
                     ];
                 }
                 // 4. Token custom fee override (custom_fee_standart = 300000)
@@ -69,17 +70,17 @@ $mockDb = new class {
 };
 
 $report = RollFinanceHelper::buildEventFinanceReport($mockDb, 5);
-assert(count($report['transactions']) === 3);
+assert(count($report['transactions']) === 4);
 
-// Dynamic calculation recovers stale/0 stored_amount & applies token custom fee override
+// Dynamic calculation recovers stale/0 stored_amount & applies token custom fee override + draft token
 assert($report['totals']['paid_klub'] === 550000.0, 'Club 10 must be 400k + 150k extra');
 assert($report['totals']['paid_token'] === 300000.0, 'Token must use custom fee 300k');
 assert($report['totals']['paid'] === 850000.0);
-assert($report['totals']['unpaid'] === 250000.0, 'Club 20 without roll_payments row must appear as Unpaid 250k');
-assert($report['totals']['potensi'] === 1100000.0);
+assert($report['totals']['unpaid'] === 500000.0, 'Club 20 (250k) + Draft Token (250k) must both appear as Unpaid');
+assert($report['totals']['potensi'] === 1350000.0);
 assert($report['totals']['count_paid'] === 2);
-assert($report['totals']['count_unpaid'] === 1);
-echo "✓ Dynamic billing, stale-0 recovery, token custom fee & unpaid inclusion [OK]\n";
+assert($report['totals']['count_unpaid'] === 2);
+echo "✓ Dynamic billing, stale-0 recovery, token custom fee & draft token inclusion [OK]\n";
 
 // Category reconciliation matches Paid total
 $catTotal = $report['categories']['Speed']['total']
@@ -97,6 +98,7 @@ assert(count(RollFinanceHelper::filterFinanceTransactions($report['transactions'
 assert(count(RollFinanceHelper::filterFinanceTransactions($report['transactions'], 'Paid', 'Token', '')) === 1);
 assert(count(RollFinanceHelper::filterFinanceTransactions($report['transactions'], 'all', 'all', 'fortis')) === 1);
 assert(count(RollFinanceHelper::filterFinanceTransactions($report['transactions'], 'Unpaid', 'Klub', '')) === 1);
+assert(count(RollFinanceHelper::filterFinanceTransactions($report['transactions'], 'Unpaid', 'Token', '')) === 1);
 echo "✓ Transaction filtering (status / type / search) [OK]\n";
 
 echo "--- ALL FINANCE REPORT TESTS PASSED! ---\n";

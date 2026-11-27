@@ -149,6 +149,7 @@
                                 <?php elseif($status === 'Pending' || $status === 'Unpaid'): ?>
                                     <form method="POST" action="<?= getenv('APP_URL') ?>/roll/admin/entries/manual_invoice_action" class="inline" onsubmit="return confirm('Tolak Pembayaran ini?');">
                                         <input type="hidden" name="id" value="<?= $inv['id'] ?>">
+                                        <input type="hidden" name="invoice_code" value="<?= htmlspecialchars($inv['invoice_code']) ?>">
                                         <input type="hidden" name="action" value="reject">
                                         <button type="submit" class="w-8 h-8 rounded-lg bg-red-50 text-red-600 border border-red-200 hover:bg-red-500 hover:text-white flex items-center justify-center transition" title="Tolak">
                                             ✕
@@ -156,6 +157,7 @@
                                     </form>
                                     <form method="POST" action="<?= getenv('APP_URL') ?>/roll/admin/entries/manual_invoice_action" class="inline" onsubmit="return confirm('Verifikasi LUNAS?');">
                                         <input type="hidden" name="id" value="<?= $inv['id'] ?>">
+                                        <input type="hidden" name="invoice_code" value="<?= htmlspecialchars($inv['invoice_code']) ?>">
                                         <input type="hidden" name="action" value="approve">
                                         <button type="submit" class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-500 hover:text-white flex items-center justify-center transition" title="Terima">
                                             ✓
@@ -165,6 +167,7 @@
                                 
                                 <form method="POST" action="<?= getenv('APP_URL') ?>/roll/admin/entries/manual_invoice_action" class="inline ml-2" onsubmit="return confirm('Hapus permanen tagihan dan SELURUH entri terkait? Tindakan ini tidak bisa dibatalkan.');">
                                     <input type="hidden" name="id" value="<?= $inv['id'] ?>">
+                                    <input type="hidden" name="invoice_code" value="<?= htmlspecialchars($inv['invoice_code']) ?>">
                                     <input type="hidden" name="action" value="delete">
                                     <button type="submit" class="w-8 h-8 rounded-lg bg-slate-50 text-slate-600 border border-slate-200 hover:bg-slate-500 hover:text-white flex items-center justify-center transition" title="Hapus Permanen">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>

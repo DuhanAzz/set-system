@@ -330,6 +330,25 @@ class RollFinanceHelper {
     }
 
     /**
+     * Ambil pengaturan tarif event yang sudah dioverride oleh custom fee token jika tersedia.
+     */
+    public static function getTokenInvoiceFees($db, int $eventId, string $invoiceCode, ?array $baseFees = null): array {
+        $fees = $baseFees ?? self::getEventFees($db, $eventId);
+        try {
+            $stmtTokenFee = $db->prepare("SELECT custom_fee_speed, custom_fee_standart, custom_fee_pemula, custom_fee_relay FROM roll_event_tokens WHERE manual_invoice_code = ? LIMIT 1");
+            $stmtTokenFee->execute([$invoiceCode]);
+            $tf = $stmtTokenFee->fetch(\PDO::FETCH_ASSOC);
+            if ($tf) {
+                if ($tf['custom_fee_speed'] !== null) $fees['fee_speed'] = (float)$tf['custom_fee_speed'];
+                if ($tf['custom_fee_standart'] !== null) $fees['fee_standart'] = (float)$tf['custom_fee_standart'];
+                if ($tf['custom_fee_pemula'] !== null) $fees['fee_pemula'] = (float)$tf['custom_fee_pemula'];
+                if ($tf['custom_fee_relay'] !== null) $fees['fee_relay'] = (float)$tf['custom_fee_relay'];
+            }
+        } catch (\Throwable $e) {}
+        return $fees;
+    }
+
+    /**
      * Menghitung laporan keuangan lengkap untuk satu event (Klub Reguler + Jalur Token/Manual),
      * disinkronkan dengan perhitungan dinamis RollFinanceHelper seperti di halaman Verifikasi Pendaftaran.
      */
@@ -441,8 +460,10 @@ class RollFinanceHelper {
             ORDER BY m.created_at DESC
         ");
         $stmtManual->execute([$eventId]);
+        $seenManualInvoices = [];
         foreach ($stmtManual->fetchAll(\PDO::FETCH_ASSOC) as $mr) {
             $invCode = (string)$mr['invoice_code'];
+            $seenManualInvoices[$invCode] = true;
             $invEntries = $entriesByInvoice[$invCode] ?? [];
 
             $invFees = $eventFees;
@@ -478,6 +499,40 @@ class RollFinanceHelper {
                 'entry_count' => count($invEntries),
                 'payment_proof' => $mr['payment_proof'] ?? '',
                 'created_at' => $mr['created_at'] ?? null,
+                'detail_url' => '/roll/admin/entries/manual_invoice_detail?invoice_code=' . urlencode($invCode) . '&event_id=' . $eventId,
+                'calc_summary' => $calc['summary'],
+                'skater_breakdowns' => $calc['skater_breakdowns'],
+            ];
+        }
+
+        // 4. Sertakan pendaftaran token yang sudah mengisi entri (draf Unpaid) tetapi belum mengirim bukti bayar
+        foreach ($entriesByInvoice as $invCode => $invEntries) {
+            if (isset($seenManualInvoices[$invCode]) || strpos((string)$invCode, 'MAN-TOK-') !== 0) {
+                continue;
+            }
+            $invFees = $eventFees;
+            if (!empty($tokenFeesByInvoice[$invCode])) {
+                $tf = $tokenFeesByInvoice[$invCode];
+                if ($tf['custom_fee_speed'] !== null) $invFees['fee_speed'] = (float)$tf['custom_fee_speed'];
+                if ($tf['custom_fee_standart'] !== null) $invFees['fee_standart'] = (float)$tf['custom_fee_standart'];
+                if ($tf['custom_fee_pemula'] !== null) $invFees['fee_pemula'] = (float)$tf['custom_fee_pemula'];
+                if ($tf['custom_fee_relay'] !== null) $invFees['fee_relay'] = (float)$tf['custom_fee_relay'];
+            }
+            $calc = self::calculateTotalTagihan($invEntries, $invFees);
+            $latestAt = !empty($invEntries) ? max(array_column($invEntries, 'created_at')) : null;
+            $transactions[] = [
+                'id' => 0,
+                'club_id' => (int)($invEntries[0]['entry_club_id'] ?? 0),
+                'type' => 'Token',
+                'club_name' => $clubNameByInvoice[$invCode] ?? ('Invoice ' . $invCode),
+                'identifier' => $invCode,
+                'email' => '',
+                'status' => 'Unpaid',
+                'payment_amount' => (float)$calc['total_amount'],
+                'skater_count' => count(array_unique(array_column($invEntries, 'skater_id'))),
+                'entry_count' => count($invEntries),
+                'payment_proof' => '',
+                'created_at' => $latestAt,
                 'detail_url' => '/roll/admin/entries/manual_invoice_detail?invoice_code=' . urlencode($invCode) . '&event_id=' . $eventId,
                 'calc_summary' => $calc['summary'],
                 'skater_breakdowns' => $calc['skater_breakdowns'],

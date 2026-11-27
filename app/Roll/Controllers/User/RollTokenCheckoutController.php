@@ -202,7 +202,7 @@ class RollTokenCheckoutController extends Controller {
                 WHERE e.event_id = ? AND e.manual_invoice_code = ?
                 ORDER BY s.skater_name ASC
             ");
-            $stmtHistory->execute([$club_id, $event_id]);
+            $stmtHistory->execute([$event_id, $active_invoice]);
             $historyEntries = $stmtHistory->fetchAll(PDO::FETCH_ASSOC);
 
             // Assign payment amount for display
