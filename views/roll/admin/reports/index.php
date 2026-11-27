@@ -28,10 +28,56 @@ $exportQuery  = http_build_query(['status' => $statusFilter, 'type' => $typeFilt
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                 Export Excel / CSV
             </a>
-            <button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wide transition shadow-sm flex items-center gap-2">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
-                Print
+            <button type="button" onclick="document.getElementById('printReportCfgPanel').classList.toggle('hidden')"
+                    class="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wide transition shadow-sm flex items-center gap-1.5 cursor-pointer">
+                <span>⚙️</span> Atur Print
             </button>
+            <a id="btnPrintReport"
+               href="<?= getenv('APP_URL') ?>/roll/admin/reports/print_data?<?= $exportQuery ?>&cfg=1&show_summary=1&show_categories=1&show_date=1&show_type=1&show_counts=1&show_status=1"
+               target="_blank"
+               class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wide transition shadow-sm flex items-center gap-2">
+                <span>🖨️</span> Cetak Dokumen A4
+            </a>
+        </div>
+    </div>
+
+    <!-- Panel Pengaturan Kolom & Bagian Cetak (Checkbox) -->
+    <div id="printReportCfgPanel" class="hidden bg-white rounded-2xl border border-slate-200 shadow-sm p-4 print:hidden">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div>
+                <p class="text-[10px] font-black uppercase tracking-widest text-indigo-600">⚙️ Pengaturan Tampilan Cetak A4</p>
+                <p class="text-[11px] text-slate-500 font-medium">Pilih bagian & kolom yang ingin ditampilkan saat mencetak Laporan Keuangan (bisa juga diubah langsung di preview cetak).</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-2.5 text-xs font-bold text-slate-700">
+                <label class="inline-flex items-center gap-1.5 bg-indigo-50 border border-indigo-200 text-indigo-700 px-3 py-1.5 rounded-xl cursor-pointer hover:bg-indigo-100">
+                    <input type="checkbox" class="print-report-cb rounded text-indigo-600" name="show_summary" checked>
+                    <span>Ringkasan Keuangan</span>
+                </label>
+                <label class="inline-flex items-center gap-1.5 bg-indigo-50 border border-indigo-200 text-indigo-700 px-3 py-1.5 rounded-xl cursor-pointer hover:bg-indigo-100">
+                    <input type="checkbox" class="print-report-cb rounded text-indigo-600" name="show_categories" checked>
+                    <span>Rekap Kategori</span>
+                </label>
+                <label class="inline-flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl cursor-pointer hover:bg-slate-100">
+                    <input type="checkbox" class="print-report-cb rounded text-indigo-600" name="show_date" checked>
+                    <span>Tanggal</span>
+                </label>
+                <label class="inline-flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl cursor-pointer hover:bg-slate-100">
+                    <input type="checkbox" class="print-report-cb rounded text-indigo-600" name="show_type" checked>
+                    <span>Jalur & Invoice</span>
+                </label>
+                <label class="inline-flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl cursor-pointer hover:bg-slate-100">
+                    <input type="checkbox" class="print-report-cb rounded text-indigo-600" name="show_counts" checked>
+                    <span>Atlet / Entri</span>
+                </label>
+                <label class="inline-flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl cursor-pointer hover:bg-slate-100">
+                    <input type="checkbox" class="print-report-cb rounded text-indigo-600" name="show_status" checked>
+                    <span>Status</span>
+                </label>
+                <label class="inline-flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl cursor-pointer hover:bg-slate-100">
+                    <input type="checkbox" class="print-report-cb rounded text-indigo-600" name="show_proof">
+                    <span>Bukti Bayar</span>
+                </label>
+            </div>
         </div>
     </div>
 
@@ -225,19 +271,28 @@ $exportQuery  = http_build_query(['status' => $statusFilter, 'type' => $typeFilt
     </div>
 </div>
 
-<style>
-@media print {
-    body {
-        background-color: white !important;
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
+<script>
+(function () {
+    const printBtn = document.getElementById('btnPrintReport');
+    const cbs = document.querySelectorAll('.print-report-cb');
+    if (!printBtn || !cbs.length) return;
+
+    function updateReportPrintHref() {
+        const url = new URL(printBtn.getAttribute('href'), window.location.origin);
+        url.searchParams.set('cfg', '1');
+        cbs.forEach(function (cb) {
+            if (cb.checked) {
+                url.searchParams.set(cb.name, '1');
+            } else {
+                url.searchParams.delete(cb.name);
+            }
+        });
+        printBtn.setAttribute('href', url.toString());
     }
-    #main-wrapper { margin-left: 0 !important; padding-top: 0 !important; }
-    .max-w-\[95\%\] { max-width: 100% !important; margin: 0 !important; }
-    .shadow-sm, .shadow-md { box-shadow: none !important; }
-    aside, header, nav, .print\:hidden { display: none !important; }
-    .report-table-card { break-inside: auto !important; overflow: visible !important; border: 1px solid #cbd5e1 !important; border-radius: 0 !important; }
-    .report-table-card thead { display: table-header-group; }
-    .report-table-card tr { break-inside: avoid; page-break-inside: avoid; }
-}
-</style>
+
+    cbs.forEach(function (cb) {
+        cb.addEventListener('change', updateReportPrintHref);
+    });
+    updateReportPrintHref();
+})();
+</script>

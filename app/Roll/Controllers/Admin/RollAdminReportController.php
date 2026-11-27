@@ -25,11 +25,57 @@ class RollAdminReportController extends Controller {
             exit;
         }
 
-        $stmtEvt = $db->prepare("SELECT id, event_name, event_date_start, event_location FROM roll_events WHERE id = ?");
+        $stmtEvt = $db->prepare("SELECT * FROM roll_events WHERE id = ? LIMIT 1");
         $stmtEvt->execute([$eventId]);
         $event = $stmtEvt->fetch(PDO::FETCH_ASSOC) ?: ['id' => $eventId, 'event_name' => 'Event #' . $eventId];
 
         return [$db, $eventId, $event];
+    }
+
+    /**
+     * Parse konfigurasi kolom & bagian laporan keuangan yang dicetak.
+     */
+    public static function resolvePrintConfig(array $query): array {
+        $isConfigured = isset($query['cfg']) && (string)$query['cfg'] === '1';
+
+        return [
+            'show_summary'    => $isConfigured ? !empty($query['show_summary']) : true,
+            'show_categories' => $isConfigured ? !empty($query['show_categories']) : true,
+            'show_date'       => $isConfigured ? !empty($query['show_date']) : true,
+            'show_type'       => $isConfigured ? !empty($query['show_type']) : true,
+            'show_counts'     => $isConfigured ? !empty($query['show_counts']) : true,
+            'show_status'     => $isConfigured ? !empty($query['show_status']) : true,
+            'show_proof'      => $isConfigured ? !empty($query['show_proof']) : false,
+        ];
+    }
+
+    public function print_data() {
+        [$db, $eventId, $event] = $this->requireActiveEvent();
+
+        $statusFilter = $_GET['status'] ?? 'all';
+        $typeFilter   = $_GET['type'] ?? 'all';
+        $search       = $_GET['search'] ?? '';
+        $printConfig  = self::resolvePrintConfig($_GET);
+
+        $report = RollFinanceHelper::buildEventFinanceReport($db, $eventId);
+        $filteredTransactions = RollFinanceHelper::filterFinanceTransactions(
+            $report['transactions'],
+            $statusFilter,
+            $typeFilter,
+            $search
+        );
+
+        return $this->view('roll/admin/reports/print_report', [
+            'event'        => $event,
+            'transactions' => $filteredTransactions,
+            'allCount'     => count($report['transactions']),
+            'totals'       => $report['totals'],
+            'categories'   => $report['categories'],
+            'statusFilter' => $statusFilter,
+            'typeFilter'   => $typeFilter,
+            'search'       => $search,
+            'printConfig'  => $printConfig,
+        ]);
     }
 
     public function index() {
