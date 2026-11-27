@@ -356,7 +356,7 @@
 </div>
 
 <script>
-const eventYear = parseInt('<?= date('Y', strtotime($event['event_date_start'])) ?>');
+const eventYear = <?= (int)\App\Helpers\DateHelper::getEventYear($event['event_date_start'] ?? null) ?>;
 const allClasses = <?= json_encode($classes) ?>;
 const ageGroups = <?php
     $agList = [];
@@ -449,8 +449,8 @@ function populateAthleteSelect(targetSelectId, data) {
     }
 
     data.forEach(a => {
-        const dobYear = parseInt(a.birth_date.split('-')[0]);
-        const age = eventYear - dobYear;
+        const dobYear = a.birth_date ? parseInt(a.birth_date.split('-')[0], 10) : 0;
+        const age = (dobYear >= 1900) ? Math.max(0, eventYear - dobYear) : 0;
         const genderText = a.gender === 'M' ? 'Putra' : 'Putri';
         
         const opt = document.createElement('option');

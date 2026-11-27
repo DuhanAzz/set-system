@@ -139,7 +139,7 @@ class RollTokenRegistrationController extends Controller {
         \App\Helpers\RollTeamHelper::ensureColumns($db);
 
         // Ambil Data Atlet
-        $stmtA = $db->prepare("SELECT gender, birth_date FROM roll_skaters WHERE id = ?");
+        $stmtA = $db->prepare("SELECT gender, birth_date, is_pon_veteran, athlete_level FROM roll_skaters WHERE id = ?");
         $stmtA->execute([$skater_id]);
         $athlete = $stmtA->fetch(PDO::FETCH_ASSOC);
 
@@ -181,11 +181,9 @@ class RollTokenRegistrationController extends Controller {
             exit;
         }
 
-        // Validasi 2: Umur (Age Calculator)
-        $age = DateHelper::calculateAge($athlete['birth_date'], $event['event_date_start']);
-        if (!empty($athlete['is_pon_veteran'])) {
-            $age = 25;
-        }
+        // Validasi 2: Umur (Patokan 31 Des tahun lomba)
+        $age = DateHelper::getSkaterEventAge($athlete, $event['event_date_start'] ?? null);
+        $eventYear = DateHelper::getEventYear($event['event_date_start'] ?? null);
         
         $minAge = $class['min_year'] ?? 0;
         $maxAge = $class['max_year'] ?? 99; // Jika null, anggap max 99 (Dewasa)
@@ -193,7 +191,7 @@ class RollTokenRegistrationController extends Controller {
         if ($age < $minAge || $age > $maxAge) {
             echo json_encode([
                 'success' => false, 
-                'message' => "Umur atlet ($age tahun) tidak masuk dalam kategori kelas ini ($minAge - $maxAge tahun)."
+                'message' => "Umur atlet ($age tahun per 31 Des $eventYear) tidak masuk dalam kategori kelas ini ($minAge - $maxAge tahun)."
             ]);
             exit;
         }
@@ -338,6 +336,10 @@ class RollTokenRegistrationController extends Controller {
             }
         }
 
+        $stmtEvDate = $db->prepare("SELECT event_date_start FROM roll_events WHERE id = ?");
+        $stmtEvDate->execute([$event_id]);
+        $evDate = $stmtEvDate->fetchColumn() ?: null;
+
         $successCount = 0;
         $failMessages = [];
 
@@ -354,6 +356,7 @@ class RollTokenRegistrationController extends Controller {
             if (!$skater) continue;
             
             $skater_name = $skater['skater_name'];
+            $skaterAge = DateHelper::getSkaterEventAge($skater, $evDate);
 
             // Get current counts for this skater in this event by category
             $stmtCount = $db->prepare("
@@ -395,14 +398,6 @@ class RollTokenRegistrationController extends Controller {
                 
                 if ($firstClass) {
                     $skate_class_id = $firstClass['skate_class_id'];
-                    $stmtEvDate = $db->prepare("SELECT event_date_start FROM roll_events WHERE id = ?");
-                    $stmtEvDate->execute([$event_id]);
-                    $evDate = $stmtEvDate->fetchColumn();
-                    
-                    $skaterAge = \App\Helpers\DateHelper::calculateAge($skater['birth_date'], $evDate);
-                    if (!empty($skater['is_pon_veteran'])) {
-                        $skaterAge = 25; // Paksa ke KU Senior
-                    }
                     
                     $stmtMandatory = $db->prepare("
                         SELECT c.id 
@@ -429,6 +424,14 @@ class RollTokenRegistrationController extends Controller {
 
             foreach ($race_class_ids as $race_class_id) {
                 $race_class_id = (int)$race_class_id;
+
+                if (!$is_team_reg) {
+                    $ageErr = DateHelper::validateSkaterAgeForClass($db, $skater, $race_class_id, $evDate);
+                    if ($ageErr !== null) {
+                        $failMessages[] = $ageErr;
+                        continue;
+                    }
+                }
 
                 // Determine target category for limits
                 $stmtTargetCat = $db->prepare("

@@ -361,13 +361,14 @@
                     <option value="">- Pilih Atlet -</option>
                     <?php foreach($athletes as $a): 
                         $isPon = $a['is_pon_veteran'] ?? 0;
+                        $aAge = \App\Helpers\DateHelper::getSkaterEventAge($a, $event['event_date_start'] ?? null);
                     ?>
-                        <option value="<?= $a['id'] ?>" data-dob="<?= $a['birth_date'] ?>" data-gender="<?= $a['gender'] ?>" data-is-pon="<?= $isPon ?>" data-level="<?= strtolower($a['athlete_level'] ?? 'pemula') ?>">
-                            <?= htmlspecialchars($a['skater_name']) ?> (<?= $a['gender'] === 'M' ? 'Putra' : 'Putri' ?>) <?= $isPon ? '🏅 PON' : '' ?>
+                        <option value="<?= $a['id'] ?>" data-dob="<?= $a['birth_date'] ?>" data-age="<?= $aAge ?>" data-gender="<?= $a['gender'] ?>" data-is-pon="<?= $isPon ?>" data-level="<?= strtolower($a['athlete_level'] ?? 'pemula') ?>">
+                            <?= htmlspecialchars($a['skater_name']) ?> (<?= $aAge ?> Thn - <?= $a['gender'] === 'M' ? 'Putra' : 'Putri' ?>) <?= $isPon ? '🏅 PON' : '' ?>
                         </option>
                     <?php endforeach; ?>
                 </select>
-                <div id="athlete_info" class="mt-2 text-[10px] text-slate-400 font-bold hidden">Lahir: <span id="modal_skater_dob"></span></div>
+                <div id="athlete_info" class="mt-2 text-[10px] text-slate-500 font-bold hidden">Lahir: <span id="modal_skater_dob"></span> • Usia Lomba (31 Des <?= \App\Helpers\DateHelper::getEventYear($event['event_date_start'] ?? null) ?>): <span id="modal_skater_age" class="text-blue-600"></span> Thn</div>
             </div>
 
             <div class="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50">
@@ -472,7 +473,7 @@
 </div>
 
 <script>
-const eventYear = parseInt('<?= date('Y', strtotime($event['event_date_start'])) ?>');
+const eventYear = <?= (int)\App\Helpers\DateHelper::getEventYear($event['event_date_start'] ?? null) ?>;
 const allClasses = <?= json_encode($classes) ?>;
 const existingEntriesData = <?= json_encode($existingEntries) ?>;
 const maxTeamRaces = <?= (int)($event['max_team_races'] ?? 99) ?>;
@@ -509,16 +510,17 @@ function closeModal() { document.getElementById('modal-entry').classList.add('hi
 function onSkaterChange(sel) {
     const opt = sel.options[sel.selectedIndex];
     if (opt.value) {
-        document.getElementById('modal_skater_dob').innerText = opt.dataset.dob;
-        // Hitung umur
-        const dobYear = parseInt(opt.dataset.dob.split('-')[0]);
-        let age = eventYear - dobYear;
+        document.getElementById('modal_skater_dob').innerText = opt.dataset.dob || '-';
+        // Hitung umur patokan 31 Des tahun lomba (atau pakai data-age dari DateHelper)
+        const dobYear = opt.dataset.dob ? parseInt(opt.dataset.dob.split('-')[0], 10) : 0;
+        let age = (dobYear >= 1900) ? Math.max(0, eventYear - dobYear) : parseInt(opt.dataset.age || '0', 10);
         
         // ATURAN PB: Jika Veteran PON, paksa umur jadi 25 (Masuk Kategori Senior)
         if (opt.dataset.isPon == '1') {
             age = 25;
             document.getElementById('modal_skater_dob').innerText += ' (🏅 Diwajibkan ke KU Senior)';
         }
+        document.getElementById('modal_skater_age').innerText = age;
 
         // Simpan age di element biar bisa diakses filterClasses
         sel.dataset.age = age;

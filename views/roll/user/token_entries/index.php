@@ -363,7 +363,7 @@
                             <option value="">-- Pilih Atlet --</option>
                         </select>
                         <div id="indv_athlete_info" class="mt-2 text-[10px] text-blue-600 font-bold hidden bg-blue-50 px-3 py-2 rounded-lg border border-blue-100">
-                            Lahir: <span id="indv_skater_dob"></span> | Umur: <span id="indv_skater_age"></span> Thn | Gender: <span id="indv_skater_gender"></span>
+                            Lahir: <span id="indv_skater_dob"></span> | Usia Lomba (31 Des <?= \App\Helpers\DateHelper::getEventYear($event['event_date_start'] ?? null) ?>): <span id="indv_skater_age"></span> Thn | Gender: <span id="indv_skater_gender"></span>
                         </div>
                     </div>
                 </div>
@@ -525,7 +525,7 @@
 
     <!-- FORM BUAT TOKEN JALUR KHUSUS -->
     <script>
-const eventYear = parseInt('<?= date('Y', strtotime($event['event_date_start'])) ?>');
+const eventYear = <?= (int)\App\Helpers\DateHelper::getEventYear($event['event_date_start'] ?? null) ?>;
 const allClasses = <?= json_encode($classes) ?>;
 const ageGroups = <?php
     $agList = [];
@@ -762,7 +762,9 @@ function populateAthleteSelect(targetSelectId, athletesList) {
     }
 
     athletesList.forEach(s => {
-        let age = eventYear - parseInt(s.birth_date ? s.birth_date.substring(0, 4) : '0');
+        const dobYear = s.birth_date ? parseInt(s.birth_date.substring(0, 4), 10) : 0;
+        let age = (dobYear >= 1900) ? Math.max(0, eventYear - dobYear) : 0;
+        if (s.is_pon_veteran == '1') age = 25;
         const gender = s.gender; // 'M' or 'F'
         const lockedGroup = s.locked_group || '';
         
