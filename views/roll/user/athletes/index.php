@@ -31,13 +31,23 @@
             <p class="text-xs text-slate-500 font-medium">Manajemen Data & Profil Roster</p>
         </div>
         
-        <div class="w-full md:w-auto flex flex-col sm:flex-row items-center gap-2">
+        <div class="w-full md:w-auto flex flex-wrap sm:flex-nowrap items-center gap-2">
             
             <?php if(($_SESSION['roll_club_type'] ?? '') === 'contingent'): ?>
                 <button onclick="document.getElementById('modal-draft-pool').classList.remove('hidden')" class="w-full sm:w-auto justify-center bg-purple-600 hover:bg-purple-700 text-white px-4 py-2.5 rounded-lg shadow-sm text-xs font-bold tracking-wide transition flex items-center gap-2 whitespace-nowrap">
                     <span>🏛️</span> Tarik Atlet Daerah (Pool)
                 </button>
             <?php endif; ?>
+
+            <a href="<?= getenv('APP_URL') ?>/roll/user/athletes/export_csv"
+               class="w-full sm:w-auto justify-center bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-lg shadow-sm text-xs font-bold tracking-wide transition flex items-center gap-1.5 whitespace-nowrap">
+                <span>📤</span> Export CSV
+            </a>
+
+            <button type="button" onclick="document.getElementById('modal-import-csv').classList.remove('hidden')"
+                    class="w-full sm:w-auto justify-center bg-slate-800 hover:bg-slate-900 text-white px-4 py-2.5 rounded-lg shadow-sm text-xs font-bold tracking-wide transition flex items-center gap-1.5 whitespace-nowrap cursor-pointer">
+                <span>📥</span> Import CSV (Massal)
+            </button>
 
             <button onclick="document.getElementById('modal-add').classList.remove('hidden')" style="background-color: #3b82f6; color: white;" class="w-full sm:w-auto justify-center hover:opacity-80 px-4 py-2.5 rounded-lg shadow-sm text-xs font-bold tracking-wide transition flex items-center gap-2 whitespace-nowrap">
                 <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -479,5 +489,57 @@ function searchPoolAthletes() {
                 Tutup
             </button>
         </div>
+    </div>
+</div>
+
+<!-- Modal Import CSV Massal -->
+<div id="modal-import-csv" class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-xl w-full shadow-2xl overflow-hidden border border-slate-200">
+        <div class="bg-slate-800 p-6 text-white flex justify-between items-center">
+            <div>
+                <h3 class="text-lg font-black uppercase tracking-wide flex items-center gap-2">
+                    <span>📥</span> Import Massal Data Atlet (CSV)
+                </h3>
+                <p class="text-xs text-slate-300 font-medium mt-0.5">Daftarkan atau perbarui puluhan hingga ratusan atlet sekaligus lewat file CSV</p>
+            </div>
+            <button type="button" onclick="document.getElementById('modal-import-csv').classList.add('hidden')" class="text-slate-400 hover:text-white text-2xl font-bold">&times;</button>
+        </div>
+
+        <form action="<?= getenv('APP_URL') ?>/roll/user/athletes/import_csv" method="POST" enctype="multipart/form-data" class="p-6 space-y-4 bg-slate-50">
+            <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 text-xs text-blue-900 space-y-2">
+                <div class="font-black uppercase tracking-wider text-[11px] flex items-center justify-between gap-2">
+                    <span>Panduan Format CSV</span>
+                    <a href="<?= getenv('APP_URL') ?>/roll/user/athletes/download_template"
+                       class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[10px] font-black uppercase shadow-sm transition">
+                        📄 Download Template CSV
+                    </a>
+                </div>
+                <ul class="list-disc pl-4 space-y-1 text-[11px] text-blue-800">
+                    <li>Anda dapat mengisi <strong>Template CSV</strong> dari nol, atau langsung mengedit file hasil <strong>Export CSV</strong> (untuk melengkapi/menambah atlet).</li>
+                    <li><strong>NIK wajib 16 digit angka</strong> (di Excel, format kolom NIK sebagai <em>Text</em> atau awali tanda petik <code>'</code> agar digit terakhir tidak berubah jadi <code>000</code>/<code>E+15</code>).</li>
+                    <li><strong>Jenis Kelamin:</strong> isi <code>M</code> / <code>Putra</code> atau <code>F</code> / <code>Putri</code>.</li>
+                    <li><strong>Tanggal Lahir:</strong> format <code>YYYY-MM-DD</code> (mis. <code>2015-05-12</code>) atau <code>DD/MM/YYYY</code> (mis. <code>12/05/2015</code>).</li>
+                    <li><strong>Status BPJS:</strong> isi <code>sudah</code> atau <code>belum</code>.</li>
+                    <li>Jika <strong>ID / NIK</strong> sudah ada di klub Anda, datanya otomatis <strong>diperbarui</strong> (tidak ganda).</li>
+                </ul>
+            </div>
+
+            <div>
+                <label class="block text-[10px] font-black text-slate-600 uppercase tracking-widest mb-1.5">Pilih File CSV (.csv) *</label>
+                <input type="file" name="csv_file" accept=".csv,text/csv" required
+                       class="w-full text-xs font-bold text-slate-600 file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-black file:uppercase file:bg-slate-800 file:text-white hover:file:bg-slate-900 border border-slate-300 rounded-xl p-1.5 bg-white cursor-pointer">
+            </div>
+
+            <div class="pt-3 border-t border-slate-200 flex justify-end gap-3">
+                <button type="button" onclick="document.getElementById('modal-import-csv').classList.add('hidden')"
+                        class="px-5 py-2.5 rounded-lg text-slate-600 font-bold text-xs uppercase hover:bg-slate-200 transition cursor-pointer">
+                    Batal
+                </button>
+                <button type="submit"
+                        class="px-6 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs uppercase shadow-md transition flex items-center gap-2 cursor-pointer">
+                    <span>📤</span> Mulai Import CSV
+                </button>
+            </div>
+        </form>
     </div>
 </div>

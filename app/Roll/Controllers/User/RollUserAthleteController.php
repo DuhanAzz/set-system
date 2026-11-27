@@ -45,39 +45,43 @@ class RollUserAthleteController extends Controller {
         }
     }
 
-    private function generateSkaterUID($db, $nama_atlet, $tanggal_lahir, $jenis_kelamin) {
+    private function generateSkaterUID($db, $nama_atlet, $tanggal_lahir, $jenis_kelamin, array &$usedUids = []) {
         $nama_bersih = preg_replace('/[^A-Za-z\s]/', '', strtoupper(trim($nama_atlet)));
-        $kata = explode(' ', $nama_bersih);
-        
-        $huruf1 = isset($kata[0][0]) ? $kata[0][0] : 'A';
-        $kode1 = str_pad(ord($huruf1) - 64, 2, '0', STR_PAD_LEFT); 
-        
-        if (isset($kata[1]) && !empty($kata[1])) {
+        $kata = array_values(array_filter(explode(' ', $nama_bersih), fn($w) => $w !== ''));
+
+        $huruf1 = (!empty($kata[0]) && preg_match('/^[A-Z]/', $kata[0])) ? $kata[0][0] : 'A';
+        $kode1 = str_pad((string)(ord($huruf1) - 64), 2, '0', STR_PAD_LEFT);
+
+        if (isset($kata[1]) && preg_match('/^[A-Z]/', $kata[1])) {
             $huruf2 = $kata[1][0];
+        } elseif (!empty($kata[0]) && isset($kata[0][1]) && preg_match('/^[A-Z]$/', $kata[0][1])) {
+            $huruf2 = $kata[0][1];
         } else {
-            $huruf2 = isset($kata[0][1]) ? $kata[0][1] : 'X'; 
+            $huruf2 = 'X';
         }
-        $kode2 = str_pad(ord($huruf2) - 64, 2, '0', STR_PAD_LEFT);
-        
+        $kode2 = str_pad((string)(ord($huruf2) - 64), 2, '0', STR_PAD_LEFT);
+
         $tahun = date('Y', strtotime($tanggal_lahir));
         $kode_jk = (strtoupper($jenis_kelamin) == 'L' || strtoupper($jenis_kelamin) == 'M' || strtoupper($jenis_kelamin) == 'PUTRA' || strtoupper($jenis_kelamin) == 'MALE') ? '1' : '9';
-        
+
         $base_uid = $kode1 . $kode2 . $tahun . $kode_jk;
-        
+
         $stmt = $db->prepare("SELECT uid FROM roll_skaters WHERE uid LIKE ? ORDER BY uid DESC LIMIT 1");
         $stmt->execute([$base_uid . '%']);
         $last_uid = $stmt->fetchColumn();
-        
+
         $digit_akhir = 0;
         if ($last_uid) {
-            $last_digit = (int) substr($last_uid, -1);
-            $digit_akhir = $last_digit + 1;
-            if ($digit_akhir > 9) {
-                $digit_akhir = 9; 
-            }
+            $digit_akhir = min(9, ((int) substr($last_uid, -1)) + 1);
         }
-        
-        return $base_uid . $digit_akhir;
+
+        while (isset($usedUids[$base_uid . $digit_akhir]) && $digit_akhir < 9) {
+            $digit_akhir++;
+        }
+        $finalUid = $base_uid . $digit_akhir;
+        $usedUids[$finalUid] = true;
+
+        return $finalUid;
     }
 
     public function index() {
@@ -385,6 +389,361 @@ class RollUserAthleteController extends Controller {
 
         $_SESSION['flash_message'] = "Atlet '" . htmlspecialchars($skater['skater_name']) . "' berhasil ditarik ke dalam roster kontingen!";
         $_SESSION['flash_type'] = "success";
+        header("Location: " . getenv('APP_URL') . "/roll/user/athletes");
+        exit;
+    }
+
+    /**
+     * Header standar CSV untuk export data & template import massal atlet.
+     */
+    public static function getCsvHeaders(): array {
+        return [
+            'ID (Kosongkan Jika Baru)',
+            'UID (Otomatis)',
+            'NIK (16 Digit)',
+            'Nama Lengkap Atlet',
+            'Jenis Kelamin (M/F)',
+            'Tanggal Lahir (YYYY-MM-DD)',
+            'Asal Sekolah',
+            'Kota / Kabupaten',
+            'Provinsi',
+            'Status BPJS (sudah/belum)'
+        ];
+    }
+
+    /**
+     * Parse tanggal lahir dari format YYYY-MM-DD, DD/MM/YYYY, atau DD-MM-YYYY.
+     */
+    public static function parseBirthDate(string $raw): ?string {
+        $s = trim($raw);
+        if ($s === '' || $s === '0000-00-00') return null;
+
+        if (preg_match('/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})$/', $s, $m)) {
+            $y = (int)$m[1]; $mo = (int)$m[2]; $d = (int)$m[3];
+            return checkdate($mo, $d, $y) ? sprintf('%04d-%02d-%02d', $y, $mo, $d) : null;
+        }
+        if (preg_match('/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/', $s, $m)) {
+            $d = (int)$m[1]; $mo = (int)$m[2]; $y = (int)$m[3];
+            return checkdate($mo, $d, $y) ? sprintf('%04d-%02d-%02d', $y, $mo, $d) : null;
+        }
+        $ts = strtotime($s);
+        return ($ts !== false && $ts > strtotime('1900-01-01')) ? date('Y-m-d', $ts) : null;
+    }
+
+    /**
+     * Parse & validasi isi file CSV atlet (mendukung delimiter koma, titik koma, atau tab & UTF-8 BOM).
+     */
+    public static function parseAthleteCsvRows(string $csvContent): array {
+        $csvContent = preg_replace('/^\xEF\xBB\xBF/', '', $csvContent);
+        $lines = preg_split('/\r\n|\r|\n/', $csvContent);
+        $valid = [];
+        $errors = [];
+
+        if (empty($lines)) {
+            return ['valid' => [], 'errors' => ['File CSV kosong.']];
+        }
+
+        // Deteksi delimiter dari baris non-kosong pertama
+        $headerIdx = null;
+        $delimiter = ',';
+        foreach ($lines as $idx => $ln) {
+            if (trim($ln) === '') continue;
+            $semi = substr_count($ln, ';');
+            $comma = substr_count($ln, ',');
+            $tab = substr_count($ln, "\t");
+            if ($tab > $semi && $tab > $comma) $delimiter = "\t";
+            elseif ($semi > $comma) $delimiter = ';';
+            $headerIdx = $idx;
+            break;
+        }
+
+        if ($headerIdx === null) {
+            return ['valid' => [], 'errors' => ['File CSV tidak memiliki baris data.']];
+        }
+
+        $firstCols = str_getcsv($lines[$headerIdx], $delimiter);
+        $colMap = [];
+        $hasHeaderRow = false;
+
+        foreach ($firstCols as $i => $hRaw) {
+            $h = strtolower(trim(preg_replace('/\s+/', ' ', (string)$hRaw)));
+            if (strpos($h, 'nik') !== false) { $colMap['nik'] = $i; $hasHeaderRow = true; }
+            elseif (strpos($h, 'nama') !== false || strpos($h, 'skater') !== false) { $colMap['skater_name'] = $i; $hasHeaderRow = true; }
+            elseif (strpos($h, 'kelamin') !== false || strpos($h, 'gender') !== false || $h === 'jk') { $colMap['gender'] = $i; $hasHeaderRow = true; }
+            elseif (strpos($h, 'lahir') !== false || strpos($h, 'birth') !== false || strpos($h, 'dob') !== false) { $colMap['birth_date'] = $i; $hasHeaderRow = true; }
+            elseif (strpos($h, 'sekolah') !== false) { $colMap['asal_sekolah'] = $i; $hasHeaderRow = true; }
+            elseif (strpos($h, 'kota') !== false || strpos($h, 'kab') !== false) { $colMap['kota_kabupaten'] = $i; $hasHeaderRow = true; }
+            elseif (strpos($h, 'provinsi') !== false) { $colMap['provinsi'] = $i; $hasHeaderRow = true; }
+            elseif (strpos($h, 'bpjs') !== false) { $colMap['status_bpjs'] = $i; $hasHeaderRow = true; }
+            elseif (strpos($h, 'uid') !== false) { $colMap['uid'] = $i; $hasHeaderRow = true; }
+            elseif ($h === 'id' || strpos($h, 'id (') === 0) { $colMap['id'] = $i; $hasHeaderRow = true; }
+        }
+
+        if (!$hasHeaderRow) {
+            // Fallback jika CSV tanpa baris header: gunakan urutan kolom standar
+            $colMap = [
+                'id' => 0, 'uid' => 1, 'nik' => 2, 'skater_name' => 3,
+                'gender' => 4, 'birth_date' => 5, 'asal_sekolah' => 6,
+                'kota_kabupaten' => 7, 'provinsi' => 8, 'status_bpjs' => 9,
+            ];
+            $startRow = $headerIdx;
+        } else {
+            $startRow = $headerIdx + 1;
+        }
+
+        $totalLines = count($lines);
+        for ($rIdx = $startRow; $rIdx < $totalLines; $rIdx++) {
+            $rawLine = $lines[$rIdx];
+            if (trim($rawLine) === '') continue;
+
+            $row = str_getcsv($rawLine, $delimiter);
+            $joined = strtoupper(implode(' ', $row));
+            if (strpos($joined, '[CONTOH') !== false) continue;
+
+            $get = static fn(string $key): string => isset($colMap[$key], $row[$colMap[$key]]) ? trim((string)$row[$colMap[$key]]) : '';
+            $lineNo = $rIdx + 1;
+
+            $rawName = $get('skater_name');
+            $skaterName = strtoupper(preg_replace('/\s+/', ' ', $rawName));
+            if ($skaterName === '') {
+                $errors[] = "Baris {$lineNo}: Nama atlet kosong.";
+                continue;
+            }
+
+            $rawNik = ltrim($get('nik'), "'\" ");
+            if (preg_match('/[eE]\+/', $rawNik)) {
+                $errors[] = "Baris {$lineNo} ({$skaterName}): NIK rusak karena format ilmiah Excel ({$rawNik}). Format kolom NIK sebagai Text atau awali tanda petik (').";
+                continue;
+            }
+            $nik = preg_replace('/[^0-9]/', '', $rawNik);
+            if (strlen($nik) !== 16) {
+                $errors[] = "Baris {$lineNo} ({$skaterName}): NIK wajib 16 digit angka (terbaca " . strlen($nik) . " digit).";
+                continue;
+            }
+
+            $gRaw = strtoupper($get('gender'));
+            if (in_array($gRaw, ['M', 'L', 'LAKI-LAKI', 'LAKI LAKI', 'PUTRA', 'PA', 'MALE'], true)) {
+                $gender = 'M';
+            } elseif (in_array($gRaw, ['F', 'P', 'PEREMPUAN', 'PUTRI', 'PI', 'FEMALE'], true)) {
+                $gender = 'F';
+            } else {
+                $errors[] = "Baris {$lineNo} ({$skaterName}): Jenis kelamin '{$gRaw}' tidak valid (gunakan M/Putra atau F/Putri).";
+                continue;
+            }
+
+            $birthDate = self::parseBirthDate($get('birth_date'));
+            if ($birthDate === null) {
+                $errors[] = "Baris {$lineNo} ({$skaterName}): Tanggal lahir tidak valid ('" . $get('birth_date') . "', gunakan YYYY-MM-DD atau DD/MM/YYYY).";
+                continue;
+            }
+
+            $bpjsRaw = strtolower($get('status_bpjs'));
+            $statusBpjs = in_array($bpjsRaw, ['sudah', 'ya', 'yes', '1', 'aktif', 'sudah terdaftar'], true) ? 'sudah' : 'belum';
+
+            $valid[] = [
+                'id'             => (int)preg_replace('/[^0-9]/', '', $get('id')),
+                'uid'            => strtoupper($get('uid')),
+                'nik'            => $nik,
+                'skater_name'    => $skaterName,
+                'gender'         => $gender,
+                'birth_date'     => $birthDate,
+                'asal_sekolah'   => strtoupper($get('asal_sekolah')) ?: null,
+                'kota_kabupaten' => strtoupper($get('kota_kabupaten')) ?: null,
+                'provinsi'       => strtoupper($get('provinsi')) ?: null,
+                'status_bpjs'    => $statusBpjs,
+            ];
+        }
+
+        return ['valid' => $valid, 'errors' => $errors];
+    }
+
+    public function download_template() {
+        header('Content-Type: text/csv; charset=UTF-8');
+        header('Content-Disposition: attachment; filename="Template_Import_Atlet_Roll.csv"');
+        echo "\xEF\xBB\xBF";
+        $out = fopen('php://output', 'w');
+        fputcsv($out, self::getCsvHeaders());
+        fputcsv($out, [
+            '',
+            '',
+            "'3304012345670001",
+            '[CONTOH - HAPUS BARIS INI] BAGUS KURNIAWAN',
+            'M',
+            '2015-05-12',
+            'SMP NEGERI 1 YOGYAKARTA',
+            'KOTA YOGYAKARTA',
+            'D.I. YOGYAKARTA',
+            'sudah'
+        ]);
+        fclose($out);
+        exit;
+    }
+
+    public function export_csv() {
+        $db = Database::getInstance()->getConnection();
+        $club_id = (int)($_SESSION['roll_club_id'] ?? 0);
+
+        $stmt = $db->prepare("SELECT id, uid, nik, skater_name, gender, birth_date, asal_sekolah, kota_kabupaten, provinsi, status_bpjs FROM roll_skaters WHERE club_id = ? ORDER BY skater_name ASC");
+        $stmt->execute([$club_id]);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        header('Content-Type: text/csv; charset=UTF-8');
+        header('Content-Disposition: attachment; filename="Database_Atlet_' . date('Ymd_His') . '.csv"');
+        echo "\xEF\xBB\xBF";
+
+        $out = fopen('php://output', 'w');
+        fputcsv($out, self::getCsvHeaders());
+
+        foreach ($rows as $r) {
+            $nikOut = !empty($r['nik']) ? ("'" . $r['nik']) : '';
+            fputcsv($out, [
+                $r['id'],
+                $r['uid'] ?? '',
+                $nikOut,
+                $r['skater_name'] ?? '',
+                $r['gender'] ?? 'M',
+                (!empty($r['birth_date']) && $r['birth_date'] !== '0000-00-00') ? $r['birth_date'] : '',
+                $r['asal_sekolah'] ?? '',
+                $r['kota_kabupaten'] ?? '',
+                $r['provinsi'] ?? '',
+                ($r['status_bpjs'] ?? 'belum') === 'sudah' ? 'sudah' : 'belum',
+            ]);
+        }
+        fclose($out);
+        exit;
+    }
+
+    public function import_csv() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header("Location: " . getenv('APP_URL') . "/roll/user/athletes");
+            exit;
+        }
+
+        $db = Database::getInstance()->getConnection();
+        $club_id = (int)($_SESSION['roll_club_id'] ?? 0);
+
+        if (empty($_FILES['csv_file']['tmp_name']) || $_FILES['csv_file']['error'] !== UPLOAD_ERR_OK) {
+            $_SESSION['flash_message'] = "Gagal mengunggah file CSV. Pastikan file dipilih dengan benar.";
+            $_SESSION['flash_type'] = "error";
+            header("Location: " . getenv('APP_URL') . "/roll/user/athletes");
+            exit;
+        }
+
+        $content = file_get_contents($_FILES['csv_file']['tmp_name']);
+        if ($content === false) {
+            $_SESSION['flash_message'] = "File CSV tidak dapat dibaca.";
+            $_SESSION['flash_type'] = "error";
+            header("Location: " . getenv('APP_URL') . "/roll/user/athletes");
+            exit;
+        }
+
+        $parsed = self::parseAthleteCsvRows($content);
+        $validRows = $parsed['valid'];
+        $errors = $parsed['errors'];
+
+        if (empty($validRows)) {
+            $msg = "Tidak ada data atlet yang valid untuk diimport.";
+            if (!empty($errors)) {
+                $msg .= " Contoh error: " . implode(' | ', array_slice($errors, 0, 3));
+            }
+            $_SESSION['flash_message'] = $msg;
+            $_SESSION['flash_type'] = "error";
+            header("Location: " . getenv('APP_URL') . "/roll/user/athletes");
+            exit;
+        }
+
+        $inserted = 0;
+        $updated = 0;
+        $currentYear = (int)date('Y');
+        $usedUids = [];
+
+        try {
+            $db->beginTransaction();
+
+            $stmtFindById  = $db->prepare("SELECT id, uid FROM roll_skaters WHERE id = ? AND club_id = ? LIMIT 1");
+            $stmtFindByNik = $db->prepare("SELECT id, uid FROM roll_skaters WHERE nik = ? AND club_id = ? LIMIT 1");
+            $stmtUpdate = $db->prepare("
+                UPDATE roll_skaters
+                SET nik = ?, uid = ?, skater_name = ?, gender = ?, birth_date = ?, asal_sekolah = ?, provinsi = ?, kota_kabupaten = ?, status_bpjs = ?, age_group = ?
+                WHERE id = ? AND club_id = ?
+            ");
+            $stmtInsert = $db->prepare("
+                INSERT INTO roll_skaters (nik, uid, club_id, skater_name, gender, birth_date, asal_sekolah, provinsi, kota_kabupaten, status_bpjs, age_group)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ");
+
+            foreach ($validRows as $row) {
+                $birthYear = (int)date('Y', strtotime($row['birth_date']));
+                $ageGroupStr = max(0, $currentYear - $birthYear) . ' Thn';
+
+                $existing = null;
+                if (!empty($row['id'])) {
+                    $stmtFindById->execute([$row['id'], $club_id]);
+                    $existing = $stmtFindById->fetch(PDO::FETCH_ASSOC) ?: null;
+                }
+                if (!$existing) {
+                    $stmtFindByNik->execute([$row['nik'], $club_id]);
+                    $existing = $stmtFindByNik->fetch(PDO::FETCH_ASSOC) ?: null;
+                }
+
+                if ($existing) {
+                    $uid = !empty($existing['uid'])
+                        ? $existing['uid']
+                        : $this->generateSkaterUID($db, $row['skater_name'], $row['birth_date'], $row['gender'], $usedUids);
+                    $stmtUpdate->execute([
+                        $row['nik'],
+                        $uid,
+                        $row['skater_name'],
+                        $row['gender'],
+                        $row['birth_date'],
+                        $row['asal_sekolah'],
+                        $row['provinsi'],
+                        $row['kota_kabupaten'],
+                        $row['status_bpjs'],
+                        $ageGroupStr,
+                        $existing['id'],
+                        $club_id
+                    ]);
+                    $updated++;
+                } else {
+                    $uid = $this->generateSkaterUID($db, $row['skater_name'], $row['birth_date'], $row['gender'], $usedUids);
+                    $stmtInsert->execute([
+                        $row['nik'],
+                        $uid,
+                        $club_id,
+                        $row['skater_name'],
+                        $row['gender'],
+                        $row['birth_date'],
+                        $row['asal_sekolah'],
+                        $row['provinsi'],
+                        $row['kota_kabupaten'],
+                        $row['status_bpjs'],
+                        $ageGroupStr
+                    ]);
+                    $inserted++;
+                }
+            }
+
+            if ($db->inTransaction()) {
+                $db->commit();
+            }
+
+            $summaryMsg = "Import CSV selesai: <strong>{$inserted} atlet baru</strong> ditambahkan, <strong>{$updated} atlet</strong> diperbarui.";
+            if (!empty($errors)) {
+                $skipCount = count($errors);
+                $sampleErrs = htmlspecialchars(implode(' | ', array_slice($errors, 0, 3)));
+                $summaryMsg .= " ({$skipCount} baris dilewati: {$sampleErrs})";
+            }
+            $_SESSION['flash_message'] = $summaryMsg;
+            $_SESSION['flash_type'] = "success";
+        } catch (\Throwable $e) {
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
+            $_SESSION['flash_message'] = "Terjadi kesalahan saat import CSV: " . htmlspecialchars($e->getMessage());
+            $_SESSION['flash_type'] = "error";
+        }
+
         header("Location: " . getenv('APP_URL') . "/roll/user/athletes");
         exit;
     }
