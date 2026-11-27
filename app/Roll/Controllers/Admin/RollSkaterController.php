@@ -84,6 +84,82 @@ class RollSkaterController extends Controller {
         return ['rows' => $filtered, 'summary' => $summary];
     }
 
+    /**
+     * Ambil data Starting List terkelompok berdasarkan Kategori > KU > Gender.
+     */
+    private function getStartingListData($db, int $eventId): array {
+        $sql = "
+            SELECT 
+                s.id as skater_id, s.skater_name, s.gender, s.birth_date, c.club_name, e.bib_number,
+                sc.class_name, a.group_name,
+                GROUP_CONCAT(DISTINCT d.distance_name ORDER BY ed.race_number ASC SEPARATOR ', ') as distances
+            FROM roll_entries e
+            JOIN roll_skaters s ON e.skater_id = s.id
+            LEFT JOIN roll_clubs c ON s.club_id = c.id
+            LEFT JOIN roll_event_details ed ON e.race_class_id = ed.id
+            LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
+            LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
+            LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id
+            WHERE e.event_id = ?
+            GROUP BY s.id, s.skater_name, s.gender, s.birth_date, c.club_name, e.bib_number, sc.class_name, a.group_name
+            ORDER BY sc.class_name ASC, a.group_name ASC, s.gender ASC, e.bib_number ASC
+        ";
+
+        $stmt = $db->prepare($sql);
+        $stmt->execute([$eventId]);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $grouped = [];
+        $categoryCounts = [];
+        $uniqueSkaterIds = [];
+
+        foreach ($rows as $r) {
+            $rawClass = strtolower($r['class_name'] ?? '');
+            $cat = 'Lainnya';
+            if (strpos($rawClass, 'speed') !== false) $cat = 'Speed';
+            elseif (strpos($rawClass, 'standar') !== false) $cat = 'Standart';
+            elseif (strpos($rawClass, 'pemula') !== false) $cat = 'Pemula';
+
+            $ku = $r['group_name'] ?: 'Tanpa KU';
+            $gender = in_array($r['gender'], ['M', 'Male', 'L', 'Putra', 'Pa']) ? 'Putra' : 'Putri';
+
+            $grouped[$cat][$ku][$gender][] = $r;
+            $categoryCounts[$cat] = ($categoryCounts[$cat] ?? 0) + 1;
+            $uniqueSkaterIds[(int)$r['skater_id']] = true;
+        }
+
+        return [
+            'grouped'        => $grouped,
+            'categoryCounts' => $categoryCounts,
+            'totalSkaters'   => count($uniqueSkaterIds),
+        ];
+    }
+
+    /**
+     * Parse konfigurasi kolom & tata letak cetak dari query string.
+     */
+    public static function resolvePrintConfig(array $query, string $activeTab): array {
+        $isConfigured = isset($query['cfg']) && (string)$query['cfg'] === '1';
+
+        if ($activeTab === 'bpjs') {
+            return [
+                'show_bib'  => $isConfigured ? !empty($query['show_bib']) : true,
+                'show_dob'  => $isConfigured ? !empty($query['show_dob']) : true,
+                'show_nik'  => $isConfigured ? !empty($query['show_nik']) : true,
+                'show_club' => $isConfigured ? !empty($query['show_club']) : true,
+                'show_bpjs' => $isConfigured ? !empty($query['show_bpjs']) : true,
+            ];
+        }
+
+        return [
+            'show_bib'       => $isConfigured ? !empty($query['show_bib']) : true,
+            'show_dob'       => $isConfigured ? !empty($query['show_dob']) : false,
+            'show_club'      => $isConfigured ? !empty($query['show_club']) : true,
+            'show_classes'   => $isConfigured ? !empty($query['show_classes']) : true,
+            'page_break_cat' => $isConfigured ? !empty($query['page_break_cat']) : true,
+        ];
+    }
+
     public function index() {
         $db = Database::getInstance()->getConnection();
         $eventId = (int)($_SESSION['roll_admin_active_event_id'] ?? 0);
@@ -114,39 +190,8 @@ class RollSkaterController extends Controller {
             $bpjsParticipants = $bpjsData['rows'];
             $bpjsSummary      = $bpjsData['summary'];
         } else {
-            $sql = "
-                SELECT 
-                    s.id as skater_id, s.skater_name, s.gender, c.club_name, e.bib_number,
-                    sc.class_name, a.group_name,
-                    GROUP_CONCAT(DISTINCT d.distance_name ORDER BY ed.race_number ASC SEPARATOR ', ') as distances
-                FROM roll_entries e
-                JOIN roll_skaters s ON e.skater_id = s.id
-                LEFT JOIN roll_clubs c ON s.club_id = c.id
-                LEFT JOIN roll_event_details ed ON e.race_class_id = ed.id
-                LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
-                LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
-                LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id
-                WHERE e.event_id = ?
-                GROUP BY s.id, s.skater_name, s.gender, c.club_name, e.bib_number, sc.class_name, a.group_name
-                ORDER BY sc.class_name ASC, a.group_name ASC, s.gender ASC, e.bib_number ASC
-            ";
-            
-            $stmt = $db->prepare($sql);
-            $stmt->execute([$eventId]);
-            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-            foreach ($rows as $r) {
-                $rawClass = strtolower($r['class_name'] ?? '');
-                $cat = 'Lainnya';
-                if (strpos($rawClass, 'speed') !== false) $cat = 'Speed';
-                elseif (strpos($rawClass, 'standar') !== false) $cat = 'Standart';
-                elseif (strpos($rawClass, 'pemula') !== false) $cat = 'Pemula';
-                
-                $ku = $r['group_name'] ?: 'Tanpa KU';
-                $gender = in_array($r['gender'], ['M', 'Male', 'L', 'Putra', 'Pa']) ? 'Putra' : 'Putri';
-
-                $grouped[$cat][$ku][$gender][] = $r;
-            }
+            $startingData = $this->getStartingListData($db, $eventId);
+            $grouped = $startingData['grouped'];
         }
 
         return $this->view('roll/admin/skaters/index', [
@@ -158,6 +203,62 @@ class RollSkaterController extends Controller {
             'search'           => $search,
             'bpjsFilter'       => $bpjsFilter,
             'nikFilter'        => $nikFilter,
+        ]);
+    }
+
+    public function print_data() {
+        $db = Database::getInstance()->getConnection();
+        $eventId = (int)($_SESSION['roll_admin_active_event_id'] ?? 0);
+
+        if ($eventId == 0) {
+            $_SESSION['flash_message'] = "Pilih Event terlebih dahulu!";
+            $_SESSION['flash_type'] = "warning";
+            header("Location: " . getenv('APP_URL') . "/roll/admin/dashboard");
+            exit;
+        }
+
+        $stmtEvt = $db->prepare("SELECT * FROM roll_events WHERE id = ? LIMIT 1");
+        $stmtEvt->execute([$eventId]);
+        $event = $stmtEvt->fetch(PDO::FETCH_ASSOC);
+        if (!$event) {
+            die("Event tidak ditemukan");
+        }
+
+        $activeTab  = ($_GET['tab'] ?? 'starting_list') === 'bpjs' ? 'bpjs' : 'starting_list';
+        $search     = $_GET['search'] ?? '';
+        $bpjsFilter = $_GET['bpjs'] ?? 'all';
+        $nikFilter  = $_GET['nik'] ?? 'all';
+        $printConfig = self::resolvePrintConfig($_GET, $activeTab);
+
+        $grouped = [];
+        $categoryCounts = [];
+        $totalSkaters = 0;
+        $bpjsParticipants = [];
+        $bpjsSummary = ['total' => 0, 'bpjs_sudah' => 0, 'bpjs_belum' => 0, 'nik_kosong' => 0];
+
+        if ($activeTab === 'bpjs') {
+            $bpjsData = $this->getPaidBpjsParticipants($db, $eventId, $search, $bpjsFilter, $nikFilter);
+            $bpjsParticipants = $bpjsData['rows'];
+            $bpjsSummary      = $bpjsData['summary'];
+        } else {
+            $startingData   = $this->getStartingListData($db, $eventId);
+            $grouped        = $startingData['grouped'];
+            $categoryCounts = $startingData['categoryCounts'];
+            $totalSkaters   = $startingData['totalSkaters'];
+        }
+
+        return $this->view('roll/admin/skaters/print_skaters', [
+            'event'            => $event,
+            'activeTab'        => $activeTab,
+            'grouped'          => $grouped,
+            'categoryCounts'   => $categoryCounts,
+            'totalSkaters'     => $totalSkaters,
+            'bpjsParticipants' => $bpjsParticipants,
+            'bpjsSummary'      => $bpjsSummary,
+            'search'           => $search,
+            'bpjsFilter'       => $bpjsFilter,
+            'nikFilter'        => $nikFilter,
+            'printConfig'      => $printConfig,
         ]);
     }
 

@@ -30,10 +30,64 @@
             </a>
         <?php endif; ?>
 
-        <button type="button" onclick="window.print()"
-                class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-sm border border-blue-700 text-[11px] font-black uppercase tracking-widest transition flex items-center gap-2 cursor-pointer">
-            <span>🖨️</span> Print
+        <button type="button" id="btnTogglePrintCfg" onclick="document.getElementById('printCfgPanel').classList.toggle('hidden')"
+                class="px-4 py-2.5 bg-white hover:bg-slate-50 text-slate-700 rounded-xl shadow-sm border border-slate-200 text-[11px] font-black uppercase tracking-widest transition flex items-center gap-2 cursor-pointer">
+            <span>⚙️</span> Atur Print
         </button>
+
+        <a id="btnPrintSkaters"
+           href="<?= getenv('APP_URL') ?>/roll/admin/skaters/print_data?tab=<?= urlencode($activeTab) ?>&cfg=1&show_bib=1&show_club=1<?= $activeTab === 'bpjs' ? '&show_dob=1&show_nik=1&show_bpjs=1&search=' . urlencode($search ?? '') . '&bpjs=' . urlencode($bpjsFilter ?? 'all') . '&nik=' . urlencode($nikFilter ?? 'all') : '&show_classes=1&page_break_cat=1' ?>"
+           target="_blank"
+           class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl shadow-sm border border-indigo-700 text-[11px] font-black uppercase tracking-widest transition flex items-center gap-2">
+            <span>🖨️</span> Cetak Dokumen A4
+        </a>
+    </div>
+</div>
+
+<!-- Panel Pengaturan Kolom Print (Checkbox) -->
+<div id="printCfgPanel" class="max-w-[95%] mx-auto mb-6 hidden bg-white rounded-2xl border border-slate-200 shadow-sm p-4 print:hidden">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div>
+            <p class="text-[10px] font-black uppercase tracking-widest text-indigo-600">⚙️ Pengaturan Tampilan Cetak A4</p>
+            <p class="text-[11px] text-slate-500 font-medium">Centang data/kolom yang ingin ditampilkan saat mencetak dokumen (bisa juga diubah langsung di halaman preview cetak).</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-3 text-xs font-bold text-slate-700">
+            <label class="inline-flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl cursor-pointer hover:bg-slate-100">
+                <input type="checkbox" class="print-cfg-cb rounded text-indigo-600" name="show_bib" checked>
+                <span>No. BIB</span>
+            </label>
+            <label class="inline-flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl cursor-pointer hover:bg-slate-100">
+                <input type="checkbox" class="print-cfg-cb rounded text-indigo-600" name="show_dob" <?= $activeTab === 'bpjs' ? 'checked' : '' ?>>
+                <span>Tanggal Lahir</span>
+            </label>
+            <?php if ($activeTab === 'bpjs'): ?>
+                <label class="inline-flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl cursor-pointer hover:bg-slate-100">
+                    <input type="checkbox" class="print-cfg-cb rounded text-indigo-600" name="show_nik" checked>
+                    <span>NIK</span>
+                </label>
+                <label class="inline-flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl cursor-pointer hover:bg-slate-100">
+                    <input type="checkbox" class="print-cfg-cb rounded text-indigo-600" name="show_club" checked>
+                    <span>Klub / Kontingen</span>
+                </label>
+                <label class="inline-flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl cursor-pointer hover:bg-slate-100">
+                    <input type="checkbox" class="print-cfg-cb rounded text-indigo-600" name="show_bpjs" checked>
+                    <span>Status BPJS</span>
+                </label>
+            <?php else: ?>
+                <label class="inline-flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl cursor-pointer hover:bg-slate-100">
+                    <input type="checkbox" class="print-cfg-cb rounded text-indigo-600" name="show_club" checked>
+                    <span>Klub / Kontingen</span>
+                </label>
+                <label class="inline-flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl cursor-pointer hover:bg-slate-100">
+                    <input type="checkbox" class="print-cfg-cb rounded text-indigo-600" name="show_classes" checked>
+                    <span>Kelas / Nomor</span>
+                </label>
+                <label class="inline-flex items-center gap-1.5 bg-indigo-50 border border-indigo-200 text-indigo-700 px-3 py-1.5 rounded-xl cursor-pointer hover:bg-indigo-100">
+                    <input type="checkbox" class="print-cfg-cb rounded text-indigo-600" name="page_break_cat" checked>
+                    <span>Pisah Halaman per Kategori</span>
+                </label>
+            <?php endif; ?>
+        </div>
     </div>
 </div>
 
@@ -235,11 +289,11 @@
                                                     </span>
                                                 </td>
                                                 <td class="py-3 px-4 font-bold text-slate-800 text-sm"><?= htmlspecialchars($s['skater_name']) ?></td>
-                                                <td class="py-3 px-4 text-xs font-semibold text-slate-600 flex items-center gap-2">
-                                                    <span class="text-slate-400">🏢</span> <?= htmlspecialchars($s['club_name'] ?? '-') ?>
+                                                <td class="py-3 px-4 text-xs font-semibold text-slate-600">
+                                                    <div class="flex items-center gap-2"><span class="text-slate-400">🏢</span> <?= htmlspecialchars($s['club_name'] ?? '-') ?></div>
                                                 </td>
-                                                <td class="py-3 px-4 text-xs font-semibold text-blue-600 flex items-center gap-2">
-                                                    <span class="text-blue-300">🏷️</span> <?= htmlspecialchars($s['distances'] ?: ($s['class_name'] ?? '-')) ?>
+                                                <td class="py-3 px-4 text-xs font-semibold text-blue-600">
+                                                    <div class="flex items-center gap-2"><span class="text-blue-300">🏷️</span> <?= htmlspecialchars($s['distances'] ?: ($s['class_name'] ?? '-')) ?></div>
                                                 </td>
                                             </tr>
                                             <?php endforeach; ?>
@@ -258,29 +312,28 @@
 </div>
 <?php endif; ?>
 
-<style>
-@media print {
-    body {
-        background-color: white !important;
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
+<script>
+(function () {
+    const printBtn = document.getElementById('btnPrintSkaters');
+    const cbs = document.querySelectorAll('.print-cfg-cb');
+    if (!printBtn || !cbs.length) return;
+
+    function updatePrintHref() {
+        const url = new URL(printBtn.getAttribute('href'), window.location.origin);
+        url.searchParams.set('cfg', '1');
+        cbs.forEach(function (cb) {
+            if (cb.checked) {
+                url.searchParams.set(cb.name, '1');
+            } else {
+                url.searchParams.delete(cb.name);
+            }
+        });
+        printBtn.setAttribute('href', url.toString());
     }
-    #main-wrapper { margin-left: 0 !important; padding-top: 0 !important; }
-    .bg-slate-50 { background-color: white !important; }
-    .max-w-\[95\%\] { max-width: 100% !important; margin: 0 !important; }
-    .shadow-sm { box-shadow: none !important; }
-    .border-slate-200 { border-color: #ddd !important; }
-    .rounded-\[2rem\], .rounded-2xl { border-radius: 0 !important; border: none !important; }
-    
-    /* Hide sidebar and header */
-    aside, header, nav, .print\:hidden { display: none !important; }
-    
-    .bg-slate-800 { background-color: #333 !important; color: white !important; }
-    
-    /* Page break rules */
-    .border-slate-200 { break-inside: avoid; }
-    .bpjs-table-card { break-inside: auto !important; overflow: visible !important; border: 1px solid #cbd5e1 !important; border-radius: 0 !important; }
-    .bpjs-table-card thead { display: table-header-group; }
-    .bpjs-table-card tr { break-inside: avoid; page-break-inside: avoid; }
-}
-</style>
+
+    cbs.forEach(function (cb) {
+        cb.addEventListener('change', updatePrintHref);
+    });
+    updatePrintHref();
+})();
+</script>
