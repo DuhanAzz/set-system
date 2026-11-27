@@ -97,11 +97,125 @@
         </div>
     </div>
 
-    <div class="flex justify-end mt-4 no-print">
-        <button onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white px-6 py-2 rounded text-xs font-bold uppercase shadow flex items-center gap-2 no-print">
+    <?php
+    $thbRules = $thbRules ?? ['min_rule_enabled' => 1, 'min_gold' => 3, 'min_silver' => 4, 'min_bronze' => 5, 'exclude_mix_club' => 1];
+    $minRuleOn = !empty($thbRules['min_rule_enabled']);
+    $mixRuleOn = !empty($thbRules['exclude_mix_club']);
+    ?>
+    <div class="flex flex-wrap justify-between items-center gap-2 mt-4 no-print">
+        <button type="button" onclick="document.getElementById('thbRulesPanel').classList.toggle('hidden')"
+                class="bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 px-4 py-2 rounded text-xs font-bold uppercase shadow-sm flex items-center gap-2 cursor-pointer">
+            ⚙️ Setting Aturan THB
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-black <?= ($minRuleOn || $mixRuleOn) ? 'bg-blue-100 text-blue-700' : 'bg-slate-200 text-slate-600' ?>">
+                <?= $minRuleOn ? ("Min " . (int)$thbRules['min_gold'] . "/" . (int)$thbRules['min_silver'] . "/" . (int)$thbRules['min_bronze']) : 'Min OFF' ?>
+                &bull;
+                <?= $mixRuleOn ? 'Mix Eksklusif' : 'Mix Dihitung' ?>
+            </span>
+        </button>
+        <button onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white px-6 py-2 rounded text-xs font-bold uppercase shadow flex items-center gap-2 no-print cursor-pointer">
             🖨️ Cetak Laporan
         </button>
     </div>
+
+    <!-- PANEL PENGATURAN ATURAN THB PER EVENT -->
+    <form id="thbRulesPanel" method="POST" action="<?= getenv('APP_URL') ?>/roll/admin/medal_tally/save_rules"
+          class="hidden bg-white border-2 border-blue-200 rounded-xl p-5 shadow-md space-y-4 no-print">
+        <input type="hidden" name="group_by" value="<?= htmlspecialchars($currGrp) ?>">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+            <div>
+                <h3 class="text-xs font-black text-slate-900 uppercase tracking-wider">⚙️ Pengaturan Aturan Hitung Medali (THB)</h3>
+                <p class="text-[11px] text-slate-500 mt-0.5">Hidup/matikan aturan atau sesuaikan jumlah peserta minimal untuk perhitungan Juara Umum (berlaku juga di Export &amp; Live Public).</p>
+            </div>
+            <button type="button" id="btnResetThbDefault"
+                    class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 text-[10px] font-black uppercase cursor-pointer self-start sm:self-auto">
+                ↺ Reset Default THB (3/4/5)
+            </button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Aturan 1: Batas Minimal Peserta -->
+            <div class="p-4 rounded-xl border border-slate-200 bg-slate-50/70 space-y-3">
+                <label class="flex items-center justify-between gap-3 cursor-pointer">
+                    <div>
+                        <div class="text-xs font-black text-slate-800 uppercase">1. Batas Minimal Peserta per Nomor</div>
+                        <div class="text-[11px] text-slate-500">Jika dimatikan (OFF), seluruh medali Emas, Perak &amp; Perunggu tetap dihitung berapapun jumlah pesertanya.</div>
+                    </div>
+                    <input type="checkbox" id="thbMinRuleCb" name="thb_min_rule_enabled" value="1" <?= $minRuleOn ? 'checked' : '' ?>
+                           class="w-5 h-5 accent-blue-600 cursor-pointer flex-shrink-0">
+                </label>
+
+                <div id="thbThresholdInputs" class="grid grid-cols-3 gap-2 pt-2 border-t border-slate-200 <?= $minRuleOn ? '' : 'opacity-50 pointer-events-none' ?>">
+                    <div>
+                        <label class="block text-[10px] font-black text-amber-700 uppercase mb-1">Min 🥇 Emas</label>
+                        <input type="number" id="thbMinGold" name="thb_min_gold" min="1" value="<?= (int)$thbRules['min_gold'] ?>"
+                               class="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-black text-center text-slate-800">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-600 uppercase mb-1">Min 🥈 Perak</label>
+                        <input type="number" id="thbMinSilver" name="thb_min_silver" min="1" value="<?= (int)$thbRules['min_silver'] ?>"
+                               class="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-black text-center text-slate-800">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-black text-orange-700 uppercase mb-1">Min 🥉 Perunggu</label>
+                        <input type="number" id="thbMinBronze" name="thb_min_bronze" min="1" value="<?= (int)$thbRules['min_bronze'] ?>"
+                               class="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-black text-center text-slate-800">
+                    </div>
+                </div>
+                <p class="text-[10px] text-slate-500">
+                    Standar THB: Min Emas <strong>3</strong> (1–2 peserta tidak dihitung), Min Perak <strong>4</strong>, Min Perunggu <strong>5</strong>.
+                </p>
+            </div>
+
+            <!-- Aturan 2: Pengecualian Relay Mix Club -->
+            <div class="p-4 rounded-xl border border-slate-200 bg-slate-50/70 flex flex-col justify-between gap-3">
+                <label class="flex items-center justify-between gap-3 cursor-pointer">
+                    <div>
+                        <div class="text-xs font-black text-slate-800 uppercase">2. Kecualikan Relay Mix Club</div>
+                        <div class="text-[11px] text-slate-500 mt-1">
+                            Jika aktif (ON), tim beregu dengan anggota gabungan &gt; 1 klub tidak dimasukkan ke poin Juara Umum Klub. Jika dimatikan (OFF), medali tetap dihitung ke klub pemenang.
+                        </div>
+                    </div>
+                    <input type="checkbox" id="thbExcludeMixCb" name="thb_exclude_mix_club" value="1" <?= $mixRuleOn ? 'checked' : '' ?>
+                           class="w-5 h-5 accent-blue-600 cursor-pointer flex-shrink-0">
+                </label>
+
+                <div class="flex justify-end gap-2 pt-2 border-t border-slate-200">
+                    <button type="button" onclick="document.getElementById('thbRulesPanel').classList.add('hidden')"
+                            class="px-4 py-2 rounded-lg bg-white border border-slate-300 text-slate-600 text-xs font-bold uppercase cursor-pointer">
+                        Batal
+                    </button>
+                    <button type="submit"
+                            class="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-black uppercase shadow-sm cursor-pointer">
+                        💾 Simpan &amp; Hitung Ulang
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    <script>
+    (function () {
+        const minCb = document.getElementById('thbMinRuleCb');
+        const box = document.getElementById('thbThresholdInputs');
+        const btnReset = document.getElementById('btnResetThbDefault');
+        if (minCb && box) {
+            minCb.addEventListener('change', function () {
+                box.classList.toggle('opacity-50', !minCb.checked);
+                box.classList.toggle('pointer-events-none', !minCb.checked);
+            });
+        }
+        if (btnReset) {
+            btnReset.addEventListener('click', function () {
+                if (minCb) minCb.checked = true;
+                if (box) { box.classList.remove('opacity-50', 'pointer-events-none'); }
+                document.getElementById('thbMinGold').value = 3;
+                document.getElementById('thbMinSilver').value = 4;
+                document.getElementById('thbMinBronze').value = 5;
+                document.getElementById('thbExcludeMixCb').checked = true;
+            });
+        }
+    })();
+    </script>
 
     <?php
     $champSpeed = $champions['Speed'] ?? [];
@@ -144,12 +258,12 @@
     <?php if (!empty($classAudit) || !empty($mixExclusions)): ?>
     <details class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm no-print">
         <summary class="cursor-pointer text-xs font-black text-slate-700 uppercase tracking-wider">
-            ℹ️ Audit Aturan THB (<?= count($classAudit ?? []) ?> nomor &lt; 5 peserta, <?= count($mixExclusions ?? []) ?> medali Relay Mix Club dikecualikan)
+            ℹ️ Audit Aturan THB (<?= count($classAudit ?? []) ?> nomor &lt; <?= (int)$thbRules['min_bronze'] ?> peserta, <?= count($mixExclusions ?? []) ?> medali Relay Mix Club dikecualikan)
         </summary>
         <div class="mt-3 space-y-3 text-xs">
             <?php if (!empty($classAudit)): ?>
             <div>
-                <div class="font-bold text-slate-600 uppercase text-[10px] mb-1">Penyesuaian Jumlah Peserta (&lt; 5):</div>
+                <div class="font-bold text-slate-600 uppercase text-[10px] mb-1">Penyesuaian Jumlah Peserta (&lt; <?= (int)$thbRules['min_bronze'] ?>):</div>
                 <ul class="list-disc pl-5 space-y-0.5 text-slate-600">
                     <?php foreach ($classAudit as $ca): ?>
                         <li><span class="font-bold text-slate-800"><?= htmlspecialchars($ca['label']) ?></span> (<?= (int)$ca['participants'] ?> peserta) — <?= htmlspecialchars($ca['note']) ?></li>

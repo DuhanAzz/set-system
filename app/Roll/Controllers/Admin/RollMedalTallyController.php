@@ -63,6 +63,7 @@ class RollMedalTallyController extends Controller {
             'champions'     => $calc['champions'],
             'classAudit'    => $calc['class_audit'],
             'mixExclusions' => $calc['mix_exclusions'],
+            'thbRules'      => $calc['thb_rules'] ?? \App\Helpers\RollMedalHelper::normalizeThbRules([]),
             'medalTally'    => $calc['standings']['Speed'] ?? [],
             'eventInfo'     => $eventInfo,
             'labelTitle'    => $labelTitle,
@@ -70,6 +71,48 @@ class RollMedalTallyController extends Controller {
             'partType'      => $partType,
             'eventId'       => $eventId
         ]);
+    }
+
+    public function save_rules() {
+        $db = Database::getInstance()->getConnection();
+        $eventId = (int)($_SESSION['roll_admin_active_event_id'] ?? 0);
+        $groupBy = $_POST['group_by'] ?? 'club';
+
+        if ($eventId <= 0) {
+            $_SESSION['flash_message'] = "Pilih Event terlebih dahulu!";
+            $_SESSION['flash_type'] = "warning";
+            header("Location: " . getenv('APP_URL') . "/roll/admin/dashboard");
+            exit;
+        }
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            // Pastikan kolom THB sudah tersedia sebelum update
+            \App\Helpers\RollMedalHelper::getThbRules($db, $eventId);
+
+            $rules = \App\Helpers\RollMedalHelper::normalizeThbRules([
+                'min_rule_enabled' => isset($_POST['thb_min_rule_enabled']) ? 1 : 0,
+                'min_gold'         => $_POST['thb_min_gold'] ?? 3,
+                'min_silver'       => $_POST['thb_min_silver'] ?? 4,
+                'min_bronze'       => $_POST['thb_min_bronze'] ?? 5,
+                'exclude_mix_club' => isset($_POST['thb_exclude_mix_club']) ? 1 : 0,
+            ]);
+
+            $stmt = $db->prepare("UPDATE roll_events SET thb_min_rule_enabled = ?, thb_min_gold = ?, thb_min_silver = ?, thb_min_bronze = ?, thb_exclude_mix_club = ? WHERE id = ?");
+            $stmt->execute([
+                $rules['min_rule_enabled'],
+                $rules['min_gold'],
+                $rules['min_silver'],
+                $rules['min_bronze'],
+                $rules['exclude_mix_club'],
+                $eventId,
+            ]);
+
+            $_SESSION['flash_message'] = "Pengaturan Aturan THB berhasil disimpan & klasemen diperbarui.";
+            $_SESSION['flash_type'] = "success";
+        }
+
+        header("Location: " . getenv('APP_URL') . "/roll/admin/medal_tally?group_by=" . urlencode($groupBy));
+        exit;
     }
 
     public function best_skater() {

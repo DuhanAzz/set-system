@@ -187,4 +187,31 @@ echo "✓ Standart standings: Relay Mix Club excluded, regular relay 1 team = 1 
 assert(count($out['class_audit']) === 3, 'Classes 102(3), 103(4), 104(2) should be recorded in audit');
 echo "✓ THB < 5 participants audit log [OK]\n";
 
+// Verify disabling both THB rules counts ALL medals & includes Relay Mix Club
+$outOff = RollMedalHelper::computeStandingsFromData($classes, $starting, $results, $teamClubsByClass, 'club', [
+    'min_rule_enabled' => 0,
+    'exclude_mix_club' => 0,
+]);
+assert(count($outOff['class_audit']) === 0, 'Audit should be empty when min rule is disabled');
+assert(count($outOff['mix_exclusions']) === 0, 'Mix exclusions should be empty when disabled');
+// Class 104 (Gamma 1E, Delta 1P) now counted! Class 102 Alpha got 1P, Gamma got 1Pr! Class 103 Gamma got 1Pr!
+// In Standart: Tim Mix (Alpha 1E) now counted!
+$stdOff = $outOff['standings']['Standart'];
+assert($stdOff[0]['club_name'] === 'Klub Alpha' && $stdOff[0]['gold'] === 1, 'Alpha Tim Mix Gold counted when exclude_mix_club=0');
+echo "✓ THB rules OFF: all small-class & Relay Mix Club medals counted [OK]\n";
+
+// Verify custom thresholds (min_gold=2, min_silver=3, min_bronze=4)
+$outCustom = RollMedalHelper::computeStandingsFromData($classes, $starting, $results, $teamClubsByClass, 'club', [
+    'min_rule_enabled' => 1,
+    'min_gold'         => 2,
+    'min_silver'       => 3,
+    'min_bronze'       => 4,
+    'exclude_mix_club' => 1,
+]);
+// Classes < 4: 102(3) and 104(2) recorded in audit (103 has 4 >= 4 so full podium!)
+assert(count($outCustom['class_audit']) === 2, 'Custom thresholds (2/3/4): classes 102(3) and 104(2) in audit');
+assert($outCustom['class_audit'][0]['allowed_ranks'] === [1, 2], '3 participants allows Gold+Silver when min_silver=3');
+assert($outCustom['class_audit'][1]['allowed_ranks'] === [1], '2 participants allows Gold when min_gold=2');
+echo "✓ Custom THB thresholds (2/3/4) work as configured [OK]\n";
+
 echo "--- ALL JUARA UMUM KLUB (THB) TESTS PASSED! ---\n";

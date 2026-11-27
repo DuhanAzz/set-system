@@ -20,11 +20,71 @@ class RollMedalHelper {
         return null;
     }
 
-    public static function allowedRanksForCount(int $participantCount): array {
-        if ($participantCount <= 2) return [];
-        if ($participantCount === 3) return [1];
-        if ($participantCount === 4) return [1, 2];
-        return [1, 2, 3];
+    /**
+     * Normalisasi pengaturan aturan THB agar batas medali selalu konsisten (Emas <= Perak <= Perunggu).
+     */
+    public static function normalizeThbRules(array $rules): array {
+        $minEnabled = array_key_exists('min_rule_enabled', $rules) ? (int)!empty($rules['min_rule_enabled']) : 1;
+        $excludeMix = array_key_exists('exclude_mix_club', $rules) ? (int)!empty($rules['exclude_mix_club']) : 1;
+        $minGold    = max(1, (int)($rules['min_gold'] ?? 3));
+        $minSilver  = max($minGold, (int)($rules['min_silver'] ?? 4));
+        $minBronze  = max($minSilver, (int)($rules['min_bronze'] ?? 5));
+
+        return [
+            'min_rule_enabled' => $minEnabled,
+            'min_gold'         => $minGold,
+            'min_silver'       => $minSilver,
+            'min_bronze'       => $minBronze,
+            'exclude_mix_club' => $excludeMix,
+        ];
+    }
+
+    /**
+     * Ambil pengaturan aturan THB per event dari roll_events (beserta migrasi atomik kolom baru).
+     */
+    public static function getThbRules($db, int $eventId): array {
+        $defaults = self::normalizeThbRules([]);
+        if (!$db || $eventId <= 0) {
+            return $defaults;
+        }
+
+        $inTx = method_exists($db, 'inTransaction') ? $db->inTransaction() : false;
+        if (!$inTx) {
+            try { $db->exec("ALTER TABLE roll_events ADD COLUMN thb_min_rule_enabled TINYINT(1) DEFAULT 1"); } catch (\Throwable $e) {}
+            try { $db->exec("ALTER TABLE roll_events ADD COLUMN thb_min_gold INT DEFAULT 3"); } catch (\Throwable $e) {}
+            try { $db->exec("ALTER TABLE roll_events ADD COLUMN thb_min_silver INT DEFAULT 4"); } catch (\Throwable $e) {}
+            try { $db->exec("ALTER TABLE roll_events ADD COLUMN thb_min_bronze INT DEFAULT 5"); } catch (\Throwable $e) {}
+            try { $db->exec("ALTER TABLE roll_events ADD COLUMN thb_exclude_mix_club TINYINT(1) DEFAULT 1"); } catch (\Throwable $e) {}
+        }
+
+        try {
+            $stmt = $db->prepare("SELECT thb_min_rule_enabled, thb_min_gold, thb_min_silver, thb_min_bronze, thb_exclude_mix_club FROM roll_events WHERE id = ? LIMIT 1");
+            $stmt->execute([$eventId]);
+            $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+            if ($row) {
+                return self::normalizeThbRules([
+                    'min_rule_enabled' => $row['thb_min_rule_enabled'] ?? 1,
+                    'min_gold'         => $row['thb_min_gold'] ?? 3,
+                    'min_silver'       => $row['thb_min_silver'] ?? 4,
+                    'min_bronze'       => $row['thb_min_bronze'] ?? 5,
+                    'exclude_mix_club' => $row['thb_exclude_mix_club'] ?? 1,
+                ]);
+            }
+        } catch (\Throwable $e) {}
+
+        return $defaults;
+    }
+
+    public static function allowedRanksForCount(int $participantCount, ?array $rules = null): array {
+        $r = self::normalizeThbRules($rules ?? []);
+        if (empty($r['min_rule_enabled'])) {
+            return $participantCount > 0 ? [1, 2, 3] : [];
+        }
+        $ranks = [];
+        if ($participantCount >= $r['min_gold'])   $ranks[] = 1;
+        if ($participantCount >= $r['min_silver']) $ranks[] = 2;
+        if ($participantCount >= $r['min_bronze']) $ranks[] = 3;
+        return $ranks;
     }
 
     public static function buildTeamKey(?string $teamName, $clubId = null, ?string $bibNumber = null, $skaterId = null): string {
@@ -85,8 +145,10 @@ class RollMedalHelper {
         array $startingParticipantsByClass,
         array $resultsByClass,
         array $teamClubsByClass,
-        string $groupBy = 'club'
+        string $groupBy = 'club',
+        array $thbRules = []
     ): array {
+        $rules = self::normalizeThbRules($thbRules);
         $tallies = ['Speed' => [], 'Standart' => []];
         $classAudit = [];
         $mixExclusions = [];
@@ -116,7 +178,7 @@ class RollMedalHelper {
                 $uniqueParticipants[$pKey] = true;
             }
             $participantCount = count($uniqueParticipants);
-            $allowedRanks = self::allowedRanksForCount($participantCount);
+            $allowedRanks = self::allowedRanksForCount($participantCount, $rules);
 
             $classLabel = trim(
                 (!empty($cls['race_number']) ? $cls['race_number'] . ' - ' : '') .
@@ -126,12 +188,16 @@ class RollMedalHelper {
                 $distName
             );
 
-            if ($participantCount > 0 && $participantCount < 5) {
-                $note = $participantCount <= 2
-                    ? 'Tidak dihitung ke Juara Umum (peserta ≤ 2)'
-                    : ($participantCount === 3
-                        ? 'Hanya Emas dihitung (peserta 3)'
-                        : 'Hanya Emas & Perak dihitung (peserta 4)');
+            if (!empty($rules['min_rule_enabled']) && $participantCount > 0 && $participantCount < $rules['min_bronze']) {
+                if (empty($allowedRanks)) {
+                    $note = 'Tidak dihitung ke Juara Umum (peserta < ' . $rules['min_gold'] . ')';
+                } else {
+                    $medalNames = [];
+                    if (in_array(1, $allowedRanks, true)) $medalNames[] = 'Emas';
+                    if (in_array(2, $allowedRanks, true)) $medalNames[] = 'Perak';
+                    if (in_array(3, $allowedRanks, true)) $medalNames[] = 'Perunggu';
+                    $note = 'Hanya ' . implode(' & ', $medalNames) . " dihitung (peserta {$participantCount})";
+                }
                 $classAudit[] = [
                     'race_class_id' => $classId,
                     'label'         => $classLabel,
@@ -224,8 +290,8 @@ class RollMedalHelper {
                 if ($globalRank > 3) break;
                 if (!in_array($globalRank, $allowedRanks, true)) continue;
 
-                // Cek Relay Mix Club (hanya untuk nomor beregu)
-                if ($isTeam) {
+                // Cek Relay Mix Club (hanya untuk nomor beregu jika aturan aktif)
+                if ($isTeam && !empty($rules['exclude_mix_club'])) {
                     $tKey = $winner['_team_key'] ?? self::buildTeamKey($winner['team_name'] ?? '', $winner['club_id'] ?? 0, $winner['bib_number'] ?? '', $winner['skater_id'] ?? 0);
                     $teamClubIds = $teamClubsByClass[$classId][$tKey] ?? [];
                     if (count($teamClubIds) > 1) {
@@ -299,6 +365,7 @@ class RollMedalHelper {
             'champions'      => $champions,
             'class_audit'    => $classAudit,
             'mix_exclusions' => $mixExclusions,
+            'thb_rules'      => $rules,
         ];
     }
 
@@ -308,9 +375,10 @@ class RollMedalHelper {
     public static function calculateStandings($db, int $eventId, array $options = []): array {
         $groupBy = $options['groupBy'] ?? 'club';
         $publishedOnly = !empty($options['publishedOnly']);
+        $thbRules = $options['thbRules'] ?? self::getThbRules($db, $eventId);
 
         if (!$db || $eventId <= 0) {
-            return self::computeStandingsFromData([], [], [], [], $groupBy);
+            return self::computeStandingsFromData([], [], [], [], $groupBy, $thbRules);
         }
 
         $publishedSql = $publishedOnly ? " AND ed.result_status = 'Published'" : '';
@@ -330,7 +398,7 @@ class RollMedalHelper {
         $classes = $stmtClasses->fetchAll(\PDO::FETCH_ASSOC);
 
         if (empty($classes)) {
-            return self::computeStandingsFromData([], [], [], [], $groupBy);
+            return self::computeStandingsFromData([], [], [], [], $groupBy, $thbRules);
         }
 
         // Ambil peloton semua babak lalu pilih babak paling awal per kelas sebagai starting list
@@ -425,6 +493,6 @@ class RollMedalHelper {
             }
         }
 
-        return self::computeStandingsFromData($classes, $startingParticipantsByClass, $resultsByClass, $teamClubsByClass, $groupBy);
+        return self::computeStandingsFromData($classes, $startingParticipantsByClass, $resultsByClass, $teamClubsByClass, $groupBy, $thbRules);
     }
 }
