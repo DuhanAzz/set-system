@@ -217,6 +217,11 @@
                                                             <?= substr($ent['skater_name'], 0, 1) ?>
                                                         </div>
                                                         <div class="font-bold text-slate-700 text-[11px] uppercase"><?= htmlspecialchars($ent['skater_name']) ?></div>
+                                                        <?php if (!empty($ent['team_role'])): ?>
+                                                            <span class="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded <?= $ent['team_role'] === 'cadangan' ? 'bg-amber-100 text-amber-700' : 'bg-indigo-100 text-indigo-700' ?>">
+                                                                <?= $ent['team_role'] === 'cadangan' ? 'Cadangan' : 'Inti' ?>
+                                                            </span>
+                                                        <?php endif; ?>
                                                     </div>
                                                     <div>
                                                         <?php if (in_array($ent['payment_status'], ['Unpaid', 'Rejected'])): ?>
@@ -356,13 +361,14 @@
                     <option value="">- Pilih Atlet -</option>
                     <?php foreach($athletes as $a): 
                         $isPon = $a['is_pon_veteran'] ?? 0;
+                        $aAge = \App\Helpers\DateHelper::getSkaterEventAge($a, $event['event_date_start'] ?? null);
                     ?>
-                        <option value="<?= $a['id'] ?>" data-dob="<?= $a['birth_date'] ?>" data-gender="<?= $a['gender'] ?>" data-is-pon="<?= $isPon ?>" data-level="<?= strtolower($a['athlete_level'] ?? 'pemula') ?>">
-                            <?= htmlspecialchars($a['skater_name']) ?> (<?= $a['gender'] === 'M' ? 'Putra' : 'Putri' ?>) <?= $isPon ? '🏅 PON' : '' ?>
+                        <option value="<?= $a['id'] ?>" data-dob="<?= $a['birth_date'] ?>" data-age="<?= $aAge ?>" data-gender="<?= $a['gender'] ?>" data-is-pon="<?= $isPon ?>" data-level="<?= strtolower($a['athlete_level'] ?? 'pemula') ?>">
+                            <?= htmlspecialchars($a['skater_name']) ?> (<?= $aAge ?> Thn - <?= $a['gender'] === 'M' ? 'Putra' : 'Putri' ?>) <?= $isPon ? '🏅 PON' : '' ?>
                         </option>
                     <?php endforeach; ?>
                 </select>
-                <div id="athlete_info" class="mt-2 text-[10px] text-slate-400 font-bold hidden">Lahir: <span id="modal_skater_dob"></span></div>
+                <div id="athlete_info" class="mt-2 text-[10px] text-slate-500 font-bold hidden">Lahir: <span id="modal_skater_dob"></span> • Usia Lomba (31 Des <?= \App\Helpers\DateHelper::getEventYear($event['event_date_start'] ?? null) ?>): <span id="modal_skater_age" class="text-blue-600"></span> Thn</div>
             </div>
 
             <div class="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50">
@@ -437,7 +443,8 @@
                     </select>
                 </div>
                 <div class="mb-4">
-                    <label id="lbl_pilih_atlet" class="block text-[10px] font-bold text-slate-700 mb-1.5 uppercase tracking-widest">Pilih Atlet <span class="text-red-500">*</span></label>
+                    <label id="lbl_pilih_atlet" class="block text-[10px] font-bold text-slate-700 mb-1 uppercase tracking-widest">Pilih Atlet <span class="text-red-500">*</span></label>
+                    <p id="relay_quota_hint" class="text-[10px] font-semibold text-slate-500 mb-2 hidden"></p>
                     
                     <select id="relay_athlete_dropdown" disabled class="w-full text-xs font-bold bg-white border border-slate-300 rounded-xl px-4 py-3 text-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none transition-shadow mb-2" onchange="addRelayAthlete()">
                         <option value="">- Pilih Atlet -</option>
@@ -466,28 +473,54 @@
 </div>
 
 <script>
-const eventYear = parseInt('<?= date('Y', strtotime($event['event_date_start'])) ?>');
+const eventYear = <?= (int)\App\Helpers\DateHelper::getEventYear($event['event_date_start'] ?? null) ?>;
 const allClasses = <?= json_encode($classes) ?>;
 const existingEntriesData = <?= json_encode($existingEntries) ?>;
 const maxTeamRaces = <?= (int)($event['max_team_races'] ?? 99) ?>;
 const allowPemulaStandarMix = <?= !empty($event['allow_pemula_standart_mix']) ? 'true' : 'false' ?>;
-let currentTeamSize = 3;
+const teamQuotas = <?= json_encode($teamQuotas ?? \App\Helpers\RollTeamHelper::getDefaultQuotas()) ?>;
+const teamCategoryLimits = {
+    speed: <?= (int)($event['limit_speed_team'] ?? 1) ?>,
+    standar: <?= (int)($event['limit_std_team'] ?? 1) ?>,
+    pemula: <?= (int)($event['limit_pemula_team'] ?? 0) ?>
+};
+let currentTeamInti = 3;
+let currentTeamCadangan = 1;
+let currentTeamSize = 4;
+let currentRelayHasEligible = false;
+
+function isTeamDistanceName(distanceName) {
+    const d = (distanceName || '').toLowerCase();
+    return d.includes('relay') || d.includes('team') || d.includes('pair') || /\bttt\b/.test(d);
+}
+
+function getTeamQuotaForDistance(distanceName) {
+    const d = (distanceName || '').toLowerCase().trim();
+    let type = 'relay';
+    if (d.includes('pair')) type = 'pair';
+    else if (/\bttt\b/.test(d) || d.includes('team time trial') || d.includes('team sprint')) type = 'ttt';
+    const cfg = (teamQuotas && teamQuotas[type]) ? teamQuotas[type] : { inti: 3, cadangan: 1 };
+    const inti = Math.max(1, parseInt(cfg.inti ?? 1, 10));
+    const cadangan = Math.max(0, parseInt(cfg.cadangan ?? 0, 10));
+    return { type, inti, cadangan, min: inti, max: inti + cadangan };
+}
 
 function closeModal() { document.getElementById('modal-entry').classList.add('hidden'); }
 
 function onSkaterChange(sel) {
     const opt = sel.options[sel.selectedIndex];
     if (opt.value) {
-        document.getElementById('modal_skater_dob').innerText = opt.dataset.dob;
-        // Hitung umur
-        const dobYear = parseInt(opt.dataset.dob.split('-')[0]);
-        let age = eventYear - dobYear;
+        document.getElementById('modal_skater_dob').innerText = opt.dataset.dob || '-';
+        // Hitung umur patokan 31 Des tahun lomba (atau pakai data-age dari DateHelper)
+        const dobYear = opt.dataset.dob ? parseInt(opt.dataset.dob.split('-')[0], 10) : 0;
+        let age = (dobYear >= 1900) ? Math.max(0, eventYear - dobYear) : parseInt(opt.dataset.age || '0', 10);
         
         // ATURAN PB: Jika Veteran PON, paksa umur jadi 25 (Masuk Kategori Senior)
         if (opt.dataset.isPon == '1') {
             age = 25;
             document.getElementById('modal_skater_dob').innerText += ' (🏅 Diwajibkan ke KU Senior)';
         }
+        document.getElementById('modal_skater_age').innerText = age;
 
         // Simpan age di element biar bisa diakses filterClasses
         sel.dataset.age = age;
@@ -836,6 +869,9 @@ function filterRelayKU() {
     athleteDropdown.disabled = true;
 
     document.getElementById('relay_selected_list').innerHTML = '';
+    const hintElKu = document.getElementById('relay_quota_hint');
+    if (hintElKu) hintElKu.classList.add('hidden');
+    document.getElementById('lbl_pilih_atlet').innerHTML = 'Pilih Atlet <span class="text-red-500">*</span>';
     
     // Reset options visibility
     document.querySelectorAll('.relay-athlete-option').forEach(opt => {
@@ -849,8 +885,7 @@ function filterRelayKU() {
 
     let validKUs = new Set();
     allClasses.forEach(c => {
-        const dName = (c.distance_name || '').toLowerCase();
-        if (c.class_cat_id == catId && (dName.includes('relay') || dName.includes('team') || dName.includes('pair'))) {
+        if (c.class_cat_id == catId && isTeamDistanceName(c.distance_name)) {
             validKUs.add(c.age_group_id);
         }
     });
@@ -884,6 +919,9 @@ function filterRelayClasses() {
     athleteDropdown.disabled = true;
 
     document.getElementById('relay_selected_list').innerHTML = '';
+    const hintElKu = document.getElementById('relay_quota_hint');
+    if (hintElKu) hintElKu.classList.add('hidden');
+    document.getElementById('lbl_pilih_atlet').innerHTML = 'Pilih Atlet <span class="text-red-500">*</span>';
     
     document.querySelectorAll('.relay-athlete-option').forEach(opt => {
         opt.disabled = false;
@@ -896,11 +934,10 @@ function filterRelayClasses() {
 
     let validCount = 0;
     allClasses.forEach(c => {
-        const dName = (c.distance_name || '').toLowerCase();
-        if (c.class_cat_id == catId && c.age_group_id == kuId && (dName.includes('relay') || dName.includes('team') || dName.includes('pair'))) {
+        if (c.class_cat_id == catId && c.age_group_id == kuId && isTeamDistanceName(c.distance_name)) {
             const opt = document.createElement('option');
             opt.value = c.id;
-            opt.text = c.distance_name + ' (' + (c.gender || '-') + ')';
+            opt.text = (c.race_number ? c.race_number + ' - ' : '') + c.distance_name + ' (' + (c.gender || '-') + ')';
             opt.dataset.gender = (c.gender || '').toLowerCase();
             classSelect.appendChild(opt);
             validCount++;
@@ -926,51 +963,64 @@ function filterRelayAthletes() {
     options.forEach(opt => opt.disabled = false);
     validateRelaySelection();
 
+    const hintEl = document.getElementById('relay_quota_hint');
+    currentRelayHasEligible = false;
+
     if (!classId) {
         dropdown.disabled = true;
         noAthlete.classList.add('hidden');
+        if (hintEl) hintEl.classList.add('hidden');
+        document.getElementById('lbl_pilih_atlet').innerHTML = 'Pilih Atlet <span class="text-red-500">*</span>';
         return;
     }
-    
-    dropdown.disabled = false;
 
     const optClass = classSelect.options[classSelect.selectedIndex];
     const catGender = optClass.dataset.gender;
-    
-    const kuSelect = document.getElementById('relay_ku_select');
-    const kuOpt = kuSelect.options[kuSelect.selectedIndex];
-    const minAge = parseInt(kuOpt.dataset.min);
-    const maxAge = parseInt(kuOpt.dataset.max);
 
-    // Hitung existing team races per atlet
-    const athleteTeamCount = {};
+    // Hitung existing team races per atlet & per kategori
+    const athleteTeamCountByGroup = {};
     existingEntriesData.forEach(e => {
         if (e.team_name && e.team_name.trim() !== '') {
-            athleteTeamCount[e.skater_id] = (athleteTeamCount[e.skater_id] || 0) + 1;
+            const eCat = (e.skate_class || '').toLowerCase();
+            let grp = 'other';
+            if (eCat.includes('speed')) grp = 'speed';
+            else if (eCat.includes('standar')) grp = 'standar';
+            else if (eCat.includes('pemula')) grp = 'pemula';
+            if (!athleteTeamCountByGroup[e.skater_id]) athleteTeamCountByGroup[e.skater_id] = {};
+            athleteTeamCountByGroup[e.skater_id][grp] = (athleteTeamCountByGroup[e.skater_id][grp] || 0) + 1;
         }
     });
 
-    // Enforce category locking
+    // Enforce category locking & team quota
     let targetGroup = '';
     const catClass = allClasses.find(c => c.id == classId);
     if (catClass) {
-        const dName = (catClass.distance_name || '').toLowerCase();
-        if (dName.includes('pair')) {
-            currentTeamSize = 2;
-        } else {
-            currentTeamSize = 3;
+        const q = getTeamQuotaForDistance(catClass.distance_name);
+        currentTeamInti = q.inti;
+        currentTeamCadangan = q.cadangan;
+        currentTeamSize = q.max;
+
+        const lblText = currentTeamCadangan > 0
+            ? `Pilih Atlet (${currentTeamInti} Inti + maks ${currentTeamCadangan} Cadangan)`
+            : `Pilih Atlet (${currentTeamInti} Inti)`;
+        document.getElementById('lbl_pilih_atlet').innerHTML = lblText + ' <span class="text-red-500">*</span>';
+        if (hintEl) {
+            hintEl.textContent = currentTeamCadangan > 0
+                ? `Input 1–${currentTeamInti} menjadi pemain Inti, input berikutnya (maks ${currentTeamCadangan}) menjadi Cadangan.`
+                : `Wajib tepat ${currentTeamInti} pemain Inti (tanpa cadangan).`;
+            hintEl.classList.remove('hidden');
         }
-        
-        document.getElementById('lbl_pilih_atlet').innerHTML = 'Pilih Atlet (Max ' + currentTeamSize + ') <span class="text-red-500">*</span>';
+
         const tCatStr = (catClass.class_name || '').toLowerCase();
         if (tCatStr.includes('speed')) targetGroup = 'speed';
         else if (tCatStr.includes('standar')) targetGroup = 'standar';
         else if (tCatStr.includes('pemula')) targetGroup = 'pemula';
     }
 
+    const catTeamLimit = (targetGroup && teamCategoryLimits[targetGroup] !== undefined) ? teamCategoryLimits[targetGroup] : maxTeamRaces;
+
     let visibleCount = 0;
     options.forEach(opt => {
-        const age = parseInt(opt.dataset.age);
         const gender = opt.dataset.gender;
         const sId = opt.value;
         
@@ -1002,9 +1052,9 @@ function filterRelayAthletes() {
         
         // Cek limit & duplikasi spesifik class
         const isAlreadyInThisClass = existingEntriesData.some(e => e.skater_id == sId && e.race_class_id == classId);
-        const teamRaceCount = athleteTeamCount[sId] || 0;
+        const teamRaceCount = (athleteTeamCountByGroup[sId] && targetGroup) ? (athleteTeamCountByGroup[sId][targetGroup] || 0) : 0;
 
-        if (genderMatch && ageMatch && categoryMatch && !isAlreadyInThisClass && teamRaceCount < maxTeamRaces) {
+        if (genderMatch && ageMatch && categoryMatch && !isAlreadyInThisClass && teamRaceCount < catTeamLimit) {
             opt.classList.remove('hidden');
             visibleCount++;
         } else {
@@ -1012,12 +1062,15 @@ function filterRelayAthletes() {
         }
     });
 
+    currentRelayHasEligible = visibleCount > 0;
     if (visibleCount === 0) {
         noAthlete.classList.remove('hidden');
         dropdown.disabled = true;
     } else {
         noAthlete.classList.add('hidden');
+        dropdown.disabled = false;
     }
+    validateRelaySelection();
 }
 
 function addRelayAthlete() {
@@ -1027,10 +1080,10 @@ function addRelayAthlete() {
     
     const selectedList = document.getElementById('relay_selected_list');
     
-    // Check if already reached max size
+    // Check if already reached max size (inti + cadangan)
     if (selectedList.children.length >= currentTeamSize) {
         dropdown.value = '';
-        alert('Maksimal ' + currentTeamSize + ' atlet untuk tim ini.');
+        alert('Maksimal ' + currentTeamSize + ' atlet (' + currentTeamInti + ' Inti + ' + currentTeamCadangan + ' Cadangan) untuk tim ini.');
         return;
     }
     
@@ -1039,15 +1092,19 @@ function addRelayAthlete() {
     const age = opt.dataset.age;
     const gender = opt.dataset.gender === 'M' ? 'Putra' : 'Putri';
     
-    // Build item
+    // Build item (badge inti/cadangan disetel otomatis di validateRelaySelection)
     const div = document.createElement('div');
     div.className = 'flex justify-between items-center bg-slate-50 border border-slate-200 p-3 rounded-xl relay-selected-item';
     div.dataset.id = athleteId;
     div.innerHTML = `
         <div>
-            <p class="text-xs font-bold text-slate-800 uppercase">${athleteName}</p>
+            <div class="flex items-center gap-2">
+                <p class="text-xs font-bold text-slate-800 uppercase">${athleteName}</p>
+                <span class="relay-role-badge text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-700">Inti</span>
+            </div>
             <p class="text-[10px] font-bold text-slate-400">Umur: ${age} Thn | ${gender}</p>
             <input type="hidden" name="skater_id[]" value="${athleteId}">
+            <input type="hidden" name="team_role[]" value="inti">
         </div>
         <button type="button" onclick="removeRelayAthlete(this, '${athleteId}')" class="w-8 h-8 rounded-full bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition flex items-center justify-center">
             &times;
@@ -1076,19 +1133,38 @@ function removeRelayAthlete(btn, athleteId) {
 }
 
 function validateRelaySelection() {
-    const count = document.getElementById('relay_selected_list').children.length;
+    const selectedList = document.getElementById('relay_selected_list');
+    const items = selectedList.querySelectorAll('.relay-selected-item');
+    const count = items.length;
     const btn = document.getElementById('btn_submit_relay');
     const dropdown = document.getElementById('relay_athlete_dropdown');
-    
-    if (count >= currentTeamSize) {
+    const classId = document.getElementById('relay_class_select').value;
+
+    // Update role badge & hidden input berdasarkan urutan (1..inti = Inti, berikutnya = Cadangan)
+    items.forEach((item, idx) => {
+        const isReserve = idx >= currentTeamInti;
+        const badge = item.querySelector('.relay-role-badge');
+        const roleInput = item.querySelector('input[name="team_role[]"]');
+        if (badge) {
+            badge.textContent = isReserve ? 'Cadangan' : 'Inti';
+            badge.className = isReserve
+                ? 'relay-role-badge text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-amber-100 text-amber-700'
+                : 'relay-role-badge text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-700';
+        }
+        if (roleInput) {
+            roleInput.value = isReserve ? 'cadangan' : 'inti';
+        }
+    });
+
+    if (classId && count >= currentTeamInti && count <= currentTeamSize) {
         btn.disabled = false;
         btn.className = 'w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl font-black text-xs shadow-md transition-all uppercase tracking-widest cursor-pointer';
-        dropdown.disabled = true;
     } else {
         btn.disabled = true;
         btn.className = 'w-full bg-slate-300 text-white py-3 rounded-xl font-black text-xs shadow-md transition-all uppercase tracking-widest cursor-not-allowed';
-        dropdown.disabled = false;
     }
+
+    dropdown.disabled = !classId || !currentRelayHasEligible || count >= currentTeamSize;
 }
 
 function checkEligibility() {

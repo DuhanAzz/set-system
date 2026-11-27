@@ -106,18 +106,18 @@
                         </div>
                     </div>
 
-                    <!-- SENTRALISASI PENGATURAN KATEGORI, TARIF & LIMIT LOMBA -->
+                    <!-- SENTRALISASI PENGATURAN TARIF & KUOTA LOMBA -->
                     <div class="mb-6 pt-4 border-t border-slate-200">
                         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
                             <div>
                                 <h4 class="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
-                                    <span>💰 Sentralisasi Pengaturan Kategori, Tarif & Batas Lomba</span>
+                                    <span>💰 Sentralisasi Pengaturan Tarif & Kuota Lomba</span>
                                 </h4>
-                                <p class="text-[11px] text-slate-500 font-medium mt-0.5">Kelola status pendaftaran, tarif paket dasar, kuota dasar, batas nomor (limit), dan biaya nomor tambahan secara terpusat.</p>
+                                <p class="text-[11px] text-slate-500 font-medium mt-0.5">Kelola tarif paket dasar, kuota dasar individu, biaya nomor tambahan, dan kuota tim. Batas maksimal nomor (limit) & status buka/tutup kategori diatur di menu <strong>Kelas Lomba</strong>.</p>
                             </div>
-                            <span class="bg-blue-50 text-blue-700 border border-blue-200 text-[10px] px-3 py-1 rounded-full font-bold self-start sm:self-auto flex items-center gap-1.5">
-                                <span>🔄 Terhubung Otomatis dgn Matriks Kelas</span>
-                            </span>
+                            <a href="<?= getenv('APP_URL') ?>/roll/admin/events/classes?id=<?= $row['id'] ?>" class="bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-[10px] px-3 py-1 rounded-full font-bold self-start sm:self-auto flex items-center gap-1.5 transition">
+                                <span>⚙️ Atur Limit di Kelas Lomba &rarr;</span>
+                            </a>
                         </div>
 
                         <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-5">
@@ -129,12 +129,9 @@
                                             <span class="w-2.5 h-2.5 rounded-full bg-fuchsia-600"></span>
                                             <span class="text-xs font-black text-fuchsia-900 uppercase tracking-wider">Kategori SPEED</span>
                                         </div>
-                                        <label class="inline-flex items-center cursor-pointer" title="Buka/Tutup Pendaftaran Speed">
-                                            <input type="hidden" name="is_speed_open" value="0">
-                                            <input type="checkbox" name="is_speed_open" value="1" <?= (!isset($row['is_speed_open']) || $row['is_speed_open']) ? 'checked' : '' ?> class="sr-only peer">
-                                            <div class="relative w-8 h-4 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-fuchsia-600"></div>
-                                            <span class="text-[9px] font-bold text-fuchsia-800 ml-1.5 uppercase"><?= (!isset($row['is_speed_open']) || $row['is_speed_open']) ? 'Buka' : 'Tutup' ?></span>
-                                        </label>
+                                        <span class="text-[9px] font-bold px-2 py-0.5 rounded-full <?= (!isset($row['is_speed_open']) || $row['is_speed_open']) ? 'bg-fuchsia-100 text-fuchsia-700' : 'bg-slate-200 text-slate-600' ?> uppercase">
+                                            <?= (!isset($row['is_speed_open']) || $row['is_speed_open']) ? 'Buka' : 'Tutup' ?>
+                                        </span>
                                     </div>
 
                                     <div class="space-y-3">
@@ -149,17 +146,6 @@
                                             </div>
                                         </div>
 
-                                        <div class="grid grid-cols-2 gap-2">
-                                            <div>
-                                                <label class="block text-[9px] font-bold text-fuchsia-900 uppercase tracking-wider mb-1">Max Individu</label>
-                                                <input type="number" name="limit_speed_ind" value="<?= htmlspecialchars($row['limit_speed_ind'] ?? 3) ?>" min="1" class="w-full bg-white border border-fuchsia-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-700 text-center focus:ring-1 focus:ring-fuchsia-500 outline-none" required>
-                                            </div>
-                                            <div>
-                                                <label class="block text-[9px] font-bold text-fuchsia-900 uppercase tracking-wider mb-1">Max Beregu</label>
-                                                <input type="number" name="limit_speed_team" value="<?= htmlspecialchars($row['limit_speed_team'] ?? 1) ?>" min="0" class="w-full bg-white border border-fuchsia-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-700 text-center focus:ring-1 focus:ring-fuchsia-500 outline-none" required>
-                                            </div>
-                                        </div>
-
                                         <div>
                                             <label class="block text-[9px] font-bold text-fuchsia-900 uppercase tracking-wider mb-1">Biaya Nomor Tambahan (+Rp / nomor)</label>
                                             <input type="number" name="fee_speed_extra" value="<?= htmlspecialchars($row['fee_speed_extra'] ?? '200000') ?>" placeholder="Contoh: 200000" class="w-full bg-white border border-fuchsia-200 rounded-lg px-2.5 py-1.5 text-xs font-black text-fuchsia-700 focus:ring-1 focus:ring-fuchsia-500 outline-none">
@@ -168,7 +154,7 @@
                                 </div>
 
                                 <div class="mt-3 pt-2.5 border-t border-fuchsia-200/60 text-[9.5px] text-fuchsia-800 leading-tight">
-                                    Paket Basic mencakup <span class="font-black"><?= $row['quota_speed_basic'] ?? 2 ?></span> nomor individu & <span class="font-black"><?= $row['limit_speed_team'] ?? 1 ?></span> beregu. Jika atlet ambil hingga <span class="font-black"><?= $row['limit_speed_ind'] ?? 3 ?></span> nomor individu, nomor ke-3 otomatis ditagih biaya tambahan.
+                                    Paket Basic mencakup <span class="font-black"><?= $row['quota_speed_basic'] ?? 2 ?></span> nomor individu. Jika limit di Kelas Lomba lebih besar dari Kuota Dasar, kelebihannya otomatis ditagih biaya tambahan.
                                 </div>
                             </div>
 
@@ -180,12 +166,9 @@
                                             <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
                                             <span class="text-xs font-black text-amber-900 uppercase tracking-wider">Kategori STANDAR</span>
                                         </div>
-                                        <label class="inline-flex items-center cursor-pointer" title="Buka/Tutup Pendaftaran Standar">
-                                            <input type="hidden" name="is_std_open" value="0">
-                                            <input type="checkbox" name="is_std_open" value="1" <?= (!isset($row['is_std_open']) || $row['is_std_open']) ? 'checked' : '' ?> class="sr-only peer">
-                                            <div class="relative w-8 h-4 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-amber-500"></div>
-                                            <span class="text-[9px] font-bold text-amber-800 ml-1.5 uppercase"><?= (!isset($row['is_std_open']) || $row['is_std_open']) ? 'Buka' : 'Tutup' ?></span>
-                                        </label>
+                                        <span class="text-[9px] font-bold px-2 py-0.5 rounded-full <?= (!isset($row['is_std_open']) || $row['is_std_open']) ? 'bg-amber-100 text-amber-700' : 'bg-slate-200 text-slate-600' ?> uppercase">
+                                            <?= (!isset($row['is_std_open']) || $row['is_std_open']) ? 'Buka' : 'Tutup' ?>
+                                        </span>
                                     </div>
 
                                     <div class="space-y-3">
@@ -200,17 +183,6 @@
                                             </div>
                                         </div>
 
-                                        <div class="grid grid-cols-2 gap-2">
-                                            <div>
-                                                <label class="block text-[9px] font-bold text-amber-900 uppercase tracking-wider mb-1">Max Individu</label>
-                                                <input type="number" name="limit_std_ind" value="<?= htmlspecialchars($row['limit_std_ind'] ?? 2) ?>" min="1" class="w-full bg-white border border-amber-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-700 text-center focus:ring-1 focus:ring-amber-500 outline-none" required>
-                                            </div>
-                                            <div>
-                                                <label class="block text-[9px] font-bold text-amber-900 uppercase tracking-wider mb-1">Max Beregu</label>
-                                                <input type="number" name="limit_std_team" value="<?= htmlspecialchars($row['limit_std_team'] ?? 1) ?>" min="0" class="w-full bg-white border border-amber-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-700 text-center focus:ring-1 focus:ring-amber-500 outline-none" required>
-                                            </div>
-                                        </div>
-
                                         <div>
                                             <label class="block text-[9px] font-bold text-amber-900 uppercase tracking-wider mb-1">Biaya Nomor Tambahan (+Rp / nomor)</label>
                                             <input type="number" name="fee_standart_extra" value="<?= htmlspecialchars($row['fee_standart_extra'] ?? '0') ?>" placeholder="0 jika tidak ada tambahan" class="w-full bg-white border border-amber-200 rounded-lg px-2.5 py-1.5 text-xs font-black text-amber-600 focus:ring-1 focus:ring-amber-500 outline-none">
@@ -219,7 +191,7 @@
                                 </div>
 
                                 <div class="mt-3 pt-2.5 border-t border-amber-200/60 text-[9.5px] text-amber-800 leading-tight">
-                                    Paket Basic mencakup <span class="font-black"><?= $row['quota_std_basic'] ?? 2 ?></span> nomor individu & <span class="font-black"><?= $row['limit_std_team'] ?? 1 ?></span> beregu. Jika Max Individu sama dengan Kuota Dasar, atlet dibatasi maksimal 2 nomor tanpa tambahan.
+                                    Paket Basic mencakup <span class="font-black"><?= $row['quota_std_basic'] ?? 2 ?></span> nomor individu. Jika limit individu di Kelas Lomba sama dengan Kuota Dasar, atlet tidak dikenakan biaya tambahan.
                                 </div>
                             </div>
 
@@ -231,12 +203,9 @@
                                             <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
                                             <span class="text-xs font-black text-emerald-900 uppercase tracking-wider">Kategori PEMULA</span>
                                         </div>
-                                        <label class="inline-flex items-center cursor-pointer" title="Buka/Tutup Pendaftaran Pemula">
-                                            <input type="hidden" name="is_pemula_open" value="0">
-                                            <input type="checkbox" name="is_pemula_open" value="1" <?= (!isset($row['is_pemula_open']) || $row['is_pemula_open']) ? 'checked' : '' ?> class="sr-only peer">
-                                            <div class="relative w-8 h-4 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-emerald-500"></div>
-                                            <span class="text-[9px] font-bold text-emerald-800 ml-1.5 uppercase"><?= (!isset($row['is_pemula_open']) || $row['is_pemula_open']) ? 'Buka' : 'Tutup' ?></span>
-                                        </label>
+                                        <span class="text-[9px] font-bold px-2 py-0.5 rounded-full <?= (!isset($row['is_pemula_open']) || $row['is_pemula_open']) ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600' ?> uppercase">
+                                            <?= (!isset($row['is_pemula_open']) || $row['is_pemula_open']) ? 'Buka' : 'Tutup' ?>
+                                        </span>
                                     </div>
 
                                     <div class="space-y-3">
@@ -251,17 +220,6 @@
                                             </div>
                                         </div>
 
-                                        <div class="grid grid-cols-2 gap-2">
-                                            <div>
-                                                <label class="block text-[9px] font-bold text-emerald-900 uppercase tracking-wider mb-1">Max Individu</label>
-                                                <input type="number" name="limit_pemula_ind" value="<?= htmlspecialchars($row['limit_pemula_ind'] ?? 3) ?>" min="1" class="w-full bg-white border border-emerald-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-700 text-center focus:ring-1 focus:ring-emerald-500 outline-none" required>
-                                            </div>
-                                            <div>
-                                                <label class="block text-[9px] font-bold text-emerald-900 uppercase tracking-wider mb-1">Max Beregu</label>
-                                                <input type="number" name="limit_pemula_team" value="<?= htmlspecialchars($row['limit_pemula_team'] ?? 0) ?>" min="0" class="w-full bg-white border border-emerald-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-700 text-center focus:ring-1 focus:ring-emerald-500 outline-none" required>
-                                            </div>
-                                        </div>
-
                                         <div>
                                             <label class="block text-[9px] font-bold text-emerald-900 uppercase tracking-wider mb-1">Biaya Nomor Tambahan (+Rp / nomor)</label>
                                             <input type="number" name="fee_pemula_extra" value="<?= htmlspecialchars($row['fee_pemula_extra'] ?? '100000') ?>" placeholder="Contoh: 100000" class="w-full bg-white border border-emerald-200 rounded-lg px-2.5 py-1.5 text-xs font-black text-emerald-600 focus:ring-1 focus:ring-emerald-500 outline-none">
@@ -270,7 +228,7 @@
                                 </div>
 
                                 <div class="mt-3 pt-2.5 border-t border-emerald-200/60 text-[9.5px] text-emerald-800 leading-tight">
-                                    Paket Basic mencakup <span class="font-black"><?= $row['quota_pemula_basic'] ?? 2 ?></span> nomor individu (misal 100m & 200m). Nomor ke-3 (300m) otomatis dihitung sebagai nomor tambahan dengan biaya ekstra.
+                                    Paket Basic mencakup <span class="font-black"><?= $row['quota_pemula_basic'] ?? 2 ?></span> nomor individu (misal 100m & 200m). Kelebihannya otomatis dihitung sebagai nomor tambahan dengan biaya ekstra.
                                 </div>
                             </div>
                         </div>
@@ -296,6 +254,49 @@
                                     <input type="checkbox" name="allow_pemula_standart_mix" value="1" class="sr-only peer" <?= !empty($row['allow_pemula_standart_mix']) ? 'checked' : '' ?>>
                                     <div class="w-12 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[3px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600 shadow-inner"></div>
                                 </label>
+                            </div>
+                        </div>
+
+                        <!-- KUOTA PEMAIN TIM (INTI & CADANGAN) -->
+                        <div class="mt-5 pt-4 border-t border-slate-200/80">
+                            <div class="mb-3">
+                                <h5 class="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                                    <span>👥 Kuota Pemain Tim (Inti & Cadangan)</span>
+                                </h5>
+                                <p class="text-[10px] text-slate-500 mt-0.5">Atur jumlah pemain wajib (Inti) dan pemain cadangan (opsional) untuk masing-masing nomor lomba beregu.</p>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <?php
+                                $teamCards = [
+                                    ['key' => 'pair', 'title' => 'Pair', 'defInti' => 2, 'defCad' => 0, 'hint' => 'Nomor berpasangan (mis. Pair 500m)'],
+                                    ['key' => 'ttt',  'title' => 'TTT',  'defInti' => 3, 'defCad' => 1, 'hint' => 'Team Time Trial / Team Sprint'],
+                                    ['key' => 'relay','title' => 'Relay','defInti' => 3, 'defCad' => 1, 'hint' => 'Semua nomor estafet (Relay 1000m/1800m/3000m)'],
+                                ];
+                                foreach ($teamCards as $tc):
+                                    $k = $tc['key'];
+                                    $vInti = (int)($row["team_{$k}_inti"] ?? $tc['defInti']);
+                                    $vCad  = (int)($row["team_{$k}_cadangan"] ?? $tc['defCad']);
+                                ?>
+                                <div class="bg-indigo-50/50 border border-indigo-200 rounded-xl p-3.5">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <span class="text-xs font-black text-indigo-900 uppercase tracking-wider"><?= $tc['title'] ?></span>
+                                        <span class="text-[9px] font-bold text-indigo-700 bg-white border border-indigo-200 px-2 py-0.5 rounded-full">
+                                            Total: <?= $vInti ?>–<?= $vInti + $vCad ?> Atlet
+                                        </span>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-2">
+                                        <div>
+                                            <label class="block text-[9px] font-bold text-indigo-900 uppercase tracking-wider mb-1">Pemain Inti</label>
+                                            <input type="number" name="team_<?= $k ?>_inti" value="<?= $vInti ?>" min="1" class="w-full bg-white border border-indigo-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-700 text-center focus:ring-1 focus:ring-indigo-500 outline-none" required>
+                                        </div>
+                                        <div>
+                                            <label class="block text-[9px] font-bold text-indigo-900 uppercase tracking-wider mb-1">Cadangan</label>
+                                            <input type="number" name="team_<?= $k ?>_cadangan" value="<?= $vCad ?>" min="0" class="w-full bg-white border border-indigo-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-700 text-center focus:ring-1 focus:ring-indigo-500 outline-none" required>
+                                        </div>
+                                    </div>
+                                    <p class="text-[9px] text-indigo-800/70 mt-2 leading-tight"><?= $tc['hint'] ?></p>
+                                </div>
+                                <?php endforeach; ?>
                             </div>
                         </div>
                     </div>

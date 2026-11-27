@@ -44,93 +44,31 @@ class RollMedalTallyController extends Controller {
         $groupBy = $_GET['group_by'] ?? $defaultGroup;
 
         if ($groupBy === 'school') {
-            $selectEntity = "COALESCE(NULLIF(s.asal_sekolah, ''), 'TANPA SEKOLAH') as entity_name, COALESCE(NULLIF(s.kota_kabupaten, ''), '-') as region_name";
-            $groupByClause = "entity_name";
             $labelTitle = "NAMA SEKOLAH";
         } elseif ($groupBy === 'province') {
-            $selectEntity = "COALESCE(NULLIF(s.provinsi, ''), NULLIF(c.city_province, ''), 'TANPA PROVINSI') as entity_name, '' as region_name";
-            $groupByClause = "entity_name";
             $labelTitle = "KONTINGEN PROVINSI";
         } elseif ($groupBy === 'city') {
-            $selectEntity = "COALESCE(NULLIF(s.kota_kabupaten, ''), NULLIF(c.city_province, ''), 'TANPA KOTA/KAB') as entity_name, COALESCE(NULLIF(s.provinsi, ''), '-') as region_name";
-            $groupByClause = "entity_name";
             $labelTitle = "KONTINGEN KOTA / KABUPATEN";
         } else {
-            $selectEntity = "c.club_name as entity_name, COALESCE(NULLIF(c.city_province, ''), '-') as region_name";
-            $groupByClause = "c.id, c.club_name";
             $labelTitle = "NAMA KLUB / TIM";
         }
 
-        // Rekap Medali Dinamis
-        $stmtTally = $db->prepare("
-            SELECT $selectEntity,
-                SUM(CASE WHEN ranked_r.global_rank = 1 THEN 1 ELSE 0 END) as gold,
-                SUM(CASE WHEN ranked_r.global_rank = 2 THEN 1 ELSE 0 END) as silver,
-                SUM(CASE WHEN ranked_r.global_rank = 3 THEN 1 ELSE 0 END) as bronze
-            FROM (
-                SELECT r.event_id, r.race_class_id, r.skater_id, r.status, r.round,
-                    (
-                        SELECT COUNT(*) 
-                        FROM roll_event_results r2 
-                        WHERE r2.event_id = r.event_id AND r2.race_class_id = r.race_class_id 
-                          AND r2.round = 'Final' AND r2.status = 'OK'
-                          AND (
-                              (COALESCE(LOWER(d.distance_name), '') LIKE '%eliminasi%' AND r2.rank > 0 AND (r.rank IS NULL OR r.rank = 0 OR r2.rank < r.rank OR (r2.rank = r.rank AND CAST(REPLACE(r2.heat_name, 'Heat ', '') AS UNSIGNED) < CAST(REPLACE(r.heat_name, 'Heat ', '') AS UNSIGNED))))
-                              OR (COALESCE(LOWER(d.distance_name), '') LIKE '%dtt%' AND (
-                                  (r2.time != '00.00.000' AND r2.time != '' AND (r.time IS NULL OR r.time = '' OR r.time = '00.00.000' OR CAST(REPLACE(REPLACE(r2.time, ':', ''), '.', '') AS UNSIGNED) < CAST(REPLACE(REPLACE(r.time, ':', ''), '.', '') AS UNSIGNED)))
-                                  OR ((r2.time = r.time OR ((r2.time IS NULL OR r2.time = '' OR r2.time = '00.00.000') AND (r.time IS NULL OR r.time = '' OR r.time = '00.00.000'))) AND CAST(REPLACE(r2.heat_name, 'Heat ', '') AS UNSIGNED) < CAST(REPLACE(r.heat_name, 'Heat ', '') AS UNSIGNED))
-                              ))
-                              OR (
-                                  COALESCE(LOWER(d.distance_name), '') NOT LIKE '%eliminasi%' AND COALESCE(LOWER(d.distance_name), '') NOT LIKE '%dtt%' AND (
-                                      (COALESCE(r2.point, 0) > COALESCE(r.point, 0))
-                                      OR (
-                                          COALESCE(r2.point, 0) = COALESCE(r.point, 0) AND (
-                                              (r2.rank > 0 AND (r.rank IS NULL OR r.rank = 0 OR r2.rank < r.rank))
-                                              OR (
-                                                  (COALESCE(r2.rank, 0) = COALESCE(r.rank, 0)) AND (
-                                                      (r2.time != '00.00.000' AND r2.time != '' AND (r.time IS NULL OR r.time = '' OR r.time = '00.00.000' OR CAST(REPLACE(REPLACE(r2.time, ':', ''), '.', '') AS UNSIGNED) < CAST(REPLACE(REPLACE(r.time, ':', ''), '.', '') AS UNSIGNED)))
-                                                      OR (
-                                                          (r2.time = r.time OR ((r2.time IS NULL OR r2.time = '' OR r2.time = '00.00.000') AND (r.time IS NULL OR r.time = '' OR r.time = '00.00.000')))
-                                                          AND CAST(REPLACE(r2.heat_name, 'Heat ', '') AS UNSIGNED) < CAST(REPLACE(r.heat_name, 'Heat ', '') AS UNSIGNED)
-                                                      )
-                                                  )
-                                              )
-                                          )
-                                      )
-                                  )
-                              )
-                          )
-                    ) + 1 as global_rank
-                FROM roll_event_results r
-                JOIN roll_event_details ed ON r.race_class_id = ed.id
-                LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
-                WHERE r.event_id = ? AND r.round = 'Final' AND r.status = 'OK'
-                  AND (ed.category_name != 'EKSEBISI' OR ed.category_name IS NULL)
-                  AND LOWER(d.distance_name) NOT LIKE '%relay%'
-                  AND LOWER(d.distance_name) NOT LIKE '%team%'
-                  AND LOWER(d.distance_name) NOT LIKE '%pair%'
-            ) as ranked_r
-            JOIN roll_skaters s ON ranked_r.skater_id = s.id
-            LEFT JOIN roll_clubs c ON s.club_id = c.id
-            WHERE ranked_r.global_rank IN (1, 2, 3)
-            GROUP BY $groupByClause
-            ORDER BY gold DESC, silver DESC, bronze DESC, entity_name ASC
-        ");
-        $stmtTally->execute([$eventId]);
-        $medalTally = $stmtTally->fetchAll(PDO::FETCH_ASSOC);
-
-        // Kompatibilitas dengan view eksisting yang membaca club_name
-        foreach ($medalTally as &$m) {
-            $m['club_name'] = $m['entity_name'];
-        }
+        // Rekap Medali Juara Umum Klub (Speed & Standart) sesuai aturan THB
+        $calc = \App\Helpers\RollMedalHelper::calculateStandings($db, (int)$eventId, [
+            'groupBy' => $groupBy,
+        ]);
 
         return $this->view('roll/admin/medal_tally/index', [
-            'medalTally' => $medalTally,
-            'eventInfo' => $eventInfo,
-            'labelTitle' => $labelTitle,
-            'groupBy' => $groupBy,
-            'partType' => $partType,
-            'eventId' => $eventId
+            'standings'     => $calc['standings'],
+            'champions'     => $calc['champions'],
+            'classAudit'    => $calc['class_audit'],
+            'mixExclusions' => $calc['mix_exclusions'],
+            'medalTally'    => $calc['standings']['Speed'] ?? [],
+            'eventInfo'     => $eventInfo,
+            'labelTitle'    => $labelTitle,
+            'groupBy'       => $groupBy,
+            'partType'      => $partType,
+            'eventId'       => $eventId
         ]);
     }
 

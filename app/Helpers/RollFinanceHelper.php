@@ -328,4 +328,335 @@ class RollFinanceHelper {
             'summary' => $summary
         ];
     }
+
+    /**
+     * Ambil pengaturan tarif event yang sudah dioverride oleh custom fee token jika tersedia.
+     */
+    public static function getTokenInvoiceFees($db, int $eventId, string $invoiceCode, ?array $baseFees = null): array {
+        $fees = $baseFees ?? self::getEventFees($db, $eventId);
+        try {
+            $stmtTokenFee = $db->prepare("SELECT custom_fee_speed, custom_fee_standart, custom_fee_pemula, custom_fee_relay FROM roll_event_tokens WHERE manual_invoice_code = ? LIMIT 1");
+            $stmtTokenFee->execute([$invoiceCode]);
+            $tf = $stmtTokenFee->fetch(\PDO::FETCH_ASSOC);
+            if ($tf) {
+                if ($tf['custom_fee_speed'] !== null) $fees['fee_speed'] = (float)$tf['custom_fee_speed'];
+                if ($tf['custom_fee_standart'] !== null) $fees['fee_standart'] = (float)$tf['custom_fee_standart'];
+                if ($tf['custom_fee_pemula'] !== null) $fees['fee_pemula'] = (float)$tf['custom_fee_pemula'];
+                if ($tf['custom_fee_relay'] !== null) $fees['fee_relay'] = (float)$tf['custom_fee_relay'];
+            }
+        } catch (\Throwable $e) {}
+        return $fees;
+    }
+
+    /**
+     * Menghitung laporan keuangan lengkap untuk satu event (Klub Reguler + Jalur Token/Manual),
+     * disinkronkan dengan perhitungan dinamis RollFinanceHelper seperti di halaman Verifikasi Pendaftaran.
+     */
+    public static function buildEventFinanceReport($db, int $eventId): array {
+        $eventFees = self::getEventFees($db, $eventId);
+
+        // 1. Ambil seluruh entri reguler event dalam 1 query agar tidak N+1 (hanya entri tanpa manual_invoice_code agar tidak ganda dengan invoice manual/token)
+        $stmtRegEnt = $db->prepare("
+            SELECT s.club_id, s.id as skater_id, sc.class_name, d.distance_name, e.team_name, e.race_class_id, e.created_at
+            FROM roll_entries e
+            JOIN roll_skaters s ON e.skater_id = s.id
+            LEFT JOIN roll_event_details ed ON e.race_class_id = ed.id
+            LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
+            LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
+            WHERE e.event_id = ? AND (e.manual_invoice_code IS NULL OR e.manual_invoice_code = '')
+        ");
+        $stmtRegEnt->execute([$eventId]);
+        $entriesByClub = [];
+        foreach ($stmtRegEnt->fetchAll(\PDO::FETCH_ASSOC) as $r) {
+            $entriesByClub[(int)$r['club_id']][] = $r;
+        }
+
+        // 2. Ambil data pembayaran klub reguler + klub yang sudah mendaftar tetapi belum bayar (Unpaid)
+        $stmtClubs = $db->prepare("
+            SELECT c.id as club_id, c.club_name, MAX(u.email) as email,
+                   p.id as payment_id, COALESCE(p.status, 'Unpaid') as status,
+                   p.total_amount as stored_amount, p.payment_proof, p.created_at as payment_created_at
+            FROM roll_clubs c
+            LEFT JOIN roll_payments p ON p.club_id = c.id AND p.event_id = ?
+            LEFT JOIN roll_users u ON u.club_id = c.id
+            WHERE p.id IS NOT NULL
+               OR EXISTS (
+                   SELECT 1 FROM roll_entries e
+                   JOIN roll_skaters s ON e.skater_id = s.id
+                   WHERE s.club_id = c.id AND e.event_id = ?
+                     AND (e.manual_invoice_code IS NULL OR e.manual_invoice_code = '')
+               )
+            GROUP BY c.id, c.club_name, p.id, p.status, p.total_amount, p.payment_proof, p.created_at
+        ");
+        $stmtClubs->execute([$eventId, $eventId]);
+        $clubRows = $stmtClubs->fetchAll(\PDO::FETCH_ASSOC);
+
+        $transactions = [];
+        foreach ($clubRows as $cr) {
+            $cid = (int)$cr['club_id'];
+            $clubEntries = $entriesByClub[$cid] ?? [];
+            $calc = self::calculateTotalTagihan($clubEntries, $eventFees);
+            $amount = count($clubEntries) > 0 ? (float)$calc['total_amount'] : (float)($cr['stored_amount'] ?? 0);
+            $skaterCount = count(array_unique(array_column($clubEntries, 'skater_id')));
+            $latestEntryAt = !empty($clubEntries) ? max(array_column($clubEntries, 'created_at')) : null;
+
+            $transactions[] = [
+                'id' => (int)($cr['payment_id'] ?? 0),
+                'club_id' => $cid,
+                'type' => 'Klub',
+                'club_name' => $cr['club_name'] ?: ('Klub #' . $cid),
+                'identifier' => 'REG-' . str_pad((string)$cid, 4, '0', STR_PAD_LEFT),
+                'email' => $cr['email'] ?? '',
+                'status' => $cr['status'] ?: 'Unpaid',
+                'payment_amount' => $amount,
+                'skater_count' => $skaterCount,
+                'entry_count' => count($clubEntries),
+                'payment_proof' => $cr['payment_proof'] ?? '',
+                'created_at' => $cr['payment_created_at'] ?: ($latestEntryAt ?: null),
+                'detail_url' => '/roll/admin/entries/detail?id=' . $cid . '&event_id=' . $eventId,
+                'calc_summary' => $calc['summary'],
+                'skater_breakdowns' => $calc['skater_breakdowns'],
+            ];
+        }
+
+        // 3. Ambil entri jalur token / manual dalam 1 query dan custom fee token bila ada
+        $stmtManEnt = $db->prepare("
+            SELECT e.manual_invoice_code, e.club_id as entry_club_id, ec.club_name as entry_club_name,
+                   s.id as skater_id, sc.class_name, d.distance_name, e.team_name, e.race_class_id, e.created_at
+            FROM roll_entries e
+            JOIN roll_skaters s ON e.skater_id = s.id
+            LEFT JOIN roll_clubs ec ON e.club_id = ec.id
+            LEFT JOIN roll_event_details ed ON e.race_class_id = ed.id
+            LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
+            LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
+            WHERE e.event_id = ? AND e.manual_invoice_code IS NOT NULL AND e.manual_invoice_code != ''
+        ");
+        $stmtManEnt->execute([$eventId]);
+        $entriesByInvoice = [];
+        $clubNameByInvoice = [];
+        foreach ($stmtManEnt->fetchAll(\PDO::FETCH_ASSOC) as $mr) {
+            $inv = (string)$mr['manual_invoice_code'];
+            $entriesByInvoice[$inv][] = $mr;
+            if (!isset($clubNameByInvoice[$inv]) && !empty($mr['entry_club_name'])) {
+                $clubNameByInvoice[$inv] = $mr['entry_club_name'];
+            }
+        }
+
+        $tokenFeesByInvoice = [];
+        try {
+            $stmtTF = $db->prepare("SELECT manual_invoice_code, custom_fee_speed, custom_fee_standart, custom_fee_pemula, custom_fee_relay FROM roll_event_tokens WHERE event_id = ? AND manual_invoice_code IS NOT NULL");
+            $stmtTF->execute([$eventId]);
+            foreach ($stmtTF->fetchAll(\PDO::FETCH_ASSOC) as $tf) {
+                $tokenFeesByInvoice[(string)$tf['manual_invoice_code']] = $tf;
+            }
+        } catch (\Throwable $e) {}
+
+        $stmtManual = $db->prepare("
+            SELECT m.id, m.club_id, m.status, m.total_amount as stored_amount, m.payment_proof, m.created_at,
+                   m.invoice_code, c.club_name
+            FROM roll_manual_payments m
+            LEFT JOIN roll_clubs c ON m.club_id = c.id
+            WHERE m.event_id = ?
+            ORDER BY m.created_at DESC
+        ");
+        $stmtManual->execute([$eventId]);
+        $seenManualInvoices = [];
+        foreach ($stmtManual->fetchAll(\PDO::FETCH_ASSOC) as $mr) {
+            $invCode = (string)$mr['invoice_code'];
+            $seenManualInvoices[$invCode] = true;
+            $invEntries = $entriesByInvoice[$invCode] ?? [];
+
+            $invFees = $eventFees;
+            if (!empty($tokenFeesByInvoice[$invCode])) {
+                $tf = $tokenFeesByInvoice[$invCode];
+                if ($tf['custom_fee_speed'] !== null) $invFees['fee_speed'] = (float)$tf['custom_fee_speed'];
+                if ($tf['custom_fee_standart'] !== null) $invFees['fee_standart'] = (float)$tf['custom_fee_standart'];
+                if ($tf['custom_fee_pemula'] !== null) $invFees['fee_pemula'] = (float)$tf['custom_fee_pemula'];
+                if ($tf['custom_fee_relay'] !== null) $invFees['fee_relay'] = (float)$tf['custom_fee_relay'];
+            }
+
+            $calc = self::calculateTotalTagihan($invEntries, $invFees);
+            $isEksebisiInv = strpos($invCode, 'MAN-EKS-') === 0;
+            if ($isEksebisiInv && (float)($mr['stored_amount'] ?? 0) > 0) {
+                $amount = (float)$mr['stored_amount'];
+            } else {
+                $amount = count($invEntries) > 0 ? (float)$calc['total_amount'] : (float)($mr['stored_amount'] ?? 0);
+            }
+
+            $resolvedClubName = $mr['club_name'] ?: ($clubNameByInvoice[$invCode] ?? ('Invoice ' . $invCode));
+            $skaterCount = count(array_unique(array_column($invEntries, 'skater_id')));
+
+            $transactions[] = [
+                'id' => (int)$mr['id'],
+                'club_id' => (int)($mr['club_id'] ?? 0),
+                'type' => 'Token',
+                'club_name' => $resolvedClubName,
+                'identifier' => $invCode,
+                'email' => '',
+                'status' => $mr['status'] ?: 'Unpaid',
+                'payment_amount' => $amount,
+                'skater_count' => $skaterCount,
+                'entry_count' => count($invEntries),
+                'payment_proof' => $mr['payment_proof'] ?? '',
+                'created_at' => $mr['created_at'] ?? null,
+                'detail_url' => '/roll/admin/entries/manual_invoice_detail?invoice_code=' . urlencode($invCode) . '&event_id=' . $eventId,
+                'calc_summary' => $calc['summary'],
+                'skater_breakdowns' => $calc['skater_breakdowns'],
+            ];
+        }
+
+        // 4. Sertakan pendaftaran token yang sudah mengisi entri (draf Unpaid) tetapi belum mengirim bukti bayar
+        foreach ($entriesByInvoice as $invCode => $invEntries) {
+            if (isset($seenManualInvoices[$invCode]) || strpos((string)$invCode, 'MAN-TOK-') !== 0) {
+                continue;
+            }
+            $invFees = $eventFees;
+            if (!empty($tokenFeesByInvoice[$invCode])) {
+                $tf = $tokenFeesByInvoice[$invCode];
+                if ($tf['custom_fee_speed'] !== null) $invFees['fee_speed'] = (float)$tf['custom_fee_speed'];
+                if ($tf['custom_fee_standart'] !== null) $invFees['fee_standart'] = (float)$tf['custom_fee_standart'];
+                if ($tf['custom_fee_pemula'] !== null) $invFees['fee_pemula'] = (float)$tf['custom_fee_pemula'];
+                if ($tf['custom_fee_relay'] !== null) $invFees['fee_relay'] = (float)$tf['custom_fee_relay'];
+            }
+            $calc = self::calculateTotalTagihan($invEntries, $invFees);
+            $latestAt = !empty($invEntries) ? max(array_column($invEntries, 'created_at')) : null;
+            $transactions[] = [
+                'id' => 0,
+                'club_id' => (int)($invEntries[0]['entry_club_id'] ?? 0),
+                'type' => 'Token',
+                'club_name' => $clubNameByInvoice[$invCode] ?? ('Invoice ' . $invCode),
+                'identifier' => $invCode,
+                'email' => '',
+                'status' => 'Unpaid',
+                'payment_amount' => (float)$calc['total_amount'],
+                'skater_count' => count(array_unique(array_column($invEntries, 'skater_id'))),
+                'entry_count' => count($invEntries),
+                'payment_proof' => '',
+                'created_at' => $latestAt,
+                'detail_url' => '/roll/admin/entries/manual_invoice_detail?invoice_code=' . urlencode($invCode) . '&event_id=' . $eventId,
+                'calc_summary' => $calc['summary'],
+                'skater_breakdowns' => $calc['skater_breakdowns'],
+            ];
+        }
+
+        // Urutkan transaksi: tanggal terbaru dulu, status Pending/Paid di atas Unpaid jika tanggal sama/kosong
+        usort($transactions, function($a, $b) {
+            $tA = !empty($a['created_at']) ? strtotime((string)$a['created_at']) : 0;
+            $tB = !empty($b['created_at']) ? strtotime((string)$b['created_at']) : 0;
+            if ($tA !== $tB) {
+                return $tB <=> $tA;
+            }
+            return strcmp((string)$a['club_name'], (string)$b['club_name']);
+        });
+
+        $summaryStats = self::summarizeTransactions($transactions);
+
+        return [
+            'transactions' => $transactions,
+            'totals' => $summaryStats['totals'],
+            'categories' => $summaryStats['categories'],
+        ];
+    }
+
+    /**
+     * Filter daftar transaksi laporan keuangan berdasarkan status, jalur (Klub/Token), dan kata kunci.
+     */
+    public static function filterFinanceTransactions(array $transactions, string $status = 'all', string $type = 'all', string $search = ''): array {
+        $q = strtolower(trim($search));
+        return array_values(array_filter($transactions, function($t) use ($status, $type, $q) {
+            if ($status !== 'all' && strcasecmp((string)$t['status'], $status) !== 0) {
+                return false;
+            }
+            if ($type !== 'all' && strcasecmp((string)$t['type'], $type) !== 0) {
+                return false;
+            }
+            if ($q !== '') {
+                $hay = strtolower(($t['club_name'] ?? '') . ' ' . ($t['identifier'] ?? '') . ' ' . ($t['email'] ?? ''));
+                if (strpos($hay, $q) === false) {
+                    return false;
+                }
+            }
+            return true;
+        }));
+    }
+
+    /**
+     * Hitung total nominal per status & rincian per kategori lomba dari array transaksi.
+     */
+    public static function summarizeTransactions(array $transactions): array {
+        $totals = [
+            'paid' => 0.0,
+            'paid_klub' => 0.0,
+            'paid_token' => 0.0,
+            'pending' => 0.0,
+            'unpaid' => 0.0,
+            'rejected' => 0.0,
+            'potensi' => 0.0,
+            'count_paid' => 0,
+            'count_pending' => 0,
+            'count_unpaid' => 0,
+            'count_rejected' => 0,
+        ];
+
+        $categories = [
+            'Speed' => ['skaters' => 0, 'extra_count' => 0, 'total' => 0.0],
+            'Standart' => ['skaters' => 0, 'extra_count' => 0, 'total' => 0.0],
+            'Pemula' => ['skaters' => 0, 'extra_count' => 0, 'total' => 0.0],
+            'Lainnya' => ['skaters' => 0, 'total' => 0.0],
+        ];
+
+        foreach ($transactions as $t) {
+            $amt = (float)($t['payment_amount'] ?? 0);
+            $st = (string)($t['status'] ?? 'Unpaid');
+
+            if ($st === 'Paid') {
+                $totals['paid'] += $amt;
+                $totals['count_paid']++;
+                if (($t['type'] ?? '') === 'Klub') {
+                    $totals['paid_klub'] += $amt;
+                } else {
+                    $totals['paid_token'] += $amt;
+                }
+
+                $cs = $t['calc_summary'] ?? [];
+                $catSum = 0.0;
+                foreach (['Speed', 'Standart', 'Pemula'] as $catKey) {
+                    if (!empty($cs[$catKey])) {
+                        $categories[$catKey]['skaters'] += (int)($cs[$catKey]['skaters'] ?? 0);
+                        $categories[$catKey]['extra_count'] += (int)($cs[$catKey]['extra_count'] ?? 0);
+                        $catTot = (float)($cs[$catKey]['total'] ?? 0);
+                        $categories[$catKey]['total'] += $catTot;
+                        $catSum += $catTot;
+                    }
+                }
+                if (!empty($cs['Lainnya'])) {
+                    $categories['Lainnya']['skaters'] += (int)($cs['Lainnya']['skaters'] ?? 0);
+                    $lainTot = (float)($cs['Lainnya']['amount'] ?? 0);
+                    $categories['Lainnya']['total'] += $lainTot;
+                    $catSum += $lainTot;
+                }
+                // Masukkan selisih (mis. extra_relay_fee atau eksebisi manual) ke Lainnya agar jumlah kategori cocok 100% dgn total Paid
+                $diff = $amt - $catSum;
+                if (abs($diff) > 0.01) {
+                    $categories['Lainnya']['total'] += $diff;
+                }
+            } elseif ($st === 'Pending') {
+                $totals['pending'] += $amt;
+                $totals['count_pending']++;
+            } elseif ($st === 'Rejected') {
+                $totals['rejected'] += $amt;
+                $totals['count_rejected']++;
+            } else {
+                $totals['unpaid'] += $amt;
+                $totals['count_unpaid']++;
+            }
+        }
+
+        $totals['potensi'] = $totals['paid'] + $totals['pending'] + $totals['unpaid'];
+
+        return [
+            'totals' => $totals,
+            'categories' => $categories,
+        ];
+    }
 }

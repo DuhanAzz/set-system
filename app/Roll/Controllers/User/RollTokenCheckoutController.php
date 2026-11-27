@@ -202,7 +202,7 @@ class RollTokenCheckoutController extends Controller {
                 WHERE e.event_id = ? AND e.manual_invoice_code = ?
                 ORDER BY s.skater_name ASC
             ");
-            $stmtHistory->execute([$club_id, $event_id]);
+            $stmtHistory->execute([$event_id, $active_invoice]);
             $historyEntries = $stmtHistory->fetchAll(PDO::FETCH_ASSOC);
 
             // Assign payment amount for display
@@ -347,6 +347,7 @@ class RollTokenCheckoutController extends Controller {
 
         // VALIDASI RELAY PORSEROSI V3.0 (Defensive & Safe)
         try {
+            $teamQuotas = \App\Helpers\RollTeamHelper::getEventQuotas($db, $event_id);
             $stmtRelayCheck = $db->prepare("
                 SELECT c.id as class_id, c.category_name, a.group_name as class_ag, d.distance_name,
                        s.birth_date, s.skater_name, e.team_name
@@ -355,7 +356,7 @@ class RollTokenCheckoutController extends Controller {
                 JOIN roll_ref_distances d ON c.distance_id = d.id
                 JOIN roll_ref_age_groups a ON c.age_group_id = a.id
                 JOIN roll_skaters s ON e.skater_id = s.id
-                WHERE e.event_id = ? AND e.manual_invoice_code = ? AND (d.distance_name LIKE '%Relay%' OR d.distance_name LIKE '%Pair%')
+                WHERE e.event_id = ? AND e.manual_invoice_code = ? AND (d.distance_name LIKE '%Relay%' OR d.distance_name LIKE '%Pair%' OR d.distance_name LIKE '%TTT%' OR d.distance_name LIKE '%Team%')
                 ORDER BY e.team_name, d.distance_name
             ");
             $stmtRelayCheck->execute([$event_id, $active_invoice]);
@@ -375,18 +376,11 @@ class RollTokenCheckoutController extends Controller {
             foreach ($relayGroups as $cid => $team) {
                 $distName = (string)($team[0]['distance_name'] ?? '');
                 $catName = (string)($team[0]['category_name'] ?? '');
-                $isPair = stripos($distName, 'Pair') !== false;
                 $tCount = count($team);
-                if ($isPair) {
-                    if ($tCount !== 2) {
-                        $_SESSION['flash_message'] = "Validasi Gagal: Kelas {$distName} {$catName} harus terdiri dari tepat 2 atlet. Anda mendaftar $tCount atlet.";
-                        $_SESSION['flash_type'] = "error";
-                        header("Location: " . getenv('APP_URL') . "/roll/user/token_checkout/detail/" . $event_id);
-                        exit;
-                    }
-                } else {
-                    if ($tCount < 3 || $tCount > 4) {
-                        $_SESSION['flash_message'] = "Validasi Gagal: Kelas {$distName} {$catName} harus terdiri dari 3 atau 4 atlet (3 Inti + 1 Cadangan). Anda mendaftar $tCount atlet.";
+                if (\App\Helpers\RollTeamHelper::classifyDistance($distName) !== null) {
+                    $err = \App\Helpers\RollTeamHelper::validateTeamCount($distName, $tCount, $teamQuotas, $catName);
+                    if ($err !== null) {
+                        $_SESSION['flash_message'] = $err;
                         $_SESSION['flash_type'] = "error";
                         header("Location: " . getenv('APP_URL') . "/roll/user/token_checkout/detail/" . $event_id);
                         exit;

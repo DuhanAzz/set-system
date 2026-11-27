@@ -229,6 +229,11 @@
                                                             <?= substr($ent['skater_name'], 0, 1) ?>
                                                         </div>
                                                         <div class="font-bold text-slate-700 text-[11px] uppercase"><?= htmlspecialchars($ent['skater_name']) ?></div>
+                                                        <?php if (!empty($ent['team_role'])): ?>
+                                                            <span class="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded <?= $ent['team_role'] === 'cadangan' ? 'bg-amber-100 text-amber-700' : 'bg-indigo-100 text-indigo-700' ?>">
+                                                                <?= $ent['team_role'] === 'cadangan' ? 'Cadangan' : 'Inti' ?>
+                                                            </span>
+                                                        <?php endif; ?>
                                                     </div>
                                                     <div>
                                                         <form action="<?= getenv('APP_URL') ?>/roll/user/token_registration/removeEntry/<?= $ent['entry_id'] ?>" method="POST" onsubmit="return confirm('Keluarkan atlet ini dari tim?')">
@@ -358,7 +363,7 @@
                             <option value="">-- Pilih Atlet --</option>
                         </select>
                         <div id="indv_athlete_info" class="mt-2 text-[10px] text-blue-600 font-bold hidden bg-blue-50 px-3 py-2 rounded-lg border border-blue-100">
-                            Lahir: <span id="indv_skater_dob"></span> | Umur: <span id="indv_skater_age"></span> Thn | Gender: <span id="indv_skater_gender"></span>
+                            Lahir: <span id="indv_skater_dob"></span> | Usia Lomba (31 Des <?= \App\Helpers\DateHelper::getEventYear($event['event_date_start'] ?? null) ?>): <span id="indv_skater_age"></span> Thn | Gender: <span id="indv_skater_gender"></span>
                         </div>
                     </div>
                 </div>
@@ -455,9 +460,18 @@
                     <h3 class="text-sm font-black uppercase tracking-widest text-slate-800 border-b border-slate-100 pb-2">Anggota Tim (Mendukung Mix-Club)</h3>
                     <p class="text-[9px] font-bold text-slate-400 uppercase">Pilih anggota tim dari klub Anda. dan di mohon telah mengkonfirmasi atlet dari tim lain sebelum menambahkannya ke dalam tim.</p>
                     
+                    <?php
+                    $tq = $teamQuotas ?? \App\Helpers\RollTeamHelper::getDefaultQuotas();
+                    $maxTeamSlots = max(
+                        4,
+                        ($tq['pair']['inti'] ?? 2) + ($tq['pair']['cadangan'] ?? 0),
+                        ($tq['ttt']['inti'] ?? 3) + ($tq['ttt']['cadangan'] ?? 1),
+                        ($tq['relay']['inti'] ?? 3) + ($tq['relay']['cadangan'] ?? 1)
+                    );
+                    ?>
                     <div id="team_members_container" class="space-y-4">
-                        <?php for($i=1; $i<=4; $i++): ?>
-                        <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 relative team-slot">
+                        <?php for($i=1; $i<=$maxTeamSlots; $i++): ?>
+                        <div id="team_slot_<?= $i ?>" class="bg-slate-50 border border-slate-200 rounded-xl p-3 relative team-slot">
                             <span class="absolute -left-2 -top-2 w-5 h-5 bg-indigo-600 text-white rounded-full flex items-center justify-center text-[10px] font-black"><?= $i ?></span>
                             
                             <div class="grid grid-cols-2 gap-3">
@@ -511,7 +525,7 @@
 
     <!-- FORM BUAT TOKEN JALUR KHUSUS -->
     <script>
-const eventYear = parseInt('<?= date('Y', strtotime($event['event_date_start'])) ?>');
+const eventYear = <?= (int)\App\Helpers\DateHelper::getEventYear($event['event_date_start'] ?? null) ?>;
 const allClasses = <?= json_encode($classes) ?>;
 const ageGroups = <?php
     $agList = [];
@@ -531,6 +545,24 @@ const ageGroups = <?php
 
 const myAthletes = <?= json_encode($athletes) ?>;
 const myClubId = <?= $club_id ?>;
+const teamQuotas = <?= json_encode($teamQuotas ?? \App\Helpers\RollTeamHelper::getDefaultQuotas()) ?>;
+const maxTeamSlots = <?= (int)$maxTeamSlots ?>;
+
+function isTeamDistanceName(distanceName) {
+    const d = (distanceName || '').toLowerCase();
+    return d.includes('relay') || d.includes('team') || d.includes('pair') || /\bttt\b/.test(d);
+}
+
+function getTeamQuotaForDistance(distanceName) {
+    const d = (distanceName || '').toLowerCase().trim();
+    let type = 'relay';
+    if (d.includes('pair')) type = 'pair';
+    else if (/\bttt\b/.test(d) || d.includes('team time trial') || d.includes('team sprint')) type = 'ttt';
+    const cfg = (teamQuotas && teamQuotas[type]) ? teamQuotas[type] : { inti: 3, cadangan: 1 };
+    const inti = Math.max(1, parseInt(cfg.inti ?? 1, 10));
+    const cadangan = Math.max(0, parseInt(cfg.cadangan ?? 0, 10));
+    return { type, inti, cadangan, min: inti, max: inti + cadangan };
+}
 
 function populateAthleteSelect(selectId, data = myAthletes) {
     const select = document.getElementById(selectId);
@@ -559,7 +591,7 @@ window.addEventListener("DOMContentLoaded", function() {
     athletesCache[myClubId] = myAthletes;
     
     loadAthletes(myClubId, "indv_skater_select");
-    for(let i=1; i<=4; i++) {
+    for(let i=1; i<=maxTeamSlots; i++) {
         loadAthletes(myClubId, "team_skater_select_" + i);
     }
 });
@@ -680,7 +712,7 @@ function cancelEditTeam() {
     document.getElementById('form_team').reset();
     document.getElementById('team_class_select').innerHTML = '<option value="">- Pilih Nomor Lomba -</option>';
     document.getElementById('team_class_info').classList.add('hidden');
-    for(let i=1; i<=4; i++) {
+    for(let i=1; i<=maxTeamSlots; i++) {
         document.getElementById('team_skater_select_'+i).innerHTML = '<option value="">- Pilih Atlet -</option>';
     }
 }
@@ -730,7 +762,9 @@ function populateAthleteSelect(targetSelectId, athletesList) {
     }
 
     athletesList.forEach(s => {
-        let age = eventYear - parseInt(s.birth_date ? s.birth_date.substring(0, 4) : '0');
+        const dobYear = s.birth_date ? parseInt(s.birth_date.substring(0, 4), 10) : 0;
+        let age = (dobYear >= 1900) ? Math.max(0, eventYear - dobYear) : 0;
+        if (s.is_pon_veteran == '1') age = 25;
         const gender = s.gender; // 'M' or 'F'
         const lockedGroup = s.locked_group || '';
         
@@ -935,8 +969,7 @@ function filterTeamKU() {
 
     let validKUs = new Set();
     allClasses.forEach(c => {
-        const dName = (c.distance_name || '').toLowerCase();
-        if (c.class_cat_id == catId && (dName.includes('relay') || dName.includes('team') || dName.includes('pair'))) {
+        if (c.class_cat_id == catId && isTeamDistanceName(c.distance_name)) {
             validKUs.add(c.age_group_id);
         }
     });
@@ -966,7 +999,7 @@ function filterTeamClasses() {
     document.getElementById('team_class_info').classList.add('hidden');
     
     // Clear athletes since class is reset
-    for(let i=1; i<=4; i++) {
+    for(let i=1; i<=maxTeamSlots; i++) {
         const select = document.getElementById('team_skater_select_'+i);
         if (select) {
             select.innerHTML = '<option value="">- Lengkapi Kategori & Nomor Lomba -</option>';
@@ -978,8 +1011,7 @@ function filterTeamClasses() {
 
     let hasClasses = false;
     allClasses.forEach(c => {
-        const dName = (c.distance_name || '').toLowerCase();
-        if (c.class_cat_id == catId && c.age_group_id == kuId && (dName.includes('relay') || dName.includes('team') || dName.includes('pair'))) {
+        if (c.class_cat_id == catId && c.age_group_id == kuId && isTeamDistanceName(c.distance_name)) {
             hasClasses = true;
             const isEks = (c.category_name === 'EKSEBISI');
             const opt = document.createElement('option');
@@ -1003,52 +1035,53 @@ function updateTeamGenderRule() {
             span.innerText = c.gender.toUpperCase();
             info.classList.remove('hidden');
             
-            // Atur label wajib/opsional
-            const isPair = (c.distance_name || '').toLowerCase().includes('pair');
-            for(let i=1; i<=4; i++) {
+            const q = getTeamQuotaForDistance(c.distance_name);
+            for(let i=1; i<=maxTeamSlots; i++) {
+                const slotEl = document.getElementById('team_slot_' + i);
                 const labelEl = document.getElementById('team_req_label_' + i);
                 const selectEl = document.getElementById('team_skater_select_' + i);
                 const clubEl = document.getElementById('team_club_select_' + i);
                 
-                if (isPair) {
-                    if (i <= 2) {
-                        labelEl.className = 'text-[9px] text-red-400 mt-1 italic text-right';
-                        labelEl.innerText = 'Wajib Diisi';
-                        clubEl.disabled = false;
-                    } else {
-                        labelEl.className = 'text-[9px] text-slate-400 mt-1 italic text-right';
-                        labelEl.innerText = 'Tidak Tersedia';
-                        clubEl.value = '';
-                        selectEl.value = '';
-                        clubEl.disabled = true;
-                        selectEl.disabled = true;
-                    }
-                } else {
-                    // Relay
+                if (i <= q.inti) {
+                    if (slotEl) slotEl.classList.remove('hidden');
+                    labelEl.className = 'text-[9px] text-indigo-600 font-bold mt-1 text-right';
+                    labelEl.innerText = 'Pemain Inti (Wajib)';
                     clubEl.disabled = false;
-                    if (i <= 3) {
-                        labelEl.className = 'text-[9px] text-red-400 mt-1 italic text-right';
-                        labelEl.innerText = 'Wajib Diisi';
-                    } else {
-                        labelEl.className = 'text-[9px] text-slate-400 mt-1 italic text-right';
-                        labelEl.innerText = 'Opsional';
-                    }
+                    selectEl.required = true;
+                } else if (i <= q.max) {
+                    if (slotEl) slotEl.classList.remove('hidden');
+                    labelEl.className = 'text-[9px] text-amber-600 font-bold mt-1 text-right';
+                    labelEl.innerText = 'Cadangan (Opsional)';
+                    clubEl.disabled = false;
+                    selectEl.required = false;
+                } else {
+                    if (slotEl) slotEl.classList.add('hidden');
+                    labelEl.className = 'text-[9px] text-slate-400 mt-1 italic text-right';
+                    labelEl.innerText = 'Tidak Tersedia';
+                    clubEl.value = '';
+                    selectEl.value = '';
+                    clubEl.disabled = true;
+                    selectEl.disabled = true;
+                    selectEl.required = false;
                 }
             }
             
             // Reload athletes now that class is selected
-            for(let i=1; i<=4; i++) {
+            for(let i=1; i<=q.max; i++) {
                 const clubId = document.getElementById('team_club_select_'+i).value;
                 if(clubId) loadAthletes(clubId, 'team_skater_select_'+i);
             }
         }
     } else {
         info.classList.add('hidden');
-        // Reset
-        for(let i=1; i<=4; i++) {
+        for(let i=1; i<=maxTeamSlots; i++) {
+            const slotEl = document.getElementById('team_slot_' + i);
+            if (slotEl) slotEl.classList.remove('hidden');
             const labelEl = document.getElementById('team_req_label_' + i);
             const clubEl = document.getElementById('team_club_select_' + i);
+            const selectEl = document.getElementById('team_skater_select_' + i);
             clubEl.disabled = false;
+            selectEl.required = (i <= 2);
             if (i <= 2) {
                 labelEl.className = 'text-[9px] text-red-400 mt-1 italic text-right';
                 labelEl.innerText = 'Wajib Diisi';
@@ -1059,11 +1092,6 @@ function updateTeamGenderRule() {
         }
     }
     
-    // Re-populate skaters to apply gender limits
-    for(let i=1; i<=4; i++) {
-        const clubId = document.getElementById('team_club_select_'+i).value;
-        if(clubId) loadAthletes(clubId, 'team_skater_select_'+i);
-    }
     validateTeamMembers();
 }
 
@@ -1073,26 +1101,16 @@ function validateTeamMembers() {
     let selectedCount = 0;
     
     document.querySelectorAll('.team-skater-select').forEach(sel => {
-        if (sel.value) selectedCount++;
+        if (!sel.disabled && sel.value) selectedCount++;
     });
 
     let isValid = false;
-    let requiredCount = 2; // Default
-    let isPair = false;
 
     if (classId) {
         const c = allClasses.find(x => x.id == classId);
         if (c) {
-            const dName = (c.distance_name || '').toLowerCase();
-            if (dName.includes('pair')) {
-                isPair = true;
-                requiredCount = 2;
-                isValid = (selectedCount === 2);
-            } else {
-                // Relay / Team minimal 3 orang
-                requiredCount = 3;
-                isValid = (selectedCount >= 3);
-            }
+            const q = getTeamQuotaForDistance(c.distance_name);
+            isValid = (selectedCount >= q.min && selectedCount <= q.max);
         }
     }
 

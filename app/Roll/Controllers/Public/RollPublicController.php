@@ -29,6 +29,8 @@ class RollPublicController extends Controller {
         if (!$event) {
             return $this->view('roll/public/live', [
                 'event' => null,
+                'standings' => ['Speed' => [], 'Standart' => []],
+                'champions' => ['Speed' => [], 'Standart' => []],
                 'medalTally' => [],
                 'results' => []
             ]);
@@ -36,27 +38,14 @@ class RollPublicController extends Controller {
 
         $eventId = $event['id'];
 
-        // Tally
-        $stmtTally = $db->prepare("
-            SELECT c.id, c.club_name,
-                SUM(CASE WHEN r.rank = 1 THEN 1 ELSE 0 END) as gold,
-                SUM(CASE WHEN r.rank = 2 THEN 1 ELSE 0 END) as silver,
-                SUM(CASE WHEN r.rank = 3 THEN 1 ELSE 0 END) as bronze
-            FROM roll_event_results r
-            JOIN roll_skaters s ON r.skater_id = s.id
-            JOIN roll_clubs c ON s.club_id = c.id
-            JOIN roll_event_details ed ON r.race_class_id = ed.id
-            JOIN roll_entries e ON r.skater_id = e.skater_id AND r.race_class_id = e.race_class_id
-            WHERE r.event_id = ? 
-              AND r.rank IN (1, 2, 3)
-              AND r.status = 'OK'
-              AND e.status = 'Finished'
-              AND ed.result_status = 'Published'
-            GROUP BY c.id
-            ORDER BY gold DESC, silver DESC, bronze DESC, c.club_name ASC
-        ");
-        $stmtTally->execute([$eventId]);
-        $medalTally = $stmtTally->fetchAll(PDO::FETCH_ASSOC);
+        // Tally Juara Umum Klub (Speed & Standart) khusus hasil Published
+        $medalCalc = \App\Helpers\RollMedalHelper::calculateStandings($db, (int)$eventId, [
+            'groupBy' => 'club',
+            'publishedOnly' => true,
+        ]);
+        $standings = $medalCalc['standings'];
+        $champions = $medalCalc['champions'];
+        $medalTally = $standings['Speed'] ?? [];
 
         // Results yang Published
         $stmtRes = $db->prepare("
@@ -75,6 +64,8 @@ class RollPublicController extends Controller {
 
         return $this->view('roll/public/live', [
             'event' => $event,
+            'standings' => $standings,
+            'champions' => $champions,
             'medalTally' => $medalTally,
             'results' => $results
         ]);

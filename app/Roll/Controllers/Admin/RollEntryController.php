@@ -724,6 +724,81 @@ class RollEntryController extends Controller {
         ]);
         exit;
     }
+    private function getManualPaymentOrDraft($db, int $eventId, string $invoiceCode): ?array {
+        $stmtPay = $db->prepare("SELECT * FROM roll_manual_payments WHERE event_id = ? AND invoice_code = ? LIMIT 1");
+        $stmtPay->execute([$eventId, $invoiceCode]);
+        $payData = $stmtPay->fetch(PDO::FETCH_ASSOC);
+        if ($payData) {
+            return $payData;
+        }
+
+        // Draf token: belum submit bukti bayar (belum ada di roll_manual_payments), tetapi sudah ada entri di roll_entries
+        $stmtDraft = $db->prepare("
+            SELECT COALESCE(t.club_id, MAX(e.club_id), MAX(s.club_id)) as club_id, MAX(e.created_at) as created_at, COUNT(e.id) as cnt
+            FROM roll_entries e
+            JOIN roll_skaters s ON e.skater_id = s.id
+            LEFT JOIN roll_event_tokens t ON t.manual_invoice_code COLLATE utf8mb4_unicode_ci = e.manual_invoice_code COLLATE utf8mb4_unicode_ci
+            WHERE e.event_id = ? AND e.manual_invoice_code = ?
+            GROUP BY t.club_id
+        ");
+        $stmtDraft->execute([$eventId, $invoiceCode]);
+        $draft = $stmtDraft->fetch(PDO::FETCH_ASSOC);
+        if ($draft && (int)$draft['cnt'] > 0) {
+            return [
+                'id' => 0,
+                'club_id' => (int)($draft['club_id'] ?? 0),
+                'event_id' => $eventId,
+                'invoice_code' => $invoiceCode,
+                'total_amount' => 0,
+                'payment_proof' => null,
+                'status' => 'Unpaid',
+                'created_at' => $draft['created_at'] ?? null,
+            ];
+        }
+        return null;
+    }
+
+    private function applyManualInvoiceStatus($db, int $eventId, int $payId, string $invoiceCode, string $action): bool {
+        $newStatus = 'Pending';
+        if ($action === 'approve') $newStatus = 'Paid';
+        elseif ($action === 'reject') $newStatus = 'Rejected';
+        elseif ($action === 'rollback') $newStatus = 'Unpaid';
+
+        if ($payId > 0) {
+            $stmt = $db->prepare("UPDATE roll_manual_payments SET status = ? WHERE id = ?");
+            return $stmt->execute([$newStatus, $payId]);
+        }
+
+        // Jika masih draf token (id = 0), buat record roll_manual_payments dengan nominal dinamis
+        if ($invoiceCode !== '' && strpos($invoiceCode, 'MAN-TOK-') === 0) {
+            $draft = $this->getManualPaymentOrDraft($db, $eventId, $invoiceCode);
+            if ($draft) {
+                $stmtEnt = $db->prepare("
+                    SELECT e.skater_id, sc.class_name, d.distance_name, e.team_name, e.race_class_id
+                    FROM roll_entries e
+                    LEFT JOIN roll_event_details ed ON e.race_class_id = ed.id
+                    LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
+                    LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
+                    WHERE e.event_id = ? AND e.manual_invoice_code = ?
+                ");
+                $stmtEnt->execute([$eventId, $invoiceCode]);
+                $entRows = $stmtEnt->fetchAll(PDO::FETCH_ASSOC);
+                $fees = \App\Helpers\RollFinanceHelper::getTokenInvoiceFees($db, $eventId, $invoiceCode);
+                $calc = \App\Helpers\RollFinanceHelper::calculateTotalTagihan($entRows, $fees);
+
+                try { $db->exec("ALTER TABLE roll_manual_payments ADD COLUMN club_id INT NULL"); } catch (\Throwable $e) {}
+                try { $db->exec("ALTER TABLE roll_manual_payments ADD COLUMN created_at DATETIME NULL"); } catch (\Throwable $e) {}
+                $stmtIns = $db->prepare("INSERT INTO roll_manual_payments (club_id, event_id, total_amount, payment_proof, status, invoice_code, created_at) VALUES (?, ?, ?, '', ?, ?, NOW())");
+                $ok = $stmtIns->execute([(int)$draft['club_id'], $eventId, (float)$calc['total_amount'], $newStatus, $invoiceCode]);
+                if ($ok && $newStatus === 'Paid') {
+                    $db->prepare("UPDATE roll_event_tokens SET is_used = 1, used_at = COALESCE(used_at, NOW()) WHERE event_id = ? AND manual_invoice_code = ?")->execute([$eventId, $invoiceCode]);
+                }
+                return $ok;
+            }
+        }
+        return false;
+    }
+
     public function manual_invoice_detail() {
         if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
             header("Location: " . getenv('APP_URL') . "/roll/login");
@@ -743,25 +818,20 @@ class RollEntryController extends Controller {
             $payId = (int)($_POST['payment_id'] ?? 0);
             $action = $_POST['action_type']; 
             
-            if ($payId > 0) {
-                try {
-                    $newStatus = 'Pending';
-                    if ($action === 'approve') $newStatus = 'Paid';
-                    elseif ($action === 'reject') $newStatus = 'Rejected';
-                    elseif ($action === 'rollback') $newStatus = 'Unpaid';
-                    
-                    $stmt = $db->prepare("UPDATE roll_manual_payments SET status = ? WHERE id = ?");
-                    $stmt->execute([$newStatus, $payId]);
-                    
+            try {
+                if ($this->applyManualInvoiceStatus($db, $eventId, $payId, $invoiceCode, $action)) {
                     $_SESSION['flash_type'] = 'success';
                     $_SESSION['flash_message'] = 'Status pembayaran berhasil diperbarui!';
-                } catch (\Exception $e) {
+                } else {
                     $_SESSION['flash_type'] = 'error';
                     $_SESSION['flash_message'] = 'Gagal memperbarui status.';
                 }
+            } catch (\Exception $e) {
+                $_SESSION['flash_type'] = 'error';
+                $_SESSION['flash_message'] = 'Gagal memperbarui status.';
             }
             
-            header("Location: " . getenv('APP_URL') . "/roll/admin/entries/manual_invoice_detail?invoice_code=$invoiceCode&event_id=$eventId");
+            header("Location: " . getenv('APP_URL') . "/roll/admin/entries/manual_invoice_detail?invoice_code=" . urlencode($invoiceCode) . "&event_id=" . $eventId);
             exit;
         }
         
@@ -771,10 +841,8 @@ class RollEntryController extends Controller {
         $eventData = $stmtEvt->fetch(PDO::FETCH_ASSOC);
         if (!$eventData) die("Event tidak ditemukan");
         
-        // AMBIL DATA PEMBAYARAN MANUAL
-        $stmtPay = $db->prepare("SELECT * FROM roll_manual_payments WHERE event_id = ? AND invoice_code = ? LIMIT 1");
-        $stmtPay->execute([$eventId, $invoiceCode]);
-        $payData = $stmtPay->fetch(PDO::FETCH_ASSOC);
+        // AMBIL DATA PEMBAYARAN MANUAL ATAU DRAF TOKEN
+        $payData = $this->getManualPaymentOrDraft($db, $eventId, $invoiceCode);
         if (!$payData) die("Invoice tidak ditemukan");
         
         // AMBIL DATA KLUB/PENGIRIM (Dari pendaftar pertama)
@@ -806,15 +874,17 @@ class RollEntryController extends Controller {
         $stmtE->execute([$eventId, $invoiceCode]);
         $allEntries = $stmtE->fetchAll(\PDO::FETCH_ASSOC);
         
-        $financeCalc = \App\Helpers\RollFinanceHelper::calculateTotalTagihan($allEntries, $eventData);
-        $totalTagihan = $payData['total_amount'] ?? 0;
-        
-        // Distribusikan fee secara merata jika ada, atau 0
-        $skaterCount = count(array_unique(array_column($allEntries, 'skater_id')));
-        $feePerSkater = $skaterCount > 0 ? ($totalTagihan / $skaterCount) : 0;
-        $skaterFees = [];
-        foreach($allEntries as $e) {
-            $skaterFees[$e['skater_id']] = $feePerSkater;
+        $invoiceFees = \App\Helpers\RollFinanceHelper::getTokenInvoiceFees($db, $eventId, $invoiceCode);
+        $financeCalc = \App\Helpers\RollFinanceHelper::calculateTotalTagihan($allEntries, $invoiceFees);
+        $useDynamic = count($allEntries) > 0 && (strpos($invoiceCode, 'MAN-TOK-') === 0 || empty($payData['total_amount']));
+        $totalTagihan = $useDynamic ? $financeCalc['total_amount'] : ($payData['total_amount'] ?? 0);
+        $skaterFees = $useDynamic ? ($financeCalc['skater_fees'] ?? []) : [];
+        if (!$useDynamic) {
+            $skaterCount = count(array_unique(array_column($allEntries, 'skater_id')));
+            $feePerSkater = $skaterCount > 0 ? ($totalTagihan / $skaterCount) : 0;
+            foreach ($allEntries as $e) {
+                $skaterFees[$e['skater_id']] = $feePerSkater;
+            }
         }
 
         // KELOMPOKKAN PER ATLET
@@ -883,9 +953,8 @@ class RollEntryController extends Controller {
             $clubName = $clubData['club_name'];
         }
         
-        $stmtPay = $db->prepare("SELECT * FROM roll_manual_payments WHERE event_id = ? AND invoice_code = ? LIMIT 1");
-        $stmtPay->execute([$eventId, $invoiceCode]);
-        $payData = $stmtPay->fetch(\PDO::FETCH_ASSOC);
+        $payData = $this->getManualPaymentOrDraft($db, $eventId, $invoiceCode);
+        if (!$payData) die("Invoice tidak ditemukan");
         
         $sqlEntries = "SELECT s.id as skater_id, s.skater_name, s.gender, s.birth_date, s.is_pon_veteran, a.group_name, d.distance_name, ed.category_name, ed.distance, e.race_class_id, sc.class_name, e.is_manual, e.team_name, c.club_name
                        FROM roll_entries e
@@ -901,15 +970,17 @@ class RollEntryController extends Controller {
         $stmtE->execute([$eventId, $invoiceCode]);
         $allEntries = $stmtE->fetchAll(\PDO::FETCH_ASSOC);
         
-        $financeCalc = \App\Helpers\RollFinanceHelper::calculateTotalTagihan($allEntries, $eventData);
-        $totalTagihan = $payData['total_amount'] ?? 0;
-        
-        // Distribusikan fee secara merata jika ada, atau 0
-        $skaterCount = count(array_unique(array_column($allEntries, 'skater_id')));
-        $feePerSkater = $skaterCount > 0 ? ($totalTagihan / $skaterCount) : 0;
-        $skaterFees = [];
-        foreach($allEntries as $e) {
-            $skaterFees[$e['skater_id']] = $feePerSkater;
+        $invoiceFees = \App\Helpers\RollFinanceHelper::getTokenInvoiceFees($db, $eventId, $invoiceCode);
+        $financeCalc = \App\Helpers\RollFinanceHelper::calculateTotalTagihan($allEntries, $invoiceFees);
+        $useDynamic = count($allEntries) > 0 && (strpos($invoiceCode, 'MAN-TOK-') === 0 || empty($payData['total_amount']));
+        $totalTagihan = $useDynamic ? $financeCalc['total_amount'] : ($payData['total_amount'] ?? 0);
+        $skaterFees = $useDynamic ? ($financeCalc['skater_fees'] ?? []) : [];
+        if (!$useDynamic) {
+            $skaterCount = count(array_unique(array_column($allEntries, 'skater_id')));
+            $feePerSkater = $skaterCount > 0 ? ($totalTagihan / $skaterCount) : 0;
+            foreach ($allEntries as $e) {
+                $skaterFees[$e['skater_id']] = $feePerSkater;
+            }
         }
         
         $groupedSkaters = [];
@@ -972,7 +1043,7 @@ class RollEntryController extends Controller {
             $targetEventId = $_SESSION['roll_admin_active_event_id'] ?? 0;
         try { $db->exec("ALTER TABLE roll_events ADD COLUMN is_token_open TINYINT(1) DEFAULT 0"); } catch (\Exception $e) {}
 
-            // Ambil daftar invoice manual
+            // 1. Invoice token yang sudah punya record di roll_manual_payments
             $stmt = $db->prepare("
                 SELECT p.*, 
                        c.club_name,
@@ -980,54 +1051,79 @@ class RollEntryController extends Controller {
                 FROM roll_manual_payments p
                 LEFT JOIN roll_clubs c ON p.club_id = c.id
                 LEFT JOIN roll_entries e ON p.invoice_code COLLATE utf8mb4_unicode_ci = e.manual_invoice_code COLLATE utf8mb4_unicode_ci
-                WHERE p.event_id = ?
-                GROUP BY p.id
+                WHERE p.event_id = ? AND p.invoice_code LIKE 'MAN-TOK-%'
+                GROUP BY p.id, c.club_name
                 ORDER BY p.created_at DESC
             ");
             $stmt->execute([$targetEventId]);
-            $invoices = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $paidOrSubmittedInvoices = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-            // Ambil detail entri untuk setiap invoice
+            // 2. Draf token: sudah mengisi pendaftaran di roll_entries (tampil di user/token_checkout/detail) tapi belum kirim bukti bayar
+            $stmtDrafts = $db->prepare("
+                SELECT 0 as id,
+                       COALESCE(t.club_id, MAX(e.club_id), MAX(s.club_id)) as club_id,
+                       e.event_id,
+                       0 as total_amount,
+                       NULL as payment_proof,
+                       'Unpaid' as status,
+                       e.manual_invoice_code as invoice_code,
+                       MAX(e.created_at) as created_at,
+                       COALESCE(tc.club_name, MAX(ec.club_name)) as club_name,
+                       COUNT(DISTINCT e.id) as total_entries
+                FROM roll_entries e
+                JOIN roll_skaters s ON e.skater_id = s.id
+                LEFT JOIN roll_event_tokens t ON t.manual_invoice_code COLLATE utf8mb4_unicode_ci = e.manual_invoice_code COLLATE utf8mb4_unicode_ci
+                LEFT JOIN roll_clubs tc ON t.club_id = tc.id
+                LEFT JOIN roll_clubs ec ON COALESCE(e.club_id, s.club_id) = ec.id
+                LEFT JOIN roll_manual_payments mp ON mp.invoice_code COLLATE utf8mb4_unicode_ci = e.manual_invoice_code COLLATE utf8mb4_unicode_ci AND mp.event_id = e.event_id
+                WHERE e.event_id = ?
+                  AND e.manual_invoice_code LIKE 'MAN-TOK-%'
+                  AND mp.id IS NULL
+                GROUP BY e.event_id, e.manual_invoice_code, t.club_id, tc.club_name
+                ORDER BY MAX(e.created_at) DESC
+            ");
+            $stmtDrafts->execute([$targetEventId]);
+            $draftInvoices = $stmtDrafts->fetchAll(PDO::FETCH_ASSOC);
+
+            $invoices = array_merge($paidOrSubmittedInvoices, $draftInvoices);
+            usort($invoices, function($a, $b) {
+                $tA = !empty($a['created_at']) ? strtotime((string)$a['created_at']) : 0;
+                $tB = !empty($b['created_at']) ? strtotime((string)$b['created_at']) : 0;
+                return $tB <=> $tA;
+            });
+
+            // Ambil detail entri & hitung tagihan dinamis untuk setiap invoice token (termasuk Draf)
+            $baseFees = \App\Helpers\RollFinanceHelper::getEventFees($db, (int)$targetEventId);
             $invoiceDetails = [];
-            foreach ($invoices as $inv) {
+            foreach ($invoices as &$inv) {
                 $code = $inv['invoice_code'];
                 $stmtEnt = $db->prepare("
-                    SELECT e.*, s.skater_name, c.club_name, d.distance_name, a.group_name
+                    SELECT e.*, s.skater_name, c.club_name, d.distance_name, a.group_name, sc.class_name
                     FROM roll_entries e
                     JOIN roll_skaters s ON e.skater_id = s.id
                     LEFT JOIN roll_clubs c ON e.club_id = c.id
                     LEFT JOIN roll_event_details ed ON e.race_class_id = ed.id
                     LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
                     LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id
-                    WHERE e.manual_invoice_code = ?
+                    LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
+                    WHERE e.event_id = ? AND e.manual_invoice_code = ?
                 ");
-                $stmtEnt->execute([$code]);
-                $invoiceDetails[$code] = $stmtEnt->fetchAll(PDO::FETCH_ASSOC);
-            }
+                $stmtEnt->execute([$targetEventId, $code]);
+                $rows = $stmtEnt->fetchAll(PDO::FETCH_ASSOC);
+                $invoiceDetails[$code] = $rows;
 
-            // Cari Entri Tim Orphaned (Nyangkut / Tanpa Invoice)
-            $stmtOrphaned = $db->prepare("
-                SELECT e.id as entry_id, e.team_name, e.manual_invoice_code, 
-                       s.skater_name, c.club_name, d.distance_name, sc.class_name, a.group_name
-                FROM roll_entries e
-                JOIN roll_skaters s ON e.skater_id = s.id
-                LEFT JOIN roll_clubs c ON e.club_id = c.id
-                LEFT JOIN roll_event_details ed ON e.race_class_id = ed.id
-                LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
-                LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
-                LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id
-                WHERE e.event_id = ? AND (e.manual_invoice_code IS NULL OR e.manual_invoice_code = '') 
-                  AND e.team_name IS NOT NULL AND e.team_name != ''
-                ORDER BY e.team_name ASC, s.skater_name ASC
-            ");
-            $stmtOrphaned->execute([$targetEventId]);
-            $orphanedEntries = $stmtOrphaned->fetchAll(\PDO::FETCH_ASSOC);
+                if (count($rows) > 0) {
+                    $invFees = \App\Helpers\RollFinanceHelper::getTokenInvoiceFees($db, (int)$targetEventId, $code, $baseFees);
+                    $calc = \App\Helpers\RollFinanceHelper::calculateTotalTagihan($rows, $invFees);
+                    $inv['total_amount'] = $calc['total_amount'];
+                }
+            }
+            unset($inv);
 
             return $this->view('roll/admin/entries/manual_invoices', [
                 'invoices' => $invoices,
                 'invoiceDetails' => $invoiceDetails,
                 'targetEventId' => $targetEventId,
-                'orphanedEntries' => $orphanedEntries
             ]);
         } catch (\Throwable $e) {
             die("FATAL ERROR IN MANUAL INVOICES: " . $e->getMessage() . " | LINE: " . $e->getLine());
@@ -1040,41 +1136,46 @@ class RollEntryController extends Controller {
         }
 
         $db = \App\Core\Database::getInstance()->getConnection();
+        $eventId = (int)($_SESSION['roll_admin_active_event_id'] ?? 0);
         $action = $_POST['action'] ?? '';
-        $id = $_POST['id'] ?? 0;
+        $id = (int)($_POST['id'] ?? 0);
+        $invoiceCode = trim((string)($_POST['invoice_code'] ?? ''));
 
-        if ($action === 'approve') {
-            $stmt = $db->prepare("UPDATE roll_manual_payments SET status = 'Paid' WHERE id = ?");
-            $stmt->execute([$id]);
-            $_SESSION['flash_message'] = "Invoice Manual berhasil disetujui (Paid).";
-            $_SESSION['flash_type'] = "success";
-        } elseif ($action === 'reject') {
-            $stmt = $db->prepare("UPDATE roll_manual_payments SET status = 'Rejected' WHERE id = ?");
-            $stmt->execute([$id]);
-            $_SESSION['flash_message'] = "Invoice Manual ditolak (Rejected).";
-            $_SESSION['flash_type'] = "error";
-        } elseif ($action === 'rollback') {
-            $stmt = $db->prepare("UPDATE roll_manual_payments SET status = 'Unpaid' WHERE id = ?");
-            $stmt->execute([$id]);
-            $_SESSION['flash_message'] = "Invoice Manual dibatalkan (Unpaid).";
-            $_SESSION['flash_type'] = "info";
+        if (in_array($action, ['approve', 'reject', 'rollback'], true)) {
+            $ok = $this->applyManualInvoiceStatus($db, $eventId, $id, $invoiceCode, $action);
+            if ($ok) {
+                $msgs = [
+                    'approve' => ['Invoice Token berhasil disetujui (Paid).', 'success'],
+                    'reject'  => ['Invoice Token ditolak (Rejected).', 'error'],
+                    'rollback'=> ['Invoice Token dibatalkan (Unpaid).', 'info'],
+                ];
+                [$_SESSION['flash_message'], $_SESSION['flash_type']] = $msgs[$action];
+            } else {
+                $_SESSION['flash_message'] = "Gagal memperbarui status invoice.";
+                $_SESSION['flash_type'] = "error";
+            }
         } elseif ($action === 'delete') {
             try {
                 $db->beginTransaction();
-                $stmtInv = $db->prepare("SELECT invoice_code FROM roll_manual_payments WHERE id = ?");
-                $stmtInv->execute([$id]);
-                $invCode = $stmtInv->fetchColumn();
+                $invCode = $invoiceCode;
+                if ($id > 0) {
+                    $stmtInv = $db->prepare("SELECT invoice_code FROM roll_manual_payments WHERE id = ?");
+                    $stmtInv->execute([$id]);
+                    $invCode = $stmtInv->fetchColumn() ?: $invCode;
+                }
 
                 if ($invCode) {
                     $stmtDelE = $db->prepare("DELETE FROM roll_entries WHERE manual_invoice_code = ?");
                     $stmtDelE->execute([$invCode]);
                 }
 
-                $stmtDel = $db->prepare("DELETE FROM roll_manual_payments WHERE id = ?");
-                $stmtDel->execute([$id]);
+                if ($id > 0) {
+                    $stmtDel = $db->prepare("DELETE FROM roll_manual_payments WHERE id = ?");
+                    $stmtDel->execute([$id]);
+                }
 
                 $db->commit();
-                $_SESSION['flash_message'] = "Invoice Manual & entri terkait berhasil dihapus.";
+                $_SESSION['flash_message'] = "Invoice Token & entri terkait berhasil dihapus.";
                 $_SESSION['flash_type'] = "success";
             } catch (\Exception $e) {
                 $db->rollBack();
