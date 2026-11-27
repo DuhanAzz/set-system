@@ -33,8 +33,8 @@ class RollExploreController extends Controller {
     public function index() {
         $db = Database::getInstance()->getConnection();
 
-        // Ambil semua event aktif (selain Draft)
-        $stmt = $db->query("SELECT * FROM roll_events WHERE status != 'Draft' ORDER BY event_date_start ASC");
+        // Ambil semua event aktif (selain Draft), urutkan dari tanggal lomba terbaru
+        $stmt = $db->query("SELECT * FROM roll_events WHERE status != 'Draft' ORDER BY event_date_start DESC, id DESC");
         $competitions = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         return $this->view('roll/user/explore/index', [
