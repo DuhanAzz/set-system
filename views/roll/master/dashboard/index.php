@@ -9,7 +9,7 @@
         </div>
         
         <div class="flex gap-3">
-            <a href="<?= getenv('APP_URL') ?>/roll/maintenance/system_health" class="bg-white border border-slate-200 text-slate-600 px-4 py-2 rounded-xl font-bold text-xs uppercase hover:bg-slate-100 transition shadow-sm flex items-center gap-2">
+            <a href="<?= getenv('APP_URL') ?>/roll/master/maintenance/system_health" class="bg-white border border-slate-200 text-slate-600 px-4 py-2 rounded-xl font-bold text-xs uppercase hover:bg-slate-100 transition shadow-sm flex items-center gap-2">
                 <span>🛡️</span> System Health
             </a>
         </div>
@@ -40,7 +40,7 @@
                     <p class="text-sm text-blue-100 font-medium mt-1">Ada pesepatu roda yang terdaftar namun belum memiliki UID.</p>
                 </div>
             </div>
-            <a href="<?= getenv('APP_URL') ?>/roll/skaters/index" class="bg-white text-blue-700 px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-blue-50 transition transform group-hover:scale-105 shadow-md">Generate UID</a>
+            <a href="<?= getenv('APP_URL') ?>/roll/master/skaters/index" class="bg-white text-blue-700 px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-blue-50 transition transform group-hover:scale-105 shadow-md">Generate UID</a>
         </div>
         <?php endif; ?>
     </div>
@@ -192,19 +192,19 @@
             <div class="bg-slate-800 rounded-[2rem] p-8 text-white shadow-xl">
                 <h3 class="font-black uppercase italic text-sm tracking-widest mb-6 text-slate-400">⚡ Akses Cepat</h3>
                 <div class="grid grid-cols-2 gap-4">
-                    <a href="<?= getenv('APP_URL') ?>/roll/users/index" class="bg-slate-700 hover:bg-blue-600 p-4 rounded-xl text-center transition group">
+                    <a href="<?= getenv('APP_URL') ?>/roll/master/users" class="bg-slate-700 hover:bg-blue-600 p-4 rounded-xl text-center transition group">
                         <div class="text-2xl mb-2 group-hover:scale-110 transition">👥</div>
                         <span class="text-[9px] font-bold uppercase tracking-wider">User Manager</span>
                     </a>
-                    <a href="<?= getenv('APP_URL') ?>/roll/masterFinance/revenue" class="bg-slate-700 hover:bg-emerald-600 p-4 rounded-xl text-center transition group">
+                    <a href="<?= getenv('APP_URL') ?>/roll/master/finance/revenue" class="bg-slate-700 hover:bg-emerald-600 p-4 rounded-xl text-center transition group">
                         <div class="text-2xl mb-2 group-hover:scale-110 transition">💰</div>
                         <span class="text-[9px] font-bold uppercase tracking-wider">Keuangan</span>
                     </a>
-                    <a href="<?= getenv('APP_URL') ?>/roll/masterSettings/public_page" class="bg-slate-700 hover:bg-indigo-600 p-4 rounded-xl text-center transition group">
+                    <a href="<?= getenv('APP_URL') ?>/roll/master/settings/public_page" class="bg-slate-700 hover:bg-indigo-600 p-4 rounded-xl text-center transition group">
                         <div class="text-2xl mb-2 group-hover:scale-110 transition">🎨</div>
                         <span class="text-[9px] font-bold uppercase tracking-wider">Editor Web</span>
                     </a>
-                    <a href="<?= getenv('APP_URL') ?>/roll/maintenance/data_cleanup" class="bg-slate-700 hover:bg-red-600 p-4 rounded-xl text-center transition group">
+                    <a href="<?= getenv('APP_URL') ?>/roll/master/maintenance/data_cleanup" class="bg-slate-700 hover:bg-red-600 p-4 rounded-xl text-center transition group">
                         <div class="text-2xl mb-2 group-hover:scale-110 transition">🧹</div>
                         <span class="text-[9px] font-bold uppercase tracking-wider">Bersihkan Data</span>
                     </a>
