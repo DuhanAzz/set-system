@@ -579,7 +579,7 @@ $formatDob = static function ($dob): string {
                                                         <?= htmlspecialchars($event['event_name'] ?? 'Event') ?>
                                                     </h2>
                                                     <p style="margin: 0; font-size: 9pt; color: #334155;">
-                                                        Total Atlet Unik: <strong><?= number_format($totalSkaters ?? 0) ?> Atlet</strong>
+                                                        Total Atlet Unik (Lunas): <strong><?= number_format($totalSkaters ?? 0) ?> Atlet</strong>
                                                     </p>
                                                 </td>
                                                 <td style="width: 40%; vertical-align: top;">

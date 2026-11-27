@@ -5,7 +5,7 @@
             <?= $activeTab === 'bpjs' ? 'Data Peserta, NIK & BPJS' : 'Starting List Peserta' ?>
         </h1>
         <p class="text-xs text-slate-500 font-bold uppercase tracking-widest mt-2">
-            Daftar Atlet<?= $activeTab === 'bpjs' ? ' Lunas (Paid)' : '' ?> pada <?= htmlspecialchars($eventName ?? 'Event') ?>
+            Daftar Atlet Lunas (Paid) pada <?= htmlspecialchars($eventName ?? 'Event') ?>
         </p>
     </div>
     

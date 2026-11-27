@@ -1,4 +1,5 @@
 <?php
+ob_start();
 
 require_once __DIR__ . '/../app/Core/Controller.php';
 require_once __DIR__ . '/../app/Core/Database.php';
@@ -124,5 +125,25 @@ assert(strpos($htmlBpjs, 'Data Peserta, NIK &amp; BPJS') !== false || strpos($ht
 assert(strpos($htmlBpjs, 'hide-col-nik') !== false);
 assert(strpos($htmlBpjs, '3275011204180001') !== false);
 echo "✓ Case 6: BPJS A4 HTML rendered with column toggle classes & summary [OK]\n";
+
+// 7. Verify getPaidStartingListRows enforces Paid-only SQL filter (normal & manual payments)
+$capturedSql = '';
+$mockDb = new class($capturedSql) {
+    private $sqlRef;
+    public function __construct(&$sqlRef) { $this->sqlRef = &$sqlRef; }
+    public function prepare($sql) {
+        $this->sqlRef = $sql;
+        return new class {
+            public function execute($params) {}
+            public function fetchAll($mode) { return []; }
+        };
+    }
+};
+$_SESSION['role'] = 'admin';
+$ctrl = new RollSkaterController();
+$resRows = $ctrl->getPaidStartingListRows($mockDb, 5);
+assert(is_array($resRows));
+assert(strpos($capturedSql, "pay.status = 'Paid' OR mpay.status = 'Paid'") !== false, "Starting list query must filter Paid payments!");
+echo "✓ Case 7: getPaidStartingListRows strictly filters (pay.status = 'Paid' OR mpay.status = 'Paid') [OK]\n";
 
 echo "--- ALL ROLL SKATERS PRINT TESTS PASSED! ---\n";

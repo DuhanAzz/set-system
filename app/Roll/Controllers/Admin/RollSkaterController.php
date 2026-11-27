@@ -85,9 +85,9 @@ class RollSkaterController extends Controller {
     }
 
     /**
-     * Ambil data Starting List terkelompok berdasarkan Kategori > KU > Gender.
+     * Ambil baris Starting List hanya untuk peserta berstatus Lunas (Paid), baik normal maupun manual/token.
      */
-    private function getStartingListData($db, int $eventId): array {
+    public function getPaidStartingListRows($db, int $eventId): array {
         $sql = "
             SELECT 
                 s.id as skater_id, s.skater_name, s.gender, s.birth_date, c.club_name, e.bib_number,
@@ -100,14 +100,23 @@ class RollSkaterController extends Controller {
             LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
             LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
             LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id
-            WHERE e.event_id = ?
+            LEFT JOIN roll_payments pay ON pay.club_id = s.club_id AND pay.event_id = e.event_id AND (e.is_manual = 0 OR e.is_manual IS NULL)
+            LEFT JOIN roll_manual_payments mpay ON mpay.invoice_code = e.manual_invoice_code AND e.is_manual = 1
+            WHERE e.event_id = ? AND (pay.status = 'Paid' OR mpay.status = 'Paid')
             GROUP BY s.id, s.skater_name, s.gender, s.birth_date, c.club_name, e.bib_number, sc.class_name, a.group_name
             ORDER BY sc.class_name ASC, a.group_name ASC, s.gender ASC, e.bib_number ASC
         ";
 
         $stmt = $db->prepare($sql);
         $stmt->execute([$eventId]);
-        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Ambil data Starting List terkelompok berdasarkan Kategori > KU > Gender.
+     */
+    private function getStartingListData($db, int $eventId): array {
+        $rows = $this->getPaidStartingListRows($db, $eventId);
 
         $grouped = [];
         $categoryCounts = [];
@@ -327,26 +336,7 @@ class RollSkaterController extends Controller {
         $stmtEvt->execute([$eventId]);
         $eventName = $stmtEvt->fetchColumn();
 
-        $sql = "
-            SELECT 
-                s.id as skater_id, s.skater_name, s.gender, c.club_name, e.bib_number,
-                sc.class_name, a.group_name,
-                GROUP_CONCAT(DISTINCT d.distance_name ORDER BY ed.race_number ASC SEPARATOR ', ') as distances
-            FROM roll_entries e
-            JOIN roll_skaters s ON e.skater_id = s.id
-            LEFT JOIN roll_clubs c ON s.club_id = c.id
-            LEFT JOIN roll_event_details ed ON e.race_class_id = ed.id
-            LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
-            LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
-            LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id
-            WHERE e.event_id = ?
-            GROUP BY s.id, s.skater_name, s.gender, c.club_name, e.bib_number, sc.class_name, a.group_name
-            ORDER BY sc.class_name ASC, a.group_name ASC, s.gender ASC, e.bib_number ASC
-        ";
-        
-        $stmt = $db->prepare($sql);
-        $stmt->execute([$eventId]);
-        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $rows = $this->getPaidStartingListRows($db, $eventId);
 
         header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename=Starting_List_' . preg_replace('/[^A-Za-z0-9_-]/', '_', $eventName) . '.csv');
