@@ -2,7 +2,7 @@
 <div class="max-w-[95%] mx-auto mb-6 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
     <div>
         <h1 class="text-3xl font-black uppercase italic text-slate-900 leading-none">
-            <?= $activeTab === 'bpjs' ? 'Data Peserta, NIK & BPJS' : 'Starting List Peserta' ?>
+            <?= $activeTab === 'bpjs' ? 'Data Peserta, NIK & BPJS' : 'Athlete List' ?>
         </h1>
         <p class="text-xs text-slate-500 font-bold uppercase tracking-widest mt-2">
             Daftar Atlet Lunas (Paid) pada <?= htmlspecialchars($eventName ?? 'Event') ?>

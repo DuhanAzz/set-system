@@ -94,7 +94,7 @@ $htmlStarting = $renderView([
     ],
 ]);
 
-assert(strpos($htmlStarting, 'STARTING LIST PESERTA') !== false || strpos($htmlStarting, 'Starting List Peserta') !== false);
+assert(strpos($htmlStarting, 'ATHLETE LIST') !== false || strpos($htmlStarting, 'Athlete List') !== false);
 assert(strpos($htmlStarting, 'cat-break-tbody') !== false);
 assert(strpos($htmlStarting, 'hide-col-classes') !== false);
 assert(strpos($htmlStarting, 'no-cat-break') !== false);

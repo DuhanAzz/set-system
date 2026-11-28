@@ -10,7 +10,7 @@ if (isset($rawHeader[0]) && !is_array($rawHeader[0])) {
 }
 $sponsors = !empty($event['sponsor_logos']) ? json_decode($event['sponsor_logos'], true) : [];
 
-$docTitle = ($activeTab === 'bpjs') ? 'Data Peserta, NIK & BPJS' : 'Starting List Peserta';
+$docTitle = ($activeTab === 'bpjs') ? 'Data Peserta, NIK & BPJS' : 'Athlete List';
 
 // Tentukan class awal <body> agar sesuai konfigurasi checkbox URL
 $bodyClasses = [];
