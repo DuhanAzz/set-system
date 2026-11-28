@@ -385,6 +385,71 @@ class RollEntryController extends Controller {
     }
 
     /**
+     * Kelompokkan entri relay/tim berdasarkan (race_class_id + nama tim) agar tim lintas kelas tidak tergabung jadi satu blok.
+     */
+    public static function collectRelayTeamGroups(array $allEntries): array {
+        $teams = [];
+        foreach ($allEntries as $ent) {
+            $isRelay = !empty($ent['team_name'])
+                || stripos((string)($ent['distance_name'] ?? ''), 'relay') !== false
+                || stripos((string)($ent['distance_name'] ?? ''), 'pair') !== false
+                || stripos((string)($ent['distance_name'] ?? ''), 'team') !== false;
+            if (!$isRelay) {
+                continue;
+            }
+
+            $teamName = !empty($ent['team_name'])
+                ? trim((string)$ent['team_name'])
+                : ('Tim ' . ($ent['club_name'] ?? 'Klub') . ' - ' . ($ent['group_name'] ?? ''));
+            $rawCName = trim((string)($ent['class_name'] ?? ''));
+            $raceName = ($rawCName !== '' ? strtoupper($rawCName) . ' - ' : '')
+                . ($ent['distance_name'] ?? '') . ' - ' . ($ent['group_name'] ?? '');
+            $classGender = trim((string)($ent['class_gender'] ?? ''));
+            if ($classGender !== '' && stripos($raceName, $classGender) === false) {
+                $raceName .= ' (' . strtoupper($classGender) . ')';
+            }
+
+            $raceClassId = (int)($ent['race_class_id'] ?? 0);
+            $teamKey = $raceClassId . '|' . mb_strtoupper($teamName);
+            if (!isset($teams[$teamKey])) {
+                $teams[$teamKey] = [
+                    'team_name' => $teamName,
+                    'race_name' => $raceName,
+                    'members'   => [],
+                ];
+            }
+
+            $teams[$teamKey]['members'][] = [
+                'team_name'   => $teamName,
+                'skater_name' => $ent['skater_name'] ?? '-',
+                'gender'      => ($ent['gender'] ?? 'M') == 'M' ? 'Putra' : 'Putri',
+                'team_role'   => $ent['team_role'] ?? '',
+                'club_name'   => $ent['club_name'] ?? 'Klub Pendaftar',
+                'race_name'   => $raceName,
+            ];
+        }
+
+        foreach ($teams as &$tg) {
+            usort($tg['members'], static function ($a, $b) {
+                $rA = (($a['team_role'] ?? '') === 'cadangan') ? 1 : 0;
+                $rB = (($b['team_role'] ?? '') === 'cadangan') ? 1 : 0;
+                if ($rA !== $rB) return $rA <=> $rB;
+                return strcasecmp((string)$a['skater_name'], (string)$b['skater_name']);
+            });
+        }
+        unset($tg);
+
+        $teamList = array_values($teams);
+        usort($teamList, static function ($a, $b) {
+            $cRace = strcasecmp((string)$a['race_name'], (string)$b['race_name']);
+            if ($cRace !== 0) return $cRace;
+            return strcasecmp((string)$a['team_name'], (string)$b['team_name']);
+        });
+
+        return $teamList;
+    }
+
+    /**
      * Bangun data invoice / tanda terima klub untuk dipakai bersama oleh Admin maupun User Checkout.
      */
     public static function buildClubInvoicePrintData($db, int $eventId, int $targetClubId): ?array {
@@ -408,7 +473,7 @@ class RollEntryController extends Controller {
         $stmtPay->execute([$eventId, $targetClubId]);
         $payData = $stmtPay->fetch(PDO::FETCH_ASSOC);
 
-        $sqlEntries = "SELECT s.id as skater_id, s.skater_name, s.gender, s.birth_date, s.is_pon_veteran, a.group_name, d.distance_name, ed.category_name, ed.distance, e.race_class_id, sc.class_name, e.is_manual, e.team_name, e.team_role, c.club_name
+        $sqlEntries = "SELECT s.id as skater_id, s.skater_name, s.gender, s.birth_date, s.is_pon_veteran, a.group_name, d.distance_name, ed.category_name, ed.distance, ed.gender as class_gender, e.race_class_id, sc.class_name, e.is_manual, e.team_name, e.team_role, c.club_name
                        FROM roll_entries e
                        JOIN roll_skaters s ON e.skater_id = s.id
                        LEFT JOIN roll_clubs c ON s.club_id = c.id
@@ -427,7 +492,6 @@ class RollEntryController extends Controller {
         $skaterFees = $financeCalc['skater_fees'];
 
         $groupedSkaters = [];
-        $teams = [];
         foreach ($allEntries as $ent) {
             $sId = $ent['skater_id'];
             if (!isset($groupedSkaters[$sId])) {
@@ -450,20 +514,8 @@ class RollEntryController extends Controller {
                 'class_name' => $rawCName,
                 'is_manual' => $ent['is_manual']
             ];
-
-            $isRelay = !empty($ent['team_name']) || stripos($ent['distance_name'] ?? '', 'relay') !== false || stripos($ent['distance_name'] ?? '', 'pair') !== false;
-            if ($isRelay) {
-                $teamName = !empty($ent['team_name']) ? $ent['team_name'] : ('Tim ' . ($ent['club_name'] ?? 'Klub') . ' - ' . $ent['group_name']);
-                $teams[$teamName][] = [
-                    'team_name'   => $teamName,
-                    'skater_name' => $ent['skater_name'],
-                    'gender'      => $ent['gender'] == 'M' ? 'Putra' : 'Putri',
-                    'team_role'   => $ent['team_role'] ?? '',
-                    'club_name'   => $ent['club_name'] ?? 'Klub Pendaftar',
-                    'race_name'   => ($rawCName ? strtoupper($rawCName) . ' - ' : '') . $ent['distance_name'] . ' - ' . $ent['group_name']
-                ];
-            }
         }
+        $teams = self::collectRelayTeamGroups($allEntries);
 
         return [
             'teams'          => $teams,
@@ -1090,7 +1142,7 @@ class RollEntryController extends Controller {
         $payData = $this->getManualPaymentOrDraft($db, $eventId, $invoiceCode);
         if (!$payData) die("Invoice tidak ditemukan");
         
-        $sqlEntries = "SELECT s.id as skater_id, s.skater_name, s.gender, s.birth_date, s.is_pon_veteran, a.group_name, d.distance_name, ed.category_name, ed.distance, e.race_class_id, sc.class_name, e.is_manual, e.team_name, e.team_role, c.club_name
+        $sqlEntries = "SELECT s.id as skater_id, s.skater_name, s.gender, s.birth_date, s.is_pon_veteran, a.group_name, d.distance_name, ed.category_name, ed.distance, ed.gender as class_gender, e.race_class_id, sc.class_name, e.is_manual, e.team_name, e.team_role, c.club_name
                        FROM roll_entries e
                        JOIN roll_skaters s ON e.skater_id = s.id
                        LEFT JOIN roll_clubs c ON s.club_id = c.id
@@ -1118,7 +1170,6 @@ class RollEntryController extends Controller {
         }
         
         $groupedSkaters = [];
-        $teams = [];
         foreach($allEntries as $ent) {
             $sId = $ent['skater_id'];
             if(!isset($groupedSkaters[$sId])) {
@@ -1142,20 +1193,8 @@ class RollEntryController extends Controller {
                 'class_name' => $rawCName,
                 'is_manual' => $ent['is_manual']
             ];
-            
-            $isRelay = !empty($ent['team_name']) || stripos($ent['distance_name'] ?? '', 'relay') !== false || stripos($ent['distance_name'] ?? '', 'pair') !== false;
-            if ($isRelay) {
-                $teamName = !empty($ent['team_name']) ? $ent['team_name'] : ('Tim ' . ($ent['club_name'] ?? 'Klub') . ' - ' . $ent['group_name']);
-                $teams[$teamName][] = [
-                    'team_name'   => $teamName,
-                    'skater_name' => $ent['skater_name'],
-                    'gender'      => $ent['gender'] == 'M' ? 'Putra' : 'Putri',
-                    'team_role'   => $ent['team_role'] ?? '',
-                    'club_name'   => $ent['club_name'] ?? 'Klub Pendaftar',
-                    'race_name'   => ($rawCName ? strtoupper($rawCName) . ' - ' : '') . $ent['distance_name'] . ' - ' . $ent['group_name']
-                ];
-            }
         }
+        $teams = self::collectRelayTeamGroups($allEntries);
         
         return $this->view('roll/admin/entries/print_manual_invoice', [
             'teams' => $teams,

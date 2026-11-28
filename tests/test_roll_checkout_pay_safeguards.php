@@ -130,25 +130,32 @@ assert(strpos($admHtml, urlencode('INDONESIA OPEN')) !== false);
 
 echo "✓ User invoice buttons (all statuses) & Admin Balas via WA link verified [OK]\n";
 
-// TEST 5: Relay rows in print_invoice & print_manual_invoice render per member (no rowspan) even with same team name
+// TEST 5: Relay team grouping splits by race_class_id + team_name (e.g. 'monastana' in KU B Putra vs KU C Putra vs KU C Putri)
+$relayEntries = [
+    ['race_class_id' => 101, 'class_name' => 'Speed', 'distance_name' => 'Relay 3000m', 'group_name' => 'KU B', 'class_gender' => 'Putra', 'team_name' => 'monastana', 'team_role' => '', 'skater_name' => 'ABDILLAH', 'gender' => 'M', 'club_name' => 'Monastana'],
+    ['race_class_id' => 101, 'class_name' => 'Speed', 'distance_name' => 'Relay 3000m', 'group_name' => 'KU B', 'class_gender' => 'Putra', 'team_name' => 'monastana', 'team_role' => '', 'skater_name' => 'HANNAN', 'gender' => 'M', 'club_name' => 'Monastana'],
+    ['race_class_id' => 101, 'class_name' => 'Speed', 'distance_name' => 'Relay 3000m', 'group_name' => 'KU B', 'class_gender' => 'Putra', 'team_name' => 'monastana', 'team_role' => '', 'skater_name' => 'KEEANO', 'gender' => 'M', 'club_name' => 'Monastana'],
+    ['race_class_id' => 102, 'class_name' => 'Speed', 'distance_name' => 'Relay 3000m', 'group_name' => 'KU C', 'class_gender' => 'Putri', 'team_name' => 'monastana', 'team_role' => '', 'skater_name' => 'KEINARRA', 'gender' => 'F', 'club_name' => 'Monastana'],
+    ['race_class_id' => 102, 'class_name' => 'Speed', 'distance_name' => 'Relay 3000m', 'group_name' => 'KU C', 'class_gender' => 'Putri', 'team_name' => 'monastana', 'team_role' => '', 'skater_name' => 'NAYSILA', 'gender' => 'F', 'club_name' => 'Monastana'],
+    ['race_class_id' => 102, 'class_name' => 'Speed', 'distance_name' => 'Relay 3000m', 'group_name' => 'KU C', 'class_gender' => 'Putri', 'team_name' => 'monastana', 'team_role' => 'cadangan', 'skater_name' => 'STESHA', 'gender' => 'F', 'club_name' => 'Monastana'],
+];
+$teams = \App\Roll\Controllers\Admin\RollEntryController::collectRelayTeamGroups($relayEntries);
+assert(count($teams) === 2, 'Two distinct race classes with same team name must stay separate teams');
+assert(count($teams[0]['members']) === 3 && count($teams[1]['members']) === 3);
+assert(strpos($teams[0]['race_name'], 'PUTRA') !== false && strpos($teams[1]['race_name'], 'PUTRI') !== false);
+
 foreach (['print_invoice.php', 'print_manual_invoice.php'] as $invView) {
     ob_start();
     $event = ['id' => 5, 'event_name' => 'INDONESIA OPEN', 'event_date_start' => '2026-12-04', 'event_date_end' => '2026-12-06'];
     $clubName = 'Monastana'; $invoiceCode = 'MAN-TOK-1';
     $payData = ['status' => 'Paid', 'total_amount' => 1000000];
     $groupedSkaters = []; $totalTagihan = 1000000;
-    $teams = [
-        'Monastana' => [
-            ['team_name' => 'Monastana', 'skater_name' => 'ABDILLAH ISMAIL PASA', 'gender' => 'Putra', 'team_role' => '', 'club_name' => 'Monastana', 'race_name' => 'SPEED - RELAY 3000M - KU B'],
-            ['team_name' => 'Monastana', 'skater_name' => 'ABIGHAIL AINI AZIZ', 'gender' => 'Putri', 'team_role' => 'cadangan', 'club_name' => 'Monastana', 'race_name' => 'SPEED - RELAY 3000M - KU D'],
-        ],
-    ];
     include __DIR__ . '/../views/roll/admin/entries/' . $invView;
     $invHtml = (string)ob_get_clean();
-    assert(strpos($invHtml, 'rowspan=') === false, "$invView must NOT use rowspan on relay team rows");
-    assert(substr_count($invHtml, 'Monastana') >= 4, "$invView must repeat team name on each athlete row");
+    assert(substr_count($invHtml, 'rowspan="3"') === 4, "$invView must rowspan NO & NAMA TIM per 3-athlete team block (2 cols x 2 teams)");
+    assert(strpos($invHtml, '3 Atlet') !== false);
     assert(strpos($invHtml, 'CADANGAN') !== false);
 }
-echo "✓ Relay team table renders per member row without rowspan even for identical team names [OK]\n";
+echo "✓ Relay team table groups properly per (race + team) with rowspan across team members [OK]\n";
 echo "--- ALL CHECKOUT PAY SAFEGUARD TESTS PASSED! ---\n";
 

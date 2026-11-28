@@ -335,40 +335,53 @@
                                         <th style="border: 1px solid #ccc; padding: 8px;">KLUB / KONTINGEN</th>
                                     </tr>
                                 </thead>
-                                <tbody>
-                                    <?php
-                                    $relayRows = [];
-                                    foreach ($teams as $teamName => $members) {
-                                        foreach ($members as $m) {
-                                            $m['team_name'] = $m['team_name'] ?? $teamName;
-                                            $relayRows[] = $m;
+                                <?php
+                                $normalizedTeams = [];
+                                foreach ($teams as $k => $group) {
+                                    if (isset($group['members']) && is_array($group['members'])) {
+                                        $normalizedTeams[] = $group;
+                                    } elseif (is_array($group)) {
+                                        foreach ($group as $m) {
+                                            $tName = (string)($m['team_name'] ?? $k);
+                                            $rName = (string)($m['race_name'] ?? '');
+                                            $subKey = $rName . '|' . mb_strtoupper($tName);
+                                            if (!isset($normalizedTeams[$subKey])) {
+                                                $normalizedTeams[$subKey] = ['team_name' => $tName, 'race_name' => $rName, 'members' => []];
+                                            }
+                                            $normalizedTeams[$subKey]['members'][] = $m;
                                         }
                                     }
-                                    usort($relayRows, static function ($a, $b) {
-                                        $cRace = strcasecmp((string)($a['race_name'] ?? ''), (string)($b['race_name'] ?? ''));
-                                        if ($cRace !== 0) return $cRace;
-                                        $cTeam = strcasecmp((string)($a['team_name'] ?? ''), (string)($b['team_name'] ?? ''));
-                                        if ($cTeam !== 0) return $cTeam;
-                                        return strcasecmp((string)($a['skater_name'] ?? ''), (string)($b['skater_name'] ?? ''));
-                                    });
-                                    $no = 1;
-                                    foreach ($relayRows as $m):
-                                    ?>
+                                }
+                                $no = 1;
+                                foreach ($normalizedTeams as $tg):
+                                    $teamName = (string)($tg['team_name'] ?? '-');
+                                    $members  = $tg['members'] ?? [];
+                                    $rowspan  = count($members);
+                                    if ($rowspan === 0) continue;
+                                ?>
+                                <tbody style="page-break-inside: avoid; break-inside: avoid;">
+                                    <?php foreach ($members as $index => $m): ?>
                                         <tr>
-                                            <td style="border: 1px solid #ccc; padding: 8px; text-align: center; font-weight: bold;"><?= $no++ ?></td>
-                                            <td style="border: 1px solid #ccc; padding: 8px; font-weight: bold; background-color: #f8fafc;"><?= htmlspecialchars((string)$m['team_name']) ?></td>
-                                            <td style="border: 1px solid #ccc; padding: 8px; font-weight: 600;">
+                                            <?php if ($index === 0): ?>
+                                                <td style="border: 1px solid #ccc; border-top: 2px solid #475569; padding: 8px; text-align: center; font-weight: bold; vertical-align: middle;" rowspan="<?= $rowspan ?>"><?= $no++ ?></td>
+                                                <td style="border: 1px solid #ccc; border-top: 2px solid #475569; padding: 8px; font-weight: bold; vertical-align: middle; background-color: #f8fafc;" rowspan="<?= $rowspan ?>">
+                                                    <div><?= htmlspecialchars($teamName) ?></div>
+                                                    <div style="font-size: 7.5pt; color: #64748b; font-weight: 600; margin-top: 2px;"><?= $rowspan ?> Atlet</div>
+                                                </td>
+                                            <?php endif; ?>
+                                            <td style="border: 1px solid #ccc; <?= $index === 0 ? 'border-top: 2px solid #475569;' : '' ?> padding: 8px; font-weight: 600;">
                                                 <?= htmlspecialchars((string)$m['skater_name']) ?>
                                                 <?php if (($m['team_role'] ?? '') === 'cadangan'): ?>
                                                     <span style="display:inline-block; padding: 1px 4px; background: #fef3c7; border: 1px solid #f59e0b; color: #92400e; border-radius: 3px; font-size: 7pt; font-weight: bold; margin-left: 4px;">CADANGAN</span>
                                                 <?php endif; ?>
                                             </td>
-                                            <td style="border: 1px solid #ccc; padding: 8px; text-align: center;"><?= htmlspecialchars((string)$m['gender']) ?></td>
-                                            <td style="border: 1px solid #ccc; padding: 8px; font-size: 9pt; color: #64748b; text-transform: uppercase;"><?= htmlspecialchars((string)$m['race_name']) ?></td>
-                                            <td style="border: 1px solid #ccc; padding: 8px; font-weight: 500;"><?= htmlspecialchars((string)$m['club_name']) ?></td>
+                                            <td style="border: 1px solid #ccc; <?= $index === 0 ? 'border-top: 2px solid #475569;' : '' ?> padding: 8px; text-align: center;"><?= htmlspecialchars((string)$m['gender']) ?></td>
+                                            <td style="border: 1px solid #ccc; <?= $index === 0 ? 'border-top: 2px solid #475569;' : '' ?> padding: 8px; font-size: 9pt; color: #64748b; text-transform: uppercase;"><?= htmlspecialchars((string)$m['race_name']) ?></td>
+                                            <td style="border: 1px solid #ccc; <?= $index === 0 ? 'border-top: 2px solid #475569;' : '' ?> padding: 8px; font-weight: 500;"><?= htmlspecialchars((string)$m['club_name']) ?></td>
                                         </tr>
                                     <?php endforeach; ?>
                                 </tbody>
+                                <?php endforeach; ?>
                             </table>
                         </div>
                         <?php endif; ?>
