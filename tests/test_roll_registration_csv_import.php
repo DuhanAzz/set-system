@@ -6,6 +6,7 @@ require_once __DIR__ . '/../app/Core/Database.php';
 require_once __DIR__ . '/../app/Helpers/DateHelper.php';
 require_once __DIR__ . '/../app/Helpers/RollTeamHelper.php';
 require_once __DIR__ . '/../app/Helpers/RollFinanceHelper.php';
+require_once __DIR__ . '/../app/Roll/Controllers/User/RollUserAthleteController.php';
 require_once __DIR__ . '/../app/Roll/Controllers/User/RollRegistrationController.php';
 
 use App\Roll\Controllers\User\RollRegistrationController;
@@ -91,6 +92,27 @@ $resErr = RollRegistrationController::parseRegistrationCsv($csvErr, $athletes, $
 assert(count($resErr['errors']) === 4, 'Expected 4 validation errors, got ' . count($resErr['errors']));
 assert($resErr['stats']['total_skaters'] === 0);
 echo "✓ Case 2: Limit, invalid distance, age/gender mismatch & missing skater rejections verified [OK]\n";
+
+// Test 3: Formula ="NIK" + DD/MM/YYYY Excel date matching + Admin detail & shared modal render
+$csvFormula = implode("\n", [
+    "UID,NIK,Nama Atlet,Gender,Tgl Lahir,Umur,Kategori,100m,200m,300m,500m,1000m",
+    ",\"=\"\"3275011204160001\"\"\",ALYA PUTRI,F,12/04/2016,10 Thn,Pemula,1,1,,,",
+]);
+$resFormula = RollRegistrationController::parseRegistrationCsv($csvFormula, $athletes, $classes, $event, $existingEntries, $eventFees);
+assert(empty($resFormula['errors']) && $resFormula['stats']['total_skaters'] === 1 && $resFormula['stats']['total_entries'] === 2);
+
+ob_start();
+$eventId = 5; $targetUserId = 188; $clubName = 'KLUB TEST'; $emailUser = 'a@b.c'; $phoneUser = '';
+$totalTagihan = 100000; $groupedSkaters = []; $payData = ['id' => 1, 'status' => 'Unpaid', 'payment_proof' => 'x.jpg', 'total_amount' => 100000];
+$distancesByCat = ['Pemula' => ['100m', '200m'], 'Standart' => ['300m', '500m'], 'Speed' => ['500m', '1000m']];
+include __DIR__ . '/../views/roll/admin/entries/detail.php';
+$adminHtml = (string)ob_get_clean();
+assert(strpos($adminHtml, 'openRegImportModal()') !== false);
+assert(strpos($adminHtml, '/roll/admin/entries/export_reg_csv?id=188&amp;event_id=5') !== false || strpos($adminHtml, '/roll/admin/entries/export_reg_csv?id=188&event_id=5') !== false);
+assert(strpos($adminHtml, '/roll/admin/entries/preview_reg_csv?id=188&event_id=5') !== false);
+assert(strpos($adminHtml, '/roll/admin/entries/confirm_reg_csv?id=188&amp;event_id=5') !== false || strpos($adminHtml, '/roll/admin/entries/confirm_reg_csv?id=188&event_id=5') !== false);
+assert(strpos($adminHtml, "openModal('approve')") !== false);
+echo "✓ Case 3: Formula NIK + DD/MM/YYYY match & Admin detail CSV modal shortcut verified [OK]\n";
 
 ob_end_flush();
 echo "--- ALL ROLL REGISTRATION CSV IMPORT TESTS PASSED! ---\n";

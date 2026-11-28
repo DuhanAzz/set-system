@@ -13,6 +13,15 @@
     .text-pink-600 { color: #db2777; }
 </style>
 
+<?php if (isset($_SESSION['flash_message'])): ?>
+    <?php $isErr = (($_SESSION['flash_type'] ?? '') === 'error'); ?>
+    <div class="max-w-7xl mx-auto mb-4 px-4 py-3 rounded-xl text-xs font-bold border shadow-sm flex items-center justify-between gap-2 <?= $isErr ? 'bg-red-50 text-red-800 border-red-200' : 'bg-emerald-50 text-emerald-800 border-emerald-200' ?>">
+        <div><?= $isErr ? '❌' : '✅' ?> <?= $_SESSION['flash_message'] ?></div>
+        <button type="button" onclick="this.parentElement.remove()" class="text-lg opacity-50 hover:opacity-100">&times;</button>
+    </div>
+    <?php unset($_SESSION['flash_message'], $_SESSION['flash_type']); ?>
+<?php endif; ?>
+
 <div class="max-w-7xl mx-auto mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
     <div class="flex items-center gap-4">
         <a href="<?= getenv('APP_URL') ?>/roll/admin/entries" class="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:bg-slate-900 hover:text-white transition shadow-sm">←</a>
@@ -24,8 +33,11 @@
         </div>
     </div>
     
-    <div>
-        <a href="<?= getenv('APP_URL') ?>/roll/admin/entries/print_invoice?id=<?= $targetUserId ?>&event_id=<?= $eventId ?>" target="_blank" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:shadow-indigo-500/25 transition-all flex items-center">
+    <div class="flex flex-wrap items-center gap-2.5">
+        <button type="button" onclick="openRegImportModal()" class="bg-slate-800 hover:bg-slate-900 text-white font-bold py-3 px-5 rounded-lg shadow-lg transition-all flex items-center gap-2 text-xs uppercase cursor-pointer">
+            <span>📥</span> Import / Export CSV Individu
+        </button>
+        <a href="<?= getenv('APP_URL') ?>/roll/admin/entries/print_invoice?id=<?= $targetUserId ?>&event_id=<?= $eventId ?>" target="_blank" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:shadow-indigo-500/25 transition-all flex items-center text-xs uppercase">
             <span class="mr-2">🖨️</span> Cetak Invoice / Tanda Terima
         </a>
     </div>
@@ -232,3 +244,12 @@ function openModal(action) {
     }
 }
 </script>
+
+<?php
+$csvExportUrl   = getenv('APP_URL') . '/roll/admin/entries/export_reg_csv?id=' . $targetUserId . '&event_id=' . $eventId;
+$csvPreviewUrl  = getenv('APP_URL') . '/roll/admin/entries/preview_reg_csv?id=' . $targetUserId . '&event_id=' . $eventId;
+$csvConfirmUrl  = getenv('APP_URL') . '/roll/admin/entries/confirm_reg_csv?id=' . $targetUserId . '&event_id=' . $eventId;
+$csvEntityLabel = 'klub ' . ($clubName ?? '');
+$csvExtraNotice = '<strong>Mode Admin:</strong> Dapat langsung mengecek preview validasi tanpa mengubah data, atau klik Konfirmasi jika ingin memperbarui entri individu klub ini.';
+include __DIR__ . '/../../partials/reg_csv_modal.php';
+?>

@@ -35,8 +35,9 @@ class RollRegistrationController extends Controller {
 
     /**
      * Muat konteks pendaftaran (event, kelas terbuka, atlet klub, entri eksisting, status kunci) sekali pakai.
+     * Dapat dipanggil oleh User maupun Admin (isAdminOverride=true melewati kunci status event/bayar).
      */
-    private function loadRegistrationContext($db, int $event_id, int $club_id): array {
+    public static function loadClubEventContext($db, int $event_id, int $club_id, bool $isContingent = false, bool $isAdminOverride = false): array {
         $stmtAthletes = $db->prepare("SELECT * FROM roll_skaters WHERE club_id = ? ORDER BY skater_name ASC");
         $stmtAthletes->execute([$club_id]);
         $athletes = $stmtAthletes->fetchAll(PDO::FETCH_ASSOC);
@@ -89,21 +90,22 @@ class RollRegistrationController extends Controller {
         $stmtEntries->execute([$club_id, $event_id]);
         $existingEntries = $stmtEntries->fetchAll(PDO::FETCH_ASSOC);
 
-        $isEditable = !empty(array_filter($existingEntries, fn($e) => in_array($e['payment_status'], ['Unpaid', 'Rejected'])));
-        $isLocked   = !empty($existingEntries) && !$isEditable;
-
-        $isContingent = (($_SESSION['roll_club_type'] ?? '') === 'contingent');
         $eventStatus  = $event['status'] ?? '';
         $isRegistrationActive = ($eventStatus === 'Open Registration') || ($eventStatus === 'Official Registration' && $isContingent);
+        $isLocked = false;
+        if (!$isAdminOverride) {
+            $isEditable = !empty(array_filter($existingEntries, fn($e) => in_array($e['payment_status'], ['Unpaid', 'Rejected'])));
+            $isLocked   = !empty($existingEntries) && !$isEditable;
 
-        if (!$isRegistrationActive) {
-            $isLocked = true;
-        } else {
-            $stmtPay = $db->prepare("SELECT status FROM roll_payments WHERE club_id = ? AND event_id = ? LIMIT 1");
-            $stmtPay->execute([$club_id, $event_id]);
-            $paySt = $stmtPay->fetchColumn();
-            if ($paySt && in_array($paySt, ['Pending', 'Paid'], true)) {
+            if (!$isRegistrationActive) {
                 $isLocked = true;
+            } else {
+                $stmtPay = $db->prepare("SELECT status FROM roll_payments WHERE club_id = ? AND event_id = ? LIMIT 1");
+                $stmtPay->execute([$club_id, $event_id]);
+                $paySt = $stmtPay->fetchColumn();
+                if ($paySt && in_array($paySt, ['Pending', 'Paid'], true)) {
+                    $isLocked = true;
+                }
             }
         }
 
@@ -133,6 +135,10 @@ class RollRegistrationController extends Controller {
             'individualDistances'  => array_keys($individualDistances),
             'distancesByCat'       => array_map('array_keys', $distancesByCat),
         ];
+    }
+
+    private function loadRegistrationContext($db, int $event_id, int $club_id): array {
+        return self::loadClubEventContext($db, $event_id, $club_id, (($_SESSION['roll_club_type'] ?? '') === 'contingent'), false);
     }
 
     public function index($event_id = null) {
@@ -853,9 +859,16 @@ class RollRegistrationController extends Controller {
 
             // Cari atlet di roster klub
             $uidVal  = ($uidCol !== null && isset($row[$uidCol])) ? strtoupper(trim((string)$row[$uidCol])) : '';
-            $nikVal  = ($nikCol !== null && isset($row[$nikCol])) ? ltrim(trim((string)$row[$nikCol]), "'\" ") : '';
+            $rawNikCsv = ($nikCol !== null && isset($row[$nikCol])) ? trim((string)$row[$nikCol]) : '';
+            if (preg_match('/^=\s*"(.*)"$/', $rawNikCsv, $nm)) {
+                $rawNikCsv = trim($nm[1]);
+            }
+            $nikVal  = ltrim($rawNikCsv, "'\" ");
             $nameVal = ($nameCol !== null && isset($row[$nameCol])) ? strtoupper(preg_replace('/\s+/', ' ', trim((string)$row[$nameCol]))) : '';
             $dobVal  = ($dobCol !== null && isset($row[$dobCol])) ? trim((string)$row[$dobCol]) : '';
+            if ($dobVal !== '' && class_exists(RollUserAthleteController::class)) {
+                $dobVal = RollUserAthleteController::parseBirthDate($dobVal, 'AUTO') ?? $dobVal;
+            }
 
             $athlete = null;
             if ($uidVal !== '' && isset($byUid[$uidVal])) $athlete = $byUid[$uidVal];
@@ -1088,20 +1101,10 @@ class RollRegistrationController extends Controller {
         ];
     }
 
-    public function export_csv($event_id = null) {
-        if (!$event_id) {
-            header("Location: " . getenv('APP_URL') . "/roll/user/explore");
-            exit;
-        }
-        $db = Database::getInstance()->getConnection();
-        $club_id = (int)($_SESSION['roll_club_id'] ?? 0);
-        $ctx = $this->loadRegistrationContext($db, (int)$event_id, $club_id);
-
-        if (empty($ctx['event'])) {
-            header("Location: " . getenv('APP_URL') . "/roll/user/explore");
-            exit;
-        }
-
+    /**
+     * Stream file CSV pendaftaran massal lomba individu untuk konteks klub+event tertentu.
+     */
+    public static function streamEventCsv(array $ctx): void {
         $event = $ctx['event'];
         $evDate = $event['event_date_start'] ?? null;
         $uniqueDistances = $ctx['individualDistances'];
@@ -1132,10 +1135,13 @@ class RollRegistrationController extends Controller {
 
         foreach ($ctx['athletes'] as $a) {
             $sId = (int)$a['id'];
-            $nikOut = !empty($a['nik']) ? ("'" . $a['nik']) : '';
+            $nikClean = trim((string)($a['nik'] ?? ''));
+            $nikOut = $nikClean !== '' ? ('="' . $nikClean . '"') : '';
             $age = DateHelper::getSkaterEventAge($a, $evDate);
             $ageLabel = $age . ' Thn' . (!empty($a['is_pon_veteran']) ? ' (PON->Senior)' : '');
-            $dobOut = (!empty($a['birth_date']) && $a['birth_date'] !== '0000-00-00') ? $a['birth_date'] : '';
+            $dobOut = (!empty($a['birth_date']) && $a['birth_date'] !== '0000-00-00')
+                ? date('d/m/Y', strtotime($a['birth_date']))
+                : '';
 
             $skaterCats = $registeredMap[$sId] ?? [];
             if (empty($skaterCats)) {
@@ -1154,6 +1160,139 @@ class RollRegistrationController extends Controller {
         }
         fclose($out);
         exit;
+    }
+
+    /**
+     * Validasi CSV dan simpan rencana import ke session preview agar dapat dikonfirmasi pada langkah ke-2.
+     */
+    public static function buildPreviewPayload($db, int $event_id, array $ctx, string $content, string $sessionKey): array {
+        $eventFees = \App\Helpers\RollFinanceHelper::getEventFees($db, $event_id);
+        $parsed = self::parseRegistrationCsv(
+            $content,
+            $ctx['athletes'],
+            $ctx['classes'],
+            $ctx['event'],
+            $ctx['existingEntries'],
+            $eventFees
+        );
+
+        $token = bin2hex(random_bytes(16));
+        $compactPlan = [];
+        foreach ($parsed['planned_by_skater'] as $sId => $pData) {
+            $compactPlan[$sId] = array_map(fn($pe) => [
+                'race_class_id' => $pe['race_class_id'],
+                'distance_id'   => $pe['distance_id'],
+            ], $pData['entries']);
+        }
+        $_SESSION[$sessionKey] = [
+            'token'             => $token,
+            'planned_by_skater' => $compactPlan,
+        ];
+
+        return [
+            'success'       => true,
+            'token'         => $token,
+            'stats'         => $parsed['stats'],
+            'preview_items' => $parsed['preview_items'],
+            'errors'        => $parsed['errors'],
+        ];
+    }
+
+    /**
+     * Eksekusi commit pendaftaran massal dari sesi preview yang tervalidasi.
+     */
+    public static function executeCsvImport($db, int $event_id, array $ctx, string $sessionKey, string $postedToken, bool $allowReplaceAllIndiv = false): array {
+        $saved = $_SESSION[$sessionKey] ?? null;
+        unset($_SESSION[$sessionKey]);
+
+        if (!$saved || empty($saved['token']) || !hash_equals((string)$saved['token'], $postedToken)) {
+            return ['ok' => false, 'message' => 'Sesi preview import tidak valid atau sudah kadaluarsa. Silakan ulangi upload CSV.'];
+        }
+
+        $plan = $saved['planned_by_skater'] ?? [];
+        if (empty($plan)) {
+            return ['ok' => false, 'message' => 'Tidak ada data atlet yang valid untuk disimpan.'];
+        }
+
+        // Petakan entri individu non-manual milik klub agar penghapusan 100% aman (tidak menyentuh tim/relay/manual)
+        $replaceableIdsBySkater = [];
+        foreach ($ctx['existingEntries'] as $ex) {
+            $dName = trim((string)($ex['distance_name'] ?? ''));
+            $isTeam = !empty($ex['team_name']) || \App\Helpers\RollTeamHelper::classifyDistance($dName) !== null;
+            $statusOk = $allowReplaceAllIndiv || in_array($ex['payment_status'], ['Unpaid', 'Rejected'], true);
+            if (!$isTeam && empty($ex['is_manual']) && empty($ex['manual_invoice_code']) && $statusOk) {
+                $replaceableIdsBySkater[(int)$ex['skater_id']][] = (int)$ex['entry_id'];
+            }
+        }
+
+        $validClubSkaterIds = [];
+        foreach ($ctx['athletes'] as $a) {
+            $validClubSkaterIds[(int)$a['id']] = true;
+        }
+
+        $savedSkaters = 0;
+        $savedEntries = 0;
+        $replacedCount = 0;
+
+        try {
+            $db->beginTransaction();
+
+            $stmtInsert = $db->prepare("INSERT INTO roll_entries (event_id, skater_id, race_class_id, distance_id, team_name, team_role) VALUES (?, ?, ?, ?, NULL, NULL)");
+
+            foreach ($plan as $sId => $entries) {
+                $sId = (int)$sId;
+                if (empty($validClubSkaterIds[$sId]) || empty($entries)) continue;
+
+                // Ganti seluruh entri individu milik atlet yang tercantum di CSV
+                $toDelete = $replaceableIdsBySkater[$sId] ?? [];
+                if (!empty($toDelete)) {
+                    $ph = str_repeat('?,', count($toDelete) - 1) . '?';
+                    $stmtDel = $db->prepare("DELETE FROM roll_entries WHERE event_id = ? AND skater_id = ? AND id IN ($ph)");
+                    $stmtDel->execute(array_merge([$event_id, $sId], array_values($toDelete)));
+                    $replacedCount += count($toDelete);
+                }
+
+                $savedSkaters++;
+                foreach ($entries as $pe) {
+                    $stmtInsert->execute([
+                        $event_id,
+                        $sId,
+                        (int)$pe['race_class_id'],
+                        (int)$pe['distance_id'] ?: null,
+                    ]);
+                    $savedEntries++;
+                }
+            }
+
+            if ($db->inTransaction()) {
+                $db->commit();
+            }
+
+            $msg = "Pendaftaran massal CSV berhasil: {$savedSkaters} atlet ({$savedEntries} nomor lomba individu" . ($replacedCount > 0 ? ", menggantikan {$replacedCount} entri sebelumnya" : "") . ").";
+            return ['ok' => true, 'message' => $msg];
+        } catch (\Throwable $e) {
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
+            return ['ok' => false, 'message' => 'Gagal menyimpan import massal: ' . htmlspecialchars($e->getMessage())];
+        }
+    }
+
+    public function export_csv($event_id = null) {
+        if (!$event_id) {
+            header("Location: " . getenv('APP_URL') . "/roll/user/explore");
+            exit;
+        }
+        $db = Database::getInstance()->getConnection();
+        $club_id = (int)($_SESSION['roll_club_id'] ?? 0);
+        $ctx = $this->loadRegistrationContext($db, (int)$event_id, $club_id);
+
+        if (empty($ctx['event'])) {
+            header("Location: " . getenv('APP_URL') . "/roll/user/explore");
+            exit;
+        }
+
+        self::streamEventCsv($ctx);
     }
 
     public function preview_import($event_id = null) {
@@ -1182,36 +1321,7 @@ class RollRegistrationController extends Controller {
             exit;
         }
 
-        $eventFees = \App\Helpers\RollFinanceHelper::getEventFees($db, (int)$event_id);
-        $parsed = self::parseRegistrationCsv(
-            $content,
-            $ctx['athletes'],
-            $ctx['classes'],
-            $ctx['event'],
-            $ctx['existingEntries'],
-            $eventFees
-        );
-
-        $token = bin2hex(random_bytes(16));
-        $compactPlan = [];
-        foreach ($parsed['planned_by_skater'] as $sId => $pData) {
-            $compactPlan[$sId] = array_map(fn($pe) => [
-                'race_class_id' => $pe['race_class_id'],
-                'distance_id'   => $pe['distance_id'],
-            ], $pData['entries']);
-        }
-        $_SESSION['roll_reg_import_preview_' . (int)$event_id] = [
-            'token'             => $token,
-            'planned_by_skater' => $compactPlan,
-        ];
-
-        echo json_encode([
-            'success'       => true,
-            'token'         => $token,
-            'stats'         => $parsed['stats'],
-            'preview_items' => $parsed['preview_items'],
-            'errors'        => $parsed['errors'],
-        ]);
+        echo json_encode(self::buildPreviewPayload($db, (int)$event_id, $ctx, $content, 'roll_reg_import_preview_' . (int)$event_id));
         exit;
     }
 
@@ -1233,88 +1343,9 @@ class RollRegistrationController extends Controller {
             exit;
         }
 
-        $sessKey = 'roll_reg_import_preview_' . $event_id;
-        $saved = $_SESSION[$sessKey] ?? null;
-        $postedToken = (string)($_POST['import_token'] ?? '');
-        unset($_SESSION[$sessKey]);
-
-        if (!$saved || empty($saved['token']) || !hash_equals((string)$saved['token'], $postedToken)) {
-            $_SESSION['flash_message'] = "Sesi preview import tidak valid atau sudah kadaluarsa. Silakan ulangi upload CSV.";
-            $_SESSION['flash_type'] = "error";
-            header("Location: " . getenv('APP_URL') . "/roll/user/registration/index/" . $event_id);
-            exit;
-        }
-
-        $plan = $saved['planned_by_skater'] ?? [];
-        if (empty($plan)) {
-            $_SESSION['flash_message'] = "Tidak ada data atlet yang valid untuk disimpan.";
-            $_SESSION['flash_type'] = "error";
-            header("Location: " . getenv('APP_URL') . "/roll/user/registration/index/" . $event_id);
-            exit;
-        }
-
-        // Petakan entri individu non-manual milik klub agar penghapusan 100% aman (tidak menyentuh tim/relay/manual)
-        $replaceableIdsBySkater = [];
-        foreach ($ctx['existingEntries'] as $ex) {
-            $dName = trim((string)($ex['distance_name'] ?? ''));
-            $isTeam = !empty($ex['team_name']) || \App\Helpers\RollTeamHelper::classifyDistance($dName) !== null;
-            if (!$isTeam && empty($ex['is_manual']) && empty($ex['manual_invoice_code']) && in_array($ex['payment_status'], ['Unpaid', 'Rejected'], true)) {
-                $replaceableIdsBySkater[(int)$ex['skater_id']][] = (int)$ex['entry_id'];
-            }
-        }
-
-        $validClubSkaterIds = [];
-        foreach ($ctx['athletes'] as $a) {
-            $validClubSkaterIds[(int)$a['id']] = true;
-        }
-
-        $savedSkaters = 0;
-        $savedEntries = 0;
-        $replacedCount = 0;
-
-        try {
-            $db->beginTransaction();
-
-            $stmtInsert = $db->prepare("INSERT INTO roll_entries (event_id, skater_id, race_class_id, distance_id, team_name, team_role) VALUES (?, ?, ?, ?, NULL, NULL)");
-
-            foreach ($plan as $sId => $entries) {
-                $sId = (int)$sId;
-                if (empty($validClubSkaterIds[$sId]) || empty($entries)) continue;
-
-                // Ganti seluruh entri individu Unpaid milik atlet yang tercantum di CSV
-                $toDelete = $replaceableIdsBySkater[$sId] ?? [];
-                if (!empty($toDelete)) {
-                    $ph = str_repeat('?,', count($toDelete) - 1) . '?';
-                    $stmtDel = $db->prepare("DELETE FROM roll_entries WHERE event_id = ? AND skater_id = ? AND id IN ($ph)");
-                    $stmtDel->execute(array_merge([$event_id, $sId], array_values($toDelete)));
-                    $replacedCount += count($toDelete);
-                }
-
-                $savedSkaters++;
-                foreach ($entries as $pe) {
-                    $stmtInsert->execute([
-                        $event_id,
-                        $sId,
-                        (int)$pe['race_class_id'],
-                        (int)$pe['distance_id'] ?: null,
-                    ]);
-                    $savedEntries++;
-                }
-            }
-
-            if ($db->inTransaction()) {
-                $db->commit();
-            }
-
-            $_SESSION['flash_message'] = "Pendaftaran massal CSV berhasil: {$savedSkaters} atlet ({$savedEntries} nomor lomba individu" . ($replacedCount > 0 ? ", menggantikan {$replacedCount} entri Unpaid sebelumnya" : "") . ").";
-            $_SESSION['flash_type'] = "success";
-        } catch (\Throwable $e) {
-            if ($db->inTransaction()) {
-                $db->rollBack();
-            }
-            $_SESSION['flash_message'] = "Gagal menyimpan import massal: " . htmlspecialchars($e->getMessage());
-            $_SESSION['flash_type'] = "error";
-        }
+        $res = self::executeCsvImport($db, $event_id, $ctx, 'roll_reg_import_preview_' . $event_id, (string)($_POST['import_token'] ?? ''), false);
+        $_SESSION['flash_message'] = $res['message'];
+        $_SESSION['flash_type'] = $res['ok'] ? 'success' : 'error';
 
         header("Location: " . getenv('APP_URL') . "/roll/user/registration/index/" . $event_id);
         exit;

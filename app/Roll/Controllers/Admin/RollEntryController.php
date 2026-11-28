@@ -255,6 +255,8 @@ class RollEntryController extends Controller {
         
         // Override lama dihapus agar Admin selalu melihat perhitungan tagihan yang dihitung secara dinamis & akurat.
 
+        $regCtx = \App\Roll\Controllers\User\RollRegistrationController::loadClubEventContext($db, $eventId, $targetClubId, false, true);
+
         return $this->view('roll/admin/entries/detail', [
             'eventId' => $eventId,
             'targetUserId' => $targetClubId,
@@ -263,8 +265,100 @@ class RollEntryController extends Controller {
             'phoneUser' => $phoneUser,
             'payData' => $payData,
             'groupedSkaters' => $groupedSkaters,
-            'totalTagihan' => $totalTagihan
+            'totalTagihan' => $totalTagihan,
+            'distancesByCat' => $regCtx['distancesByCat'] ?? [],
         ]);
+    }
+
+    /**
+     * Pintasan Export CSV pendaftaran lomba individu klub dari sisi Admin (/roll/admin/entries/detail).
+     */
+    public function export_reg_csv() {
+        $db = Database::getInstance()->getConnection();
+        $eventId = (int)($_GET['event_id'] ?? 0);
+        $targetClubId = (int)($_GET['id'] ?? 0);
+        if ($eventId <= 0 || $targetClubId <= 0) {
+            die("Parameter URL tidak lengkap.");
+        }
+
+        $ctx = \App\Roll\Controllers\User\RollRegistrationController::loadClubEventContext($db, $eventId, $targetClubId, false, true);
+        if (empty($ctx['event'])) {
+            die("Event tidak ditemukan.");
+        }
+
+        \App\Roll\Controllers\User\RollRegistrationController::streamEventCsv($ctx);
+    }
+
+    /**
+     * Pintasan Preview & Validasi Upload CSV pendaftaran lomba individu klub dari sisi Admin.
+     */
+    public function preview_reg_csv() {
+        header('Content-Type: application/json');
+        $eventId = (int)($_GET['event_id'] ?? $_POST['event_id'] ?? 0);
+        $targetClubId = (int)($_GET['id'] ?? $_POST['club_id'] ?? 0);
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST' || $eventId <= 0 || $targetClubId <= 0) {
+            echo json_encode(['success' => false, 'message' => 'Permintaan tidak valid.']);
+            exit;
+        }
+
+        $db = Database::getInstance()->getConnection();
+        $ctx = \App\Roll\Controllers\User\RollRegistrationController::loadClubEventContext($db, $eventId, $targetClubId, false, true);
+        if (empty($ctx['event'])) {
+            echo json_encode(['success' => false, 'message' => 'Event tidak ditemukan.']);
+            exit;
+        }
+        if (empty($_FILES['csv_file']['tmp_name']) || $_FILES['csv_file']['error'] !== UPLOAD_ERR_OK) {
+            echo json_encode(['success' => false, 'message' => 'Gagal mengunggah file CSV.']);
+            exit;
+        }
+
+        $content = file_get_contents($_FILES['csv_file']['tmp_name']);
+        if ($content === false) {
+            echo json_encode(['success' => false, 'message' => 'File CSV tidak dapat dibaca.']);
+            exit;
+        }
+
+        $sessKey = 'roll_admin_reg_import_preview_' . $targetClubId . '_' . $eventId;
+        echo json_encode(\App\Roll\Controllers\User\RollRegistrationController::buildPreviewPayload($db, $eventId, $ctx, $content, $sessKey));
+        exit;
+    }
+
+    /**
+     * Pintasan Konfirmasi Simpan Import CSV pendaftaran lomba individu klub dari sisi Admin.
+     */
+    public function confirm_reg_csv() {
+        $eventId = (int)($_GET['event_id'] ?? $_POST['event_id'] ?? 0);
+        $targetClubId = (int)($_GET['id'] ?? $_POST['club_id'] ?? 0);
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST' || $eventId <= 0 || $targetClubId <= 0) {
+            header("Location: " . getenv('APP_URL') . "/roll/admin/entries");
+            exit;
+        }
+
+        $db = Database::getInstance()->getConnection();
+        $ctx = \App\Roll\Controllers\User\RollRegistrationController::loadClubEventContext($db, $eventId, $targetClubId, false, true);
+        if (empty($ctx['event'])) {
+            $_SESSION['flash_message'] = "Event tidak ditemukan.";
+            $_SESSION['flash_type'] = "error";
+            header("Location: " . getenv('APP_URL') . "/roll/admin/entries/detail?id=$targetClubId&event_id=$eventId");
+            exit;
+        }
+
+        $sessKey = 'roll_admin_reg_import_preview_' . $targetClubId . '_' . $eventId;
+        $res = \App\Roll\Controllers\User\RollRegistrationController::executeCsvImport(
+            $db,
+            $eventId,
+            $ctx,
+            $sessKey,
+            (string)($_POST['import_token'] ?? ''),
+            true
+        );
+        $_SESSION['flash_message'] = $res['message'];
+        $_SESSION['flash_type'] = $res['ok'] ? 'success' : 'error';
+
+        header("Location: " . getenv('APP_URL') . "/roll/admin/entries/detail?id=$targetClubId&event_id=$eventId");
+        exit;
     }
 
     public function print_invoice() {
