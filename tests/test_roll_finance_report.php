@@ -1,8 +1,12 @@
 <?php
 
+require_once __DIR__ . '/../app/Core/Controller.php';
+require_once __DIR__ . '/../app/Core/Database.php';
 require_once __DIR__ . '/../app/Helpers/RollFinanceHelper.php';
+require_once __DIR__ . '/../app/Roll/Controllers/Admin/RollAdminReportController.php';
 
 use App\Helpers\RollFinanceHelper;
+use App\Roll\Controllers\Admin\RollAdminReportController;
 
 echo "--- RUNNING TEST: ROLL ADMIN FINANCE REPORT ---\n";
 
@@ -100,5 +104,48 @@ assert(count(RollFinanceHelper::filterFinanceTransactions($report['transactions'
 assert(count(RollFinanceHelper::filterFinanceTransactions($report['transactions'], 'Unpaid', 'Klub', '')) === 1);
 assert(count(RollFinanceHelper::filterFinanceTransactions($report['transactions'], 'Unpaid', 'Token', '')) === 1);
 echo "✓ Transaction filtering (status / type / search) [OK]\n";
+
+// Print invoice URLs & package summary helper + views render
+$klubTx = RollFinanceHelper::filterFinanceTransactions($report['transactions'], 'Paid', 'Klub', '')[0];
+$tokTx  = RollFinanceHelper::filterFinanceTransactions($report['transactions'], 'Paid', 'Token', '')[0];
+assert($klubTx['print_invoice_url'] === '/roll/admin/entries/print_invoice?id=10&event_id=5');
+assert($tokTx['print_invoice_url'] === '/roll/admin/entries/print_manual_invoice?invoice_code=MAN-TOK-001&event_id=5');
+
+$klubTx['package_summary'] = RollAdminReportController::summarizeInvoicePackages($klubTx['skater_breakdowns']);
+assert(count($klubTx['package_summary']) === 1);
+assert($klubTx['package_summary'][0]['cat_group'] === 'Speed');
+assert($klubTx['package_summary'][0]['skaters'] === 1);
+assert((float)$klubTx['package_summary'][0]['total_amount'] === 550000.0);
+
+$render = static function (string $viewPath, array $vars): string {
+    extract($vars);
+    ob_start();
+    include $viewPath;
+    return (string)ob_get_clean();
+};
+
+$indexHtml = $render(__DIR__ . '/../views/roll/admin/reports/index.php', [
+    'event'            => ['id' => 5, 'event_name' => 'Test Event', 'event_date_start' => '2026-12-04'],
+    'transactions'     => [$klubTx],
+    'allCount'         => 1,
+    'totals'           => $report['totals'],
+    'categories'       => $report['categories'],
+    'packageBreakdown' => $report['package_breakdown'] ?? [],
+]);
+assert(strpos($indexHtml, '/roll/admin/reports/invoices') !== false);
+assert(strpos($indexHtml, '/roll/admin/entries/print_invoice?id=10&event_id=5') !== false);
+
+$invoicesHtml = $render(__DIR__ . '/../views/roll/admin/reports/invoices.php', [
+    'event'        => ['id' => 5, 'event_name' => 'Test Event', 'event_date_start' => '2026-12-04'],
+    'eventId'      => 5,
+    'transactions' => [$klubTx],
+    'allCount'     => 1,
+    'totals'       => $report['totals'],
+]);
+assert(strpos($invoicesHtml, 'FORTIS') !== false);
+assert(strpos($invoicesHtml, '/roll/admin/entries/detail?id=10&event_id=5') !== false);
+assert(strpos($invoicesHtml, '/roll/admin/entries/print_invoice?id=10&event_id=5') !== false);
+assert(strpos($invoicesHtml, 'Cetak Invoice / Tanda Terima') !== false);
+echo "✓ Print invoice URLs, package summary & invoices view rendering [OK]\n";
 
 echo "--- ALL FINANCE REPORT TESTS PASSED! ---\n";

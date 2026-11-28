@@ -115,6 +115,61 @@ class RollAdminReportController extends Controller {
         ]);
     }
 
+    /**
+     * Ringkas breakdown paket pendaftaran milik satu invoice klub/token dari skater_breakdowns.
+     */
+    public static function summarizeInvoicePackages(array $skaterBreakdowns): array {
+        $grouped = [];
+        foreach ($skaterBreakdowns as $sb) {
+            $catGroup = (string)($sb['cat_group'] ?? 'Lainnya');
+            $pkgLabel = (string)($sb['package_label'] ?? ($sb['category'] ?? 'Lainnya'));
+            $key = $catGroup . '|' . $pkgLabel;
+            if (!isset($grouped[$key])) {
+                $grouped[$key] = [
+                    'cat_group'     => $catGroup,
+                    'package_label' => $pkgLabel,
+                    'skaters'       => 0,
+                    'total_amount'  => 0.0,
+                ];
+            }
+            $grouped[$key]['skaters']++;
+            $grouped[$key]['total_amount'] += (float)($sb['total'] ?? 0);
+        }
+        return array_values($grouped);
+    }
+
+    public function invoices() {
+        [$db, $eventId, $event] = $this->requireActiveEvent();
+
+        $statusFilter = $_GET['status'] ?? 'all';
+        $typeFilter   = $_GET['type'] ?? 'all';
+        $search       = $_GET['search'] ?? '';
+
+        $report = RollFinanceHelper::buildEventFinanceReport($db, $eventId);
+        $filteredTransactions = RollFinanceHelper::filterFinanceTransactions(
+            $report['transactions'],
+            $statusFilter,
+            $typeFilter,
+            $search
+        );
+
+        foreach ($filteredTransactions as &$t) {
+            $t['package_summary'] = self::summarizeInvoicePackages($t['skater_breakdowns'] ?? []);
+        }
+        unset($t);
+
+        return $this->view('roll/admin/reports/invoices', [
+            'event'        => $event,
+            'eventId'      => $eventId,
+            'transactions' => $filteredTransactions,
+            'allCount'     => count($report['transactions']),
+            'totals'       => $report['totals'],
+            'statusFilter' => $statusFilter,
+            'typeFilter'   => $typeFilter,
+            'search'       => $search,
+        ]);
+    }
+
     public function export_excel() {
         [$db, $eventId, $event] = $this->requireActiveEvent();
 

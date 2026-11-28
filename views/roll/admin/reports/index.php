@@ -29,6 +29,10 @@ $exportQuery      = http_build_query(['status' => $statusFilter, 'type' => $type
                     class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wide transition shadow-sm flex items-center gap-1.5 cursor-pointer">
                 <span>📊</span> Cek Laporan per Kategori
             </button>
+            <a href="<?= getenv('APP_URL') ?>/roll/admin/reports/invoices?<?= $exportQuery ?>"
+               class="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wide transition shadow-sm flex items-center gap-1.5">
+                <span>🧾</span> Detail Invoice Klub
+            </a>
             <a href="<?= getenv('APP_URL') ?>/roll/admin/reports/export_excel?<?= $exportQuery ?>" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wide transition shadow-sm flex items-center gap-2">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                 Export Excel / CSV
@@ -310,7 +314,7 @@ $exportQuery      = http_build_query(['status' => $statusFilter, 'type' => $type
                                 </span>
                             </td>
                             <td class="px-5 py-4 text-center print:hidden">
-                                <div class="flex items-center justify-center gap-1.5">
+                                <div class="flex items-center justify-center gap-1.5 flex-wrap">
                                     <?php if (!empty($t['payment_proof'])): ?>
                                         <a href="<?= getenv('APP_URL') ?>/uploads/payments/<?= htmlspecialchars($t['payment_proof']) ?>" target="_blank"
                                            class="px-2.5 py-1.5 rounded-lg bg-blue-50 text-blue-600 border border-blue-200 hover:bg-blue-100 text-[10px] font-bold uppercase transition">
@@ -320,6 +324,10 @@ $exportQuery      = http_build_query(['status' => $statusFilter, 'type' => $type
                                     <a href="<?= getenv('APP_URL') . ($t['detail_url'] ?? '/roll/admin/entries') ?>"
                                        class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-900 text-white text-[10px] font-black uppercase transition">
                                         Detail
+                                    </a>
+                                    <a href="<?= getenv('APP_URL') . ($t['print_invoice_url'] ?? ($t['detail_url'] ?? '/roll/admin/entries')) ?>" target="_blank"
+                                       class="px-2.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-black uppercase transition flex items-center gap-1">
+                                        <span>🖨️</span> Cetak Invoice
                                     </a>
                                 </div>
                             </td>
