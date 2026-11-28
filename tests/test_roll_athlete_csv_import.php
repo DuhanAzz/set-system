@@ -75,5 +75,28 @@ $resBulk = RollUserAthleteController::parseAthleteCsvRows(implode("\n", $bulkLin
 assert(count($resBulk['valid']) === 120 && empty($resBulk['errors']) && empty($resBulk['nik_warnings']));
 echo "✓ Case 4: Bulk 120 athletes parsed cleanly with 0 errors & 0 warnings [OK]\n";
 
+// 5. US Excel M/D/YYYY export/re-save detection (e.g. 6/13/2013, 3/17/2012, 8/28/2013 + ambiguous 12/5/2015) + NIK disambiguation
+$csvUsExcel = implode("\n", [
+    implode(',', RollUserAthleteController::getCsvHeaders()),
+    ",,3.27502E+15,Aqila Sahira Liliana,F,6/13/2013,,Bekasi,Jawa Barat,sudah",
+    ",,3.27505E+15,Aqilla Nadya Salma,F,3/17/2012,,Bekasi,Jawa Barat,belum",
+    ",,3.21608E+15,Roro Kani Ambarwati,F,8/28/2013,,Bekasi,Jawa Barat,sudah",
+    ",,3275024512150005,Ainayya Shabriyya Zhafeera,F,12/5/2015,,Bekasi,Jawa Barat,belum",
+]);
+$resUs = RollUserAthleteController::parseAthleteCsvRows($csvUsExcel);
+assert(count($resUs['errors']) === 0, 'US Excel dates like 6/13/2013 and 8/28/2013 must be auto-detected');
+assert(count($resUs['valid']) === 4);
+assert($resUs['valid'][0]['birth_date'] === '2013-06-13');
+assert($resUs['valid'][1]['birth_date'] === '2012-03-17');
+assert($resUs['valid'][2]['birth_date'] === '2013-08-28');
+assert($resUs['valid'][3]['birth_date'] === '2015-12-05', 'Ambiguous 12/5/2015 in US Excel file must become 2015-12-05');
+assert(count($resUs['nik_warnings']) === 3, '3 scientific-notation NIKs flagged as soft warnings');
+
+// Mixed date file using valid NIK to disambiguate 12/05/2015 -> 2015-12-05
+assert(RollUserAthleteController::parseBirthDate('12/05/2015', 'DMY', '3275024512150005') === '2015-12-05');
+assert(RollUserAthleteController::parseBirthDate('13-Jun-2013') === '2013-06-13');
+assert(RollUserAthleteController::parseBirthDate('17 Mei 2015') === '2015-05-17');
+echo "✓ Case 5: US Excel M/D/YYYY auto-detection, NIK date disambiguation & month names [OK]\n";
+
 ob_end_flush();
 echo "--- ALL ROLL ATHLETE CSV IMPORT TESTS PASSED! ---\n";

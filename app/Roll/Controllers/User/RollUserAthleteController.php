@@ -439,19 +439,61 @@ class RollUserAthleteController extends Controller {
     }
 
     /**
-     * Parse tanggal lahir format Indonesia DD/MM/YYYY atau DD-MM-YYYY (juga mendukung ISO YYYY-MM-DD).
+     * Ekstrak tanggal lahir (YYYY-MM-DD) dari 6 digit tengah NIK yang valid (16 digit).
      */
-    public static function parseBirthDate(string $raw): ?string {
-        $s = trim($raw);
+    private static function extractNikBirthDate(?string $nik): ?string {
+        if ($nik === null || strlen($nik) !== 16) return null;
+        $dd = (int)substr($nik, 6, 2);
+        if ($dd > 40) $dd -= 40;
+        $mm = (int)substr($nik, 8, 2);
+        $yy = (int)substr($nik, 10, 2);
+        $curYy = (int)date('y');
+        $yyyy = ($yy <= $curYy) ? (2000 + $yy) : (1900 + $yy);
+        return checkdate($mm, $dd, $yyyy) ? sprintf('%04d-%02d-%02d', $yyyy, $mm, $dd) : null;
+    }
+
+    /**
+     * Parse tanggal lahir dari format DD/MM/YYYY (Indo), M/D/YYYY (Excel US), YYYY-MM-DD, atau nama bulan.
+     * Mode: 'DMY' (ketat DD/MM/YYYY), 'MDY' (prioritas MM/DD/YYYY), atau 'AUTO' (deteksi otomatis + cek NIK).
+     */
+    public static function parseBirthDate(string $raw, string $mode = 'DMY', ?string $validNik = null): ?string {
+        $s = trim($raw, " \t\n\r\0\x0B'\"");
         if ($s === '' || $s === '0000-00-00') return null;
 
-        if (preg_match('/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/', $s, $m)) {
-            $d = (int)$m[1]; $mo = (int)$m[2]; $y = (int)$m[3];
-            return ($y >= 1900 && checkdate($mo, $d, $y)) ? sprintf('%04d-%02d-%02d', $y, $mo, $d) : null;
-        }
         if (preg_match('/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})$/', $s, $m)) {
             $y = (int)$m[1]; $mo = (int)$m[2]; $d = (int)$m[3];
             return ($y >= 1900 && checkdate($mo, $d, $y)) ? sprintf('%04d-%02d-%02d', $y, $mo, $d) : null;
+        }
+        if (preg_match('/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/', $s, $m)) {
+            $p1 = (int)$m[1]; $p2 = (int)$m[2]; $y = (int)$m[3];
+            if ($y < 1900) return null;
+
+            $dmy = ($p2 >= 1 && $p2 <= 12 && checkdate($p2, $p1, $y)) ? sprintf('%04d-%02d-%02d', $y, $p2, $p1) : null;
+            $mdy = ($p1 >= 1 && $p1 <= 12 && checkdate($p1, $p2, $y)) ? sprintf('%04d-%02d-%02d', $y, $p1, $p2) : null;
+
+            if ($dmy !== null && $mdy !== null && $dmy !== $mdy && $validNik !== null) {
+                $nikDob = self::extractNikBirthDate($validNik);
+                if ($nikDob === $dmy) return $dmy;
+                if ($nikDob === $mdy) return $mdy;
+            }
+
+            if ($mode === 'MDY') return $mdy ?? $dmy;
+            if ($mode === 'DMY') return $dmy;
+            return $dmy ?? $mdy;
+        }
+
+        $indoMonths = [
+            'januari' => 'Jan', 'februari' => 'Feb', 'pebruari' => 'Feb', 'maret' => 'Mar',
+            'april' => 'Apr', 'mei' => 'May', 'juni' => 'Jun', 'juli' => 'Jul',
+            'agustus' => 'Aug', 'agu' => 'Aug', 'agt' => 'Aug', 'september' => 'Sep', 'sep' => 'Sep',
+            'oktober' => 'Oct', 'okt' => 'Oct', 'november' => 'Nov', 'nop' => 'Nov',
+            'desember' => 'Dec', 'des' => 'Dec',
+        ];
+        if (preg_match('/^(\d{1,2})[\s\-]+([A-Za-z]+)[\s\-]+(\d{4})$/', $s, $m)) {
+            $monKey = strtolower($m[2]);
+            $monEn = $indoMonths[$monKey] ?? $m[2];
+            $ts = strtotime($m[1] . ' ' . $monEn . ' ' . $m[3]);
+            return ($ts !== false && (int)$m[3] >= 1900) ? date('Y-m-d', $ts) : null;
         }
         return null;
     }
@@ -538,6 +580,23 @@ class RollUserAthleteController extends Controller {
         }
 
         $totalRows = count($allRows);
+
+        // Deteksi apakah file CSV menggunakan format tanggal Excel US (M/D/YYYY, mis. 6/13/2013) atau ID (DD/MM/YYYY)
+        $usOnlyDates = 0;
+        $idOnlyDates = 0;
+        if (isset($colMap['birth_date'])) {
+            $dobIdx = $colMap['birth_date'];
+            for ($scanIdx = $startRow; $scanIdx < $totalRows; $scanIdx++) {
+                $rawDob = trim((string)($allRows[$scanIdx][$dobIdx] ?? ''), " \t\n\r\0\x0B'\"");
+                if (preg_match('/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/', $rawDob, $dm)) {
+                    $p1 = (int)$dm[1]; $p2 = (int)$dm[2];
+                    if ($p1 >= 1 && $p1 <= 12 && $p2 > 12 && $p2 <= 31) $usOnlyDates++;
+                    elseif ($p1 > 12 && $p1 <= 31 && $p2 >= 1 && $p2 <= 12) $idOnlyDates++;
+                }
+            }
+        }
+        $fileDateMode = ($usOnlyDates > 0 && $idOnlyDates === 0) ? 'MDY' : 'AUTO';
+
         for ($rIdx = $startRow; $rIdx < $totalRows; $rIdx++) {
             $row = $allRows[$rIdx];
             $joined = strtoupper(implode(' ', $row));
@@ -563,17 +622,17 @@ class RollUserAthleteController extends Controller {
                 continue;
             }
 
-            $birthDate = self::parseBirthDate($get('birth_date'));
-            if ($birthDate === null) {
-                $errors[] = "Baris {$lineNo} ({$skaterName}): Tanggal lahir tidak valid ('" . $get('birth_date') . "', gunakan DD/MM/YYYY mis. 12/05/2015).";
-                continue;
-            }
-
             [$nik, $nikReason] = self::parseCsvNik($get('nik'));
             $nikWarning = null;
             if ($nikReason !== null) {
                 $nikWarning = "Baris {$lineNo} ({$skaterName}): {$nikReason}";
                 $nikWarnings[] = $nikWarning;
+            }
+
+            $birthDate = self::parseBirthDate($get('birth_date'), $fileDateMode, $nik);
+            if ($birthDate === null) {
+                $errors[] = "Baris {$lineNo} ({$skaterName}): Tanggal lahir tidak valid ('" . $get('birth_date') . "', gunakan DD/MM/YYYY mis. 12/05/2015).";
+                continue;
             }
 
             $bpjsRaw = strtolower($get('status_bpjs'));
