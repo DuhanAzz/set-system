@@ -362,6 +362,28 @@ class RollEntryController extends Controller {
         exit;
     }
 
+    private static function invoiceTokenSecret(): string {
+        return getenv('APP_KEY')
+            ?: ((string)getenv('DB_NAME') . '|' . (string)getenv('DB_USER') . '|' . (string)getenv('DB_PASS') . '|setsystem-roll-invoice-v1');
+    }
+
+    /**
+     * Buat token HMAC-SHA256 unik untuk akses publik baca-saja invoice klub tertentu tanpa login.
+     */
+    public static function makePublicInvoiceToken(int $clubId, int $eventId): string {
+        return substr(hash_hmac('sha256', "roll_inv|{$clubId}|{$eventId}", self::invoiceTokenSecret()), 0, 24);
+    }
+
+    /**
+     * Validasi token tautan invoice publik.
+     */
+    public static function verifyPublicInvoiceToken(int $clubId, int $eventId, string $token): bool {
+        if ($clubId <= 0 || $eventId <= 0 || $token === '') {
+            return false;
+        }
+        return hash_equals(self::makePublicInvoiceToken($clubId, $eventId), $token);
+    }
+
     /**
      * Bangun data invoice / tanda terima klub untuk dipakai bersama oleh Admin maupun User Checkout.
      */

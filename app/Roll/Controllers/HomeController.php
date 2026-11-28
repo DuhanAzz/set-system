@@ -431,4 +431,27 @@ class HomeController extends Controller {
             'webModes' => $webModes
         ]);
     }
+
+    /**
+     * Halaman publik baca-saja Invoice / Tanda Terima klub yang diamankan token HMAC (tanpa wajib login).
+     */
+    public function invoice() {
+        $eventId = (int)($_GET['e'] ?? $_GET['event_id'] ?? 0);
+        $clubId  = (int)($_GET['c'] ?? $_GET['id'] ?? 0);
+        $token   = trim((string)($_GET['t'] ?? $_GET['token'] ?? ''));
+
+        if (!\App\Roll\Controllers\Admin\RollEntryController::verifyPublicInvoiceToken($clubId, $eventId, $token)) {
+            http_response_code(403);
+            die("Link invoice tidak valid atau tidak memiliki akses.");
+        }
+
+        $db = Database::getInstance()->getConnection();
+        $invoiceData = \App\Roll\Controllers\Admin\RollEntryController::buildClubInvoicePrintData($db, $eventId, $clubId);
+        if (!$invoiceData) {
+            http_response_code(404);
+            die("Data invoice atau event tidak ditemukan.");
+        }
+
+        return $this->view('roll/admin/entries/print_invoice', $invoiceData);
+    }
 }

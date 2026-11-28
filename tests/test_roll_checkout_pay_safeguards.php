@@ -118,7 +118,14 @@ $payData = ['id' => 1, 'status' => 'Paid', 'total_amount' => 4200000];
 $distancesByCat = [];
 include __DIR__ . '/../views/roll/admin/entries/detail.php';
 $admHtml = (string)ob_get_clean();
-assert(strpos($admHtml, urlencode('https://setsystem.id/roll/user/checkout/detail/5')) !== false);
+$expectedTok = \App\Roll\Controllers\Admin\RollEntryController::makePublicInvoiceToken(203, 5);
+$expectedUrl = 'https://setsystem.id/roll/invoice?e=5&c=203&t=' . $expectedTok;
+assert(\App\Roll\Controllers\Admin\RollEntryController::verifyPublicInvoiceToken(203, 5, $expectedTok) === true);
+assert(\App\Roll\Controllers\Admin\RollEntryController::verifyPublicInvoiceToken(204, 5, $expectedTok) === false, 'Tampered club id must fail');
+assert(\App\Roll\Controllers\Admin\RollEntryController::verifyPublicInvoiceToken(203, 6, $expectedTok) === false, 'Tampered event id must fail');
+assert(\App\Roll\Controllers\Admin\RollEntryController::verifyPublicInvoiceToken(203, 5, 'invalidtoken') === false, 'Invalid token must fail');
+assert(strpos($admHtml, urlencode($expectedUrl)) !== false);
+assert(strpos($admHtml, urlencode('*Silakan cek rincian & cetak Invoice / Tanda Terima resmi melalui link berikut:*')) !== false);
 assert(strpos($admHtml, urlencode('INDONESIA OPEN')) !== false);
 
 echo "✓ User invoice buttons (all statuses) & Admin Balas via WA link verified [OK]\n";

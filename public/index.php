@@ -251,7 +251,7 @@ switch ($module) {
 
     case 'roll':
         // Halaman publik yang ditangani oleh HomeController
-        $publicPages = ['home', 'events', 'results', 'startlist', 'liveresult'];
+        $publicPages = ['home', 'events', 'results', 'startlist', 'liveresult', 'invoice'];
         if (in_array($page, $publicPages)) {
             $controllerClass = "\\App\\Roll\\Controllers\\HomeController";
             if (class_exists($controllerClass)) {

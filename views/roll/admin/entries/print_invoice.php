@@ -265,7 +265,7 @@
                             <tbody>
                                 <?php if(empty($groupedSkaters)): ?>
                                     <tr>
-                                        <td colspan="4" class="text-center">Belum ada rincian atlet.</td>
+                                        <td colspan="5" class="text-center">Belum ada rincian atlet.</td>
                                     </tr>
                                 <?php else: ?>
                                     <?php $no = 1; foreach($groupedSkaters as $skId => $s): ?>
