@@ -287,14 +287,14 @@ $formatDob = static function ($dob): string {
             margin-top: auto;
             text-align: center;
             border-top: 1px dashed #ccc;
-            padding-top: 10px;
+            padding-top: 8px;
             width: 100%;
         }
         .sponsor-footer img {
             height: 35px;
             width: auto;
             object-fit: contain;
-            margin: 0 10px;
+            margin: 2px 10px;
         }
         .footer-spacer { display: none; }
 
@@ -302,12 +302,17 @@ $formatDob = static function ($dob): string {
             body { background: white; margin: 0; padding: 0 !important; }
             .print-toolbar, .page-break-indicator { display: none !important; }
             .sheet {
+                width: 100%;
+                min-height: auto;
                 margin: 0;
+                padding: 6mm 8mm 4mm 8mm;
                 box-shadow: none;
                 border: none;
                 display: block;
                 position: static !important;
             }
+            table.master-layout > thead { display: table-header-group !important; }
+            table.master-layout > tfoot { display: table-footer-group !important; }
             tbody.cat-break-tbody {
                 page-break-before: always;
                 break-before: page;
@@ -324,12 +329,20 @@ $formatDob = static function ($dob): string {
                 width: auto;
                 background: white;
                 margin-top: 0;
+                padding-top: 6px;
                 padding-bottom: 5mm;
                 z-index: 1000;
             }
             .footer-spacer {
                 display: block;
-                height: 80px;
+                height: <?= !empty($sponsors) ? '30mm' : '10mm' ?>;
+                min-height: <?= !empty($sponsors) ? '30mm' : '10mm' ?>;
+                line-height: 1;
+            }
+            .end-print-note {
+                page-break-inside: avoid;
+                break-inside: avoid;
+                padding-bottom: 4mm;
             }
             @page { margin: 0; size: A4; }
             * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
@@ -651,8 +664,8 @@ $formatDob = static function ($dob): string {
                                 ?>
 
                                 <?php if ($catIdx === count($renderedCats) - 1): ?>
-                                    <p style="font-size: 8pt; margin-top: 12px; color: #555;">
-                                        <em>* Dokumen Starting List dicetak resmi dari SET SYSTEM pada <?= date('d M Y H:i') ?> WIB.</em>
+                                    <p class="end-print-note" style="font-size: 8pt; margin-top: 12px; color: #555;">
+                                        <em>* Dokumen Athlete List dicetak resmi dari SET SYSTEM pada <?= date('d M Y H:i') ?> WIB.</em>
                                     </p>
                                 <?php endif; ?>
                             </td>
@@ -666,7 +679,7 @@ $formatDob = static function ($dob): string {
             <tfoot>
                 <tr>
                     <td>
-                        <div class="footer-spacer"></div>
+                        <div class="footer-spacer">&nbsp;</div>
                     </td>
                 </tr>
             </tfoot>
@@ -707,6 +720,17 @@ $formatDob = static function ($dob): string {
             checkboxes.forEach(function (cb) {
                 cb.addEventListener('change', syncPrintView);
             });
+
+            function syncFooterSpacer() {
+                const footer = document.querySelector('.sponsor-footer');
+                const spacer = document.querySelector('.footer-spacer');
+                if (!footer || !spacer) return;
+                const safePx = Math.max(114, Math.ceil(footer.getBoundingClientRect().height) + 26);
+                spacer.style.height = safePx + 'px';
+                spacer.style.minHeight = safePx + 'px';
+            }
+            window.addEventListener('load', syncFooterSpacer);
+            window.addEventListener('beforeprint', syncFooterSpacer);
         })();
     </script>
 </body>

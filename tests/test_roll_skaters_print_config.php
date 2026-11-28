@@ -100,6 +100,8 @@ assert(strpos($htmlStarting, 'hide-col-classes') !== false);
 assert(strpos($htmlStarting, 'no-cat-break') !== false);
 assert(strpos($htmlStarting, '12/04/2018') !== false);
 assert(strpos($htmlStarting, 'Supported By') !== false);
+assert(strpos($htmlStarting, 'table-footer-group') !== false);
+assert(strpos($htmlStarting, 'syncFooterSpacer') !== false);
 echo "✓ Case 5: Starting List A4 HTML rendered with DOB, category breaks & sponsors [OK]\n";
 
 $htmlBpjs = $renderView([
