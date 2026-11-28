@@ -122,5 +122,26 @@ assert(strpos($admHtml, urlencode('https://setsystem.id/roll/user/checkout/detai
 assert(strpos($admHtml, urlencode('INDONESIA OPEN')) !== false);
 
 echo "✓ User invoice buttons (all statuses) & Admin Balas via WA link verified [OK]\n";
+
+// TEST 5: Relay rows in print_invoice & print_manual_invoice render per member (no rowspan) even with same team name
+foreach (['print_invoice.php', 'print_manual_invoice.php'] as $invView) {
+    ob_start();
+    $event = ['id' => 5, 'event_name' => 'INDONESIA OPEN', 'event_date_start' => '2026-12-04', 'event_date_end' => '2026-12-06'];
+    $clubName = 'Monastana'; $invoiceCode = 'MAN-TOK-1';
+    $payData = ['status' => 'Paid', 'total_amount' => 1000000];
+    $groupedSkaters = []; $totalTagihan = 1000000;
+    $teams = [
+        'Monastana' => [
+            ['team_name' => 'Monastana', 'skater_name' => 'ABDILLAH ISMAIL PASA', 'gender' => 'Putra', 'team_role' => '', 'club_name' => 'Monastana', 'race_name' => 'SPEED - RELAY 3000M - KU B'],
+            ['team_name' => 'Monastana', 'skater_name' => 'ABIGHAIL AINI AZIZ', 'gender' => 'Putri', 'team_role' => 'cadangan', 'club_name' => 'Monastana', 'race_name' => 'SPEED - RELAY 3000M - KU D'],
+        ],
+    ];
+    include __DIR__ . '/../views/roll/admin/entries/' . $invView;
+    $invHtml = (string)ob_get_clean();
+    assert(strpos($invHtml, 'rowspan=') === false, "$invView must NOT use rowspan on relay team rows");
+    assert(substr_count($invHtml, 'Monastana') >= 4, "$invView must repeat team name on each athlete row");
+    assert(strpos($invHtml, 'CADANGAN') !== false);
+}
+echo "✓ Relay team table renders per member row without rowspan even for identical team names [OK]\n";
 echo "--- ALL CHECKOUT PAY SAFEGUARD TESTS PASSED! ---\n";
 

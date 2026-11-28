@@ -386,7 +386,7 @@ class RollEntryController extends Controller {
         $stmtPay->execute([$eventId, $targetClubId]);
         $payData = $stmtPay->fetch(PDO::FETCH_ASSOC);
 
-        $sqlEntries = "SELECT s.id as skater_id, s.skater_name, s.gender, s.birth_date, s.is_pon_veteran, a.group_name, d.distance_name, ed.category_name, ed.distance, e.race_class_id, sc.class_name, e.is_manual, e.team_name, c.club_name
+        $sqlEntries = "SELECT s.id as skater_id, s.skater_name, s.gender, s.birth_date, s.is_pon_veteran, a.group_name, d.distance_name, ed.category_name, ed.distance, e.race_class_id, sc.class_name, e.is_manual, e.team_name, e.team_role, c.club_name
                        FROM roll_entries e
                        JOIN roll_skaters s ON e.skater_id = s.id
                        LEFT JOIN roll_clubs c ON s.club_id = c.id
@@ -433,10 +433,12 @@ class RollEntryController extends Controller {
             if ($isRelay) {
                 $teamName = !empty($ent['team_name']) ? $ent['team_name'] : ('Tim ' . ($ent['club_name'] ?? 'Klub') . ' - ' . $ent['group_name']);
                 $teams[$teamName][] = [
+                    'team_name'   => $teamName,
                     'skater_name' => $ent['skater_name'],
-                    'gender' => $ent['gender'] == 'M' ? 'Putra' : 'Putri',
-                    'club_name' => $ent['club_name'] ?? 'Klub Pendaftar',
-                    'race_name' => ($rawCName ? strtoupper($rawCName) . ' - ' : '') . $ent['distance_name'] . ' - ' . $ent['group_name']
+                    'gender'      => $ent['gender'] == 'M' ? 'Putra' : 'Putri',
+                    'team_role'   => $ent['team_role'] ?? '',
+                    'club_name'   => $ent['club_name'] ?? 'Klub Pendaftar',
+                    'race_name'   => ($rawCName ? strtoupper($rawCName) . ' - ' : '') . $ent['distance_name'] . ' - ' . $ent['group_name']
                 ];
             }
         }
@@ -970,7 +972,7 @@ class RollEntryController extends Controller {
         }
         
         // AMBIL SEMUA ENTRI ATLET DARI INVOICE INI
-        $sqlEntries = "SELECT s.id as skater_id, s.skater_name, s.gender, s.birth_date, s.is_pon_veteran, a.group_name, d.distance_name, ed.category_name, ed.distance, e.race_class_id, sc.class_name, e.is_manual, e.team_name, c.club_name
+        $sqlEntries = "SELECT s.id as skater_id, s.skater_name, s.gender, s.birth_date, s.is_pon_veteran, a.group_name, d.distance_name, ed.category_name, ed.distance, e.race_class_id, sc.class_name, e.is_manual, e.team_name, e.team_role, c.club_name
                        FROM roll_entries e
                        JOIN roll_skaters s ON e.skater_id = s.id
                        LEFT JOIN roll_clubs c ON s.club_id = c.id
@@ -1066,7 +1068,7 @@ class RollEntryController extends Controller {
         $payData = $this->getManualPaymentOrDraft($db, $eventId, $invoiceCode);
         if (!$payData) die("Invoice tidak ditemukan");
         
-        $sqlEntries = "SELECT s.id as skater_id, s.skater_name, s.gender, s.birth_date, s.is_pon_veteran, a.group_name, d.distance_name, ed.category_name, ed.distance, e.race_class_id, sc.class_name, e.is_manual, e.team_name, c.club_name
+        $sqlEntries = "SELECT s.id as skater_id, s.skater_name, s.gender, s.birth_date, s.is_pon_veteran, a.group_name, d.distance_name, ed.category_name, ed.distance, e.race_class_id, sc.class_name, e.is_manual, e.team_name, e.team_role, c.club_name
                        FROM roll_entries e
                        JOIN roll_skaters s ON e.skater_id = s.id
                        LEFT JOIN roll_clubs c ON s.club_id = c.id
@@ -1123,10 +1125,12 @@ class RollEntryController extends Controller {
             if ($isRelay) {
                 $teamName = !empty($ent['team_name']) ? $ent['team_name'] : ('Tim ' . ($ent['club_name'] ?? 'Klub') . ' - ' . $ent['group_name']);
                 $teams[$teamName][] = [
+                    'team_name'   => $teamName,
                     'skater_name' => $ent['skater_name'],
-                    'gender' => $ent['gender'] == 'M' ? 'Putra' : 'Putri',
-                    'club_name' => $ent['club_name'] ?? 'Klub Pendaftar',
-                    'race_name' => ($rawCName ? strtoupper($rawCName) . ' - ' : '') . $ent['distance_name'] . ' - ' . $ent['group_name']
+                    'gender'      => $ent['gender'] == 'M' ? 'Putra' : 'Putri',
+                    'team_role'   => $ent['team_role'] ?? '',
+                    'club_name'   => $ent['club_name'] ?? 'Klub Pendaftar',
+                    'race_name'   => ($rawCName ? strtoupper($rawCName) . ' - ' : '') . $ent['distance_name'] . ' - ' . $ent['group_name']
                 ];
             }
         }
