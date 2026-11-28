@@ -146,6 +146,21 @@ assert(strpos($invoicesHtml, 'FORTIS') !== false);
 assert(strpos($invoicesHtml, '/roll/admin/entries/detail?id=10&event_id=5') !== false);
 assert(strpos($invoicesHtml, '/roll/admin/entries/print_invoice?id=10&event_id=5') !== false);
 assert(strpos($invoicesHtml, 'Cetak Invoice / Tanda Terima') !== false);
-echo "✓ Print invoice URLs, package summary & invoices view rendering [OK]\n";
+assert(strpos($invoicesHtml, 'btnDownloadAllInvoicesZip') !== false);
+assert(strpos($invoicesHtml, 'Tanda Terima - FORTIS.pdf') !== false);
+
+// Invoice ZIP filename formatting & collision handling
+$zipItems = RollAdminReportController::buildInvoiceZipItems([
+    ['club_name' => 'FORTIS', 'identifier' => 'REG-0010', 'print_invoice_url' => '/roll/admin/entries/print_invoice?id=10&event_id=5'],
+    ['club_name' => 'SILVER / SKATE: CLUB*', 'identifier' => 'REG-0011', 'print_invoice_url' => '/roll/admin/entries/print_invoice?id=11&event_id=5'],
+    ['club_name' => 'DUPLICATE CLUB', 'identifier' => 'REG-0012', 'print_invoice_url' => '/roll/admin/entries/print_invoice?id=12&event_id=5'],
+    ['club_name' => 'DUPLICATE CLUB', 'identifier' => 'MAN-TOK-001', 'print_invoice_url' => '/roll/admin/entries/print_manual_invoice?invoice_code=MAN-TOK-001&event_id=5'],
+]);
+assert(count($zipItems) === 4);
+assert($zipItems[0]['filename'] === 'Tanda Terima - FORTIS.pdf');
+assert($zipItems[1]['filename'] === 'Tanda Terima - SILVER SKATE CLUB.pdf');
+assert($zipItems[2]['filename'] === 'Tanda Terima - DUPLICATE CLUB - REG-0012.pdf');
+assert($zipItems[3]['filename'] === 'Tanda Terima - DUPLICATE CLUB - MAN-TOK-001.pdf');
+echo "✓ Print invoice URLs, package summary, ZIP filename formatting & invoices view rendering [OK]\n";
 
 echo "--- ALL FINANCE REPORT TESTS PASSED! ---\n";

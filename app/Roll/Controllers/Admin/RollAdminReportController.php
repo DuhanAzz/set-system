@@ -138,6 +138,61 @@ class RollAdminReportController extends Controller {
         return array_values($grouped);
     }
 
+    /**
+     * Bersihkan potongan nama file agar aman di ZIP/OS tanpa mengubah format nama klub yang sudah ada.
+     */
+    public static function sanitizeInvoiceFilenamePart(string $value, string $fallback = 'Klub'): string {
+        $clean = preg_replace('/[\/\\\\:*?"<>|\x00-\x1F]+/', ' ', $value);
+        $clean = preg_replace('/\s+/', ' ', (string)$clean);
+        $clean = trim((string)$clean, " .\t\n\r\0\x0B");
+        return $clean !== '' ? $clean : $fallback;
+    }
+
+    /**
+     * Siapkan daftar invoice cetak dan nama file PDF sesuai format judul "Tanda Terima - <Klub>.pdf".
+     */
+    public static function buildInvoiceZipItems(array $transactions): array {
+        $baseCounts = [];
+        $prepared = [];
+        foreach ($transactions as $t) {
+            $clubPart = self::sanitizeInvoiceFilenamePart((string)($t['club_name'] ?? ''), 'Klub');
+            $base = 'Tanda Terima - ' . $clubPart;
+            $baseKey = strtolower($base);
+            $baseCounts[$baseKey] = ($baseCounts[$baseKey] ?? 0) + 1;
+            $prepared[] = [
+                'base'       => $base,
+                'base_key'   => $baseKey,
+                'club_name'  => (string)($t['club_name'] ?? 'Klub'),
+                'identifier' => (string)($t['identifier'] ?? ''),
+                'print_url'  => (string)($t['print_invoice_url'] ?? ($t['detail_url'] ?? '/roll/admin/entries')),
+            ];
+        }
+
+        $usedNames = [];
+        $items = [];
+        foreach ($prepared as $p) {
+            $name = $p['base'];
+            if (($baseCounts[$p['base_key']] ?? 0) > 1 && $p['identifier'] !== '') {
+                $name .= ' - ' . self::sanitizeInvoiceFilenamePart($p['identifier'], 'INV');
+            }
+
+            $candidate = $name;
+            $suffix = 2;
+            while (isset($usedNames[strtolower($candidate)])) {
+                $candidate = $name . ' (' . $suffix++ . ')';
+            }
+            $usedNames[strtolower($candidate)] = true;
+
+            $items[] = [
+                'filename'  => $candidate . '.pdf',
+                'club_name' => $p['club_name'],
+                'print_url' => $p['print_url'],
+            ];
+        }
+
+        return $items;
+    }
+
     public function invoices() {
         [$db, $eventId, $event] = $this->requireActiveEvent();
 
@@ -162,6 +217,7 @@ class RollAdminReportController extends Controller {
             'event'        => $event,
             'eventId'      => $eventId,
             'transactions' => $filteredTransactions,
+            'zipItems'     => self::buildInvoiceZipItems($filteredTransactions),
             'allCount'     => count($report['transactions']),
             'totals'       => $report['totals'],
             'statusFilter' => $statusFilter,

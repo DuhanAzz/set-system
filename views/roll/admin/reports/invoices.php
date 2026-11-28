@@ -4,7 +4,13 @@ $typeFilter   = $typeFilter ?? 'all';
 $search       = $search ?? '';
 $totals       = $totals ?? ['paid' => 0, 'pending' => 0, 'unpaid' => 0, 'rejected' => 0, 'potensi' => 0, 'count_paid' => 0, 'count_pending' => 0, 'count_unpaid' => 0, 'count_rejected' => 0];
 $transactions = $transactions ?? [];
+$zipItems     = $zipItems ?? (class_exists(\App\Roll\Controllers\Admin\RollAdminReportController::class)
+    ? \App\Roll\Controllers\Admin\RollAdminReportController::buildInvoiceZipItems($transactions)
+    : []);
 $filterQuery  = http_build_query(['status' => $statusFilter, 'type' => $typeFilter, 'search' => $search]);
+$appBasePath  = rtrim((string)(parse_url((string)getenv('APP_URL'), PHP_URL_PATH) ?: ''), '/');
+$safeEventZip = preg_replace('/[^A-Za-z0-9_-]+/', '_', (string)($event['event_name'] ?? 'Event'));
+$zipFilename  = 'Invoice_Klub_' . trim((string)$safeEventZip, '_') . '_' . date('Ymd_His') . '.zip';
 
 $filteredSum = 0.0;
 $filteredSkaters = 0;
@@ -37,6 +43,11 @@ foreach ($transactions as $tx) {
                class="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wide transition shadow-sm">
                 📊 Kembali ke Laporan
             </a>
+            <button type="button" id="btnDownloadAllInvoicesZip"
+                    <?= empty($zipItems) ? 'disabled' : '' ?>
+                    class="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wide transition shadow-sm flex items-center gap-1.5 cursor-pointer">
+                <span>🗜️</span> Download ZIP Invoice (<?= count($zipItems) ?>)
+            </button>
             <a href="<?= getenv('APP_URL') ?>/roll/admin/entries"
                class="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wide transition shadow-sm">
                 Verifikasi Pendaftaran
@@ -225,3 +236,262 @@ foreach ($transactions as $tx) {
         </div>
     <?php endif; ?>
 </div>
+
+<!-- Modal Progress Download ZIP Invoice -->
+<div id="zipInvoiceModal" class="fixed inset-0 z-[9999] hidden flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+    <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md p-6 space-y-4">
+        <div class="flex items-center justify-between">
+            <h3 class="text-base font-black text-slate-900 uppercase tracking-tight">Menyiapkan ZIP Invoice PDF</h3>
+            <span id="zipInvoiceCounter" class="text-xs font-black text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-lg">0 / 0</span>
+        </div>
+        <p id="zipInvoiceStatus" class="text-xs font-bold text-slate-600 truncate">Memulai proses...</p>
+        <div class="w-full h-3 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
+            <div id="zipInvoiceProgressBar" class="h-full bg-indigo-600 transition-all duration-200" style="width: 0%;"></div>
+        </div>
+        <div class="flex justify-end pt-1">
+            <button type="button" id="btnCancelZipInvoice"
+                    class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold uppercase cursor-pointer">
+                Batal
+            </button>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const btnDownload = document.getElementById('btnDownloadAllInvoicesZip');
+    const modal = document.getElementById('zipInvoiceModal');
+    const counterEl = document.getElementById('zipInvoiceCounter');
+    const statusEl = document.getElementById('zipInvoiceStatus');
+    const progressBar = document.getElementById('zipInvoiceProgressBar');
+    const btnCancel = document.getElementById('btnCancelZipInvoice');
+    if (!btnDownload) return;
+
+    const zipItems = <?= json_encode($zipItems, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
+    const appBasePath = <?= json_encode($appBasePath, JSON_UNESCAPED_SLASHES) ?>;
+    const appConfiguredOrigin = <?= json_encode((string)(parse_url((string)getenv('APP_URL'), PHP_URL_SCHEME) ? (parse_url((string)getenv('APP_URL'), PHP_URL_SCHEME) . '://' . parse_url((string)getenv('APP_URL'), PHP_URL_HOST) . (parse_url((string)getenv('APP_URL'), PHP_URL_PORT) ? ':' . parse_url((string)getenv('APP_URL'), PHP_URL_PORT) : '')) : ''), JSON_UNESCAPED_SLASHES) ?>;
+    const zipFilename = <?= json_encode($zipFilename, JSON_UNESCAPED_UNICODE) ?>;
+
+    let cancelled = false;
+    btnCancel.addEventListener('click', function () {
+        cancelled = true;
+        statusEl.textContent = 'Membatalkan...';
+    });
+
+    function loadIntoIframe(iframe, url) {
+        return new Promise((resolve, reject) => {
+            let done = false;
+            const timer = setTimeout(() => {
+                if (!done) {
+                    done = true;
+                    reject(new Error('Timeout memuat halaman invoice'));
+                }
+            }, 15000);
+
+            iframe.onload = () => {
+                if (done) return;
+                done = true;
+                clearTimeout(timer);
+                resolve();
+            };
+            iframe.onerror = () => {
+                if (done) return;
+                done = true;
+                clearTimeout(timer);
+                reject(new Error('Gagal memuat halaman invoice'));
+            };
+            iframe.src = url;
+        });
+    }
+
+    async function waitDocumentReady(doc) {
+        if (appConfiguredOrigin && appConfiguredOrigin !== window.location.origin) {
+            doc.querySelectorAll('img[src]').forEach((img) => {
+                if (img.src.startsWith(appConfiguredOrigin)) {
+                    img.src = window.location.origin + img.src.slice(appConfiguredOrigin.length);
+                }
+            });
+        }
+        const imgs = Array.from(doc.images || []);
+        const imgPromises = imgs.map((img) => {
+            if (img.complete) return Promise.resolve();
+            return new Promise((res) => {
+                img.addEventListener('load', res, { once: true });
+                img.addEventListener('error', res, { once: true });
+            });
+        });
+        await Promise.race([
+            Promise.all(imgPromises),
+            new Promise((res) => setTimeout(res, 5000))
+        ]);
+        if (doc.fonts && doc.fonts.ready) {
+            await Promise.race([doc.fonts.ready, new Promise((res) => setTimeout(res, 1500))]);
+        }
+        await new Promise((res) => requestAnimationFrame(() => requestAnimationFrame(res)));
+    }
+
+    function computePageSlices(sheet, sheetW, totalH) {
+        const fullPagePx = sheetW * (297 / 210);
+        if (totalH <= fullPagePx + 6) {
+            return [{ start: 0, end: totalH, marginTopMm: 0 }];
+        }
+
+        const sheetTop = sheet.getBoundingClientRect().top;
+        const blocks = [];
+        sheet.querySelectorAll('tr, .invoice-box, .kop-surat, .sponsor-footer, p').forEach((el) => {
+            const r = el.getBoundingClientRect();
+            if (r.height > 0 && r.height < fullPagePx * 0.85) {
+                blocks.push({ top: r.top - sheetTop, bottom: r.bottom - sheetTop });
+            }
+        });
+
+        const firstPagePx = sheetW * (289 / 210);
+        const nextPagePx = sheetW * (281 / 210);
+        const slices = [];
+        let cursor = 0;
+
+        while (cursor < totalH - 2) {
+            const isFirst = slices.length === 0;
+            const maxSpan = isFirst ? firstPagePx : nextPagePx;
+            let end = Math.min(totalH, cursor + maxSpan);
+
+            if (end < totalH - 2) {
+                for (let i = 0; i < blocks.length; i++) {
+                    const b = blocks[i];
+                    if (b.top < end && b.bottom > end && (b.top - cursor) >= 80) {
+                        end = Math.min(end, b.top - 2);
+                    }
+                }
+            }
+            if (end <= cursor + 20) {
+                end = Math.min(totalH, cursor + maxSpan);
+            }
+            slices.push({ start: cursor, end: end, marginTopMm: isFirst ? 0 : 8 });
+            cursor = end;
+        }
+        return slices;
+    }
+
+    async function renderInvoicePdfBuffer(iframe, item) {
+        const targetUrl = window.location.origin + appBasePath + item.print_url;
+        await loadIntoIframe(iframe, targetUrl);
+        const doc = iframe.contentDocument;
+        if (!doc) throw new Error('Tidak dapat mengakses dokumen invoice');
+
+        doc.querySelectorAll('.btn-print, .btn-close').forEach((el) => { el.style.display = 'none'; });
+        const sheet = doc.querySelector('.sheet');
+        if (!sheet) throw new Error('Template invoice tidak ditemukan');
+
+        doc.body.style.background = '#ffffff';
+        sheet.style.margin = '0';
+        sheet.style.boxShadow = 'none';
+
+        await waitDocumentReady(doc);
+
+        const sheetW = sheet.offsetWidth || 794;
+        const totalH = Math.max(sheet.scrollHeight, sheet.offsetHeight);
+        const slices = computePageSlices(sheet, sheetW, totalH);
+        const scale = totalH * 2 > 14000 ? 1.5 : 2;
+
+        const fullCanvas = await window.html2canvas(sheet, {
+            scale: scale,
+            useCORS: true,
+            backgroundColor: '#ffffff',
+            logging: false,
+            width: sheetW,
+            height: totalH,
+            windowWidth: sheetW
+        });
+
+        const pdf = new window.jspdf.jsPDF({ orientation: 'p', unit: 'mm', format: 'a4', compress: true });
+        const sliceCanvas = document.createElement('canvas');
+        const sliceCtx = sliceCanvas.getContext('2d');
+
+        slices.forEach((sl, idx) => {
+            if (idx > 0) pdf.addPage('a4', 'p');
+            const srcY = Math.max(0, Math.round(sl.start * scale));
+            const srcH = Math.max(1, Math.min(fullCanvas.height - srcY, Math.round((sl.end - sl.start) * scale)));
+            sliceCanvas.width = fullCanvas.width;
+            sliceCanvas.height = srcH;
+            sliceCtx.fillStyle = '#ffffff';
+            sliceCtx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height);
+            sliceCtx.drawImage(fullCanvas, 0, srcY, fullCanvas.width, srcH, 0, 0, fullCanvas.width, srcH);
+
+            const imgData = sliceCanvas.toDataURL('image/jpeg', 0.92);
+            const hMm = Math.min(297 - sl.marginTopMm, 210 * ((sl.end - sl.start) / sheetW));
+            pdf.addImage(imgData, 'JPEG', 0, sl.marginTopMm, 210, hMm, undefined, 'FAST');
+        });
+
+        fullCanvas.width = 0;
+        fullCanvas.height = 0;
+        sliceCanvas.width = 0;
+        sliceCanvas.height = 0;
+
+        return pdf.output('arraybuffer');
+    }
+
+    btnDownload.addEventListener('click', async function () {
+        if (!zipItems.length) return;
+        if (!window.JSZip || !window.html2canvas || !window.jspdf || !window.jspdf.jsPDF) {
+            alert('Library PDF/ZIP belum termuat. Pastikan koneksi internet aktif lalu muat ulang halaman.');
+            return;
+        }
+
+        cancelled = false;
+        btnDownload.disabled = true;
+        modal.classList.remove('hidden');
+
+        const zip = new window.JSZip();
+        const iframe = document.createElement('iframe');
+        iframe.style.cssText = 'position:fixed;left:-99999px;top:0;width:850px;height:1200px;border:0;visibility:hidden;';
+        document.body.appendChild(iframe);
+
+        const failed = [];
+        let added = 0;
+
+        try {
+            for (let i = 0; i < zipItems.length; i++) {
+                if (cancelled) break;
+                const item = zipItems[i];
+                counterEl.textContent = (i + 1) + ' / ' + zipItems.length;
+                statusEl.textContent = 'Memproses: ' + item.filename;
+                progressBar.style.width = Math.round(((i) / zipItems.length) * 100) + '%';
+
+                try {
+                    const pdfBuffer = await renderInvoicePdfBuffer(iframe, item);
+                    zip.file(item.filename, pdfBuffer);
+                    added++;
+                } catch (err) {
+                    console.error('Gagal render invoice:', item.club_name, err);
+                    failed.push(item.club_name);
+                }
+                progressBar.style.width = Math.round(((i + 1) / zipItems.length) * 100) + '%';
+            }
+
+            if (!cancelled && added > 0) {
+                statusEl.textContent = 'Mengemas file ZIP (' + added + ' PDF)...';
+                const zipBlob = await zip.generateAsync({ type: 'blob' });
+                const dlUrl = URL.createObjectURL(zipBlob);
+                const a = document.createElement('a');
+                a.href = dlUrl;
+                a.download = zipFilename;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                setTimeout(() => URL.revokeObjectURL(dlUrl), 5000);
+            }
+
+            if (!cancelled && failed.length > 0) {
+                alert('Sebagian invoice gagal diproses (' + failed.length + '): ' + failed.join(', '));
+            }
+        } finally {
+            iframe.remove();
+            modal.classList.add('hidden');
+            btnDownload.disabled = false;
+        }
+    });
+});
+</script>
