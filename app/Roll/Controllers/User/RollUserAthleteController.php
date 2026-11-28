@@ -66,19 +66,18 @@ class RollUserAthleteController extends Controller {
 
         $base_uid = $kode1 . $kode2 . $tahun . $kode_jk;
 
-        $stmt = $db->prepare("SELECT uid FROM roll_skaters WHERE uid LIKE ? ORDER BY uid DESC LIMIT 1");
+        $stmt = $db->prepare("SELECT uid FROM roll_skaters WHERE uid LIKE ?");
         $stmt->execute([$base_uid . '%']);
-        $last_uid = $stmt->fetchColumn();
-
-        $digit_akhir = 0;
-        if ($last_uid) {
-            $digit_akhir = min(9, ((int) substr($last_uid, -1)) + 1);
+        $taken = $usedUids;
+        while ($u = $stmt->fetchColumn()) {
+            $taken[(string)$u] = true;
         }
 
-        while (isset($usedUids[$base_uid . $digit_akhir]) && $digit_akhir < 9) {
-            $digit_akhir++;
+        $suffix = 0;
+        while (isset($taken[$base_uid . $suffix])) {
+            $suffix++;
         }
-        $finalUid = $base_uid . $digit_akhir;
+        $finalUid = $base_uid . $suffix;
         $usedUids[$finalUid] = true;
 
         return $finalUid;
@@ -403,7 +402,7 @@ class RollUserAthleteController extends Controller {
             'NIK (16 Digit)',
             'Nama Lengkap Atlet',
             'Jenis Kelamin (M/F)',
-            'Tanggal Lahir (YYYY-MM-DD)',
+            'Tanggal Lahir (DD/MM/YYYY)',
             'Asal Sekolah',
             'Kota / Kabupaten',
             'Provinsi',
@@ -412,56 +411,104 @@ class RollUserAthleteController extends Controller {
     }
 
     /**
-     * Parse tanggal lahir dari format YYYY-MM-DD, DD/MM/YYYY, atau DD-MM-YYYY.
+     * Bersihkan nilai NIK CSV (mendukung ='...', '..., spasi) dan kembalikan [nik16Digit|null, warning|null].
+     */
+    public static function parseCsvNik(string $raw): array {
+        $s = trim($raw);
+        if (preg_match('/^=\s*"(.*)"$/', $s, $m)) {
+            $s = trim($m[1]);
+        }
+        $s = trim($s, "'\" ");
+
+        if ($s === '') {
+            return [null, 'NIK kosong'];
+        }
+        if (preg_match('/[eE]\+/', $s)) {
+            return [null, "NIK rusak notasi ilmiah Excel ({$s})"];
+        }
+        if (!preg_match('/^[0-9\s.\-]+$/', $s)) {
+            return [null, "NIK bukan angka valid ({$s})"];
+        }
+
+        $digits = preg_replace('/[^0-9]/', '', $s);
+        if (strlen($digits) !== 16) {
+            return [null, "NIK harus 16 digit (terbaca " . strlen($digits) . " digit)"];
+        }
+
+        return [$digits, null];
+    }
+
+    /**
+     * Parse tanggal lahir format Indonesia DD/MM/YYYY atau DD-MM-YYYY (juga mendukung ISO YYYY-MM-DD).
      */
     public static function parseBirthDate(string $raw): ?string {
         $s = trim($raw);
         if ($s === '' || $s === '0000-00-00') return null;
 
-        if (preg_match('/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})$/', $s, $m)) {
-            $y = (int)$m[1]; $mo = (int)$m[2]; $d = (int)$m[3];
-            return checkdate($mo, $d, $y) ? sprintf('%04d-%02d-%02d', $y, $mo, $d) : null;
-        }
         if (preg_match('/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/', $s, $m)) {
             $d = (int)$m[1]; $mo = (int)$m[2]; $y = (int)$m[3];
-            return checkdate($mo, $d, $y) ? sprintf('%04d-%02d-%02d', $y, $mo, $d) : null;
+            return ($y >= 1900 && checkdate($mo, $d, $y)) ? sprintf('%04d-%02d-%02d', $y, $mo, $d) : null;
         }
-        $ts = strtotime($s);
-        return ($ts !== false && $ts > strtotime('1900-01-01')) ? date('Y-m-d', $ts) : null;
+        if (preg_match('/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})$/', $s, $m)) {
+            $y = (int)$m[1]; $mo = (int)$m[2]; $d = (int)$m[3];
+            return ($y >= 1900 && checkdate($mo, $d, $y)) ? sprintf('%04d-%02d-%02d', $y, $mo, $d) : null;
+        }
+        return null;
     }
 
     /**
-     * Parse & validasi isi file CSV atlet (mendukung delimiter koma, titik koma, atau tab & UTF-8 BOM).
+     * Parse & validasi isi file CSV atlet (delimiter koma/titik koma/tab, UTF-8 BOM, cell multibaris).
+     * Baris tetap diterima jika Nama, TTL (DD/MM/YYYY / YYYY-MM-DD), dan Gender valid; NIK yang rusak/kosong ditandai warning untuk diedit manual.
      */
     public static function parseAthleteCsvRows(string $csvContent): array {
         $csvContent = preg_replace('/^\xEF\xBB\xBF/', '', $csvContent);
-        $lines = preg_split('/\r\n|\r|\n/', $csvContent);
         $valid = [];
         $errors = [];
+        $nikWarnings = [];
 
-        if (empty($lines)) {
-            return ['valid' => [], 'errors' => ['File CSV kosong.']];
+        if (trim($csvContent) === '') {
+            return ['valid' => [], 'errors' => ['File CSV kosong.'], 'nik_warnings' => []];
         }
 
-        // Deteksi delimiter dari baris non-kosong pertama
-        $headerIdx = null;
-        $delimiter = ',';
-        foreach ($lines as $idx => $ln) {
-            if (trim($ln) === '') continue;
-            $semi = substr_count($ln, ';');
-            $comma = substr_count($ln, ',');
-            $tab = substr_count($ln, "\t");
-            if ($tab > $semi && $tab > $comma) $delimiter = "\t";
-            elseif ($semi > $comma) $delimiter = ';';
-            $headerIdx = $idx;
-            break;
+        // Tangani direktif Excel "sep=," atau "sep=;" pada baris pertama jika ada
+        $delimiter = null;
+        if (preg_match('/^sep=(.)\r?\n/i', $csvContent, $sepMatch)) {
+            $delimiter = $sepMatch[1];
+            $csvContent = substr($csvContent, strlen($sepMatch[0]));
         }
 
-        if ($headerIdx === null) {
-            return ['valid' => [], 'errors' => ['File CSV tidak memiliki baris data.']];
+        $sampleLines = preg_split('/\r\n|\r|\n/', $csvContent);
+        if ($delimiter === null) {
+            $delimiter = ',';
+            foreach ($sampleLines as $ln) {
+                if (trim($ln) === '') continue;
+                $semi = substr_count($ln, ';');
+                $comma = substr_count($ln, ',');
+                $tab = substr_count($ln, "\t");
+                if ($tab > $semi && $tab > $comma) $delimiter = "\t";
+                elseif ($semi > $comma) $delimiter = ';';
+                break;
+            }
         }
 
-        $firstCols = str_getcsv($lines[$headerIdx], $delimiter);
+        $fp = fopen('php://temp', 'r+');
+        fwrite($fp, $csvContent);
+        rewind($fp);
+
+        $allRows = [];
+        while (($r = fgetcsv($fp, 0, $delimiter)) !== false) {
+            if ($r === [null] || (count($r) === 1 && trim((string)$r[0]) === '')) {
+                continue;
+            }
+            $allRows[] = $r;
+        }
+        fclose($fp);
+
+        if (empty($allRows)) {
+            return ['valid' => [], 'errors' => ['File CSV tidak memiliki baris data.'], 'nik_warnings' => []];
+        }
+
+        $firstCols = $allRows[0];
         $colMap = [];
         $hasHeaderRow = false;
 
@@ -480,23 +527,19 @@ class RollUserAthleteController extends Controller {
         }
 
         if (!$hasHeaderRow) {
-            // Fallback jika CSV tanpa baris header: gunakan urutan kolom standar
             $colMap = [
                 'id' => 0, 'uid' => 1, 'nik' => 2, 'skater_name' => 3,
                 'gender' => 4, 'birth_date' => 5, 'asal_sekolah' => 6,
                 'kota_kabupaten' => 7, 'provinsi' => 8, 'status_bpjs' => 9,
             ];
-            $startRow = $headerIdx;
+            $startRow = 0;
         } else {
-            $startRow = $headerIdx + 1;
+            $startRow = 1;
         }
 
-        $totalLines = count($lines);
-        for ($rIdx = $startRow; $rIdx < $totalLines; $rIdx++) {
-            $rawLine = $lines[$rIdx];
-            if (trim($rawLine) === '') continue;
-
-            $row = str_getcsv($rawLine, $delimiter);
+        $totalRows = count($allRows);
+        for ($rIdx = $startRow; $rIdx < $totalRows; $rIdx++) {
+            $row = $allRows[$rIdx];
             $joined = strtoupper(implode(' ', $row));
             if (strpos($joined, '[CONTOH') !== false) continue;
 
@@ -507,17 +550,6 @@ class RollUserAthleteController extends Controller {
             $skaterName = strtoupper(preg_replace('/\s+/', ' ', $rawName));
             if ($skaterName === '') {
                 $errors[] = "Baris {$lineNo}: Nama atlet kosong.";
-                continue;
-            }
-
-            $rawNik = ltrim($get('nik'), "'\" ");
-            if (preg_match('/[eE]\+/', $rawNik)) {
-                $errors[] = "Baris {$lineNo} ({$skaterName}): NIK rusak karena format ilmiah Excel ({$rawNik}). Format kolom NIK sebagai Text atau awali tanda petik (').";
-                continue;
-            }
-            $nik = preg_replace('/[^0-9]/', '', $rawNik);
-            if (strlen($nik) !== 16) {
-                $errors[] = "Baris {$lineNo} ({$skaterName}): NIK wajib 16 digit angka (terbaca " . strlen($nik) . " digit).";
                 continue;
             }
 
@@ -533,28 +565,37 @@ class RollUserAthleteController extends Controller {
 
             $birthDate = self::parseBirthDate($get('birth_date'));
             if ($birthDate === null) {
-                $errors[] = "Baris {$lineNo} ({$skaterName}): Tanggal lahir tidak valid ('" . $get('birth_date') . "', gunakan YYYY-MM-DD atau DD/MM/YYYY).";
+                $errors[] = "Baris {$lineNo} ({$skaterName}): Tanggal lahir tidak valid ('" . $get('birth_date') . "', gunakan DD/MM/YYYY mis. 12/05/2015).";
                 continue;
+            }
+
+            [$nik, $nikReason] = self::parseCsvNik($get('nik'));
+            $nikWarning = null;
+            if ($nikReason !== null) {
+                $nikWarning = "Baris {$lineNo} ({$skaterName}): {$nikReason}";
+                $nikWarnings[] = $nikWarning;
             }
 
             $bpjsRaw = strtolower($get('status_bpjs'));
             $statusBpjs = in_array($bpjsRaw, ['sudah', 'ya', 'yes', '1', 'aktif', 'sudah terdaftar'], true) ? 'sudah' : 'belum';
 
             $valid[] = [
+                'line_no'        => $lineNo,
                 'id'             => (int)preg_replace('/[^0-9]/', '', $get('id')),
                 'uid'            => strtoupper($get('uid')),
                 'nik'            => $nik,
-                'skater_name'    => $skaterName,
+                'nik_warning'    => $nikWarning,
+                'skater_name'    => mb_substr($skaterName, 0, 250),
                 'gender'         => $gender,
                 'birth_date'     => $birthDate,
-                'asal_sekolah'   => strtoupper($get('asal_sekolah')) ?: null,
-                'kota_kabupaten' => strtoupper($get('kota_kabupaten')) ?: null,
-                'provinsi'       => strtoupper($get('provinsi')) ?: null,
+                'asal_sekolah'   => mb_substr(strtoupper($get('asal_sekolah')), 0, 150) ?: null,
+                'kota_kabupaten' => mb_substr(strtoupper($get('kota_kabupaten')), 0, 100) ?: null,
+                'provinsi'       => mb_substr(strtoupper($get('provinsi')), 0, 100) ?: null,
                 'status_bpjs'    => $statusBpjs,
             ];
         }
 
-        return ['valid' => $valid, 'errors' => $errors];
+        return ['valid' => $valid, 'errors' => $errors, 'nik_warnings' => $nikWarnings];
     }
 
     public function download_template() {
@@ -566,10 +607,10 @@ class RollUserAthleteController extends Controller {
         fputcsv($out, [
             '',
             '',
-            "'3304012345670001",
+            '="3304012345670001"',
             '[CONTOH - HAPUS BARIS INI] BAGUS KURNIAWAN',
             'M',
-            '2015-05-12',
+            '12/05/2015',
             'SMP NEGERI 1 YOGYAKARTA',
             'KOTA YOGYAKARTA',
             'D.I. YOGYAKARTA',
@@ -595,14 +636,18 @@ class RollUserAthleteController extends Controller {
         fputcsv($out, self::getCsvHeaders());
 
         foreach ($rows as $r) {
-            $nikOut = !empty($r['nik']) ? ("'" . $r['nik']) : '';
+            $nikClean = trim((string)($r['nik'] ?? ''));
+            $nikOut = $nikClean !== '' ? ('="' . $nikClean . '"') : '';
+            $dobOut = (!empty($r['birth_date']) && $r['birth_date'] !== '0000-00-00')
+                ? date('d/m/Y', strtotime($r['birth_date']))
+                : '';
             fputcsv($out, [
                 $r['id'],
                 $r['uid'] ?? '',
                 $nikOut,
                 $r['skater_name'] ?? '',
                 $r['gender'] ?? 'M',
-                (!empty($r['birth_date']) && $r['birth_date'] !== '0000-00-00') ? $r['birth_date'] : '',
+                $dobOut,
                 $r['asal_sekolah'] ?? '',
                 $r['kota_kabupaten'] ?? '',
                 $r['provinsi'] ?? '',
@@ -642,11 +687,14 @@ class RollUserAthleteController extends Controller {
         $errors = $parsed['errors'];
 
         if (empty($validRows)) {
-            $msg = "Tidak ada data atlet yang valid untuk diimport.";
-            if (!empty($errors)) {
-                $msg .= " Contoh error: " . implode(' | ', array_slice($errors, 0, 3));
-            }
-            $_SESSION['flash_message'] = $msg;
+            $_SESSION['csv_import_report'] = [
+                'inserted' => 0,
+                'updated' => 0,
+                'preserved_nik' => 0,
+                'nik_warnings' => [],
+                'errors' => $errors,
+            ];
+            $_SESSION['flash_message'] = "Tidak ada baris atlet dengan Nama, TTL (DD/MM/YYYY), dan Gender yang valid untuk diimport.";
             $_SESSION['flash_type'] = "error";
             header("Location: " . getenv('APP_URL') . "/roll/user/athletes");
             exit;
@@ -654,14 +702,17 @@ class RollUserAthleteController extends Controller {
 
         $inserted = 0;
         $updated = 0;
+        $preservedNik = 0;
+        $nikWarnings = [];
         $currentYear = (int)date('Y');
         $usedUids = [];
 
         try {
             $db->beginTransaction();
 
-            $stmtFindById  = $db->prepare("SELECT id, uid FROM roll_skaters WHERE id = ? AND club_id = ? LIMIT 1");
-            $stmtFindByNik = $db->prepare("SELECT id, uid FROM roll_skaters WHERE nik = ? AND club_id = ? LIMIT 1");
+            $stmtFindById      = $db->prepare("SELECT id, uid, nik FROM roll_skaters WHERE id = ? AND club_id = ? LIMIT 1");
+            $stmtFindByNik     = $db->prepare("SELECT id, uid, nik FROM roll_skaters WHERE nik = ? AND club_id = ? LIMIT 1");
+            $stmtFindByNameDob = $db->prepare("SELECT id, uid, nik FROM roll_skaters WHERE UPPER(TRIM(skater_name)) = ? AND birth_date = ? AND club_id = ? LIMIT 1");
             $stmtUpdate = $db->prepare("
                 UPDATE roll_skaters
                 SET nik = ?, uid = ?, skater_name = ?, gender = ?, birth_date = ?, asal_sekolah = ?, provinsi = ?, kota_kabupaten = ?, status_bpjs = ?, age_group = ?
@@ -676,51 +727,78 @@ class RollUserAthleteController extends Controller {
                 $birthYear = (int)date('Y', strtotime($row['birth_date']));
                 $ageGroupStr = max(0, $currentYear - $birthYear) . ' Thn';
 
-                $existing = null;
-                if (!empty($row['id'])) {
-                    $stmtFindById->execute([$row['id'], $club_id]);
-                    $existing = $stmtFindById->fetch(PDO::FETCH_ASSOC) ?: null;
-                }
-                if (!$existing) {
-                    $stmtFindByNik->execute([$row['nik'], $club_id]);
-                    $existing = $stmtFindByNik->fetch(PDO::FETCH_ASSOC) ?: null;
-                }
+                try {
+                    $existing = null;
+                    if (!empty($row['id'])) {
+                        $stmtFindById->execute([$row['id'], $club_id]);
+                        $existing = $stmtFindById->fetch(PDO::FETCH_ASSOC) ?: null;
+                    }
+                    if (!$existing && !empty($row['nik'])) {
+                        $stmtFindByNik->execute([$row['nik'], $club_id]);
+                        $existing = $stmtFindByNik->fetch(PDO::FETCH_ASSOC) ?: null;
+                    }
+                    if (!$existing) {
+                        $stmtFindByNameDob->execute([$row['skater_name'], $row['birth_date'], $club_id]);
+                        $existing = $stmtFindByNameDob->fetch(PDO::FETCH_ASSOC) ?: null;
+                    }
 
-                if ($existing) {
-                    $uid = !empty($existing['uid'])
-                        ? $existing['uid']
-                        : $this->generateSkaterUID($db, $row['skater_name'], $row['birth_date'], $row['gender'], $usedUids);
-                    $stmtUpdate->execute([
-                        $row['nik'],
-                        $uid,
-                        $row['skater_name'],
-                        $row['gender'],
-                        $row['birth_date'],
-                        $row['asal_sekolah'],
-                        $row['provinsi'],
-                        $row['kota_kabupaten'],
-                        $row['status_bpjs'],
-                        $ageGroupStr,
-                        $existing['id'],
-                        $club_id
-                    ]);
-                    $updated++;
-                } else {
-                    $uid = $this->generateSkaterUID($db, $row['skater_name'], $row['birth_date'], $row['gender'], $usedUids);
-                    $stmtInsert->execute([
-                        $row['nik'],
-                        $uid,
-                        $club_id,
-                        $row['skater_name'],
-                        $row['gender'],
-                        $row['birth_date'],
-                        $row['asal_sekolah'],
-                        $row['provinsi'],
-                        $row['kota_kabupaten'],
-                        $row['status_bpjs'],
-                        $ageGroupStr
-                    ]);
-                    $inserted++;
+                    if ($existing) {
+                        if (!empty($existing['uid'])) {
+                            $usedUids[(string)$existing['uid']] = true;
+                        }
+                        $uid = !empty($existing['uid'])
+                            ? $existing['uid']
+                            : $this->generateSkaterUID($db, $row['skater_name'], $row['birth_date'], $row['gender'], $usedUids);
+
+                        // Pertahankan NIK 16 digit yang sudah valid di DB jika NIK pada CSV rusak (mis. E+15) atau kosong
+                        $existingNikDigits = preg_replace('/[^0-9]/', '', (string)($existing['nik'] ?? ''));
+                        $finalNik = $row['nik'];
+                        if ($finalNik === null) {
+                            if (strlen($existingNikDigits) === 16) {
+                                $finalNik = $existingNikDigits;
+                                $preservedNik++;
+                            } elseif (!empty($row['nik_warning'])) {
+                                $nikWarnings[] = $row['nik_warning'];
+                            }
+                        }
+
+                        $stmtUpdate->execute([
+                            $finalNik,
+                            $uid,
+                            $row['skater_name'],
+                            $row['gender'],
+                            $row['birth_date'],
+                            $row['asal_sekolah'],
+                            $row['provinsi'],
+                            $row['kota_kabupaten'],
+                            $row['status_bpjs'],
+                            $ageGroupStr,
+                            $existing['id'],
+                            $club_id
+                        ]);
+                        $updated++;
+                    } else {
+                        if (!empty($row['nik_warning'])) {
+                            $nikWarnings[] = $row['nik_warning'];
+                        }
+                        $uid = $this->generateSkaterUID($db, $row['skater_name'], $row['birth_date'], $row['gender'], $usedUids);
+                        $stmtInsert->execute([
+                            $row['nik'],
+                            $uid,
+                            $club_id,
+                            $row['skater_name'],
+                            $row['gender'],
+                            $row['birth_date'],
+                            $row['asal_sekolah'],
+                            $row['provinsi'],
+                            $row['kota_kabupaten'],
+                            $row['status_bpjs'],
+                            $ageGroupStr
+                        ]);
+                        $inserted++;
+                    }
+                } catch (\Throwable $rowEx) {
+                    $errors[] = "Baris {$row['line_no']} ({$row['skater_name']}): Gagal simpan database (" . $rowEx->getMessage() . ")";
                 }
             }
 
@@ -728,14 +806,26 @@ class RollUserAthleteController extends Controller {
                 $db->commit();
             }
 
+            $_SESSION['csv_import_report'] = [
+                'inserted' => $inserted,
+                'updated' => $updated,
+                'preserved_nik' => $preservedNik,
+                'nik_warnings' => $nikWarnings,
+                'errors' => $errors,
+            ];
+
             $summaryMsg = "Import CSV selesai: <strong>{$inserted} atlet baru</strong> ditambahkan, <strong>{$updated} atlet</strong> diperbarui.";
+            if ($preservedNik > 0) {
+                $summaryMsg .= " <strong>{$preservedNik} NIK lama dipertahankan</strong> karena kolom NIK di CSV rusak/kosong.";
+            }
+            if (!empty($nikWarnings)) {
+                $summaryMsg .= " <strong>" . count($nikWarnings) . " atlet masuk dengan warning NIK</strong> (silakan klik tombol Edit untuk melengkapi NIK 16 digit).";
+            }
             if (!empty($errors)) {
-                $skipCount = count($errors);
-                $sampleErrs = htmlspecialchars(implode(' | ', array_slice($errors, 0, 3)));
-                $summaryMsg .= " ({$skipCount} baris dilewati: {$sampleErrs})";
+                $summaryMsg .= " <strong>" . count($errors) . " baris ditolak</strong> (Nama/TTL/Gender tidak valid).";
             }
             $_SESSION['flash_message'] = $summaryMsg;
-            $_SESSION['flash_type'] = "success";
+            $_SESSION['flash_type'] = (!empty($errors) || !empty($nikWarnings)) ? "warning" : "success";
         } catch (\Throwable $e) {
             if ($db->inTransaction()) {
                 $db->rollBack();

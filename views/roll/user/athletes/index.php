@@ -2,14 +2,62 @@
     
     <!-- Flash Messages -->
     <?php if (isset($_SESSION['flash_message'])): ?>
-        <div class="mb-4 p-4 text-xs <?= $_SESSION['flash_type'] === 'success' ? 'text-emerald-800 bg-emerald-50 border-emerald-200' : 'text-red-800 bg-red-50 border-red-200' ?> rounded-xl border shadow-sm flex items-center justify-between gap-2">
+        <?php
+            $fType = $_SESSION['flash_type'] ?? 'success';
+            $fClass = $fType === 'success'
+                ? 'text-emerald-800 bg-emerald-50 border-emerald-200'
+                : ($fType === 'warning'
+                    ? 'text-amber-900 bg-amber-50 border-amber-300'
+                    : 'text-red-800 bg-red-50 border-red-200');
+            $fIcon = $fType === 'success' ? '💡' : ($fType === 'warning' ? '⚠️' : '❌');
+        ?>
+        <div class="mb-4 p-4 text-xs <?= $fClass ?> rounded-xl border shadow-sm flex items-center justify-between gap-2">
             <div class="flex items-center gap-2">
-                <span><?= $_SESSION['flash_type'] === 'success' ? '💡' : '⚠️' ?></span> 
+                <span><?= $fIcon ?></span> 
                 <div><?= $_SESSION['flash_message'] ?></div>
             </div>
             <button onclick="this.parentElement.remove()" class="text-xl opacity-50 hover:opacity-100">&times;</button>
         </div>
         <?php unset($_SESSION['flash_message']); unset($_SESSION['flash_type']); ?>
+    <?php endif; ?>
+
+    <!-- Detail Laporan Import CSV -->
+    <?php if (!empty($_SESSION['csv_import_report'])): ?>
+        <?php $rep = $_SESSION['csv_import_report']; unset($_SESSION['csv_import_report']); ?>
+        <?php if (!empty($rep['nik_warnings']) || !empty($rep['errors'])): ?>
+            <div class="mb-5 p-4 text-xs bg-white border border-amber-300 rounded-xl shadow-sm space-y-3">
+                <div class="flex items-center justify-between gap-2">
+                    <h4 class="font-black uppercase tracking-wider text-amber-900 text-xs flex items-center gap-1.5">
+                        <span>📋</span> Detail Catatan Import CSV
+                    </h4>
+                    <button onclick="this.closest('.mb-5').remove()" class="text-slate-400 hover:text-slate-700 text-lg font-bold">&times;</button>
+                </div>
+                <?php if (!empty($rep['nik_warnings'])): ?>
+                    <div class="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                        <div class="font-black text-amber-900 text-[11px] mb-1.5">
+                            ⚠️ <?= count($rep['nik_warnings']) ?> Atlet Masuk dengan Warning NIK (Klik tombol Edit di baris atlet untuk melengkapi NIK 16 digit):
+                        </div>
+                        <ul class="list-disc pl-4 space-y-0.5 max-h-40 overflow-y-auto text-[11px] text-amber-800 font-mono">
+                            <?php foreach ($rep['nik_warnings'] as $nw): ?>
+                                <li><?= htmlspecialchars($nw) ?></li>
+                            <?php endforeach; ?>
+                        </ul>
+                    </div>
+                <?php endif; ?>
+                <?php if (!empty($rep['errors'])): ?>
+                    <div class="bg-rose-50 border border-rose-200 rounded-lg p-3">
+                        <div class="font-black text-rose-900 text-[11px] mb-1.5">
+                            ❌ <?= count($rep['errors']) ?> Baris Dilewati (Nama / TTL / Gender tidak valid):
+                        </div>
+                        <ul class="list-disc pl-4 space-y-0.5 max-h-40 overflow-y-auto text-[11px] text-rose-800 font-mono">
+                            <?php foreach ($rep['errors'] as $er): ?>
+                                <li><?= htmlspecialchars($er) ?></li>
+                            <?php endforeach; ?>
+                        </ul>
+                    </div>
+                <?php endif; ?>
+            </div>
+        <?php endif; ?>
     <?php endif; ?>
 
     <!-- NIK Missing Reminder Banner -->
@@ -18,10 +66,14 @@
             <div class="flex items-center gap-3">
                 <span class="text-2xl">⚠️</span>
                 <div>
-                    <h4 class="font-black uppercase tracking-wider text-rose-900 text-sm">Peringatan: Terdapat <?= $missingNikCount ?> Atlet Belum Mengisi NIK!</h4>
-                    <p class="mt-0.5 text-rose-700 font-medium">Sesuai ketentuan lomba, setiap atlet wajib melengkapi NIK (16 digit nomor KTP/KIA/Kartu Keluarga) untuk verifikasi berkas & BPJS. Silakan klik tombol <strong>Edit</strong> pada atlet yang ditandai untuk melengkapinya.</p>
+                    <h4 class="font-black uppercase tracking-wider text-rose-900 text-sm">Peringatan: Terdapat <?= $missingNikCount ?> Atlet Belum Mengisi / Perlu Perbaikan NIK!</h4>
+                    <p class="mt-0.5 text-rose-700 font-medium">Setiap atlet wajib melengkapi NIK 16 digit (KTP/KIA/KK) untuk verifikasi berkas & BPJS. Silakan klik tombol <strong>Edit</strong> pada atlet yang ditandai merah untuk melengkapinya.</p>
                 </div>
             </div>
+            <button type="button" id="btn-filter-missing-nik" onclick="toggleMissingNikFilter()"
+                    class="shrink-0 px-3.5 py-2 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-black text-[11px] uppercase tracking-wide shadow-sm transition cursor-pointer">
+                🔍 Tampilkan NIK Bermasalah (<?= $missingNikCount ?>)
+            </button>
         </div>
     <?php endif; ?>
 
@@ -86,7 +138,7 @@
                         <tr><td colspan="6" class="p-8 text-center text-slate-500 text-xs font-bold">Belum ada atlet yang didaftarkan.</td></tr>
                     <?php else: ?>
                         <?php foreach($athletes as $s): ?>
-                        <tr class="hover:bg-slate-50 transition duration-150 group">
+                        <tr class="athlete-row hover:bg-slate-50 transition duration-150 group" data-nik-missing="<?= $s['is_nik_missing'] ? '1' : '0' ?>">
                             
                             <td class="px-6 py-3">
                                 <div class="flex items-center gap-3">
@@ -454,6 +506,31 @@ function searchPoolAthletes() {
             });
     }, 300);
 }
+
+let showingOnlyMissingNik = false;
+function toggleMissingNikFilter() {
+    showingOnlyMissingNik = !showingOnlyMissingNik;
+    const rows = document.querySelectorAll('tr.athlete-row');
+    const btn = document.getElementById('btn-filter-missing-nik');
+    rows.forEach(row => {
+        if (showingOnlyMissingNik && row.getAttribute('data-nik-missing') !== '1') {
+            row.classList.add('hidden');
+        } else {
+            row.classList.remove('hidden');
+        }
+    });
+    if (btn) {
+        if (showingOnlyMissingNik) {
+            btn.textContent = '✓ Tampilkan Semua Atlet';
+            btn.classList.replace('bg-rose-600', 'bg-slate-800');
+            btn.classList.replace('hover:bg-rose-700', 'hover:bg-slate-900');
+        } else {
+            btn.textContent = '🔍 Tampilkan NIK Bermasalah (<?= (int)($missingNikCount ?? 0) ?>)';
+            btn.classList.replace('bg-slate-800', 'bg-rose-600');
+            btn.classList.replace('hover:bg-slate-900', 'hover:bg-rose-700');
+        }
+    }
+}
 </script>
 
 <!-- Modal Draft Pool (Khusus Official Kontingen) -->
@@ -516,11 +593,10 @@ function searchPoolAthletes() {
                 </div>
                 <ul class="list-disc pl-4 space-y-1 text-[11px] text-blue-800">
                     <li>Anda dapat mengisi <strong>Template CSV</strong> dari nol, atau langsung mengedit file hasil <strong>Export CSV</strong> (untuk melengkapi/menambah atlet).</li>
-                    <li><strong>NIK wajib 16 digit angka</strong> (di Excel, format kolom NIK sebagai <em>Text</em> atau awali tanda petik <code>'</code> agar digit terakhir tidak berubah jadi <code>000</code>/<code>E+15</code>).</li>
-                    <li><strong>Jenis Kelamin:</strong> isi <code>M</code> / <code>Putra</code> atau <code>F</code> / <code>Putri</code>.</li>
-                    <li><strong>Tanggal Lahir:</strong> format <code>YYYY-MM-DD</code> (mis. <code>2015-05-12</code>) atau <code>DD/MM/YYYY</code> (mis. <code>12/05/2015</code>).</li>
+                    <li><strong>Data Wajib Saat Import:</strong> <strong>Nama Lengkap Atlet</strong>, <strong>Jenis Kelamin</strong> (<code>M</code>/<code>Putra</code> atau <code>F</code>/<code>Putri</code>), dan <strong>Tanggal Lahir format Indonesia <code>DD/MM/YYYY</code></strong> (mis. <code>12/05/2015</code>).</li>
+                    <li><strong>NIK (16 Digit):</strong> File Export memakai format <code>="3304..."</code> agar tidak berubah jadi <code>E+15</code> di Excel. Namun jika NIK di CSV terlanjur rusak (<code>E+15</code>, kosong, <code>#N/A</code>, atau belum 16 digit), atlet <strong>tetap masuk dulu dengan tanda warning</strong> agar bisa dilengkapi manual lewat tombol <strong>Edit</strong> (NIK lama yang sudah valid di database tidak akan tertimpa).</li>
                     <li><strong>Status BPJS:</strong> isi <code>sudah</code> atau <code>belum</code>.</li>
-                    <li>Jika <strong>ID / NIK</strong> sudah ada di klub Anda, datanya otomatis <strong>diperbarui</strong> (tidak ganda).</li>
+                    <li>Jika <strong>ID / NIK / (Nama + Tanggal Lahir)</strong> sudah ada di klub Anda, datanya otomatis <strong>diperbarui</strong> (tidak ganda).</li>
                 </ul>
             </div>
 
