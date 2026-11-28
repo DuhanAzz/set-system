@@ -137,8 +137,10 @@
                     
                     $statusPay = $payData['status'] ?? 'Unpaid';
                     $statusStr = $statusPay == 'Paid' ? 'LUNAS (Diverifikasi)' : ($statusPay == 'Pending' ? 'MENUNGGU VERIFIKASI' : ($statusPay == 'Rejected' ? 'DITOLAK' : 'BELUM DIBAYAR'));
-                    
-                    $waMsg = "Halo perwakilan dari Klub *" . $clubName . "*,\n\nKami dari Admin SET SYSTEM ingin menginformasikan status pembayaran Anda untuk event ini.\n\nTotal Tagihan: *Rp " . number_format($totalTagihan, 0, ',', '.') . "*\nStatus Saat Ini: *" . $statusStr . "*\n\nTerima kasih! ✨";
+                    $cleanEventLabel = trim((string)($eventName ?? 'Event'));
+                    $userCheckoutDetailUrl = rtrim((string)getenv('APP_URL'), '/') . '/roll/user/checkout/detail/' . (int)$eventId;
+
+                    $waMsg = "Halo perwakilan dari Klub *" . $clubName . "*,\n\nKami dari Admin SET SYSTEM ingin menginformasikan status pembayaran Anda untuk event *" . $cleanEventLabel . "*.\n\nTotal Tagihan: *Rp " . number_format($totalTagihan, 0, ',', '.') . "*\nStatus Saat Ini: *" . $statusStr . "*\n\nSilakan cek rincian & cetak Invoice / Tanda Terima resmi langsung di akun Anda melalui link berikut:\n" . $userCheckoutDetailUrl . "\n\nTerima kasih! ✨";
                     $waLink = "https://wa.me/" . $waNum . "?text=" . urlencode($waMsg);
             ?>
             <a href="<?= $waLink ?>" target="_blank" class="mt-4 flex items-center justify-center gap-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border border-emerald-200 py-3 w-full rounded-xl transition-all font-black uppercase text-[10px] tracking-widest">

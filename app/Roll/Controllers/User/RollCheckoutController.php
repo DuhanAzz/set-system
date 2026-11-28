@@ -12,9 +12,27 @@ class RollCheckoutController extends Controller {
     public function __construct() {
         if (session_status() === PHP_SESSION_NONE) session_start();
         if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'user') {
+            $reqUri = (string)($_SERVER['REQUEST_URI'] ?? '');
+            if ($reqUri !== '' && strpos($reqUri, '/roll/user/') !== false && strpos($reqUri, '//') === false) {
+                $_SESSION['roll_login_redirect'] = $reqUri;
+            }
             header("Location: " . getenv('APP_URL') . "/roll/login");
             exit;
         }
+    }
+
+    private function resolveClubId($db): int {
+        $club_id = (int)($_SESSION['roll_club_id'] ?? 0);
+        if ($club_id <= 0 && !empty($_SESSION['roll_user_id'])) {
+            $stmtUser = $db->prepare("SELECT club_id FROM roll_users WHERE id = ?");
+            $stmtUser->execute([$_SESSION['roll_user_id']]);
+            $foundClubId = (int)$stmtUser->fetchColumn();
+            if ($foundClubId > 0) {
+                $club_id = $foundClubId;
+                $_SESSION['roll_club_id'] = $club_id;
+            }
+        }
+        return $club_id;
     }
 
     public function index() {
@@ -36,7 +54,7 @@ class RollCheckoutController extends Controller {
             FROM roll_events ev
             JOIN roll_entries e ON e.event_id = ev.id
             JOIN roll_skaters s ON e.skater_id = s.id
-            WHERE s.club_id = ? AND e.manual_invoice_code IS NULL
+            WHERE s.club_id = ? AND (e.manual_invoice_code IS NULL OR e.manual_invoice_code NOT LIKE 'MAN-TOK-%')
             ORDER BY ev.event_date_start DESC
         ");
         $stmt->execute([$club_id]);
@@ -74,7 +92,7 @@ class RollCheckoutController extends Controller {
                 JOIN roll_event_details ed ON e.race_class_id = ed.id
                 LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
                 LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
-                WHERE s.club_id = ? AND e.event_id = ? AND e.manual_invoice_code IS NULL
+                WHERE s.club_id = ? AND e.event_id = ? AND (e.manual_invoice_code IS NULL OR e.manual_invoice_code NOT LIKE 'MAN-TOK-%')
             ");
             $stmtEntries->execute([$club_id, $eid]);
             $rows = $stmtEntries->fetchAll(PDO::FETCH_ASSOC);
@@ -154,7 +172,7 @@ class RollCheckoutController extends Controller {
                 LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
                 LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id
                 LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
-                WHERE s.club_id = ? AND e.event_id = ? AND e.manual_invoice_code IS NULL
+                WHERE s.club_id = ? AND e.event_id = ? AND (e.manual_invoice_code IS NULL OR e.manual_invoice_code NOT LIKE 'MAN-TOK-%')
             ");
             $stmtUnpaid->execute([$club_id, $event_id]);
             $unpaidEntries = $stmtUnpaid->fetchAll(PDO::FETCH_ASSOC);
@@ -188,7 +206,7 @@ class RollCheckoutController extends Controller {
                 LEFT JOIN roll_ref_distances d ON ed.distance_id = d.id
                 LEFT JOIN roll_ref_age_groups a ON ed.age_group_id = a.id
                 LEFT JOIN roll_ref_skate_classes sc ON ed.skate_class_id = sc.id
-                WHERE s.club_id = ? AND e.event_id = ? AND e.manual_invoice_code IS NULL
+                WHERE s.club_id = ? AND e.event_id = ? AND (e.manual_invoice_code IS NULL OR e.manual_invoice_code NOT LIKE 'MAN-TOK-%')
                 ORDER BY s.skater_name ASC
             ");
             $stmtHistory->execute([$club_id, $event_id]);
@@ -271,6 +289,32 @@ class RollCheckoutController extends Controller {
             'financeSummary' => $financeSummary,
             'skaterBreakdowns' => $skaterBreakdowns
         ]);
+    }
+
+    /**
+     * Halaman lihat & cetak Invoice / Tanda Terima klub langsung dari sisi User.
+     */
+    public function print_invoice($event_id = null) {
+        $eventId = (int)($event_id ?? ($_GET['event_id'] ?? 0));
+        if ($eventId <= 0) {
+            header("Location: " . getenv('APP_URL') . "/roll/user/checkout");
+            exit;
+        }
+
+        $db = Database::getInstance()->getConnection();
+        $clubId = $this->resolveClubId($db);
+        if ($clubId <= 0) {
+            header("Location: " . getenv('APP_URL') . "/roll/user/checkout");
+            exit;
+        }
+
+        $invoiceData = \App\Roll\Controllers\Admin\RollEntryController::buildClubInvoicePrintData($db, $eventId, $clubId);
+        if (!$invoiceData) {
+            header("Location: " . getenv('APP_URL') . "/roll/user/checkout");
+            exit;
+        }
+
+        return $this->view('roll/admin/entries/print_invoice', $invoiceData);
     }
 
     public function pay($event_id = null) {

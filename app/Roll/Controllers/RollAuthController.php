@@ -12,13 +12,22 @@ class RollAuthController extends Controller {
         if (session_status() === PHP_SESSION_NONE) session_start();
     }
 
+    private function resolveUserPostLoginRedirect(): string {
+        $redir = (string)($_SESSION['roll_login_redirect'] ?? '');
+        unset($_SESSION['roll_login_redirect']);
+        if ($redir !== '' && strpos($redir, '/roll/user/') !== false && strpos($redir, '//') === false && $redir[0] === '/') {
+            return $redir;
+        }
+        return getenv('APP_URL') . "/roll/user/dashboard";
+    }
+
     public function index() {
         // Jika sudah login, redirect
         if (isset($_SESSION['role'])) {
             $role = $_SESSION['role'];
             if ($role === 'master') header("Location: " . getenv('APP_URL') . "/roll/master/dashboard");
             elseif ($role === 'admin') header("Location: " . getenv('APP_URL') . "/roll/admin/dashboard");
-            elseif ($role === 'user') header("Location: " . getenv('APP_URL') . "/roll/user/dashboard");
+            elseif ($role === 'user') header("Location: " . $this->resolveUserPostLoginRedirect());
             exit;
         }
 
@@ -109,7 +118,7 @@ class RollAuthController extends Controller {
                 // Redirect sesuai role
                 if ($user['role'] === 'master') header("Location: " . getenv('APP_URL') . "/roll/master/dashboard");
                 elseif ($user['role'] === 'admin') header("Location: " . getenv('APP_URL') . "/roll/admin/dashboard");
-                else header("Location: " . getenv('APP_URL') . "/roll/user/dashboard");
+                else header("Location: " . $this->resolveUserPostLoginRedirect());
                 exit;
             } else {
                 $_SESSION['flash_message'] = "Username atau Password salah!";

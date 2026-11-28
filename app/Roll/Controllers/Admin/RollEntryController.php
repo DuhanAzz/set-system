@@ -259,6 +259,7 @@ class RollEntryController extends Controller {
 
         return $this->view('roll/admin/entries/detail', [
             'eventId' => $eventId,
+            'eventName' => $eventData['event_name'] ?? ('Event #' . $eventId),
             'targetUserId' => $targetClubId,
             'clubName' => $clubName,
             'emailUser' => $emailUser,
@@ -361,33 +362,30 @@ class RollEntryController extends Controller {
         exit;
     }
 
-    public function print_invoice() {
-        if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
-            die("Unauthorized");
+    /**
+     * Bangun data invoice / tanda terima klub untuk dipakai bersama oleh Admin maupun User Checkout.
+     */
+    public static function buildClubInvoicePrintData($db, int $eventId, int $targetClubId): ?array {
+        if ($eventId <= 0 || $targetClubId <= 0) {
+            return null;
         }
-        
-        $db = Database::getInstance()->getConnection();
-        $eventId = (int)($_GET['event_id'] ?? 0);
-        $targetClubId = (int)($_GET['id'] ?? 0);
-        
-        if ($eventId == 0 || $targetClubId == 0) {
-            die("Parameter URL tidak lengkap.");
-        }
-        
+
         $stmtEvt = $db->prepare("SELECT * FROM roll_events WHERE id = ? LIMIT 1");
         $stmtEvt->execute([$eventId]);
         $eventData = $stmtEvt->fetch(PDO::FETCH_ASSOC);
-        if (!$eventData) die("Event tidak ditemukan");
-        
+        if (!$eventData) {
+            return null;
+        }
+
         $stmtClub = $db->prepare("SELECT club_name FROM roll_clubs WHERE id = ?");
         $stmtClub->execute([$targetClubId]);
         $clubData = $stmtClub->fetch(PDO::FETCH_ASSOC);
         $clubName = $clubData['club_name'] ?? 'Klub ID: ' . $targetClubId;
-        
+
         $stmtPay = $db->prepare("SELECT * FROM roll_payments WHERE event_id = ? AND club_id = ? LIMIT 1");
         $stmtPay->execute([$eventId, $targetClubId]);
         $payData = $stmtPay->fetch(PDO::FETCH_ASSOC);
-        
+
         $sqlEntries = "SELECT s.id as skater_id, s.skater_name, s.gender, s.birth_date, s.is_pon_veteran, a.group_name, d.distance_name, ed.category_name, ed.distance, e.race_class_id, sc.class_name, e.is_manual, e.team_name, c.club_name
                        FROM roll_entries e
                        JOIN roll_skaters s ON e.skater_id = s.id
@@ -401,16 +399,16 @@ class RollEntryController extends Controller {
         $stmtE = $db->prepare($sqlEntries);
         $stmtE->execute([$eventId, $targetClubId]);
         $allEntries = $stmtE->fetchAll(PDO::FETCH_ASSOC);
-        
+
         $financeCalc = \App\Helpers\RollFinanceHelper::calculateTotalTagihan($allEntries, $eventData);
         $totalTagihan = $financeCalc['total_amount'];
         $skaterFees = $financeCalc['skater_fees'];
-        
+
         $groupedSkaters = [];
         $teams = [];
-        foreach($allEntries as $ent) {
+        foreach ($allEntries as $ent) {
             $sId = $ent['skater_id'];
-            if(!isset($groupedSkaters[$sId])) {
+            if (!isset($groupedSkaters[$sId])) {
                 $groupedSkaters[$sId] = [
                     'info' => [
                         'nama' => $ent['skater_name'],
@@ -421,9 +419,8 @@ class RollEntryController extends Controller {
                     'subtotal' => $skaterFees[$sId] ?? 0
                 ];
             }
-            
+
             $rawCName = $ent['class_name'] ?? '';
-            
             $groupedSkaters[$sId]['items'][] = [
                 'distance' => $ent['distance'],
                 'stroke' => $ent['category_name'] ?: $ent['distance_name'],
@@ -431,7 +428,7 @@ class RollEntryController extends Controller {
                 'class_name' => $rawCName,
                 'is_manual' => $ent['is_manual']
             ];
-            
+
             $isRelay = !empty($ent['team_name']) || stripos($ent['distance_name'] ?? '', 'relay') !== false || stripos($ent['distance_name'] ?? '', 'pair') !== false;
             if ($isRelay) {
                 $teamName = !empty($ent['team_name']) ? $ent['team_name'] : ('Tim ' . ($ent['club_name'] ?? 'Klub') . ' - ' . $ent['group_name']);
@@ -443,17 +440,36 @@ class RollEntryController extends Controller {
                 ];
             }
         }
-        
-        // Override lama dihapus agar Admin selalu melihat perhitungan tagihan yang dihitung secara dinamis & akurat.
 
-        return $this->view('roll/admin/entries/print_invoice', [
-            'teams' => $teams,
-            'event' => $eventData,
-            'clubName' => $clubName,
-            'payData' => $payData,
+        return [
+            'teams'          => $teams,
+            'event'          => $eventData,
+            'clubName'       => $clubName,
+            'payData'        => $payData,
             'groupedSkaters' => $groupedSkaters,
-            'totalTagihan' => $totalTagihan
-        ]);
+            'totalTagihan'   => $totalTagihan,
+        ];
+    }
+
+    public function print_invoice() {
+        if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+            die("Unauthorized");
+        }
+
+        $db = Database::getInstance()->getConnection();
+        $eventId = (int)($_GET['event_id'] ?? 0);
+        $targetClubId = (int)($_GET['id'] ?? 0);
+
+        if ($eventId == 0 || $targetClubId == 0) {
+            die("Parameter URL tidak lengkap.");
+        }
+
+        $invoiceData = self::buildClubInvoicePrintData($db, $eventId, $targetClubId);
+        if (!$invoiceData) {
+            die("Event tidak ditemukan");
+        }
+
+        return $this->view('roll/admin/entries/print_invoice', $invoiceData);
     }
 
     public function get_athletes_by_club() {

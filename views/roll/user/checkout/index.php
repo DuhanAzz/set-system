@@ -60,16 +60,21 @@
                         <?php endif; ?>
                     </td>
 
-                    <td class="px-6 py-5 align-middle text-right flex justify-end gap-2 whitespace-nowrap">
-                        <?php if(in_array($b['status'], ['Unpaid', 'Rejected'])): ?>
-                            <button onclick="bukaModal('<?= $b['event_id'] ?>', '<?= htmlspecialchars(addslashes($b['event_name'])) ?>', '<?= $b['amount'] ?>')" 
-                                class="bg-slate-900 text-white px-6 py-3 rounded-xl font-black text-[10px] tracking-widest uppercase shadow-lg hover:bg-blue-600 transition hover:-translate-y-0.5">
-                                Upload Bukti
-                            </button>
-                        <?php endif; ?>
-                        <a href="<?= getenv('APP_URL') ?>/roll/user/checkout/detail/<?= $b['event_id'] ?>" class="text-blue-600 bg-blue-50 px-6 py-3 rounded-xl font-black text-[10px] tracking-widest uppercase border border-blue-200 hover:bg-blue-600 hover:text-white transition shadow-sm">
-                            Rincian
-                        </a>
+                    <td class="px-6 py-5 align-middle text-right">
+                        <div class="flex flex-wrap justify-end gap-2 whitespace-nowrap">
+                            <?php if(in_array($b['status'], ['Unpaid', 'Rejected'])): ?>
+                                <button onclick="bukaModal('<?= $b['event_id'] ?>', '<?= htmlspecialchars(addslashes($b['event_name'])) ?>', '<?= $b['amount'] ?>')" 
+                                    class="bg-slate-900 text-white px-5 py-3 rounded-xl font-black text-[10px] tracking-widest uppercase shadow-lg hover:bg-blue-600 transition hover:-translate-y-0.5 cursor-pointer">
+                                    Upload Bukti
+                                </button>
+                            <?php endif; ?>
+                            <a href="<?= getenv('APP_URL') ?>/roll/user/checkout/detail/<?= $b['event_id'] ?>" class="text-blue-600 bg-blue-50 px-5 py-3 rounded-xl font-black text-[10px] tracking-widest uppercase border border-blue-200 hover:bg-blue-600 hover:text-white transition shadow-sm">
+                                Rincian
+                            </a>
+                            <a href="<?= getenv('APP_URL') ?>/roll/user/checkout/print_invoice/<?= $b['event_id'] ?>" target="_blank" class="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-3 rounded-xl font-black text-[10px] tracking-widest uppercase transition shadow-sm inline-flex items-center gap-1.5">
+                                <span>🖨️</span> Cetak Invoice / Tanda Terima
+                            </a>
+                        </div>
                     </td>
                 </tr>
                 <?php endforeach; ?>

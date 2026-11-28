@@ -86,5 +86,41 @@ try {
 
 if (file_exists($tmpTestFile)) unlink($tmpTestFile);
 
+// TEST 4: Shared invoice data builder, User print_invoice links & Admin WA link
+require_once __DIR__ . '/../app/Core/Controller.php';
+require_once __DIR__ . '/../app/Core/Database.php';
+require_once __DIR__ . '/../app/Roll/Controllers/Admin/RollEntryController.php';
+
+putenv('APP_URL=https://setsystem.id');
+ob_start();
+$bills = [
+    ['id' => 5, 'event_id' => 5, 'event_name' => 'INDONESIA OPEN', 'amount' => 4200000, 'status' => 'Paid', 'entries' => 10],
+    ['id' => 6, 'event_id' => 6, 'event_name' => 'OTHER EVENT', 'amount' => 350000, 'status' => 'Unpaid', 'entries' => 1],
+];
+include __DIR__ . '/../views/roll/user/checkout/index.php';
+$idxHtml = (string)ob_get_clean();
+assert(strpos($idxHtml, '/roll/user/checkout/print_invoice/5') !== false);
+assert(strpos($idxHtml, '/roll/user/checkout/print_invoice/6') !== false);
+
+ob_start();
+$event = ['id' => 5, 'event_name' => 'INDONESIA OPEN'];
+$clubName = 'Grand Wisata Roller Club';
+$unpaidEntries = []; $historyEntries = []; $totalFee = 4200000; $paymentStatus = 'Paid';
+$summaryCounts = []; $financeSummary = []; $skaterBreakdowns = [];
+include __DIR__ . '/../views/roll/user/checkout/detail.php';
+$detHtml = (string)ob_get_clean();
+assert(strpos($detHtml, '/roll/user/checkout/print_invoice/5') !== false);
+
+ob_start();
+$eventId = 5; $eventName = 'INDONESIA OPEN'; $targetUserId = 203; $phoneUser = '082211080364';
+$emailUser = 'gwis@test.id'; $totalTagihan = 4200000; $groupedSkaters = [];
+$payData = ['id' => 1, 'status' => 'Paid', 'total_amount' => 4200000];
+$distancesByCat = [];
+include __DIR__ . '/../views/roll/admin/entries/detail.php';
+$admHtml = (string)ob_get_clean();
+assert(strpos($admHtml, urlencode('https://setsystem.id/roll/user/checkout/detail/5')) !== false);
+assert(strpos($admHtml, urlencode('INDONESIA OPEN')) !== false);
+
+echo "✓ User invoice buttons (all statuses) & Admin Balas via WA link verified [OK]\n";
 echo "--- ALL CHECKOUT PAY SAFEGUARD TESTS PASSED! ---\n";
 

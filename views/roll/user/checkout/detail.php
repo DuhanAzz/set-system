@@ -3,8 +3,18 @@
         
         <div class="flex-1 space-y-4">
             <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
-                <h2 class="text-xl font-black text-slate-800 uppercase italic mb-1">Ringkasan Tagihan</h2>
-                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-6">Event: <?= $event ? htmlspecialchars($event['event_name']) : 'TIDAK ADA EVENT AKTIF' ?></p>
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+                    <div>
+                        <h2 class="text-xl font-black text-slate-800 uppercase italic mb-1">Ringkasan Tagihan</h2>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Event: <?= $event ? htmlspecialchars($event['event_name']) : 'TIDAK ADA EVENT AKTIF' ?></p>
+                    </div>
+                    <?php if (!empty($event['id'])): ?>
+                        <a href="<?= getenv('APP_URL') ?>/roll/user/checkout/print_invoice/<?= (int)$event['id'] ?>" target="_blank"
+                           class="inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2.5 rounded-xl font-black text-[10px] tracking-widest uppercase shadow-md transition shrink-0">
+                            <span>🖨️</span> Cetak Invoice / Tanda Terima
+                        </a>
+                    <?php endif; ?>
+                </div>
 
                 <?php if (isset($_SESSION['flash_message'])): ?>
                     <div class="mb-6 px-4 py-3 rounded-xl text-sm font-bold shadow-sm <?= $_SESSION['flash_type'] === 'success' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700' ?> flex justify-between items-center">
