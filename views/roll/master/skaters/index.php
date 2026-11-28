@@ -4,14 +4,62 @@
 <div class="space-y-6">
     
     <?php if (isset($_SESSION['flash_message'])): ?>
-        <div class="p-4 text-xs font-bold rounded-2xl border shadow-sm flex items-center justify-between gap-2 <?= ($_SESSION['flash_type'] == 'error') ? 'bg-red-50 text-red-800 border-red-200' : 'bg-emerald-50 text-emerald-800 border-emerald-200' ?>">
+        <?php
+            $fType = $_SESSION['flash_type'] ?? 'success';
+            $fClass = $fType === 'error'
+                ? 'bg-red-50 text-red-800 border-red-200'
+                : ($fType === 'warning'
+                    ? 'bg-amber-50 text-amber-900 border-amber-300'
+                    : 'bg-emerald-50 text-emerald-800 border-emerald-200');
+            $fIcon = $fType === 'error' ? '❌' : ($fType === 'warning' ? '⚠️' : '💡');
+        ?>
+        <div class="p-4 text-xs font-bold rounded-2xl border shadow-sm flex items-center justify-between gap-2 <?= $fClass ?>">
             <div class="flex items-center gap-2">
-                <span><?= ($_SESSION['flash_type'] == 'error') ? '⚠️' : '💡' ?></span> 
+                <span><?= $fIcon ?></span> 
                 <div><?= $_SESSION['flash_message'] ?></div>
             </div>
             <button onclick="this.parentElement.remove()" class="text-xl opacity-50 hover:opacity-100">&times;</button>
         </div>
         <?php unset($_SESSION['flash_message'], $_SESSION['flash_type']); ?>
+    <?php endif; ?>
+
+    <!-- Detail Laporan Import CSV -->
+    <?php if (!empty($_SESSION['csv_import_report'])): ?>
+        <?php $rep = $_SESSION['csv_import_report']; unset($_SESSION['csv_import_report']); ?>
+        <?php if (!empty($rep['nik_warnings']) || !empty($rep['errors'])): ?>
+            <div class="p-4 text-xs bg-white border border-amber-300 rounded-2xl shadow-sm space-y-3">
+                <div class="flex items-center justify-between gap-2">
+                    <h4 class="font-black uppercase tracking-wider text-amber-900 text-xs flex items-center gap-1.5">
+                        <span>📋</span> Detail Catatan Import CSV
+                    </h4>
+                    <button onclick="this.closest('.rounded-2xl').remove()" class="text-slate-400 hover:text-slate-700 text-lg font-bold">&times;</button>
+                </div>
+                <?php if (!empty($rep['nik_warnings'])): ?>
+                    <div class="bg-amber-50 border border-amber-200 rounded-xl p-3">
+                        <div class="font-black text-amber-900 text-[11px] mb-1.5">
+                            ⚠️ <?= count($rep['nik_warnings']) ?> Atlet Masuk dengan Warning NIK (Klik Edit untuk melengkapi NIK 16 digit):
+                        </div>
+                        <ul class="list-disc pl-4 space-y-0.5 max-h-40 overflow-y-auto text-[11px] text-amber-800 font-mono">
+                            <?php foreach ($rep['nik_warnings'] as $nw): ?>
+                                <li><?= htmlspecialchars($nw) ?></li>
+                            <?php endforeach; ?>
+                        </ul>
+                    </div>
+                <?php endif; ?>
+                <?php if (!empty($rep['errors'])): ?>
+                    <div class="bg-rose-50 border border-rose-200 rounded-xl p-3">
+                        <div class="font-black text-rose-900 text-[11px] mb-1.5">
+                            ❌ <?= count($rep['errors']) ?> Baris Dilewati (Nama / TTL / Gender tidak valid):
+                        </div>
+                        <ul class="list-disc pl-4 space-y-0.5 max-h-40 overflow-y-auto text-[11px] text-rose-800 font-mono">
+                            <?php foreach ($rep['errors'] as $er): ?>
+                                <li><?= htmlspecialchars($er) ?></li>
+                            <?php endforeach; ?>
+                        </ul>
+                    </div>
+                <?php endif; ?>
+            </div>
+        <?php endif; ?>
     <?php endif; ?>
     
     <!-- Header Section -->
@@ -33,8 +81,14 @@
             <a href="<?= getenv('APP_URL') ?>/roll/master/skaters/export_excel?search=<?= urlencode($search ?? '') ?>&bpjs=<?= urlencode($bpjsFilter ?? 'all') ?>&completeness=<?= urlencode($completenessFilter ?? 'all') ?>" 
                class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl shadow-sm font-bold text-xs uppercase tracking-wide transition flex items-center gap-2">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                <span>Export Excel / CSV</span>
+                <span>Export CSV</span>
             </a>
+
+            <!-- Tombol Import CSV Massal -->
+            <button type="button" onclick="document.getElementById('modal-import-csv-master').classList.remove('hidden')"
+                    class="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2.5 rounded-xl shadow-sm font-bold text-xs uppercase tracking-wide transition flex items-center gap-1.5 cursor-pointer">
+                <span>📥</span> Import CSV (Massal)
+            </button>
         </div>
     </div>
 
@@ -356,3 +410,84 @@ function openEditModal(data) {
     document.getElementById('modal-edit').classList.remove('hidden');
 }
 </script>
+
+<!-- Modal Import CSV Massal (Master) -->
+<?php
+$clubsList = $clubs ?? [];
+$matchedClubId = 0;
+$searchTrim = trim((string)($search ?? ''));
+if ($searchTrim !== '') {
+    foreach ($clubsList as $clItem) {
+        if (stripos((string)$clItem['club_name'], $searchTrim) !== false) {
+            $matchedClubId = (int)$clItem['id'];
+            break;
+        }
+    }
+}
+?>
+<div id="modal-import-csv-master" class="fixed inset-0 z-[100] hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-xl rounded-[2rem] shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto">
+        <div class="bg-slate-900 p-6 text-white flex justify-between items-center sticky top-0 z-10">
+            <div>
+                <h3 class="font-black uppercase tracking-widest italic text-lg leading-none flex items-center gap-2">
+                    <span>📥</span> Import Massal Skater (CSV)
+                </h3>
+                <p class="text-xs text-slate-400 mt-1">Bantu import atau perbarui data atlet klub secara massal lewat CSV</p>
+            </div>
+            <button type="button" onclick="document.getElementById('modal-import-csv-master').classList.add('hidden')" class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-red-500 transition cursor-pointer">✕</button>
+        </div>
+
+        <form action="<?= getenv('APP_URL') ?>/roll/master/skaters/import_csv" method="POST" enctype="multipart/form-data" class="p-6 space-y-4 bg-slate-50">
+            <input type="hidden" name="return_search" value="<?= htmlspecialchars($search ?? '') ?>">
+            <input type="hidden" name="return_bpjs" value="<?= htmlspecialchars($bpjsFilter ?? 'all') ?>">
+            <input type="hidden" name="return_completeness" value="<?= htmlspecialchars($completenessFilter ?? 'all') ?>">
+
+            <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 text-xs text-blue-900 space-y-2">
+                <div class="font-black uppercase tracking-wider text-[11px] flex items-center justify-between gap-2">
+                    <span>Panduan Format CSV Master</span>
+                    <a href="<?= getenv('APP_URL') ?>/roll/master/skaters/download_template"
+                       class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[10px] font-black uppercase shadow-sm transition">
+                        📄 Download Template CSV
+                    </a>
+                </div>
+                <ul class="list-disc pl-4 space-y-1 text-[11px] text-blue-800">
+                    <li>Mendukung file hasil <strong>Export CSV Master</strong>, <strong>Export CSV Klub</strong> (<code>/roll/user/athletes</code>), maupun <strong>Template CSV</strong>.</li>
+                    <li><strong>Data Wajib:</strong> <strong>Nama Lengkap Atlet</strong>, <strong>Jenis Kelamin</strong> (<code>M</code>/<code>Putra</code> atau <code>F</code>/<code>Putri</code>), dan <strong>Tanggal Lahir</strong> (<code>DD/MM/YYYY</code>, Excel US <code>M/D/YYYY</code>, atau <code>YYYY-MM-DD</code>).</li>
+                    <li><strong>NIK (16 Digit):</strong> Jika NIK di CSV rusak (<code>E+15</code>, kosong, <code>#N/A</code>), atlet tetap masuk dengan warning untuk diedit manual (NIK lama 16 digit yang sudah valid tetap dipertahankan).</li>
+                </ul>
+            </div>
+
+            <div>
+                <label class="block text-[10px] font-black text-slate-600 uppercase tracking-widest mb-1.5">Klub Tujuan (Untuk Atlet Baru Tanpa ID / Tanpa Kolom Klub)</label>
+                <select name="target_club_id" class="w-full px-4 py-2.5 border border-slate-300 bg-white rounded-xl text-xs font-bold text-slate-800 focus:border-blue-500 outline-none">
+                    <option value="0">-- Tanpa Klub (Atau Ikuti Kolom Klub di CSV) --</option>
+                    <?php foreach ($clubsList as $clItem): ?>
+                        <option value="<?= (int)$clItem['id'] ?>" <?= ((int)$clItem['id'] === $matchedClubId) ? 'selected' : '' ?>>
+                            <?= htmlspecialchars($clItem['club_name']) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+                <?php if ($matchedClubId > 0): ?>
+                    <p class="text-[10px] text-emerald-700 font-bold mt-1">✓ Otomatis memilih klub yang cocok dengan pencarian "<?= htmlspecialchars($searchTrim) ?>".</p>
+                <?php endif; ?>
+            </div>
+
+            <div>
+                <label class="block text-[10px] font-black text-slate-600 uppercase tracking-widest mb-1.5">Pilih File CSV (.csv) *</label>
+                <input type="file" name="csv_file" accept=".csv,text/csv" required
+                       class="w-full text-xs font-bold text-slate-600 file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-black file:uppercase file:bg-slate-800 file:text-white hover:file:bg-slate-900 border border-slate-300 rounded-xl p-1.5 bg-white cursor-pointer">
+            </div>
+
+            <div class="pt-3 border-t border-slate-200 flex justify-end gap-3">
+                <button type="button" onclick="document.getElementById('modal-import-csv-master').classList.add('hidden')"
+                        class="px-5 py-2.5 rounded-lg text-slate-600 font-bold text-xs uppercase hover:bg-slate-200 transition cursor-pointer">
+                    Batal
+                </button>
+                <button type="submit"
+                        class="px-6 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs uppercase shadow-md transition flex items-center gap-2 cursor-pointer">
+                    <span>📤</span> Mulai Import CSV
+                </button>
+            </div>
+        </form>
+    </div>
+</div>

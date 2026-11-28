@@ -42,39 +42,14 @@ class RollMasterSkaterController extends Controller {
         }
     }
 
-    private function generateSkaterUID($db, $nama_atlet, $tanggal_lahir, $jenis_kelamin) {
-        $nama_bersih = preg_replace('/[^A-Za-z\s]/', '', strtoupper(trim($nama_atlet)));
-        $kata = explode(' ', $nama_bersih);
-        
-        $huruf1 = isset($kata[0][0]) ? $kata[0][0] : 'A';
-        $kode1 = str_pad(ord($huruf1) - 64, 2, '0', STR_PAD_LEFT); 
-        
-        if (isset($kata[1]) && !empty($kata[1])) {
-            $huruf2 = $kata[1][0];
-        } else {
-            $huruf2 = isset($kata[0][1]) ? $kata[0][1] : 'X'; 
-        }
-        $kode2 = str_pad(ord($huruf2) - 64, 2, '0', STR_PAD_LEFT);
-        
-        $tahun = date('Y', strtotime($tanggal_lahir));
-        $kode_jk = (strtoupper($jenis_kelamin) == 'L' || strtoupper($jenis_kelamin) == 'M' || strtoupper($jenis_kelamin) == 'PUTRA' || strtoupper($jenis_kelamin) == 'MALE') ? '1' : '9';
-        
-        $base_uid = $kode1 . $kode2 . $tahun . $kode_jk;
-        
-        $stmt = $db->prepare("SELECT uid FROM roll_skaters WHERE uid LIKE ? ORDER BY uid DESC LIMIT 1");
-        $stmt->execute([$base_uid . '%']);
-        $last_uid = $stmt->fetchColumn();
-        
-        $digit_akhir = 0;
-        if ($last_uid) {
-            $last_digit = (int) substr($last_uid, -1);
-            $digit_akhir = $last_digit + 1;
-            if ($digit_akhir > 9) {
-                $digit_akhir = 9; 
-            }
-        }
-        
-        return $base_uid . $digit_akhir;
+    private function generateSkaterUID($db, $nama_atlet, $tanggal_lahir, $jenis_kelamin, array &$usedUids = []) {
+        return \App\Roll\Controllers\User\RollUserAthleteController::generateUniqueSkaterUid(
+            $db,
+            (string)$nama_atlet,
+            (string)$tanggal_lahir,
+            (string)$jenis_kelamin,
+            $usedUids
+        );
     }
 
     private function buildSkaterWhereClause(string $search, string $bpjsFilter, string $completenessFilter): array {
@@ -168,8 +143,11 @@ class RollMasterSkaterController extends Controller {
         ";
         $summary = $db->query($summarySql)->fetch(PDO::FETCH_ASSOC);
 
+        $clubs = $db->query("SELECT id, club_name FROM roll_clubs ORDER BY club_name ASC")->fetchAll(PDO::FETCH_ASSOC);
+
         return $this->view('roll/master/skaters/index', [
             'skaters' => $skaters,
+            'clubs' => $clubs,
             'search' => $search,
             'bpjsFilter' => $bpjsFilter,
             'completenessFilter' => $completenessFilter,
@@ -292,8 +270,9 @@ class RollMasterSkaterController extends Controller {
         echo "\xEF\xBB\xBF";
         $output = fopen('php://output', 'w');
 
-        // Header Row
+        // Header Row (mempertahankan kolom ID & format anti-E+15 agar bisa langsung di-import ulang)
         fputcsv($output, [
+            'ID (Kosongkan Jika Baru)',
             'No',
             'UID',
             'NIK',
@@ -315,21 +294,27 @@ class RollMasterSkaterController extends Controller {
         $no = 1;
         foreach ($rows as $r) {
             $age = '-';
-            if (!empty($r['birth_date'])) {
+            if (!empty($r['birth_date']) && $r['birth_date'] !== '0000-00-00') {
                 $y = (int)date('Y', strtotime($r['birth_date']));
                 $age = ($currentYear - $y) . ' Thn';
             }
 
             $jk = in_array(strtoupper($r['gender']), ['M', 'L', 'PUTRA']) ? 'Putra' : 'Putri';
             $institusi = \App\Helpers\SchoolHelper::formatInstitusi($r['asal_sekolah'], $r['kota_kabupaten'], $r['provinsi']);
+            $nikClean = trim((string)($r['nik'] ?? ''));
+            $nikOut = $nikClean !== '' ? ('="' . $nikClean . '"') : '';
+            $dobOut = (!empty($r['birth_date']) && $r['birth_date'] !== '0000-00-00')
+                ? date('d/m/Y', strtotime($r['birth_date']))
+                : '';
 
             fputcsv($output, [
+                $r['id'],
                 $no++,
                 $r['uid'] ?? '',
-                !empty($r['nik']) ? ("'" . $r['nik']) : '',
+                $nikOut,
                 $r['skater_name'] ?? '',
                 $jk,
-                $r['birth_date'] ?? '',
+                $dobOut,
                 $age,
                 $r['club_name'] ?? 'Tanpa Klub',
                 $institusi,
@@ -345,6 +330,245 @@ class RollMasterSkaterController extends Controller {
 
         fclose($output);
         exit;
+    }
+
+    public function download_template() {
+        header('Content-Type: text/csv; charset=UTF-8');
+        header('Content-Disposition: attachment; filename="Template_Import_Skater_Master.csv"');
+        echo "\xEF\xBB\xBF";
+        $out = fopen('php://output', 'w');
+        $headers = \App\Roll\Controllers\User\RollUserAthleteController::getCsvHeaders();
+        $headers[] = 'Klub Asal';
+        fputcsv($out, $headers);
+        fputcsv($out, [
+            '',
+            '',
+            '="3304012345670001"',
+            '[CONTOH - HAPUS BARIS INI] BAGUS KURNIAWAN',
+            'M',
+            '12/05/2015',
+            'SMP NEGERI 1 YOGYAKARTA',
+            'KOTA YOGYAKARTA',
+            'D.I. YOGYAKARTA',
+            'sudah',
+            ''
+        ]);
+        fclose($out);
+        exit;
+    }
+
+    private function redirectToIndexWithFilters(): void {
+        $q = http_build_query(array_filter([
+            'search'       => $_POST['return_search'] ?? ($_GET['search'] ?? ''),
+            'bpjs'         => $_POST['return_bpjs'] ?? ($_GET['bpjs'] ?? ''),
+            'completeness' => $_POST['return_completeness'] ?? ($_GET['completeness'] ?? ''),
+        ], static fn($v) => $v !== '' && $v !== 'all'));
+        $url = getenv('APP_URL') . "/roll/master/skaters/index" . ($q !== '' ? ('?' . $q) : '');
+        header("Location: " . $url);
+        exit;
+    }
+
+    public function import_csv() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->redirectToIndexWithFilters();
+        }
+
+        $db = Database::getInstance()->getConnection();
+        $targetClubId = max(0, (int)($_POST['target_club_id'] ?? 0));
+
+        if (empty($_FILES['csv_file']['tmp_name']) || $_FILES['csv_file']['error'] !== UPLOAD_ERR_OK) {
+            $_SESSION['flash_message'] = "Gagal mengunggah file CSV. Pastikan file dipilih dengan benar.";
+            $_SESSION['flash_type'] = "error";
+            $this->redirectToIndexWithFilters();
+        }
+
+        $content = file_get_contents($_FILES['csv_file']['tmp_name']);
+        if ($content === false) {
+            $_SESSION['flash_message'] = "File CSV tidak dapat dibaca.";
+            $_SESSION['flash_type'] = "error";
+            $this->redirectToIndexWithFilters();
+        }
+
+        $parsed = \App\Roll\Controllers\User\RollUserAthleteController::parseAthleteCsvRows($content);
+        $validRows = $parsed['valid'];
+        $errors = $parsed['errors'];
+
+        if (empty($validRows)) {
+            $_SESSION['csv_import_report'] = [
+                'inserted' => 0,
+                'updated' => 0,
+                'preserved_nik' => 0,
+                'nik_warnings' => [],
+                'errors' => $errors,
+            ];
+            $_SESSION['flash_message'] = "Tidak ada baris atlet dengan Nama, TTL, dan Gender yang valid untuk diimport.";
+            $_SESSION['flash_type'] = "error";
+            $this->redirectToIndexWithFilters();
+        }
+
+        // Peta nama klub -> club_id agar kolom Klub Asal dari hasil Export Master juga dikenali otomatis
+        $clubsByName = [];
+        foreach ($db->query("SELECT id, club_name FROM roll_clubs")->fetchAll(PDO::FETCH_ASSOC) as $cl) {
+            $key = strtoupper(trim((string)$cl['club_name']));
+            if ($key !== '') {
+                $clubsByName[$key] = (int)$cl['id'];
+            }
+        }
+
+        $inserted = 0;
+        $updated = 0;
+        $preservedNik = 0;
+        $nikWarnings = [];
+        $currentYear = (int)date('Y');
+        $usedUids = [];
+
+        try {
+            $db->beginTransaction();
+
+            $stmtFindById            = $db->prepare("SELECT id, uid, nik, club_id FROM roll_skaters WHERE id = ? LIMIT 1");
+            $stmtFindByNik           = $db->prepare("SELECT id, uid, nik, club_id FROM roll_skaters WHERE nik = ? LIMIT 1");
+            $stmtFindByNameDobClub   = $db->prepare("SELECT id, uid, nik, club_id FROM roll_skaters WHERE UPPER(TRIM(skater_name)) = ? AND birth_date = ? AND club_id = ? LIMIT 1");
+            $stmtFindByNameDobGlobal = $db->prepare("SELECT id, uid, nik, club_id FROM roll_skaters WHERE UPPER(TRIM(skater_name)) = ? AND birth_date = ? LIMIT 1");
+            $stmtUpdate = $db->prepare("
+                UPDATE roll_skaters
+                SET nik = ?, uid = ?, club_id = ?, skater_name = ?, gender = ?, birth_date = ?, asal_sekolah = ?, provinsi = ?, kota_kabupaten = ?, status_bpjs = ?, age_group = ?
+                WHERE id = ?
+            ");
+            $stmtInsert = $db->prepare("
+                INSERT INTO roll_skaters (nik, uid, club_id, skater_name, gender, birth_date, asal_sekolah, provinsi, kota_kabupaten, status_bpjs, age_group)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ");
+
+            foreach ($validRows as $row) {
+                $birthYear = (int)date('Y', strtotime($row['birth_date']));
+                $ageGroupStr = max(0, $currentYear - $birthYear) . ' Thn';
+
+                $csvClubName = $row['club_name'] ?? null;
+                $resolvedClubId = $targetClubId;
+                $hasExplicitCsvClub = false;
+                if ($csvClubName !== null && $csvClubName !== 'TANPA KLUB' && isset($clubsByName[$csvClubName])) {
+                    $resolvedClubId = $clubsByName[$csvClubName];
+                    $hasExplicitCsvClub = true;
+                }
+
+                try {
+                    $existing = null;
+                    if (!empty($row['id'])) {
+                        $stmtFindById->execute([$row['id']]);
+                        $existing = $stmtFindById->fetch(PDO::FETCH_ASSOC) ?: null;
+                    }
+                    if (!$existing && !empty($row['nik'])) {
+                        $stmtFindByNik->execute([$row['nik']]);
+                        $existing = $stmtFindByNik->fetch(PDO::FETCH_ASSOC) ?: null;
+                    }
+                    if (!$existing && $resolvedClubId > 0) {
+                        $stmtFindByNameDobClub->execute([$row['skater_name'], $row['birth_date'], $resolvedClubId]);
+                        $existing = $stmtFindByNameDobClub->fetch(PDO::FETCH_ASSOC) ?: null;
+                    }
+                    if (!$existing && $resolvedClubId === 0) {
+                        $stmtFindByNameDobGlobal->execute([$row['skater_name'], $row['birth_date']]);
+                        $existing = $stmtFindByNameDobGlobal->fetch(PDO::FETCH_ASSOC) ?: null;
+                    }
+
+                    if ($existing) {
+                        if (!empty($existing['uid'])) {
+                            $usedUids[(string)$existing['uid']] = true;
+                        }
+                        $uid = !empty($existing['uid'])
+                            ? $existing['uid']
+                            : $this->generateSkaterUID($db, $row['skater_name'], $row['birth_date'], $row['gender'], $usedUids);
+
+                        $existingNikDigits = preg_replace('/[^0-9]/', '', (string)($existing['nik'] ?? ''));
+                        $finalNik = $row['nik'];
+                        if ($finalNik === null) {
+                            if (strlen($existingNikDigits) === 16) {
+                                $finalNik = $existingNikDigits;
+                                $preservedNik++;
+                            } elseif (!empty($row['nik_warning'])) {
+                                $nikWarnings[] = $row['nik_warning'];
+                            }
+                        }
+
+                        $finalClubId = (int)($existing['club_id'] ?? 0);
+                        if ($hasExplicitCsvClub) {
+                            $finalClubId = $resolvedClubId;
+                        } elseif ($finalClubId <= 0 && $resolvedClubId > 0) {
+                            $finalClubId = $resolvedClubId;
+                        }
+
+                        $stmtUpdate->execute([
+                            $finalNik,
+                            $uid,
+                            $finalClubId,
+                            $row['skater_name'],
+                            $row['gender'],
+                            $row['birth_date'],
+                            $row['asal_sekolah'],
+                            $row['provinsi'],
+                            $row['kota_kabupaten'],
+                            $row['status_bpjs'],
+                            $ageGroupStr,
+                            $existing['id']
+                        ]);
+                        $updated++;
+                    } else {
+                        if (!empty($row['nik_warning'])) {
+                            $nikWarnings[] = $row['nik_warning'];
+                        }
+                        $uid = $this->generateSkaterUID($db, $row['skater_name'], $row['birth_date'], $row['gender'], $usedUids);
+                        $stmtInsert->execute([
+                            $row['nik'],
+                            $uid,
+                            $resolvedClubId,
+                            $row['skater_name'],
+                            $row['gender'],
+                            $row['birth_date'],
+                            $row['asal_sekolah'],
+                            $row['provinsi'],
+                            $row['kota_kabupaten'],
+                            $row['status_bpjs'],
+                            $ageGroupStr
+                        ]);
+                        $inserted++;
+                    }
+                } catch (\Throwable $rowEx) {
+                    $errors[] = "Baris {$row['line_no']} ({$row['skater_name']}): Gagal simpan database (" . $rowEx->getMessage() . ")";
+                }
+            }
+
+            if ($db->inTransaction()) {
+                $db->commit();
+            }
+
+            $_SESSION['csv_import_report'] = [
+                'inserted' => $inserted,
+                'updated' => $updated,
+                'preserved_nik' => $preservedNik,
+                'nik_warnings' => $nikWarnings,
+                'errors' => $errors,
+            ];
+
+            $summaryMsg = "Import CSV Master selesai: <strong>{$inserted} atlet baru</strong> ditambahkan, <strong>{$updated} atlet</strong> diperbarui.";
+            if ($preservedNik > 0) {
+                $summaryMsg .= " <strong>{$preservedNik} NIK lama dipertahankan</strong> karena kolom NIK di CSV rusak/kosong.";
+            }
+            if (!empty($nikWarnings)) {
+                $summaryMsg .= " <strong>" . count($nikWarnings) . " atlet masuk dengan warning NIK</strong> (klik Edit untuk melengkapi NIK 16 digit).";
+            }
+            if (!empty($errors)) {
+                $summaryMsg .= " <strong>" . count($errors) . " baris dilewati</strong> (Nama/TTL/Gender tidak valid).";
+            }
+            $_SESSION['flash_message'] = $summaryMsg;
+            $_SESSION['flash_type'] = (!empty($errors) || !empty($nikWarnings)) ? "warning" : "success";
+        } catch (\Throwable $e) {
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
+            $_SESSION['flash_message'] = "Terjadi kesalahan saat import CSV: " . htmlspecialchars($e->getMessage());
+            $_SESSION['flash_type'] = "error";
+        }
+
+        $this->redirectToIndexWithFilters();
     }
 
     public function cleanse() {

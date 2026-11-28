@@ -98,5 +98,46 @@ assert(RollUserAthleteController::parseBirthDate('13-Jun-2013') === '2013-06-13'
 assert(RollUserAthleteController::parseBirthDate('17 Mei 2015') === '2015-05-17');
 echo "✓ Case 5: US Excel M/D/YYYY auto-detection, NIK date disambiguation & month names [OK]\n";
 
+// 6. Master Export CSV header compatibility (ID, Institusi Puspernas vs Nama Asal Sekolah, Klub Asal, BPJS columns) + UID > 10 + Master view render
+$masterCsv = "\xEF\xBB\xBF" . implode("\n", [
+    "ID (Kosongkan Jika Baru),No,UID,NIK,Nama Lengkap Atlet,Jenis Kelamin,Tanggal Lahir,Umur,Klub Asal,Institusi Puspernas (Satu Kesatuan),Nama Asal Sekolah,Kota / Kabupaten,Provinsi,Status Kepesertaan BPJS,Keterangan BPJS,Total Event Lomba Diikuti,Kelengkapan Data Puspernas",
+    "761,1,119201591,\"=\"\"3275024512150005\"\"\",Ainayya Shabriyya Zhafeera,Putri,05/12/2015,11 Thn,GWIS SKATING CLUB,SDN 1 BEKASI - KABUPATEN BEKASI,SDN 1 BEKASI,KABUPATEN BEKASI,JAWA BARAT,belum,Belum Terdaftar,2,Lengkap",
+]);
+$resMaster = RollUserAthleteController::parseAthleteCsvRows($masterCsv);
+assert(empty($resMaster['errors']) && count($resMaster['valid']) === 1);
+assert($resMaster['valid'][0]['id'] === 761);
+assert($resMaster['valid'][0]['nik'] === '3275024512150005');
+assert($resMaster['valid'][0]['club_name'] === 'GWIS SKATING CLUB');
+assert($resMaster['valid'][0]['asal_sekolah'] === 'SDN 1 BEKASI');
+assert($resMaster['valid'][0]['status_bpjs'] === 'belum');
+
+// UID > 10 collision test
+$mockUidDb = new class {
+    public function prepare($sql) {
+        return new class {
+            public function execute($params = []) { return true; }
+            public function fetchColumn() {
+                static $idx = 0;
+                $existing = ['0101202010','0101202011','0101202012','0101202013','0101202014','0101202015','0101202016','0101202017','0101202018','0101202019'];
+                return $existing[$idx++] ?? false;
+            }
+        };
+    }
+};
+$used = [];
+$uid11 = RollUserAthleteController::generateUniqueSkaterUid($mockUidDb, 'Adi Akbar', '2020-01-01', 'M', $used);
+assert($uid11 === '01012020110', "Expected UID suffix 10 when 0..9 are taken, got $uid11");
+
+ob_start();
+$skaters = [];
+$clubs = [['id' => 189, 'club_name' => 'GWIS SKATING CLUB']];
+$search = 'GWIS'; $bpjsFilter = 'all'; $completenessFilter = 'all'; $summary = [];
+include __DIR__ . '/../views/roll/master/skaters/index.php';
+$masterHtml = (string)ob_get_clean();
+assert(strpos($masterHtml, '/roll/master/skaters/import_csv') !== false);
+assert(strpos($masterHtml, '/roll/master/skaters/export_excel?search=GWIS') !== false);
+assert(strpos($masterHtml, 'value="189" selected') !== false, 'GWIS club must be auto-selected when search=GWIS');
+echo "✓ Case 6: Master Export header compatibility, UID>10 suffix & Master Import modal render [OK]\n";
+
 ob_end_flush();
 echo "--- ALL ROLL ATHLETE CSV IMPORT TESTS PASSED! ---\n";

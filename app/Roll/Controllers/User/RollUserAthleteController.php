@@ -45,7 +45,10 @@ class RollUserAthleteController extends Controller {
         }
     }
 
-    private function generateSkaterUID($db, $nama_atlet, $tanggal_lahir, $jenis_kelamin, array &$usedUids = []) {
+    /**
+     * Generate UID skater unik tanpa batas 10 atlet per kombinasi inisial+tahun+gender.
+     */
+    public static function generateUniqueSkaterUid($db, string $nama_atlet, string $tanggal_lahir, string $jenis_kelamin, array &$usedUids = []): string {
         $nama_bersih = preg_replace('/[^A-Za-z\s]/', '', strtoupper(trim($nama_atlet)));
         $kata = array_values(array_filter(explode(' ', $nama_bersih), fn($w) => $w !== ''));
 
@@ -81,6 +84,10 @@ class RollUserAthleteController extends Controller {
         $usedUids[$finalUid] = true;
 
         return $finalUid;
+    }
+
+    private function generateSkaterUID($db, $nama_atlet, $tanggal_lahir, $jenis_kelamin, array &$usedUids = []) {
+        return self::generateUniqueSkaterUid($db, (string)$nama_atlet, (string)$tanggal_lahir, (string)$jenis_kelamin, $usedUids);
     }
 
     public function index() {
@@ -556,16 +563,17 @@ class RollUserAthleteController extends Controller {
 
         foreach ($firstCols as $i => $hRaw) {
             $h = strtolower(trim(preg_replace('/\s+/', ' ', (string)$hRaw)));
-            if (strpos($h, 'nik') !== false) { $colMap['nik'] = $i; $hasHeaderRow = true; }
-            elseif (strpos($h, 'nama') !== false || strpos($h, 'skater') !== false) { $colMap['skater_name'] = $i; $hasHeaderRow = true; }
-            elseif (strpos($h, 'kelamin') !== false || strpos($h, 'gender') !== false || $h === 'jk') { $colMap['gender'] = $i; $hasHeaderRow = true; }
-            elseif (strpos($h, 'lahir') !== false || strpos($h, 'birth') !== false || strpos($h, 'dob') !== false) { $colMap['birth_date'] = $i; $hasHeaderRow = true; }
-            elseif (strpos($h, 'sekolah') !== false) { $colMap['asal_sekolah'] = $i; $hasHeaderRow = true; }
-            elseif (strpos($h, 'kota') !== false || strpos($h, 'kab') !== false) { $colMap['kota_kabupaten'] = $i; $hasHeaderRow = true; }
-            elseif (strpos($h, 'provinsi') !== false) { $colMap['provinsi'] = $i; $hasHeaderRow = true; }
-            elseif (strpos($h, 'bpjs') !== false) { $colMap['status_bpjs'] = $i; $hasHeaderRow = true; }
-            elseif (strpos($h, 'uid') !== false) { $colMap['uid'] = $i; $hasHeaderRow = true; }
-            elseif ($h === 'id' || strpos($h, 'id (') === 0) { $colMap['id'] = $i; $hasHeaderRow = true; }
+            if (!isset($colMap['nik']) && strpos($h, 'nik') !== false) { $colMap['nik'] = $i; $hasHeaderRow = true; }
+            elseif (!isset($colMap['skater_name']) && (strpos($h, 'nama') !== false || strpos($h, 'skater') !== false)) { $colMap['skater_name'] = $i; $hasHeaderRow = true; }
+            elseif (!isset($colMap['gender']) && (strpos($h, 'kelamin') !== false || strpos($h, 'gender') !== false || $h === 'jk')) { $colMap['gender'] = $i; $hasHeaderRow = true; }
+            elseif (!isset($colMap['birth_date']) && (strpos($h, 'lahir') !== false || strpos($h, 'birth') !== false || strpos($h, 'dob') !== false)) { $colMap['birth_date'] = $i; $hasHeaderRow = true; }
+            elseif (!isset($colMap['asal_sekolah']) && strpos($h, 'sekolah') !== false && strpos($h, 'institusi') === false) { $colMap['asal_sekolah'] = $i; $hasHeaderRow = true; }
+            elseif (!isset($colMap['kota_kabupaten']) && (strpos($h, 'kota') !== false || strpos($h, 'kab') !== false)) { $colMap['kota_kabupaten'] = $i; $hasHeaderRow = true; }
+            elseif (!isset($colMap['provinsi']) && strpos($h, 'provinsi') !== false) { $colMap['provinsi'] = $i; $hasHeaderRow = true; }
+            elseif (!isset($colMap['status_bpjs']) && strpos($h, 'bpjs') !== false) { $colMap['status_bpjs'] = $i; $hasHeaderRow = true; }
+            elseif (!isset($colMap['club_name']) && (strpos($h, 'klub') !== false || strpos($h, 'club') !== false)) { $colMap['club_name'] = $i; $hasHeaderRow = true; }
+            elseif (!isset($colMap['uid']) && strpos($h, 'uid') !== false) { $colMap['uid'] = $i; $hasHeaderRow = true; }
+            elseif (!isset($colMap['id']) && ($h === 'id' || strpos($h, 'id (') === 0 || $h === 'id skater')) { $colMap['id'] = $i; $hasHeaderRow = true; }
         }
 
         if (!$hasHeaderRow) {
@@ -650,6 +658,7 @@ class RollUserAthleteController extends Controller {
                 'asal_sekolah'   => mb_substr(strtoupper($get('asal_sekolah')), 0, 150) ?: null,
                 'kota_kabupaten' => mb_substr(strtoupper($get('kota_kabupaten')), 0, 100) ?: null,
                 'provinsi'       => mb_substr(strtoupper($get('provinsi')), 0, 100) ?: null,
+                'club_name'      => $get('club_name') !== '' ? mb_substr(strtoupper($get('club_name')), 0, 150) : null,
                 'status_bpjs'    => $statusBpjs,
             ];
         }
