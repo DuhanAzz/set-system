@@ -88,26 +88,34 @@
                         <span class="text-4xl">📄</span>
                     <?php endif; ?>
                 </a>
-                
-                <?php $statusPay = $payData['status'] ?? 'Unpaid'; if($statusPay == 'Pending' || $statusPay == 'Paid'): ?>
-                    <div class="grid grid-cols-2 gap-2">
-                        <?php if($statusPay == 'Pending'): ?>
-                            <button onclick="openModal('approve')" class="col-span-2 bg-emerald-500 hover:bg-emerald-600 text-white py-3 rounded-xl text-xs font-black uppercase shadow-md">✓ Terima</button>
-                            <button onclick="openModal('reject')" class="col-span-2 bg-red-100 hover:bg-red-200 text-red-600 py-3 rounded-xl text-xs font-black uppercase">✕ Tolak</button>
-                        <?php elseif($statusPay == 'Paid'): ?>
-                            <button onclick="openModal('rollback')" class="col-span-2 bg-slate-100 hover:bg-orange-100 text-slate-500 hover:text-orange-600 border border-slate-200 py-2 rounded-lg text-[10px] font-bold uppercase">⏪ Batal Verifikasi (Rollback)</button>
-                        <?php endif; ?>
-                    </div>
-                <?php endif; ?>
             <?php else: ?>
                 <div class="text-center py-6 border border-dashed border-slate-300 rounded-xl bg-slate-50 text-[10px] text-slate-400 font-bold mb-4">Belum ada bukti</div>
-                
-                <?php $statusPay = $payData['status'] ?? 'Unpaid'; if($statusPay == 'Unpaid'): ?>
-                    <button onclick="openModal('approve')" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white py-3 rounded-xl text-xs font-black uppercase shadow-md">✓ Approve (Bypass Tanpa Bukti)</button>
-                <?php elseif($statusPay == 'Paid'): ?>
-                    <button onclick="openModal('rollback')" class="w-full bg-slate-100 hover:bg-orange-100 text-slate-500 hover:text-orange-600 border border-slate-200 py-2 rounded-lg text-[10px] font-bold uppercase">⏪ Batal Verifikasi (Rollback)</button>
-                <?php endif; ?>
+            <?php endif; ?>
 
+            <?php
+                $statusPay = $payData['status'] ?? 'Unpaid';
+                $hasProof = !empty($payData['payment_proof']);
+                $statusBadgeClass = $statusPay === 'Paid'
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                    : ($statusPay === 'Pending'
+                        ? 'bg-amber-50 text-amber-700 border-amber-200'
+                        : ($statusPay === 'Rejected'
+                            ? 'bg-red-50 text-red-700 border-red-200'
+                            : 'bg-slate-100 text-slate-600 border-slate-200'));
+            ?>
+            <div class="mb-3 flex items-center justify-between text-[10px] font-black uppercase tracking-wider">
+                <span class="text-slate-400">Status Saat Ini</span>
+                <span class="px-2.5 py-1 rounded-full border <?= $statusBadgeClass ?>"><?= htmlspecialchars($statusPay) ?></span>
+            </div>
+            <?php if($statusPay == 'Pending'): ?>
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="openModal('approve')" class="col-span-2 bg-emerald-500 hover:bg-emerald-600 text-white py-3 rounded-xl text-xs font-black uppercase shadow-md">✓ Terima<?= $hasProof ? '' : ' (Bypass)' ?></button>
+                    <button onclick="openModal('reject')" class="col-span-2 bg-red-100 hover:bg-red-200 text-red-600 py-3 rounded-xl text-xs font-black uppercase">✕ Tolak</button>
+                </div>
+            <?php elseif($statusPay == 'Paid'): ?>
+                <button onclick="openModal('rollback')" class="w-full bg-slate-100 hover:bg-orange-100 text-slate-500 hover:text-orange-600 border border-slate-200 py-2 rounded-lg text-[10px] font-bold uppercase">⏪ Batal Verifikasi (Rollback)</button>
+            <?php else: ?>
+                <button onclick="openModal('approve')" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white py-3 rounded-xl text-xs font-black uppercase shadow-md">✓ Approve (Bypass<?= $hasProof ? ' Verifikasi' : ' Tanpa Bukti' ?>)</button>
             <?php endif; ?>
             
             <?php 
