@@ -67,17 +67,15 @@ class RollEntryController extends Controller {
             if ($deleteClubId > 0) {
                 try {
                     $db->beginTransaction();
-                    $stmtDelE = $db->prepare("DELETE FROM roll_entries WHERE club_id = ? AND event_id = ? AND (manual_invoice_code IS NULL OR manual_invoice_code NOT LIKE 'MAN-TOK-%')");
-                    $stmtDelE->execute([$deleteClubId, $targetEventId]);
-
-                    $stmtDelP = $db->prepare("DELETE FROM roll_payments WHERE club_id = ? AND event_id = ?");
-                    $stmtDelP->execute([$deleteClubId, $targetEventId]);
+                    self::deleteClubEventEntries($db, $deleteClubId, (int)$targetEventId);
                     $db->commit();
 
                     $_SESSION["flash_type"] = "success";
                     $_SESSION["flash_message"] = "Seluruh pendaftaran klub & bukti bayar berhasil dihapus permanen.";
-                } catch (\Exception $e) {
-                    $db->rollBack();
+                } catch (\Throwable $e) {
+                    if ($db->inTransaction()) {
+                        $db->rollBack();
+                    }
                     $_SESSION["flash_type"] = "error";
                     $_SESSION["flash_message"] = "Gagal menghapus pendaftaran: " . $e->getMessage();
                 }
@@ -137,6 +135,26 @@ class RollEntryController extends Controller {
             'listData' => $listData,
             'targetEventId' => $targetEventId
         ]);
+    }
+
+    /**
+     * Hapus permanen entri reguler & bukti bayar klub pada event tertentu.
+     * Ownership entri reguler berada di roll_skaters.club_id (roll_entries.club_id sering NULL).
+     */
+    public static function deleteClubEventEntries(PDO $db, int $clubId, int $eventId): int {
+        $stmtDelE = $db->prepare("
+            DELETE FROM roll_entries
+            WHERE event_id = ?
+              AND (club_id = ? OR skater_id IN (SELECT id FROM roll_skaters WHERE club_id = ?))
+              AND (manual_invoice_code IS NULL OR manual_invoice_code NOT LIKE 'MAN-TOK-%')
+        ");
+        $stmtDelE->execute([$eventId, $clubId, $clubId]);
+        $deletedEntries = $stmtDelE->rowCount();
+
+        $stmtDelP = $db->prepare("DELETE FROM roll_payments WHERE club_id = ? AND event_id = ?");
+        $stmtDelP->execute([$clubId, $eventId]);
+
+        return $deletedEntries;
     }
 
     public function detail() {

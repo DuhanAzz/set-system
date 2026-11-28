@@ -157,5 +157,35 @@ foreach (['print_invoice.php', 'print_manual_invoice.php'] as $invView) {
     assert(strpos($invHtml, 'CADANGAN') !== false);
 }
 echo "✓ Relay team table groups properly per (race + team) with rowspan across team members [OK]\n";
+
+// TEST 6: Admin entries bulk delete deletes club entries owned via roll_skaters.club_id even when roll_entries.club_id IS NULL
+if (in_array('sqlite', PDO::getAvailableDrivers(), true)) {
+    $memDb = new PDO('sqlite::memory:');
+    $memDb->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $memDb->exec("CREATE TABLE roll_skaters (id INTEGER PRIMARY KEY, club_id INTEGER)");
+    $memDb->exec("CREATE TABLE roll_entries (id INTEGER PRIMARY KEY, event_id INTEGER, skater_id INTEGER, club_id INTEGER, manual_invoice_code TEXT)");
+    $memDb->exec("CREATE TABLE roll_payments (id INTEGER PRIMARY KEY, club_id INTEGER, event_id INTEGER, status TEXT)");
+
+    $memDb->exec("INSERT INTO roll_skaters (id, club_id) VALUES (10, 5), (11, 6)");
+    $memDb->exec("INSERT INTO roll_entries (id, event_id, skater_id, club_id, manual_invoice_code) VALUES
+        (1, 5, 10, NULL, NULL),
+        (2, 5, 10, 5, NULL),
+        (3, 5, 10, NULL, 'MAN-TOK-1'),
+        (4, 5, 11, NULL, NULL),
+        (5, 6, 10, NULL, NULL)
+    ");
+    $memDb->exec("INSERT INTO roll_payments (id, club_id, event_id, status) VALUES (1, 5, 5, 'Pending'), (2, 5, 6, 'Paid'), (3, 6, 5, 'Paid')");
+
+    $deleted = \App\Roll\Controllers\Admin\RollEntryController::deleteClubEventEntries($memDb, 5, 5);
+    assert($deleted === 2, "Expected 2 club=5 event=5 non-token entries deleted, got $deleted");
+    $remainingIds = $memDb->query("SELECT id FROM roll_entries ORDER BY id")->fetchAll(PDO::FETCH_COLUMN);
+    assert(array_map('intval', $remainingIds) === [3, 4, 5], 'Only MAN-TOK, other club, and other event entries may remain');
+    $remainingPayIds = $memDb->query("SELECT id FROM roll_payments ORDER BY id")->fetchAll(PDO::FETCH_COLUMN);
+    assert(array_map('intval', $remainingPayIds) === [2, 3], 'Only target club+event payment should be deleted');
+    echo "✓ Admin deleteClubEventEntries deletes regular (club_id IS NULL via roll_skaters.club_id) & direct entries [OK]\n";
+} else {
+    echo "ℹ SQLite PDO driver unavailable; skipped in-memory deleteClubEventEntries SQL check\n";
+}
+
 echo "--- ALL CHECKOUT PAY SAFEGUARD TESTS PASSED! ---\n";
 

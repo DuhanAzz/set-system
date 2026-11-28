@@ -18,6 +18,23 @@
     </div>
 </div>
 
+<?php if(isset($_SESSION['flash_message'])): ?>
+    <?php
+    $flashType = $_SESSION['flash_type'] ?? 'info';
+    $flashClass = match($flashType) {
+        'success' => 'bg-emerald-50 text-emerald-700 border-emerald-200',
+        'warning' => 'bg-amber-50 text-amber-700 border-amber-200',
+        'error'   => 'bg-red-50 text-red-700 border-red-200',
+        default   => 'bg-blue-50 text-blue-700 border-blue-200',
+    };
+    ?>
+    <div class="max-w-[95%] mx-auto mb-6 p-4 rounded-xl border <?= $flashClass ?> flex items-center justify-between">
+        <span class="font-bold text-sm"><?= htmlspecialchars((string)$_SESSION['flash_message']) ?></span>
+        <button type="button" onclick="this.parentElement.style.display='none'" class="opacity-50 hover:opacity-100 font-bold text-sm px-2">✕</button>
+    </div>
+    <?php unset($_SESSION['flash_message'], $_SESSION['flash_type']); ?>
+<?php endif; ?>
+
 <div class="max-w-[95%] mx-auto bg-white rounded-[2.5rem] shadow-sm border border-slate-200 overflow-hidden min-h-[500px]">
     
     <?php if($targetEventId == 0): ?>
